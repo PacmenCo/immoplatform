@@ -37,6 +37,7 @@ model User {
   joinedAt        DateTime  @default(now())
   lastSeenAt      DateTime?
   deletedAt       DateTime?
+  emailPrefs      String?   // JSON: { eventKey: boolean } — absent key or absent column = default-enabled
 
   sessions            Session[]
   memberships         TeamMember[]

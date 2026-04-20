@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { generateCuid } from "@/lib/cuid";
 import { prisma } from "@/lib/db";
 import { audit, type SessionWithUser } from "@/lib/auth";
+import { filesUploadedEmail } from "@/lib/email";
+import { notify } from "@/lib/notify";
 import {
   canDeleteAssignmentFile,
   canUploadToFreelancerLane,
@@ -170,6 +172,80 @@ export const uploadAssignmentFiles = withSession(async (
         sizeBytes: file.size,
       },
     });
+  }
+
+  // Notify the opposite side: freelancer uploads → ping the agency; realtor
+  // uploads → ping the freelancer. Self-exclude the uploader.
+  const meta = await prisma.assignment.findUnique({
+    where: { id: assignmentId },
+    select: {
+      id: true,
+      reference: true,
+      address: true,
+      city: true,
+      postal: true,
+      freelancerId: true,
+      createdById: true,
+      teamId: true,
+    },
+  });
+  if (meta) {
+    const notifyRecipients: Array<{
+      id: string;
+      email: string;
+      emailPrefs: string | null;
+      firstName: string;
+    }> = [];
+    if (lane === "freelancer") {
+      // Agency side: creator + team owners.
+      const users = await prisma.user.findMany({
+        where: {
+          deletedAt: null,
+          OR: [
+            meta.createdById ? { id: meta.createdById } : {},
+            meta.teamId
+              ? {
+                  memberships: {
+                    some: { teamId: meta.teamId, teamRole: "owner" },
+                  },
+                }
+              : {},
+          ].filter((c) => Object.keys(c).length > 0),
+        },
+        select: { id: true, email: true, emailPrefs: true, firstName: true },
+      });
+      for (const u of users) {
+        if (u.id !== session.user.id && !notifyRecipients.some((r) => r.id === u.id)) {
+          notifyRecipients.push(u);
+        }
+      }
+    } else if (lane === "realtor" && meta.freelancerId && meta.freelancerId !== session.user.id) {
+      const f = await prisma.user.findUnique({
+        where: { id: meta.freelancerId },
+        select: { id: true, email: true, emailPrefs: true, firstName: true },
+      });
+      if (f) notifyRecipients.push(f);
+    }
+    const baseUrl = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+    const assignmentUrl = `${baseUrl}/dashboard/assignments/${meta.id}`;
+    const uploaderName = `${session.user.firstName} ${session.user.lastName}`;
+    for (const r of notifyRecipients) {
+      await notify({
+        to: r,
+        event: "assignment.files_uploaded",
+        ...filesUploadedEmail({
+          reference: meta.reference,
+          address: meta.address,
+          city: meta.city,
+          postal: meta.postal,
+          assignmentUrl,
+          recipientName: r.firstName,
+          uploaderName,
+          lane,
+          fileCount: prepared.length,
+        }),
+      });
+    }
   }
 
   revalidatePath(`/dashboard/assignments/${assignmentId}/files`);

@@ -19,6 +19,16 @@ import {
   getUserTeamIds,
   hasRole,
 } from "@/lib/permissions";
+import {
+  assignmentCancelledEmail,
+  assignmentCompletedEmail,
+  assignmentDateUpdatedEmail,
+  assignmentDeliveredEmail,
+  assignmentReassignedEmail,
+  assignmentScheduledEmail,
+  commentPostedEmail,
+} from "@/lib/email";
+import { notify } from "@/lib/notify";
 import { withSession, type ActionResult } from "./_types";
 
 // ─── Helpers ───────────────────────────────────────────────────────
@@ -32,6 +42,98 @@ async function nextReference(): Promise<string> {
   });
   const lastNum = last ? parseInt(last.reference.split("-").pop() ?? "1000", 10) : 1000;
   return `ASG-${year}-${(lastNum + 1).toString().padStart(4, "0")}`;
+}
+
+function assignmentUrl(id: string): string {
+  const base = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return `${base}/dashboard/assignments/${id}`;
+}
+
+/** Shape notify() needs + every template's assignment context. */
+type AssignmentEmailSeed = {
+  reference: string;
+  address: string;
+  city: string;
+  postal: string;
+  assignmentUrl: string;
+};
+
+function seedFromAssignment(a: {
+  id: string;
+  reference: string;
+  address: string;
+  city: string;
+  postal: string;
+}): AssignmentEmailSeed {
+  return {
+    reference: a.reference,
+    address: a.address,
+    city: a.city,
+    postal: a.postal,
+    assignmentUrl: assignmentUrl(a.id),
+  };
+}
+
+function fullName(u: { firstName: string; lastName: string }): string {
+  return `${u.firstName} ${u.lastName}`;
+}
+
+type Recipient = {
+  id: string;
+  email: string;
+  emailPrefs: string | null;
+  firstName: string;
+  lastName: string;
+};
+
+/**
+ * Collect the "agency side" humans who should be pinged about an assignment:
+ * the creator + all team owners. Deduplicated, excluding IDs in `exclude`
+ * (typically the actor so they don't email themselves).
+ */
+async function collectAgencyRecipients(opts: {
+  teamId: string | null;
+  createdById: string | null;
+  exclude: string[];
+}): Promise<Recipient[]> {
+  const excludeSet = new Set(opts.exclude);
+  const users = await prisma.user.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        opts.createdById ? { id: opts.createdById } : {},
+        opts.teamId
+          ? {
+              memberships: {
+                some: { teamId: opts.teamId, teamRole: "owner" },
+              },
+            }
+          : {},
+      ].filter((c) => Object.keys(c).length > 0),
+    },
+    select: {
+      id: true,
+      email: true,
+      emailPrefs: true,
+      firstName: true,
+      lastName: true,
+    },
+  });
+  return users.filter((u) => !excludeSet.has(u.id));
+}
+
+async function loadUser(id: string | null): Promise<Recipient | null> {
+  if (!id) return null;
+  return prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      emailPrefs: true,
+      firstName: true,
+      lastName: true,
+    },
+  });
 }
 
 function isUniqueReferenceConflict(err: unknown): boolean {
@@ -243,6 +345,35 @@ export const markAssignmentDelivered = withSession(async (
     objectId: id,
     metadata: { fromStatus: a.status },
   });
+
+  // Notify the agency side — creator + team owner (dedup + exclude the actor).
+  const deliveredRecipients = await collectAgencyRecipients({
+    teamId: a.teamId,
+    createdById: a.createdById,
+    exclude: [session.user.id],
+  });
+  const freelancerActor =
+    a.freelancerId === session.user.id
+      ? await prisma.user.findUnique({
+          where: { id: a.freelancerId },
+          select: { firstName: true, lastName: true },
+        })
+      : null;
+  const freelancerName = freelancerActor
+    ? fullName(freelancerActor)
+    : `${session.user.firstName} ${session.user.lastName}`;
+  for (const r of deliveredRecipients) {
+    await notify({
+      to: r,
+      event: "assignment.delivered",
+      ...assignmentDeliveredEmail({
+        ...seedFromAssignment(a),
+        recipientName: r.firstName,
+        freelancerName,
+      }),
+    });
+  }
+
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
@@ -391,6 +522,40 @@ export const updateAssignment = withSession(async (
     metadata: { services: d.services },
   });
 
+  // If the preferredDate changed, ping the freelancer + creator so they can
+  // replan. Other field edits don't warrant a notification.
+  const previousDate = existing.preferredDate;
+  const newDate = d.preferredDate ? new Date(d.preferredDate) : null;
+  const dateChanged =
+    (previousDate?.getTime() ?? null) !== (newDate?.getTime() ?? null);
+  if (dateChanged) {
+    const dateRecipients: Recipient[] = [];
+    if (existing.freelancerId && existing.freelancerId !== session.user.id) {
+      const f = await loadUser(existing.freelancerId);
+      if (f) dateRecipients.push(f);
+    }
+    if (
+      existing.createdById &&
+      existing.createdById !== session.user.id &&
+      existing.createdById !== existing.freelancerId
+    ) {
+      const c = await loadUser(existing.createdById);
+      if (c) dateRecipients.push(c);
+    }
+    for (const r of dateRecipients) {
+      await notify({
+        to: r,
+        event: "assignment.date_updated",
+        ...assignmentDateUpdatedEmail({
+          ...seedFromAssignment(existing),
+          recipientName: r.firstName,
+          previousDate,
+          newDate,
+        }),
+      });
+    }
+  }
+
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
@@ -451,6 +616,26 @@ export const reassignFreelancer = withSession(async (
     objectId: id,
     metadata: { freelancerId, previousFreelancerId: a.freelancerId },
   });
+
+  // Notify the incoming freelancer. Outgoing gets a silent unassign today —
+  // product decision to revisit once we have a "dropout" / rebook flow.
+  if (freelancerId && freelancerId !== a.freelancerId) {
+    const newFreelancer = await prisma.user.findUnique({
+      where: { id: freelancerId },
+      select: { email: true, emailPrefs: true, firstName: true, lastName: true },
+    });
+    if (newFreelancer) {
+      await notify({
+        to: newFreelancer,
+        event: "assignment.freelancer_reassigned",
+        ...assignmentReassignedEmail({
+          ...seedFromAssignment(a),
+          freelancerName: newFreelancer.firstName,
+          preferredDate: a.preferredDate,
+        }),
+      });
+    }
+  }
 
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
@@ -575,6 +760,21 @@ export const markAssignmentCompleted = withSession(async (
     metadata: { completedAt: completedAt.toISOString() },
   });
 
+  // Notify the freelancer that the agency signed off. The actor is the
+  // realtor/admin/staff side, so no self-email check needed.
+  const freelancer = await loadUser(a.freelancerId);
+  if (freelancer) {
+    await notify({
+      to: freelancer,
+      event: "assignment.completed",
+      ...assignmentCompletedEmail({
+        ...seedFromAssignment(a),
+        recipientName: freelancer.firstName,
+        completedByName: fullName(session.user),
+      }),
+    });
+  }
+
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
@@ -648,6 +848,28 @@ export const cancelAssignment = withSession(async (
     metadata: { fromStatus: a.status, reason: trimmedReason },
   });
 
+  // Notify everyone on the row except the canceller: freelancer (if any) +
+  // creator (if different from canceller).
+  const cancelRecipients: Recipient[] = [];
+  const freelancer = await loadUser(a.freelancerId);
+  if (freelancer && freelancer.id !== session.user.id) cancelRecipients.push(freelancer);
+  if (a.createdById && a.createdById !== session.user.id && a.createdById !== a.freelancerId) {
+    const creator = await loadUser(a.createdById);
+    if (creator) cancelRecipients.push(creator);
+  }
+  for (const r of cancelRecipients) {
+    await notify({
+      to: r,
+      event: "assignment.cancelled",
+      ...assignmentCancelledEmail({
+        ...seedFromAssignment(a),
+        recipientName: r.firstName,
+        cancelledByName: fullName(session.user),
+        reason: trimmedReason,
+      }),
+    });
+  }
+
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
@@ -676,7 +898,16 @@ export const postComment = withSession(async (
 
   const a = await prisma.assignment.findUnique({
     where: { id: parsed.data.assignmentId },
-    select: { teamId: true, freelancerId: true, createdById: true },
+    select: {
+      id: true,
+      reference: true,
+      address: true,
+      city: true,
+      postal: true,
+      teamId: true,
+      freelancerId: true,
+      createdById: true,
+    },
   });
   if (!a) return { ok: false, error: "Assignment not found." };
   if (!(await canViewAssignment(session, a))) {
@@ -690,6 +921,30 @@ export const postComment = withSession(async (
       body: parsed.data.body,
     },
   });
+
+  // Notify the other participants: freelancer + creator, minus the commenter.
+  const commentRecipients: Recipient[] = [];
+  if (a.freelancerId && a.freelancerId !== session.user.id) {
+    const f = await loadUser(a.freelancerId);
+    if (f) commentRecipients.push(f);
+  }
+  if (a.createdById && a.createdById !== session.user.id && a.createdById !== a.freelancerId) {
+    const c = await loadUser(a.createdById);
+    if (c) commentRecipients.push(c);
+  }
+  for (const r of commentRecipients) {
+    await notify({
+      to: r,
+      event: "assignment.comment_posted",
+      ...commentPostedEmail({
+        ...seedFromAssignment(a),
+        recipientName: r.firstName,
+        authorName: fullName(session.user),
+        body: parsed.data.body,
+      }),
+    });
+  }
+
   revalidatePath(`/dashboard/assignments/${parsed.data.assignmentId}`);
   return { ok: true };
 });

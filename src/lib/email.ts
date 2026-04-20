@@ -141,3 +141,161 @@ Sign in to see the team's assignments:
 ${opts.loginUrl}`,
   };
 }
+
+// ─── Assignment lifecycle templates ────────────────────────────────
+
+type AssignmentCtx = {
+  reference: string;
+  address: string;
+  city: string;
+  postal: string;
+  assignmentUrl: string;
+};
+
+function addressLine(a: AssignmentCtx): string {
+  return `${a.address}, ${a.postal} ${a.city}`;
+}
+
+export function assignmentScheduledEmail(opts: AssignmentCtx & {
+  freelancerName: string;
+  preferredDate: Date | null;
+  notes: string | null;
+}): { subject: string; text: string } {
+  const dateLine = opts.preferredDate
+    ? `Preferred date: ${opts.preferredDate.toISOString().slice(0, 10)}\n`
+    : "";
+  const notesLine = opts.notes ? `\nInspector notes: ${opts.notes}\n` : "";
+  return {
+    subject: `New inspection: ${addressLine(opts)} (${opts.reference})`,
+    text: `Hi ${opts.freelancerName},
+
+You've been assigned a new inspection.
+
+Reference: ${opts.reference}
+Property:  ${addressLine(opts)}
+${dateLine}${notesLine}
+Open the assignment:
+${opts.assignmentUrl}`,
+  };
+}
+
+export function assignmentDateUpdatedEmail(opts: AssignmentCtx & {
+  recipientName: string;
+  previousDate: Date | null;
+  newDate: Date | null;
+}): { subject: string; text: string } {
+  const prev = opts.previousDate?.toISOString().slice(0, 10) ?? "unscheduled";
+  const next = opts.newDate?.toISOString().slice(0, 10) ?? "unscheduled";
+  return {
+    subject: `Date changed: ${addressLine(opts)} (${opts.reference})`,
+    text: `Hi ${opts.recipientName},
+
+The preferred date for ${opts.reference} (${addressLine(opts)}) has changed.
+
+Previous: ${prev}
+New:      ${next}
+
+${opts.assignmentUrl}`,
+  };
+}
+
+export function assignmentDeliveredEmail(opts: AssignmentCtx & {
+  recipientName: string;
+  freelancerName: string;
+}): { subject: string; text: string } {
+  return {
+    subject: `Delivered: ${addressLine(opts)} (${opts.reference})`,
+    text: `Hi ${opts.recipientName},
+
+${opts.freelancerName} marked ${opts.reference} (${addressLine(opts)}) as delivered. Review the files and sign off when you're ready.
+
+${opts.assignmentUrl}`,
+  };
+}
+
+export function assignmentCompletedEmail(opts: AssignmentCtx & {
+  recipientName: string;
+  completedByName: string;
+}): { subject: string; text: string } {
+  return {
+    subject: `Completed: ${addressLine(opts)} (${opts.reference})`,
+    text: `Hi ${opts.recipientName},
+
+${opts.completedByName} signed off on ${opts.reference} (${addressLine(opts)}). It's now closed and moves out of the active queue.
+
+${opts.assignmentUrl}`,
+  };
+}
+
+export function assignmentCancelledEmail(opts: AssignmentCtx & {
+  recipientName: string;
+  cancelledByName: string;
+  reason: string | null;
+}): { subject: string; text: string } {
+  const reasonLine = opts.reason ? `\nReason: ${opts.reason}\n` : "";
+  return {
+    subject: `Cancelled: ${addressLine(opts)} (${opts.reference})`,
+    text: `Hi ${opts.recipientName},
+
+${opts.cancelledByName} cancelled ${opts.reference} (${addressLine(opts)}).
+${reasonLine}
+${opts.assignmentUrl}`,
+  };
+}
+
+export function assignmentReassignedEmail(opts: AssignmentCtx & {
+  freelancerName: string;
+  preferredDate: Date | null;
+}): { subject: string; text: string } {
+  const dateLine = opts.preferredDate
+    ? `Preferred date: ${opts.preferredDate.toISOString().slice(0, 10)}\n`
+    : "";
+  return {
+    subject: `You're the new inspector on ${addressLine(opts)}`,
+    text: `Hi ${opts.freelancerName},
+
+You've been assigned to ${opts.reference} (${addressLine(opts)}).
+${dateLine}
+${opts.assignmentUrl}`,
+  };
+}
+
+export function filesUploadedEmail(opts: AssignmentCtx & {
+  recipientName: string;
+  uploaderName: string;
+  lane: "freelancer" | "realtor";
+  fileCount: number;
+}): { subject: string; text: string } {
+  const what =
+    opts.lane === "freelancer"
+      ? `delivered ${opts.fileCount} file${opts.fileCount === 1 ? "" : "s"}`
+      : `uploaded ${opts.fileCount} supporting file${opts.fileCount === 1 ? "" : "s"}`;
+  return {
+    subject: `New files on ${addressLine(opts)}`,
+    text: `Hi ${opts.recipientName},
+
+${opts.uploaderName} ${what} on ${opts.reference} (${addressLine(opts)}).
+
+View the files:
+${opts.assignmentUrl}/files`,
+  };
+}
+
+export function commentPostedEmail(opts: AssignmentCtx & {
+  recipientName: string;
+  authorName: string;
+  body: string;
+}): { subject: string; text: string } {
+  const preview = opts.body.length > 200 ? opts.body.slice(0, 200) + "…" : opts.body;
+  return {
+    subject: `New comment on ${addressLine(opts)}`,
+    text: `Hi ${opts.recipientName},
+
+${opts.authorName} commented on ${opts.reference} (${addressLine(opts)}):
+
+"${preview}"
+
+Reply on the thread:
+${opts.assignmentUrl}`,
+  };
+}
