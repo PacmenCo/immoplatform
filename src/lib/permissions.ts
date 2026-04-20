@@ -90,7 +90,12 @@ export async function userScope(
 
 // ─── Policies ──────────────────────────────────────────────────────
 
-type AssignmentPolicyInput = {
+/**
+ * Minimum assignment shape every policy function needs. Exported so
+ * server actions can type their local assignment projections without
+ * re-declaring the shape (prevents silent drift if we add a 4th field).
+ */
+export type AssignmentPolicyInput = {
   teamId: string | null;
   freelancerId: string | null;
   createdById: string | null;

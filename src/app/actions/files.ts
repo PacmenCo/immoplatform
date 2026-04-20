@@ -9,6 +9,7 @@ import {
   canUploadToFreelancerLane,
   canUploadToRealtorLane,
   canViewAssignmentFiles,
+  type AssignmentPolicyInput,
 } from "@/lib/permissions";
 import { TERMINAL_STATUSES, isTerminalStatus } from "@/lib/mockData";
 import {
@@ -23,16 +24,12 @@ import { withSession, type ActionResult } from "./_types";
 /** TTL for signed download URLs. Matches Platform's 5-minute window. */
 const DOWNLOAD_URL_TTL_SEC = 5 * 60;
 
-type AssignmentPolicyInput = {
-  teamId: string | null;
-  freelancerId: string | null;
-  createdById: string | null;
-};
+type LaneUploadPolicy = (
+  s: SessionWithUser,
+  a: AssignmentPolicyInput,
+) => Promise<boolean>;
 
-const LANE_UPLOAD_POLICY: Record<
-  FileLane,
-  (s: SessionWithUser, a: AssignmentPolicyInput) => Promise<boolean>
-> = {
+const LANE_UPLOAD_POLICY: Record<FileLane, LaneUploadPolicy> = {
   freelancer: canUploadToFreelancerLane,
   realtor: canUploadToRealtorLane,
 };

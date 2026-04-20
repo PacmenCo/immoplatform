@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Storage, StoragePutResult } from "./types";
 
@@ -76,16 +76,6 @@ export class LocalStorage implements Storage {
       return await readFile(this.abs(key));
     } catch {
       return null;
-    }
-  }
-
-  /** Check if the object is present — internal helper for tests/scripts. */
-  async has(key: string): Promise<boolean> {
-    try {
-      await stat(this.abs(key));
-      return true;
-    } catch {
-      return false;
     }
   }
 
