@@ -69,6 +69,7 @@ export default async function EditAssignment({
           tabs={[
             { label: "Details", href: `/dashboard/assignments/${id}` },
             { label: "Edit", href: `/dashboard/assignments/${id}/edit`, active: true },
+            { label: "Files", href: `/dashboard/assignments/${id}/files` },
             { label: "Complete", href: `/dashboard/assignments/${id}/complete` },
           ]}
         />

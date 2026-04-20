@@ -1,104 +1,78 @@
 import { notFound } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Dropzone } from "@/components/ui/Dropzone";
-import { IconArrowRight, IconPlus } from "@/components/ui/Icons";
-import { ASSIGNMENTS } from "@/lib/mockData";
+import { FileList, type FileRow } from "@/components/ui/FileList";
+import { prisma } from "@/lib/db";
+import { requireSession } from "@/lib/auth";
+import {
+  canDeleteAssignmentFile,
+  canUploadToFreelancerLane,
+  canUploadToRealtorLane,
+  canViewAssignmentFiles,
+} from "@/lib/permissions";
+import { isTerminalStatus } from "@/lib/mockData";
+import { FileUploadForm } from "./FileUploadForm";
 
-function IconDownload({ size = 14 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
-}
-
-function IconFile({ size = 18 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-    </svg>
-  );
-}
-
-type FileRow = { name: string; size: string; when: string };
-
-const freelancerFiles: FileRow[] = [
-  { name: "asbestos_inventory.pdf", size: "412 KB", when: "2 hours ago" },
-  { name: "site_photos_front.zip", size: "8.4 MB", when: "2 hours ago" },
-  { name: "lab_sample_results.pdf", size: "126 KB", when: "yesterday" },
-  { name: "epc_final_report.pdf", size: "248 KB", when: "3 days ago" },
-];
-
-const realtorFiles: FileRow[] = [
-  { name: "assignment_form.pdf", size: "98 KB", when: "6 days ago" },
-  { name: "floor_plan.pdf", size: "1.2 MB", when: "6 days ago" },
-];
-
-function FileList({ files }: { files: FileRow[] }) {
-  return (
-    <ul className="divide-y divide-[var(--color-border)]">
-      {files.map((f) => (
-        <li
-          key={f.name}
-          className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-[var(--color-bg-alt)]"
-        >
-          <span className="grid h-10 w-10 place-items-center rounded-md bg-[var(--color-bg-muted)] text-[var(--color-ink-soft)]">
-            <IconFile />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-[var(--color-ink)]">
-              {f.name}
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
-              {f.size} · {f.when}
-            </p>
-          </div>
-          <Button variant="secondary" size="sm">
-            <IconDownload size={14} />
-            Download
-          </Button>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-export default async function AssignmentFiles({
+export default async function AssignmentFilesPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  if (!id) notFound();
-  const assignment = ASSIGNMENTS.find((a) => a.id === id);
+  const session = await requireSession();
+
+  const assignment = await prisma.assignment.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      reference: true,
+      address: true,
+      city: true,
+      postal: true,
+      status: true,
+      teamId: true,
+      freelancerId: true,
+      createdById: true,
+    },
+  });
   if (!assignment) notFound();
+  if (!(await canViewAssignmentFiles(session, assignment))) notFound();
+
+  const [canUploadFreelancer, canUploadRealtor, files] = await Promise.all([
+    canUploadToFreelancerLane(session, assignment),
+    canUploadToRealtorLane(session, assignment),
+    prisma.assignmentFile.findMany({
+      where: { assignmentId: id, deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      include: {
+        uploader: {
+          select: { firstName: true, lastName: true },
+        },
+      },
+    }),
+  ]);
+
+  const terminal = isTerminalStatus(assignment.status);
+
+  const toRow = async (f: (typeof files)[number]): Promise<FileRow> => ({
+    id: f.id,
+    originalName: f.originalName,
+    sizeBytes: f.sizeBytes,
+    mimeType: f.mimeType,
+    createdAt: f.createdAt,
+    uploaderName: f.uploader
+      ? `${f.uploader.firstName} ${f.uploader.lastName}`
+      : null,
+    canDelete: !terminal && (await canDeleteAssignmentFile(session, f)),
+  });
+
+  const freelancerRows = await Promise.all(
+    files.filter((f) => f.lane === "freelancer").map(toRow),
+  );
+  const realtorRows = await Promise.all(
+    files.filter((f) => f.lane === "realtor").map(toRow),
+  );
 
   return (
     <>
@@ -110,82 +84,60 @@ export default async function AssignmentFiles({
       <div className="px-8 pt-6">
         <Tabs
           tabs={[
-            { label: "Details", href: `/dashboard/assignments/${assignment.id}` },
-            { label: "Edit", href: `/dashboard/assignments/${assignment.id}/edit` },
-            { label: "Files", href: `/dashboard/assignments/${assignment.id}/files`, active: true },
-            { label: "Complete", href: `/dashboard/assignments/${assignment.id}/complete` },
+            { label: "Details", href: `/dashboard/assignments/${id}` },
+            { label: "Edit", href: `/dashboard/assignments/${id}/edit` },
+            { label: "Files", href: `/dashboard/assignments/${id}/files`, active: true },
+            { label: "Complete", href: `/dashboard/assignments/${id}/complete` },
           ]}
         />
       </div>
 
-      <div className="p-8 space-y-8 max-w-[960px]">
+      <div className="p-8 space-y-6 max-w-[960px]">
         <Card>
-          <CardHeader className="flex items-center justify-between">
-            <div>
-              <CardTitle>Freelancer uploads</CardTitle>
-              <p className="text-sm text-[var(--color-ink-soft)] mt-1">
-                Reports, photos, and lab results delivered by the inspector.
-              </p>
-            </div>
-            <Button size="sm" variant="secondary">
-              <IconPlus size={14} />
-              Upload
-            </Button>
+          <CardHeader>
+            <CardTitle>Freelancer deliverables</CardTitle>
+            <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+              Certificate PDFs and final reports from the assigned inspector.
+            </p>
           </CardHeader>
-          <CardBody className="p-0">
-            <FileList files={freelancerFiles} />
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex items-center justify-between">
-            <div>
-              <CardTitle>Realtor uploads</CardTitle>
-              <p className="text-sm text-[var(--color-ink-soft)] mt-1">
-                Documents provided by the requesting agency.
-              </p>
-            </div>
-            <Button size="sm" variant="secondary">
-              <IconPlus size={14} />
-              Upload
-            </Button>
-          </CardHeader>
-          <CardBody className="p-0">
-            <FileList files={realtorFiles} />
+          <CardBody className="space-y-5">
+            <FileList
+              files={freelancerRows}
+              emptyMessage="The inspector hasn't uploaded a deliverable yet."
+            />
+            {canUploadFreelancer && !terminal && (
+              <div className="border-t border-[var(--color-border)] pt-5">
+                <FileUploadForm assignmentId={id} lane="freelancer" />
+              </div>
+            )}
           </CardBody>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Owner uploads</CardTitle>
+            <CardTitle>Realtor uploads</CardTitle>
+            <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+              Floor plans, access notes, photos provided by the agency.
+            </p>
           </CardHeader>
-          <CardBody>
-            <EmptyState
-              icon={<IconFile size={20} />}
-              title="No files from the owner yet"
-              description="The owner hasn't uploaded anything for this assignment. Share the upload link to collect documents directly."
-              action={
-                <Button size="sm" variant="secondary">
-                  Copy upload link
-                  <IconArrowRight size={14} />
-                </Button>
-              }
+          <CardBody className="space-y-5">
+            <FileList
+              files={realtorRows}
+              emptyMessage="No supporting documents uploaded yet."
             />
+            {canUploadRealtor && !terminal && (
+              <div className="border-t border-[var(--color-border)] pt-5">
+                <FileUploadForm assignmentId={id} lane="realtor" />
+              </div>
+            )}
           </CardBody>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload a new file</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <Dropzone
-              label="Drop files or click to upload"
-              hint="Max 50 MB per file. Multiple files allowed."
-              accept="PDF, JPG, PNG, ZIP"
-            />
-          </CardBody>
-        </Card>
+        {terminal && (
+          <p className="text-xs text-[var(--color-ink-muted)]">
+            This assignment is {assignment.status}. Uploads and deletions are closed.
+          </p>
+        )}
       </div>
     </>
   );

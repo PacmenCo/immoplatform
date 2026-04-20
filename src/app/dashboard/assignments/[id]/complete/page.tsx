@@ -52,6 +52,7 @@ export default async function CompleteAssignment({
           tabs={[
             { label: "Details", href: `/dashboard/assignments/${id}` },
             { label: "Edit", href: `/dashboard/assignments/${id}/edit` },
+            { label: "Files", href: `/dashboard/assignments/${id}/files` },
             {
               label: "Complete",
               href: `/dashboard/assignments/${id}/complete`,

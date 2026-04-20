@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge, ServicePill } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { Tabs } from "@/components/ui/Tabs";
 import {
   IconMapPin,
   IconMail,
@@ -107,6 +108,17 @@ export default async function AssignmentDetail({
         title={assignment.reference}
         subtitle={`${assignment.address}, ${assignment.postal} ${assignment.city}`}
       />
+
+      <div className="px-8 pt-6">
+        <Tabs
+          tabs={[
+            { label: "Details", href: `/dashboard/assignments/${id}`, active: true },
+            { label: "Edit", href: `/dashboard/assignments/${id}/edit` },
+            { label: "Files", href: `/dashboard/assignments/${id}/files` },
+            { label: "Complete", href: `/dashboard/assignments/${id}/complete` },
+          ]}
+        />
+      </div>
 
       <div className="p-8 max-w-[1200px]">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">

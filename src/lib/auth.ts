@@ -145,7 +145,9 @@ export type AuditVerb =
   | "assignment.delivered"
   | "assignment.completed"
   | "assignment.cancelled"
-  | "assignment.reassigned";
+  | "assignment.reassigned"
+  | "assignment.file_uploaded"
+  | "assignment.file_deleted";
 
 export async function audit(opts: {
   actorId?: string | null;

@@ -199,6 +199,60 @@ export async function canEditTeam(
   return owned.includes(teamId);
 }
 
+// ─── File policies ─────────────────────────────────────────────────
+
+/**
+ * Upload the final deliverable (certificate PDFs) to the freelancer lane.
+ * Only the assigned freelancer, plus admin/staff overrides.
+ */
+export async function canUploadToFreelancerLane(
+  s: SessionWithUser,
+  a: AssignmentPolicyInput,
+): Promise<boolean> {
+  if (hasRole(s, "admin", "staff")) return true;
+  if (!hasRole(s, "freelancer")) return false;
+  return a.freelancerId === s.user.id;
+}
+
+/**
+ * Upload supporting docs to the realtor lane. Realtor team members of the
+ * assignment's team (or creator), plus admin/staff. Freelancers never.
+ */
+export async function canUploadToRealtorLane(
+  s: SessionWithUser,
+  a: AssignmentPolicyInput,
+): Promise<boolean> {
+  if (hasRole(s, "admin", "staff")) return true;
+  if (hasRole(s, "freelancer")) return false;
+  if (!hasRole(s, "realtor")) return false;
+  const { all } = await getUserTeamIds(s.user.id);
+  return a.createdById === s.user.id || (!!a.teamId && all.includes(a.teamId));
+}
+
+/**
+ * View the file list + download any file on an assignment. Same gate as
+ * viewing the assignment itself — both lanes visible to everyone who can
+ * see the assignment (freelancers included).
+ */
+export async function canViewAssignmentFiles(
+  s: SessionWithUser,
+  a: AssignmentPolicyInput,
+): Promise<boolean> {
+  return canViewAssignment(s, a);
+}
+
+/**
+ * Delete (soft-delete) a single file. The uploader can always delete their
+ * own upload. Admin/staff can delete any. Peers and other tenants cannot.
+ */
+export async function canDeleteAssignmentFile(
+  s: SessionWithUser,
+  file: { uploaderId: string | null },
+): Promise<boolean> {
+  if (hasRole(s, "admin", "staff")) return true;
+  return file.uploaderId === s.user.id;
+}
+
 /**
  * Can `session` act on `invite` (resend or revoke)?
  * - admin / staff: any invite

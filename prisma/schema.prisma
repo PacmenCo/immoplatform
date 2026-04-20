@@ -47,6 +47,7 @@ model User {
   freelancerAssignments Assignment[]        @relation("AssignedFreelancer")
   createdAssignments  Assignment[]          @relation("CreatedAssignment")
   comments            AssignmentComment[]
+  uploadedFiles       AssignmentFile[]
 
   @@index([role, deletedAt])
   @@map("users")
@@ -269,6 +270,7 @@ model Assignment {
   createdBy        User?                @relation("CreatedAssignment", fields: [createdById], references: [id], onDelete: SetNull)
   services         AssignmentService[]
   comments         AssignmentComment[]
+  files            AssignmentFile[]
 
   @@index([status])
   @@index([teamId])
@@ -302,4 +304,24 @@ model AssignmentComment {
 
   @@index([assignmentId, createdAt])
   @@map("assignment_comments")
+}
+
+model AssignmentFile {
+  id           String    @id @default(cuid())
+  assignmentId String
+  uploaderId   String?                // SetNull on user delete — preserve history
+  lane         String                 // 'freelancer' | 'realtor'
+  storageKey   String                 // opaque, owned by Storage impl
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  uploader   User?      @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+
+  @@index([assignmentId, lane, deletedAt])
+  @@index([uploaderId])
+  @@map("assignment_files")
 }

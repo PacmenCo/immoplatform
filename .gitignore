@@ -45,3 +45,6 @@ next-env.d.ts
 /prisma/dev.db-journal
 .env
 .env.local
+
+# local file storage (dev)
+/storage
