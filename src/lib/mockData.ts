@@ -1,4 +1,5 @@
-export type ServiceKey = "epc" | "asbestos" | "electrical" | "fuel";
+export const SERVICE_KEYS = ["epc", "asbestos", "electrical", "fuel"] as const;
+export type ServiceKey = (typeof SERVICE_KEYS)[number];
 
 export const SERVICES: Record<
   ServiceKey,
@@ -41,10 +42,10 @@ export const STATUS_META: Record<Status, { label: string; bg: string; fg: string
   cancelled: { label: "Cancelled", bg: "#fee2e2", fg: "#991b1b" },
 };
 
-export const TERMINAL_STATUSES: Status[] = ["completed", "cancelled"];
+export const TERMINAL_STATUSES = ["completed", "cancelled"] as const satisfies readonly Status[];
 
 export function isTerminalStatus(status: string): boolean {
-  return status === "completed" || status === "cancelled";
+  return (TERMINAL_STATUSES as readonly string[]).includes(status);
 }
 
 export type Assignment = {

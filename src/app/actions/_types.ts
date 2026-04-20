@@ -1,3 +1,25 @@
+import { requireSession, type SessionWithUser } from "@/lib/auth";
+
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
+
+/**
+ * Wraps a server action with session-required plumbing.
+ *   const myAction = withSession(async (session, arg1, arg2) => {...});
+ * On unauthenticated calls, returns a standard ActionResult error instead of
+ * re-throwing. Saves ~6 lines of boilerplate per action and centralizes the copy.
+ */
+export function withSession<Args extends unknown[], T>(
+  handler: (session: SessionWithUser, ...args: Args) => Promise<ActionResult<T>>,
+): (...args: Args) => Promise<ActionResult<T>> {
+  return async (...args: Args) => {
+    let session: SessionWithUser;
+    try {
+      session = await requireSession();
+    } catch {
+      return { ok: false, error: "You must be signed in." };
+    }
+    return handler(session, ...args);
+  };
+}

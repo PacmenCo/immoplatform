@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
   audit,
@@ -11,11 +12,10 @@ import {
   hashPassword,
   hashToken,
   requireRole,
-  requireSession,
-  type SessionWithUser,
 } from "@/lib/auth";
+import { canActOnInvite } from "@/lib/permissions";
 import { addedToTeamEmail, inviteEmail, sendEmail } from "@/lib/email";
-import type { ActionResult } from "./_types";
+import { withSession, type ActionResult } from "./_types";
 
 const createInviteSchema = z.object({
   email: z.string().email().transform((s) => s.toLowerCase().trim()),
@@ -301,6 +301,18 @@ export async function acceptInvite(
         error: "This invite has already been used or is no longer valid.",
       };
     }
+    // Email collision with a concurrently-registered account.
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002" &&
+      Array.isArray(err.meta?.target) &&
+      (err.meta.target as string[]).includes("email")
+    ) {
+      return {
+        ok: false,
+        error: "An account with this email already exists. Try signing in.",
+      };
+    }
     throw err;
   }
 
@@ -325,34 +337,10 @@ export async function acceptInvite(
 const RESEND_WINDOW_MS = 60 * 60 * 1000; // 1h
 const RESEND_MAX_PER_WINDOW = 3;
 
-/**
- * Can `session` act on `invite` (resend or revoke)?
- * - admin / staff: any invite
- * - realtor: only invites they sent, for a team they still own
- * - freelancer: never
- */
-async function canActOnInvite(
-  session: SessionWithUser,
-  invite: { invitedById: string; teamId: string | null },
-): Promise<boolean> {
-  if (session.user.role === "admin" || session.user.role === "staff") return true;
-  if (session.user.role !== "realtor") return false;
-  if (invite.invitedById !== session.user.id) return false;
-  if (!invite.teamId) return false;
-  const membership = await prisma.teamMember.findUnique({
-    where: { teamId_userId: { teamId: invite.teamId, userId: session.user.id } },
-  });
-  return membership?.teamRole === "owner";
-}
-
-export async function resendInvite(inviteId: string): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return { ok: false, error: "You must be signed in." };
-  }
-
+export const resendInvite = withSession(async (
+  session,
+  inviteId: string,
+): Promise<ActionResult> => {
   const invite = await prisma.invite.findUnique({
     where: { id: inviteId },
     include: { team: true, invitedBy: true },
@@ -412,16 +400,12 @@ export async function resendInvite(inviteId: string): Promise<ActionResult> {
 
   revalidatePath("/dashboard/users");
   return { ok: true };
-}
+});
 
-export async function revokeInvite(inviteId: string): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return { ok: false, error: "You must be signed in." };
-  }
-
+export const revokeInvite = withSession(async (
+  session,
+  inviteId: string,
+): Promise<ActionResult> => {
   const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
   if (!invite) return { ok: false, error: "Invite not found." };
   if (invite.acceptedAt) return { ok: false, error: "Invite already accepted." };
@@ -446,4 +430,4 @@ export async function revokeInvite(inviteId: string): Promise<ActionResult> {
 
   revalidatePath("/dashboard/users");
   return { ok: true };
-}
+});

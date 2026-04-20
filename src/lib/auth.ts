@@ -121,9 +121,35 @@ export async function requireRole(
 
 // ─── audit log ─────────────────────────────────────────────────────
 
+/**
+ * Typed verb enum — catches typos (e.g. "assignment.deliverd") at compile time.
+ * Convention: `{object}.{action}`. Add new verbs here when wiring a new mutation.
+ */
+export type AuditVerb =
+  | "auth.login_failed"
+  | "user.signed_in"
+  | "user.signed_out"
+  | "user.created"
+  | "user.password_changed"
+  | "password_reset.requested"
+  | "session.team_switched"
+  | "invite.sent"
+  | "invite.resent"
+  | "invite.revoked"
+  | "invite.accepted"
+  | "team.member_added"
+  | "team.ownership_transferred"
+  | "assignment.created"
+  | "assignment.updated"
+  | "assignment.started"
+  | "assignment.delivered"
+  | "assignment.completed"
+  | "assignment.cancelled"
+  | "assignment.reassigned";
+
 export async function audit(opts: {
   actorId?: string | null;
-  verb: string;
+  verb: AuditVerb;
   objectType?: string;
   objectId?: string;
   metadata?: Record<string, unknown>;

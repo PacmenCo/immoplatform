@@ -22,6 +22,7 @@ import {
   canCompleteAssignment,
   canEditAssignment,
   canReassignFreelancer,
+  canUpdateAssignmentFields,
   canViewAssignment,
   eligibleFreelancerWhere,
 } from "@/lib/permissions";
@@ -69,12 +70,14 @@ export default async function AssignmentDetail({
   if (!assignment) notFound();
   if (!(await canViewAssignment(session, assignment))) notFound();
 
-  const [canEdit, canComplete, canCancel, canReassign] = await Promise.all([
-    canEditAssignment(session, assignment),
-    canCompleteAssignment(session, assignment),
-    canCancelAssignment(session, assignment),
-    canReassignFreelancer(session, assignment),
-  ]);
+  const [canTransition, canUpdateFields, canComplete, canCancel, canReassign] =
+    await Promise.all([
+      canEditAssignment(session, assignment),
+      canUpdateAssignmentFields(session, assignment),
+      canCompleteAssignment(session, assignment),
+      canCancelAssignment(session, assignment),
+      canReassignFreelancer(session, assignment),
+    ]);
 
   // Only fetch when the user can reassign, AND scope to freelancers already in
   // the caller's orbit (team members, or previously assigned to their work).
@@ -119,7 +122,8 @@ export default async function AssignmentDetail({
           <AssignmentActions
             assignmentId={assignment.id}
             status={assignment.status}
-            canEdit={canEdit}
+            canTransition={canTransition}
+            canUpdateFields={canUpdateFields}
             canComplete={canComplete}
             canCancel={canCancel}
           />

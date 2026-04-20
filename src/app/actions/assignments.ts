@@ -5,18 +5,21 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { audit, requireSession } from "@/lib/auth";
+import { SERVICE_KEYS, TERMINAL_STATUSES } from "@/lib/mockData";
+import { sourcesOf } from "@/lib/assignmentStatus";
+import { audit } from "@/lib/auth";
 import {
   canCancelAssignment,
   canCompleteAssignment,
   canEditAssignment,
   canReassignFreelancer,
+  canUpdateAssignmentFields,
   canViewAssignment,
   eligibleFreelancerWhere,
   getUserTeamIds,
   hasRole,
 } from "@/lib/permissions";
-import type { ActionResult } from "./_types";
+import { withSession, type ActionResult } from "./_types";
 
 // ─── Helpers ───────────────────────────────────────────────────────
 
@@ -43,9 +46,9 @@ function isUniqueReferenceConflict(err: unknown): boolean {
 // ─── Create ────────────────────────────────────────────────────────
 
 const createSchema = z.object({
-  address: z.string().min(1).max(200),
-  city: z.string().min(1).max(100),
-  postal: z.string().min(1).max(10),
+  address: z.string().trim().min(1, "Address is required.").max(200),
+  city: z.string().trim().min(1, "City is required.").max(100),
+  postal: z.string().trim().min(1, "Postal code is required.").max(10),
   propertyType: z.string().optional(),
   constructionYear: z.preprocess(
     (v) => (v === "" || v === undefined || v === null ? null : v),
@@ -69,9 +72,9 @@ const createSchema = z.object({
       .nullable(),
   ),
 
-  services: z.array(z.enum(["epc", "asbestos", "electrical", "fuel"])).min(1, "Pick at least one service."),
+  services: z.array(z.enum(SERVICE_KEYS)).min(1, "Pick at least one service."),
 
-  ownerName: z.string().min(1).max(200),
+  ownerName: z.string().trim().min(1, "Owner name is required.").max(200),
   ownerEmail: z.string().email().optional().or(z.literal("")),
   ownerPhone: z.string().optional(),
 
@@ -84,21 +87,18 @@ const createSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function createAssignment(
+export const createAssignment = withSession(async (
+  session,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return { ok: false, error: "You must be signed in." };
-  }
-
-  const services: string[] = [];
-  for (const [k, v] of formData.entries()) {
-    if (k.startsWith("service_") && v) services.push(k.replace("service_", ""));
-  }
+): Promise<ActionResult> => {
+  const services = Array.from(
+    new Set(
+      Array.from(formData.entries())
+        .filter(([k, v]) => k.startsWith("service_") && v)
+        .map(([k]) => k.replace("service_", "")),
+    ),
+  );
 
   const raw = {
     address: formData.get("address") as string,
@@ -204,18 +204,14 @@ export async function createAssignment(
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
   redirect(`/dashboard/assignments/${created.id}`);
-}
+});
 
 // ─── Mark delivered ────────────────────────────────────────────────
 
-export async function markAssignmentDelivered(id: string): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return { ok: false, error: "You must be signed in." };
-  }
-
+export const markAssignmentDelivered = withSession(async (
+  session,
+  id: string,
+): Promise<ActionResult> => {
   const a = await prisma.assignment.findUnique({ where: { id } });
   if (!a) return { ok: false, error: "Assignment not found." };
   if (a.status === "delivered" || a.status === "completed") {
@@ -230,7 +226,7 @@ export async function markAssignmentDelivered(id: string): Promise<ActionResult>
   }
 
   const claim = await prisma.assignment.updateMany({
-    where: { id, status: { in: ["scheduled", "in_progress", "draft"] } },
+    where: { id, status: { in: sourcesOf("delivered") } },
     data: { status: "delivered", deliveredAt: new Date() },
   });
   if (claim.count === 0) {
@@ -251,14 +247,14 @@ export async function markAssignmentDelivered(id: string): Promise<ActionResult>
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
   return { ok: true };
-}
+});
 
 // ─── Update ────────────────────────────────────────────────────────
 
 const updateSchema = z.object({
-  address: z.string().min(1).max(200),
-  city: z.string().min(1).max(100),
-  postal: z.string().min(1).max(10),
+  address: z.string().trim().min(1, "Address is required.").max(200),
+  city: z.string().trim().min(1, "City is required.").max(100),
+  postal: z.string().trim().min(1, "Postal code is required.").max(10),
   propertyType: z.string().optional(),
   constructionYear: z.preprocess(
     (v) => (v === "" || v === undefined || v === null ? null : v),
@@ -282,9 +278,9 @@ const updateSchema = z.object({
       .nullable(),
   ),
 
-  services: z.array(z.enum(["epc", "asbestos", "electrical", "fuel"])).min(1, "Pick at least one service."),
+  services: z.array(z.enum(SERVICE_KEYS)).min(1, "Pick at least one service."),
 
-  ownerName: z.string().min(1).max(200),
+  ownerName: z.string().trim().min(1, "Owner name is required.").max(200),
   ownerEmail: z.string().email().optional().or(z.literal("")),
   ownerPhone: z.string().optional(),
 
@@ -297,21 +293,15 @@ const updateSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function updateAssignment(
+export const updateAssignment = withSession(async (
+  session,
   id: string,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return { ok: false, error: "You must be signed in." };
-  }
-
+): Promise<ActionResult> => {
   const existing = await prisma.assignment.findUnique({ where: { id } });
   if (!existing) return { ok: false, error: "Assignment not found." };
-  if (!(await canEditAssignment(session, existing))) {
+  if (!(await canUpdateAssignmentFields(session, existing))) {
     return { ok: false, error: "You don't have permission to edit this assignment." };
   }
   if (existing.status === "completed" || existing.status === "cancelled") {
@@ -321,10 +311,13 @@ export async function updateAssignment(
     };
   }
 
-  const services: string[] = [];
-  for (const [k, v] of formData.entries()) {
-    if (k.startsWith("service_") && v) services.push(k.replace("service_", ""));
-  }
+  const services = Array.from(
+    new Set(
+      Array.from(formData.entries())
+        .filter(([k, v]) => k.startsWith("service_") && v)
+        .map(([k]) => k.replace("service_", "")),
+    ),
+  );
 
   const raw = {
     address: formData.get("address") as string,
@@ -355,7 +348,7 @@ export async function updateAssignment(
   const claimed = await prisma.$transaction(async (tx) => {
     // Optimistic guard: refuse to update if status went terminal in the meantime.
     const claim = await tx.assignment.updateMany({
-      where: { id, status: { notIn: ["completed", "cancelled"] } },
+      where: { id, status: { notIn: [...TERMINAL_STATUSES] } },
       data: {
         address: d.address,
         city: d.city,
@@ -402,21 +395,15 @@ export async function updateAssignment(
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
   redirect(`/dashboard/assignments/${id}`);
-}
+});
 
 // ─── Reassign freelancer ───────────────────────────────────────────
 
-export async function reassignFreelancer(
+export const reassignFreelancer = withSession(async (
+  session,
   id: string,
   freelancerId: string | null,
-): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return { ok: false, error: "You must be signed in." };
-  }
-
+): Promise<ActionResult> => {
   const a = await prisma.assignment.findUnique({ where: { id } });
   if (!a) return { ok: false, error: "Assignment not found." };
   if (!(await canReassignFreelancer(session, a))) {
@@ -447,7 +434,7 @@ export async function reassignFreelancer(
   }
 
   const claim = await prisma.assignment.updateMany({
-    where: { id, status: { notIn: ["completed", "cancelled"] } },
+    where: { id, status: { notIn: [...TERMINAL_STATUSES] } },
     data: { freelancerId },
   });
   if (claim.count === 0) {
@@ -468,25 +455,21 @@ export async function reassignFreelancer(
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   return { ok: true };
-}
+});
 
 // ─── Start (scheduled → in_progress) ───────────────────────────────
 
-export async function markAssignmentInProgress(id: string): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return { ok: false, error: "You must be signed in." };
-  }
-
+export const markAssignmentInProgress = withSession(async (
+  session,
+  id: string,
+): Promise<ActionResult> => {
   const a = await prisma.assignment.findUnique({ where: { id } });
   if (!a) return { ok: false, error: "Assignment not found." };
   if (!(await canEditAssignment(session, a))) {
     return { ok: false, error: "You don't have permission to start this." };
   }
   const claim = await prisma.assignment.updateMany({
-    where: { id, status: { in: ["scheduled", "draft"] } },
+    where: { id, status: { in: sourcesOf("in_progress") } },
     data: { status: "in_progress" },
   });
   if (claim.count === 0) {
@@ -507,7 +490,7 @@ export async function markAssignmentInProgress(id: string): Promise<ActionResult
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   return { ok: true };
-}
+});
 
 // ─── Complete (delivered → completed) ──────────────────────────────
 
@@ -526,18 +509,12 @@ const completeSchema = z.object({
     ),
 });
 
-export async function markAssignmentCompleted(
+export const markAssignmentCompleted = withSession(async (
+  session,
   id: string,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return { ok: false, error: "You must be signed in." };
-  }
-
+): Promise<ActionResult> => {
   const a = await prisma.assignment.findUnique({ where: { id } });
   if (!a) return { ok: false, error: "Assignment not found." };
   if (!(await canCompleteAssignment(session, a))) {
@@ -567,7 +544,7 @@ export async function markAssignmentCompleted(
 
   const claimed = await prisma.$transaction(async (tx) => {
     const claim = await tx.assignment.updateMany({
-      where: { id, status: "delivered" },
+      where: { id, status: { in: sourcesOf("completed") } },
       data: { status: "completed", completedAt },
     });
     if (claim.count === 0) return false;
@@ -602,7 +579,7 @@ export async function markAssignmentCompleted(
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
   redirect(`/dashboard/assignments/${id}`);
-}
+});
 
 // ─── Cancel (non-terminal → cancelled) ─────────────────────────────
 
@@ -614,17 +591,11 @@ const cancelSchema = z.object({
     .optional(),
 });
 
-export async function cancelAssignment(
+export const cancelAssignment = withSession(async (
+  session,
   id: string,
   reason?: string,
-): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return { ok: false, error: "You must be signed in." };
-  }
-
+): Promise<ActionResult> => {
   const a = await prisma.assignment.findUnique({ where: { id } });
   if (!a) return { ok: false, error: "Assignment not found." };
   if (!(await canCancelAssignment(session, a))) {
@@ -642,7 +613,7 @@ export async function cancelAssignment(
 
   const claimed = await prisma.$transaction(async (tx) => {
     const claim = await tx.assignment.updateMany({
-      where: { id, status: { notIn: ["completed", "cancelled"] } },
+      where: { id, status: { in: sourcesOf("cancelled") } },
       data: {
         status: "cancelled",
         cancelledAt: new Date(),
@@ -681,7 +652,7 @@ export async function cancelAssignment(
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
   return { ok: true };
-}
+});
 
 // ─── Post comment ──────────────────────────────────────────────────
 
@@ -690,17 +661,11 @@ const commentSchema = z.object({
   body: z.string().min(1).max(4000),
 });
 
-export async function postComment(
+export const postComment = withSession(async (
+  session,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return { ok: false, error: "You must be signed in." };
-  }
-
+): Promise<ActionResult> => {
   const parsed = commentSchema.safeParse({
     assignmentId: formData.get("assignmentId"),
     body: (formData.get("body") as string)?.trim(),
@@ -727,4 +692,4 @@ export async function postComment(
   });
   revalidatePath(`/dashboard/assignments/${parsed.data.assignmentId}`);
   return { ok: true };
-}
+});

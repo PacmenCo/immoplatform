@@ -115,17 +115,35 @@ export async function canViewAssignment(
   );
 }
 
+/**
+ * Wide edit — status transitions (start, deliver, mark) AND field edits.
+ * Freelancers get this on their own rows so they can mark delivered; use
+ * `canUpdateAssignmentFields` for the narrower "rewrite address/contacts"
+ * case where freelancers must be excluded.
+ */
 export async function canEditAssignment(
   s: SessionWithUser,
   a: AssignmentPolicyInput,
 ): Promise<boolean> {
   if (hasRole(s, "admin", "staff")) return true;
-  // Freelancers can edit their own assigned rows (limited fields controlled
-  // at the field level — e.g. they can mark delivered).
   if (hasRole(s, "freelancer")) return a.freelancerId === s.user.id;
   if (!hasRole(s, "realtor")) return false;
   const { owned } = await getUserTeamIds(s.user.id);
   return a.createdById === s.user.id || (!!a.teamId && owned.includes(a.teamId));
+}
+
+/**
+ * Narrow edit — rewrites to property address, contacts, services, scheduling.
+ * Freelancers cannot modify these fields on their own assigned rows; they
+ * only transition state. Prevents a freelancer from tampering with the
+ * property record or contact data.
+ */
+export async function canUpdateAssignmentFields(
+  s: SessionWithUser,
+  a: AssignmentPolicyInput,
+): Promise<boolean> {
+  if (hasRole(s, "freelancer")) return false;
+  return canEditAssignment(s, a);
 }
 
 /**
@@ -177,6 +195,26 @@ export async function canEditTeam(
   if (!hasRole(s, "realtor")) return false;
   const { owned } = await getUserTeamIds(s.user.id);
   return owned.includes(teamId);
+}
+
+/**
+ * Can `session` act on `invite` (resend or revoke)?
+ * - admin / staff: any invite
+ * - realtor: only invites they sent, for a team they still own
+ * - freelancer: never
+ */
+export async function canActOnInvite(
+  s: SessionWithUser,
+  invite: { invitedById: string; teamId: string | null },
+): Promise<boolean> {
+  if (hasRole(s, "admin", "staff")) return true;
+  if (!hasRole(s, "realtor")) return false;
+  if (invite.invitedById !== s.user.id) return false;
+  if (!invite.teamId) return false;
+  const membership = await prisma.teamMember.findUnique({
+    where: { teamId_userId: { teamId: invite.teamId, userId: s.user.id } },
+  });
+  return membership?.teamRole === "owner";
 }
 
 /**

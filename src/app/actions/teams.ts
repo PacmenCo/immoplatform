@@ -2,21 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { audit, requireSession } from "@/lib/auth";
+import { audit } from "@/lib/auth";
 import { canEditTeam, hasRole } from "@/lib/permissions";
-import type { ActionResult } from "./_types";
+import { withSession, type ActionResult } from "./_types";
 
-export async function transferTeamOwnership(
+export const transferTeamOwnership = withSession(async (
+  session,
   teamId: string,
   newOwnerUserId: string,
-): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return { ok: false, error: "You must be signed in." };
-  }
-
+): Promise<ActionResult> => {
   const allowed = hasRole(session, "admin") || (await canEditTeam(session, teamId));
   if (!allowed) {
     return { ok: false, error: "You don't have permission to transfer ownership." };
@@ -87,4 +81,4 @@ export async function transferTeamOwnership(
   revalidatePath(`/dashboard/teams/${teamId}`);
   revalidatePath("/dashboard/teams");
   return { ok: true };
-}
+});

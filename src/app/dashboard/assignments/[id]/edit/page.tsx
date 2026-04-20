@@ -5,7 +5,7 @@ import { AssignmentForm } from "@/components/dashboard/AssignmentForm";
 import type { AssignmentFormInitial } from "@/components/dashboard/AssignmentForm";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { canEditAssignment } from "@/lib/permissions";
+import { canUpdateAssignmentFields } from "@/lib/permissions";
 import { updateAssignment } from "@/app/actions/assignments";
 
 export default async function EditAssignment({
@@ -25,7 +25,7 @@ export default async function EditAssignment({
   ]);
 
   if (!assignment) notFound();
-  if (!(await canEditAssignment(session, assignment))) notFound();
+  if (!(await canUpdateAssignmentFields(session, assignment))) notFound();
   if (assignment.status === "completed" || assignment.status === "cancelled") {
     redirect(`/dashboard/assignments/${id}`);
   }
