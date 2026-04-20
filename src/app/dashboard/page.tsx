@@ -12,7 +12,20 @@ import {
 import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { assignmentScope, composeWhere, hasRole } from "@/lib/permissions";
+import { assignmentScope, composeWhere, hasRole, role, type Role } from "@/lib/permissions";
+
+const UPCOMING_LINK_LABEL: Record<Role, string> = {
+  admin: "View all",
+  staff: "View all",
+  realtor: "Team assignments",
+  freelancer: "My inspections",
+};
+const UPCOMING_HEADING: Record<Role, string> = {
+  admin: "Upcoming assignments",
+  staff: "Upcoming assignments",
+  realtor: "Upcoming assignments",
+  freelancer: "My upcoming inspections",
+};
 
 export default async function DashboardHome() {
   const session = await requireSession();
@@ -22,6 +35,7 @@ export default async function DashboardHome() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const scope = await assignmentScope(session);
+  const r = role(session);
   const isFreelancer = hasRole(session, "freelancer");
 
   const [active, dueThisWeek, deliveredMtd, services, upcoming, recentAudits] =
@@ -123,17 +137,13 @@ export default async function DashboardHome() {
           <section className="lg:col-span-2">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-[var(--color-ink)]">
-                {isFreelancer ? "My upcoming inspections" : "Upcoming assignments"}
+                {UPCOMING_HEADING[r]}
               </h2>
               <Link
                 href="/dashboard/assignments"
                 className="text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] inline-flex items-center gap-1"
               >
-                {isFreelancer
-                  ? "My inspections"
-                  : hasRole(session, "realtor")
-                    ? "Team assignments"
-                    : "View all"}
+                {UPCOMING_LINK_LABEL[r]}
                 <IconArrowRight size={14} />
               </Link>
             </div>

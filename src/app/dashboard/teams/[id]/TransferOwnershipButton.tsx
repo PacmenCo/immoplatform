@@ -54,7 +54,6 @@ export function TransferOwnershipButton({
           <Modal
             title="Transfer team ownership"
             description={`Pick a new owner for ${teamName}. They'll get full edit + invite rights; you'll become a regular member.`}
-            closeHref={undefined}
             onClose={() => setOpen(false)}
             className="w-full"
             footer={

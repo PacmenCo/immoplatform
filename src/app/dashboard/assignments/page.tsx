@@ -9,19 +9,35 @@ import { IconFilter, IconList, IconPlus } from "@/components/ui/Icons";
 import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { assignmentScope, composeWhere, hasRole } from "@/lib/permissions";
+import { assignmentScope, composeWhere, role, type Role } from "@/lib/permissions";
+import { initials } from "@/lib/format";
 
 const statusOrder: Status[] = ["draft", "scheduled", "in_progress", "delivered", "completed"];
 
-function initials(first: string, last: string): string {
-  return ((first[0] ?? "") + (last[0] ?? "")).toUpperCase() || "??";
-}
+const EMPTY_COPY: Record<Role, { title: string; description: string }> = {
+  admin: {
+    title: "No assignments yet",
+    description: "Create your first property inspection to get started.",
+  },
+  staff: {
+    title: "No assignments yet",
+    description: "Create your first property inspection to get started.",
+  },
+  realtor: {
+    title: "No certificate orders yet for your team",
+    description: "Click New assignment to order your team's first certificate.",
+  },
+  freelancer: {
+    title: "No inspections assigned to you yet",
+    description: "Once a realtor assigns you to an inspection, it shows up here.",
+  },
+};
 
 export default async function AssignmentsList() {
   const session = await requireSession();
   const scope = await assignmentScope(session);
-  const isFreelancer = hasRole(session, "freelancer");
-  const isRealtor = hasRole(session, "realtor");
+  const r = role(session);
+  const isFreelancer = r === "freelancer";
 
   const [assignments, services, counts] = await Promise.all([
     prisma.assignment.findMany({
@@ -90,27 +106,15 @@ export default async function AssignmentsList() {
           <EmptyState
             variant="dashed"
             icon={<IconList size={22} />}
-            title={
-              isFreelancer
-                ? "No inspections assigned to you yet"
-                : isRealtor
-                  ? "No certificate orders yet for your team"
-                  : "No assignments yet"
-            }
-            description={
-              isFreelancer
-                ? "Once a realtor assigns you to an inspection, it shows up here."
-                : isRealtor
-                  ? "Click New assignment to order your team's first certificate."
-                  : "Create your first property inspection to get started."
-            }
+            title={EMPTY_COPY[r].title}
+            description={EMPTY_COPY[r].description}
             action={
-              !isFreelancer ? (
+              isFreelancer ? undefined : (
                 <Button href="/dashboard/assignments/new" size="md">
                   <IconPlus size={14} />
                   Create assignment
                 </Button>
-              ) : undefined
+              )
             }
           />
         ) : (

@@ -22,11 +22,9 @@ import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { canEditTeam, getUserTeamIds, hasRole } from "@/lib/permissions";
+import { initials } from "@/lib/format";
+import { roleBadge } from "@/lib/roleColors";
 import { TransferOwnershipButton } from "./TransferOwnershipButton";
-
-function initials(first: string, last: string): string {
-  return ((first[0] ?? "") + (last[0] ?? "")).toUpperCase() || "??";
-}
 
 function euros(cents: number): string {
   return `€ ${(cents / 100).toLocaleString(undefined, {
@@ -34,13 +32,6 @@ function euros(cents: number): string {
     maximumFractionDigits: 2,
   })}`;
 }
-
-const roleBadge: Record<string, { bg: string; fg: string }> = {
-  admin: { bg: "#fef2f2", fg: "#b91c1c" },
-  staff: { bg: "#f5f3ff", fg: "#6d28d9" },
-  realtor: { bg: "#eff6ff", fg: "#1d4ed8" },
-  freelancer: { bg: "#ecfdf5", fg: "#047857" },
-};
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -509,7 +500,7 @@ export default async function TeamDetailPage({
                   </thead>
                   <tbody className="divide-y divide-[var(--color-border)]">
                     {team.members.map((m) => {
-                      const rb = roleBadge[m.user.role] ?? roleBadge.freelancer;
+                      const rb = roleBadge(m.user.role);
                       return (
                         <tr key={m.userId} className="hover:bg-[var(--color-bg-alt)]">
                           <td className="px-6 py-3">

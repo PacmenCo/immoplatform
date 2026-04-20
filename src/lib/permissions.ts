@@ -37,13 +37,19 @@ export const getUserTeamIds = cache(async (userId: string) => {
  * silent key collisions and correctly preserves nested OR / NOT.
  *
  *   where: composeWhere({ status: "delivered" }, await assignmentScope(s))
+ *
+ * Constrained to shapes that expose an `AND` field — every Prisma-generated
+ * WhereInput satisfies this, so the cast is honest within its intended use.
  */
-export function composeWhere<T extends object>(
+type WhereLike = { AND?: unknown };
+
+export function composeWhere<T extends WhereLike>(
   ...clauses: Array<T | undefined | null>
 ): T {
   const present = clauses.filter((c): c is T => !!c);
-  if (present.length <= 1) return (present[0] ?? ({} as T));
-  return ({ AND: present } as unknown) as T;
+  if (present.length === 0) return {} as T;
+  if (present.length === 1) return present[0]!;
+  return { AND: present } as T;
 }
 
 // ─── Query scopes (undefined = no filter) ──────────────────────────

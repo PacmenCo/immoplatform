@@ -9,18 +9,9 @@ import { IconPlus, IconArrowRight, IconMail } from "@/components/ui/Icons";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { hasRole } from "@/lib/permissions";
+import { initials } from "@/lib/format";
+import { roleBadge } from "@/lib/roleColors";
 import { PendingInviteRow } from "./PendingInviteRow";
-
-const roleBadge: Record<string, { bg: string; fg: string }> = {
-  admin: { bg: "#fef2f2", fg: "#b91c1c" },
-  staff: { bg: "#f5f3ff", fg: "#6d28d9" },
-  realtor: { bg: "#eff6ff", fg: "#1d4ed8" },
-  freelancer: { bg: "#ecfdf5", fg: "#047857" },
-};
-
-function initials(first: string, last: string): string {
-  return ((first[0] ?? "") + (last[0] ?? "")).toUpperCase() || "??";
-}
 
 export default async function UsersPage() {
   const session = await requireSession();
@@ -70,7 +61,7 @@ export default async function UsersPage() {
             </CardHeader>
             <ul className="divide-y divide-[var(--color-border)]">
               {pendingInvites.map((inv) => {
-                const rb = roleBadge[inv.role] ?? roleBadge.freelancer;
+                const rb = roleBadge(inv.role);
                 const inviter = `${inv.invitedBy.firstName} ${inv.invitedBy.lastName}`;
                 return (
                   <PendingInviteRow
@@ -124,7 +115,7 @@ export default async function UsersPage() {
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
                 {users.map((u) => {
-                  const rb = roleBadge[u.role] ?? roleBadge.freelancer;
+                  const rb = roleBadge(u.role);
                   const teamName = u.memberships[0]?.team.name ?? "—";
                   const fullName = `${u.firstName} ${u.lastName}`;
                   return (

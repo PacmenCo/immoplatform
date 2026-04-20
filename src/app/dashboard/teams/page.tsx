@@ -17,10 +17,7 @@ import {
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { composeWhere, teamScope } from "@/lib/permissions";
-
-function initials(first: string, last: string): string {
-  return ((first[0] ?? "") + (last[0] ?? "")).toUpperCase() || "??";
-}
+import { initials } from "@/lib/format";
 
 export default async function TeamsPage() {
   const session = await requireSession();

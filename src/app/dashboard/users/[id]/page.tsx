@@ -22,12 +22,7 @@ import {
   UserRole,
 } from "@/lib/mockData";
 
-const roleBadge: Record<UserRole, { bg: string; fg: string; label: string }> = {
-  admin: { bg: "#fef2f2", fg: "#b91c1c", label: "Admin" },
-  staff: { bg: "#f5f3ff", fg: "#6d28d9", label: "Staff" },
-  realtor: { bg: "#eff6ff", fg: "#1d4ed8", label: "Realtor" },
-  freelancer: { bg: "#ecfdf5", fg: "#047857", label: "Freelancer" },
-};
+import { roleBadge } from "@/lib/roleColors";
 
 export default async function UserDetail({
   params,
@@ -38,7 +33,7 @@ export default async function UserDetail({
   const user = USERS.find((u) => u.id === id);
   if (!user) notFound();
 
-  const rb = roleBadge[user.role];
+  const rb = roleBadge(user.role);
 
   const userAssignments = ASSIGNMENTS.filter((a) => {
     if (user.role === "freelancer") return a.freelancer?.avatar === user.avatar;

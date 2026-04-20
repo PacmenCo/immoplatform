@@ -19,12 +19,9 @@ import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { canViewAssignment } from "@/lib/permissions";
+import { initials } from "@/lib/format";
 import { CommentForm } from "./CommentForm";
 import { MarkDeliveredButton } from "./MarkDeliveredButton";
-
-function initials(first: string, last: string): string {
-  return ((first[0] ?? "") + (last[0] ?? "")).toUpperCase() || "??";
-}
 
 function timeAgo(date: Date): string {
   const diff = Date.now() - date.getTime();
