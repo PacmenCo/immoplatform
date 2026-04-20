@@ -12,7 +12,7 @@ import {
 import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { assignmentScope, composeWhere, hasRole, role, type Role } from "@/lib/permissions";
+import { assignmentScope, composeWhere, role, userScope, type Role } from "@/lib/permissions";
 
 const UPCOMING_LINK_LABEL: Record<Role, string> = {
   admin: "View all",
@@ -35,10 +35,10 @@ export default async function DashboardHome() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const scope = await assignmentScope(session);
+  const uScope = await userScope(session);
   const r = role(session);
-  const isFreelancer = hasRole(session, "freelancer");
 
-  const [active, dueThisWeek, deliveredMtd, services, upcoming, recentAudits] =
+  const [active, dueThisWeek, deliveredMtd, services, upcoming, recentAudits, memberCount] =
     await Promise.all([
       prisma.assignment.count({
         where: composeWhere(
@@ -75,6 +75,9 @@ export default async function DashboardHome() {
         take: 5,
         include: { actor: true },
       }),
+      prisma.user.count({
+        where: composeWhere({ deletedAt: null }, uScope),
+      }),
     ]);
 
   const servicesByKey = Object.fromEntries(services.map((s) => [s.key, s]));
@@ -92,8 +95,8 @@ export default async function DashboardHome() {
     },
     {
       label: "Team members",
-      value: "", // filled below
-      delta: "",
+      value: memberCount.toString(),
+      delta: r === "admin" || r === "staff" ? "People on the platform" : "People on your teams",
     },
     {
       label: "Avg. turnaround",
@@ -101,10 +104,6 @@ export default async function DashboardHome() {
       delta: "−0.3 d vs last month",
     },
   ];
-
-  const memberCount = await prisma.user.count({ where: { deletedAt: null } });
-  stats[2].value = memberCount.toString();
-  stats[2].delta = "People on the platform";
 
   return (
     <>

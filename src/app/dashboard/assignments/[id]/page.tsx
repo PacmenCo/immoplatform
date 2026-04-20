@@ -11,17 +11,24 @@ import {
   IconPhone,
   IconCalendar,
   IconCheck,
-  IconPlus,
   IconFileText,
   IconDownload,
 } from "@/components/ui/Icons";
-import { STATUS_META, Status } from "@/lib/mockData";
+import { STATUS_META, Status, isTerminalStatus } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { canViewAssignment } from "@/lib/permissions";
+import {
+  canCancelAssignment,
+  canCompleteAssignment,
+  canEditAssignment,
+  canReassignFreelancer,
+  canViewAssignment,
+  eligibleFreelancerWhere,
+} from "@/lib/permissions";
 import { initials } from "@/lib/format";
 import { CommentForm } from "./CommentForm";
-import { MarkDeliveredButton } from "./MarkDeliveredButton";
+import { AssignmentActions } from "./AssignmentActions";
+import { ReassignFreelancerButton } from "./ReassignFreelancerButton";
 
 function timeAgo(date: Date): string {
   const diff = Date.now() - date.getTime();
@@ -60,13 +67,36 @@ export default async function AssignmentDetail({
   ]);
 
   if (!assignment) notFound();
-
-  // Don't leak existence — 404 for anyone who can't view it.
   if (!(await canViewAssignment(session, assignment))) notFound();
+
+  const [canEdit, canComplete, canCancel, canReassign] = await Promise.all([
+    canEditAssignment(session, assignment),
+    canCompleteAssignment(session, assignment),
+    canCancelAssignment(session, assignment),
+    canReassignFreelancer(session, assignment),
+  ]);
+
+  // Only fetch when the user can reassign, AND scope to freelancers already in
+  // the caller's orbit (team members, or previously assigned to their work).
+  // Prevents cross-tenant enumeration of the full freelancer roster.
+  const eligibleFreelancers = canReassign
+    ? await prisma.user.findMany({
+        where: await eligibleFreelancerWhere(session),
+        orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+        take: 500,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          region: true,
+        },
+      })
+    : [];
 
   const servicesByKey = Object.fromEntries(services.map((s) => [s.key, s]));
   const meta = STATUS_META[assignment.status as Status] ?? STATUS_META.draft;
-  const isTerminal = assignment.status === "delivered" || assignment.status === "completed";
+  const isTerminal = isTerminalStatus(assignment.status);
 
   return (
     <>
@@ -76,8 +106,8 @@ export default async function AssignmentDetail({
       />
 
       <div className="p-8 max-w-[1200px]">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <Badge bg={meta.bg} fg={meta.fg}>{meta.label}</Badge>
             {assignment.services.map((s) => {
               const svc = servicesByKey[s.serviceKey];
@@ -86,13 +116,32 @@ export default async function AssignmentDetail({
               ) : null;
             })}
           </div>
-          <div className="flex items-center gap-2">
-            <Button href={`/dashboard/assignments/${assignment.id}/edit`} variant="secondary" size="sm">
-              Edit
-            </Button>
-            <MarkDeliveredButton assignmentId={assignment.id} disabled={isTerminal} />
-          </div>
+          <AssignmentActions
+            assignmentId={assignment.id}
+            status={assignment.status}
+            canEdit={canEdit}
+            canComplete={canComplete}
+            canCancel={canCancel}
+          />
         </div>
+
+        {assignment.status === "cancelled" && assignment.cancellationReason && (
+          <Card className="mb-6 border-[var(--color-asbestos)]/30 bg-[color-mix(in_srgb,var(--color-asbestos)_4%,var(--color-bg))]">
+            <CardBody>
+              <p className="text-xs uppercase tracking-wider text-[var(--color-asbestos)]">
+                Cancellation reason
+              </p>
+              <p className="mt-1 text-sm text-[var(--color-ink)]">
+                {assignment.cancellationReason}
+              </p>
+              {assignment.cancelledAt && (
+                <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
+                  {assignment.cancelledAt.toISOString().slice(0, 10)}
+                </p>
+              )}
+            </CardBody>
+          </Card>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
@@ -305,8 +354,16 @@ export default async function AssignmentDetail({
             </Card>
 
             <Card>
-              <CardHeader>
+              <CardHeader className="flex items-center justify-between">
                 <CardTitle>Assigned to</CardTitle>
+                {canReassign && !isTerminal && assignment.freelancer && (
+                  <ReassignFreelancerButton
+                    assignmentId={assignment.id}
+                    currentFreelancerId={assignment.freelancer.id}
+                    freelancers={eligibleFreelancers}
+                    triggerLabel="reassign"
+                  />
+                )}
               </CardHeader>
               <CardBody>
                 {assignment.freelancer ? (
@@ -332,11 +389,17 @@ export default async function AssignmentDetail({
                       </div>
                     </div>
                   </Link>
+                ) : canReassign && !isTerminal ? (
+                  <ReassignFreelancerButton
+                    assignmentId={assignment.id}
+                    currentFreelancerId={null}
+                    freelancers={eligibleFreelancers}
+                    triggerLabel="assign"
+                  />
                 ) : (
-                  <Button variant="secondary" size="sm">
-                    <IconPlus size={14} />
-                    Assign freelancer
-                  </Button>
+                  <p className="text-sm text-[var(--color-ink-muted)]">
+                    No freelancer assigned yet.
+                  </p>
                 )}
               </CardBody>
             </Card>

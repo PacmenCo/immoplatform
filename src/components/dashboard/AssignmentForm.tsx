@@ -2,10 +2,10 @@
 
 import { useActionState } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { createAssignment } from "@/app/actions/assignments";
-import type { ActionResult } from "@/app/actions/invites";
+import type { ActionResult } from "@/app/actions/_types";
 
 type ServiceRow = {
   key: string;
@@ -15,22 +15,57 @@ type ServiceRow = {
   description: string;
 };
 
-export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
-  const [state, formAction, pending] = useActionState<ActionResult | undefined, FormData>(
-    createAssignment,
-    undefined,
-  );
+type OwnerContact = { name: string; email: string | null; phone: string | null };
+type TenantContact = {
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+};
+
+export type AssignmentFormInitial = {
+  address: string;
+  city: string;
+  postal: string;
+  propertyType: string | null;
+  constructionYear: number | null;
+  areaM2: number | null;
+  services: string[];
+  owner: OwnerContact;
+  tenant: TenantContact;
+  preferredDate: string | null;
+  keyPickup: string | null;
+  notes: string | null;
+};
+
+type Props = {
+  services: ServiceRow[];
+  action: (
+    prev: ActionResult | undefined,
+    formData: FormData,
+  ) => Promise<ActionResult>;
+  initial?: AssignmentFormInitial;
+  submitLabel?: string;
+  cancelHref: string;
+};
+
+export function AssignmentForm({
+  services,
+  action,
+  initial,
+  submitLabel,
+  cancelHref,
+}: Props) {
+  const [state, formAction, pending] = useActionState<
+    ActionResult | undefined,
+    FormData
+  >(action, undefined);
+
+  const submitCopy =
+    submitLabel ?? (initial ? "Save changes" : "Create assignment");
 
   return (
     <form action={formAction} className="max-w-[960px] p-8 pb-28 space-y-8">
-      {state && !state.ok && (
-        <div
-          role="alert"
-          className="rounded-md border border-[var(--color-asbestos)]/30 bg-[color-mix(in_srgb,var(--color-asbestos)_6%,var(--color-bg))] px-3 py-2 text-sm text-[var(--color-asbestos)]"
-        >
-          {state.error}
-        </div>
-      )}
+      {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
 
       <Card>
         <CardHeader>
@@ -42,22 +77,44 @@ export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
         <CardBody className="grid gap-5 sm:grid-cols-6">
           <div className="sm:col-span-6">
             <Field label="Street + number" id="address" required>
-              <Input id="address" name="address" placeholder="Meir 34" required />
+              <Input
+                id="address"
+                name="address"
+                placeholder="Meir 34"
+                defaultValue={initial?.address ?? ""}
+                required
+              />
             </Field>
           </div>
           <div className="sm:col-span-2">
             <Field label="Postal code" id="postal" required>
-              <Input id="postal" name="postal" placeholder="2000" required />
+              <Input
+                id="postal"
+                name="postal"
+                placeholder="2000"
+                defaultValue={initial?.postal ?? ""}
+                required
+              />
             </Field>
           </div>
           <div className="sm:col-span-4">
             <Field label="City" id="city" required>
-              <Input id="city" name="city" placeholder="Antwerpen" required />
+              <Input
+                id="city"
+                name="city"
+                placeholder="Antwerpen"
+                defaultValue={initial?.city ?? ""}
+                required
+              />
             </Field>
           </div>
           <div className="sm:col-span-2">
             <Field label="Property type" id="type">
-              <Select id="type" name="type" defaultValue="apartment">
+              <Select
+                id="type"
+                name="type"
+                defaultValue={initial?.propertyType ?? "apartment"}
+              >
                 <option value="house">House</option>
                 <option value="apartment">Apartment</option>
                 <option value="studio">Studio</option>
@@ -68,12 +125,24 @@ export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
           </div>
           <div className="sm:col-span-2">
             <Field label="Construction year" id="year">
-              <Input id="year" name="year" type="number" placeholder="1985" />
+              <Input
+                id="year"
+                name="year"
+                type="number"
+                placeholder="1985"
+                defaultValue={initial?.constructionYear ?? ""}
+              />
             </Field>
           </div>
           <div className="sm:col-span-2">
             <Field label="Living area (m²)" id="area">
-              <Input id="area" name="area" type="number" placeholder="120" />
+              <Input
+                id="area"
+                name="area"
+                type="number"
+                placeholder="120"
+                defaultValue={initial?.areaM2 ?? ""}
+              />
             </Field>
           </div>
         </CardBody>
@@ -104,6 +173,7 @@ export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
                 <input
                   type="checkbox"
                   name={`service_${svc.key}`}
+                  defaultChecked={initial?.services.includes(svc.key) ?? false}
                   className="peer mt-0.5 h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-brand)]"
                 />
                 <div className="flex-1 min-w-0">
@@ -142,6 +212,7 @@ export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
                 id="owner-name"
                 name="owner-name"
                 placeholder="Els Vermeulen"
+                defaultValue={initial?.owner.name ?? ""}
                 required
               />
             </Field>
@@ -152,6 +223,7 @@ export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
               name="owner-email"
               type="email"
               placeholder="els@example.com"
+              defaultValue={initial?.owner.email ?? ""}
             />
           </Field>
           <Field label="Phone" id="owner-phone">
@@ -159,12 +231,16 @@ export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
               id="owner-phone"
               name="owner-phone"
               placeholder="+32 476 12 34 56"
+              defaultValue={initial?.owner.phone ?? ""}
             />
           </Field>
         </CardBody>
       </Card>
 
-      <Card as="details" className="group">
+      <details
+        className="group rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]"
+        open={!!initial?.tenant.name}
+      >
         <summary className="flex cursor-pointer items-center justify-between p-6 [&::-webkit-details-marker]:hidden">
           <div>
             <h3 className="text-base font-semibold text-[var(--color-ink)]">Tenant</h3>
@@ -191,7 +267,12 @@ export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
         <div className="grid gap-5 border-t border-[var(--color-border)] p-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <Field label="Full name" id="tenant-name">
-              <Input id="tenant-name" name="tenant-name" placeholder="Marc De Smet" />
+              <Input
+                id="tenant-name"
+                name="tenant-name"
+                placeholder="Marc De Smet"
+                defaultValue={initial?.tenant.name ?? ""}
+              />
             </Field>
           </div>
           <Field label="Email" id="tenant-email">
@@ -200,6 +281,7 @@ export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
               name="tenant-email"
               type="email"
               placeholder="marc@example.com"
+              defaultValue={initial?.tenant.email ?? ""}
             />
           </Field>
           <Field label="Phone" id="tenant-phone">
@@ -207,10 +289,11 @@ export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
               id="tenant-phone"
               name="tenant-phone"
               placeholder="+32 479 98 76 54"
+              defaultValue={initial?.tenant.phone ?? ""}
             />
           </Field>
         </div>
-      </Card>
+      </details>
 
       <Card>
         <CardHeader>
@@ -222,10 +305,19 @@ export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
             id="preferred-date"
             hint="We confirm within 24 hours by email."
           >
-            <Input id="preferred-date" name="preferred-date" type="date" />
+            <Input
+              id="preferred-date"
+              name="preferred-date"
+              type="date"
+              defaultValue={initial?.preferredDate ?? ""}
+            />
           </Field>
           <Field label="Key pickup" id="key-pickup">
-            <Select id="key-pickup" name="key-pickup" defaultValue="owner">
+            <Select
+              id="key-pickup"
+              name="key-pickup"
+              defaultValue={initial?.keyPickup ?? "owner"}
+            >
               <option value="owner">At owner&apos;s address</option>
               <option value="tenant">At tenant&apos;s address</option>
               <option value="office">Pick up at office</option>
@@ -239,24 +331,24 @@ export function NewAssignmentForm({ services }: { services: ServiceRow[] }) {
                 name="notes"
                 rows={3}
                 placeholder="Parking, access codes, pets — anything worth knowing."
+                defaultValue={initial?.notes ?? ""}
               />
             </Field>
           </div>
         </CardBody>
       </Card>
 
-      {/* Sticky action bar — INSIDE form so Submit works */}
       <div className="sticky bottom-0 z-30 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
         <div className="flex items-center justify-between gap-3 px-8 py-4">
           <p className="text-xs text-[var(--color-ink-muted)]">
             <span aria-hidden className="text-[var(--color-asbestos)]">*</span> Required
           </p>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="md" href="/dashboard/assignments">
+            <Button variant="ghost" size="md" href={cancelHref}>
               Cancel
             </Button>
             <Button type="submit" size="md" loading={pending}>
-              Create assignment
+              {submitCopy}
             </Button>
           </div>
         </div>

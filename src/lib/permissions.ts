@@ -60,7 +60,11 @@ export async function assignmentScope(
   if (hasRole(s, "admin", "staff")) return undefined;
   const { all } = await getUserTeamIds(s.user.id);
   if (hasRole(s, "realtor")) {
-    return { teamId: { in: all } };
+    // createdById branch keeps the list in sync with canViewAssignment — a realtor
+    // who created a row still sees it after leaving the team.
+    return {
+      OR: [{ createdById: s.user.id }, { teamId: { in: all } }],
+    };
   }
   // freelancer — union: assigned-to-me OR member-of-its-team
   return {
@@ -124,30 +128,45 @@ export async function canEditAssignment(
   return a.createdById === s.user.id || (!!a.teamId && owned.includes(a.teamId));
 }
 
-export async function canDeleteAssignment(
-  s: SessionWithUser,
-  a: AssignmentPolicyInput,
-  statusIsDeletable: boolean,
-): Promise<boolean> {
-  if (hasRole(s, "admin")) return true;
-  if (!statusIsDeletable) return false;
-  return canEditAssignment(s, a);
-}
-
 /**
- * Pricing visibility — protects agency markup from freelancers, not
- * from co-workers. Any member of the team (owner OR member) can see.
- * Admins/staff always; freelancers never.
+ * Realtor/admin/staff mark a delivered assignment as completed. Freelancers
+ * never complete — they delivered their own work; the agency signs off.
  */
-export async function canViewAssignmentPricing(
+export async function canCompleteAssignment(
   s: SessionWithUser,
   a: AssignmentPolicyInput,
 ): Promise<boolean> {
   if (hasRole(s, "admin", "staff")) return true;
   if (hasRole(s, "freelancer")) return false;
-  if (!a.teamId) return false;
+  if (!hasRole(s, "realtor")) return false;
   const { all } = await getUserTeamIds(s.user.id);
-  return all.includes(a.teamId);
+  return a.createdById === s.user.id || (!!a.teamId && all.includes(a.teamId));
+}
+
+/**
+ * Cancel policy matches edit — if you can edit it, you can cancel it.
+ * Freelancers can cancel their own assigned jobs (they drop out).
+ */
+export async function canCancelAssignment(
+  s: SessionWithUser,
+  a: AssignmentPolicyInput,
+): Promise<boolean> {
+  return canEditAssignment(s, a);
+}
+
+/**
+ * Reassigning the inspector is realtor/admin/staff territory. Freelancers
+ * can't swap themselves off (that's a cancel), nor can they assign peers.
+ */
+export async function canReassignFreelancer(
+  s: SessionWithUser,
+  a: AssignmentPolicyInput,
+): Promise<boolean> {
+  if (hasRole(s, "admin", "staff")) return true;
+  if (hasRole(s, "freelancer")) return false;
+  if (!hasRole(s, "realtor")) return false;
+  const { owned } = await getUserTeamIds(s.user.id);
+  return a.createdById === s.user.id || (!!a.teamId && owned.includes(a.teamId));
 }
 
 export async function canEditTeam(
@@ -160,6 +179,24 @@ export async function canEditTeam(
   return owned.includes(teamId);
 }
 
-export function canSetDiscount(s: SessionWithUser): boolean {
-  return hasRole(s, "admin", "staff");
+/**
+ * Filter restricting the set of freelancers a caller is allowed to see/assign.
+ * Admin/staff see all active freelancers. Realtors only see freelancers already
+ * in their orbit: members of their teams, or previously assigned to their
+ * teams' work. Prevents cross-tenant enumeration.
+ */
+export async function eligibleFreelancerWhere(
+  s: SessionWithUser,
+): Promise<Prisma.UserWhereInput> {
+  const base: Prisma.UserWhereInput = { role: "freelancer", deletedAt: null };
+  if (hasRole(s, "admin", "staff")) return base;
+  const { all } = await getUserTeamIds(s.user.id);
+  if (all.length === 0) return { ...base, id: "__never__" }; // match nothing
+  return {
+    ...base,
+    OR: [
+      { memberships: { some: { teamId: { in: all } } } },
+      { freelancerAssignments: { some: { teamId: { in: all } } } },
+    ],
+  };
 }

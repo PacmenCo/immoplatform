@@ -11,8 +11,11 @@ import {
   hashPassword,
   hashToken,
   requireRole,
+  requireSession,
+  type SessionWithUser,
 } from "@/lib/auth";
 import { addedToTeamEmail, inviteEmail, sendEmail } from "@/lib/email";
+import type { ActionResult } from "./_types";
 
 const createInviteSchema = z.object({
   email: z.string().email().transform((s) => s.toLowerCase().trim()),
@@ -21,10 +24,6 @@ const createInviteSchema = z.object({
   teamRole: z.enum(["owner", "member"]).optional().or(z.literal("")),
   note: z.string().max(500).optional(),
 });
-
-export type ActionResult<T = undefined> =
-  | { ok: true; data?: T }
-  | { ok: false; error: string };
 
 // ─── CREATE INVITE ─────────────────────────────────────────────────
 
@@ -255,32 +254,55 @@ export async function acceptInvite(
 
   const hash = await hashPassword(parsed.data.password);
 
-  const { user } = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.create({
-      data: {
-        email: invite.email,
-        passwordHash: hash,
-        firstName: parsed.data.firstName,
-        lastName: parsed.data.lastName,
-        role: invite.role,
-        emailVerifiedAt: new Date(),
-      },
-    });
-    if (invite.teamId && invite.teamRole) {
-      await tx.teamMember.create({
+  let user;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // Optimistic lock: claim the invite first. If another concurrent request
+      // already accepted it (or it was revoked/expired between pre-check and
+      // here), updateMany reports count: 0 and we bail with a friendly error.
+      const claim = await tx.invite.updateMany({
+        where: {
+          id: invite.id,
+          acceptedAt: null,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        data: { acceptedAt: new Date() },
+      });
+      if (claim.count === 0) {
+        throw new Error("INVITE_CLAIMED");
+      }
+      const user = await tx.user.create({
         data: {
-          teamId: invite.teamId,
-          userId: user.id,
-          teamRole: invite.teamRole,
+          email: invite.email,
+          passwordHash: hash,
+          firstName: parsed.data.firstName,
+          lastName: parsed.data.lastName,
+          role: invite.role,
+          emailVerifiedAt: new Date(),
         },
       });
-    }
-    await tx.invite.update({
-      where: { id: invite.id },
-      data: { acceptedAt: new Date() },
+      if (invite.teamId && invite.teamRole) {
+        await tx.teamMember.create({
+          data: {
+            teamId: invite.teamId,
+            userId: user.id,
+            teamRole: invite.teamRole,
+          },
+        });
+      }
+      return { user };
     });
-    return { user };
-  });
+    user = result.user;
+  } catch (err) {
+    if (err instanceof Error && err.message === "INVITE_CLAIMED") {
+      return {
+        ok: false,
+        error: "This invite has already been used or is no longer valid.",
+      };
+    }
+    throw err;
+  }
 
   await createSession({
     userId: user.id,
@@ -300,12 +322,37 @@ export async function acceptInvite(
 
 // ─── RESEND / REVOKE ───────────────────────────────────────────────
 
+const RESEND_WINDOW_MS = 60 * 60 * 1000; // 1h
+const RESEND_MAX_PER_WINDOW = 3;
+
+/**
+ * Can `session` act on `invite` (resend or revoke)?
+ * - admin / staff: any invite
+ * - realtor: only invites they sent, for a team they still own
+ * - freelancer: never
+ */
+async function canActOnInvite(
+  session: SessionWithUser,
+  invite: { invitedById: string; teamId: string | null },
+): Promise<boolean> {
+  if (session.user.role === "admin" || session.user.role === "staff") return true;
+  if (session.user.role !== "realtor") return false;
+  if (invite.invitedById !== session.user.id) return false;
+  if (!invite.teamId) return false;
+  const membership = await prisma.teamMember.findUnique({
+    where: { teamId_userId: { teamId: invite.teamId, userId: session.user.id } },
+  });
+  return membership?.teamRole === "owner";
+}
+
 export async function resendInvite(inviteId: string): Promise<ActionResult> {
+  let session;
   try {
-    await requireRole(["admin", "staff", "realtor"]);
+    session = await requireSession();
   } catch {
-    return { ok: false, error: "Not allowed." };
+    return { ok: false, error: "You must be signed in." };
   }
+
   const invite = await prisma.invite.findUnique({
     where: { id: inviteId },
     include: { team: true, invitedBy: true },
@@ -314,19 +361,31 @@ export async function resendInvite(inviteId: string): Promise<ActionResult> {
   if (invite.acceptedAt) return { ok: false, error: "Invite already accepted." };
   if (invite.revokedAt) return { ok: false, error: "Invite revoked." };
 
-  if (invite.resendCount >= 3 && invite.lastResentAt &&
-      Date.now() - invite.lastResentAt.getTime() < 60 * 60 * 1000) {
-    return { ok: false, error: "Rate limited — try again in an hour." };
+  if (!(await canActOnInvite(session, invite))) {
+    return { ok: false, error: "You don't have permission to resend this invite." };
   }
 
-  // Generate a fresh token so the old email's link stops working.
+  // Rolling-window rate limit. If the last resend was > 1h ago, the counter
+  // resets — so a stuck invite doesn't become permanently locked out.
+  const msSinceLast = invite.lastResentAt
+    ? Date.now() - invite.lastResentAt.getTime()
+    : Infinity;
+  const windowOpen = msSinceLast >= RESEND_WINDOW_MS;
+  const effectiveCount = windowOpen ? 0 : invite.resendCount;
+  if (effectiveCount >= RESEND_MAX_PER_WINDOW) {
+    return {
+      ok: false,
+      error: "Rate limited — too many resends in the last hour. Try again later.",
+    };
+  }
+
   const token = generateToken();
   const updated = await prisma.invite.update({
     where: { id: invite.id },
     data: {
       tokenHash: hashToken(token),
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      resendCount: { increment: 1 },
+      resendCount: windowOpen ? 1 : { increment: 1 },
       lastResentAt: new Date(),
     },
   });
@@ -342,20 +401,49 @@ export async function resendInvite(inviteId: string): Promise<ActionResult> {
     expiresAt: updated.expiresAt,
   });
   await sendEmail({ to: invite.email, ...tpl });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "invite.resent",
+    objectType: "invite",
+    objectId: invite.id,
+    metadata: { email: invite.email, resendCount: updated.resendCount },
+  });
+
   revalidatePath("/dashboard/users");
   return { ok: true };
 }
 
 export async function revokeInvite(inviteId: string): Promise<ActionResult> {
+  let session;
   try {
-    await requireRole(["admin", "staff", "realtor"]);
+    session = await requireSession();
   } catch {
-    return { ok: false, error: "Not allowed." };
+    return { ok: false, error: "You must be signed in." };
   }
+
+  const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
+  if (!invite) return { ok: false, error: "Invite not found." };
+  if (invite.acceptedAt) return { ok: false, error: "Invite already accepted." };
+  if (invite.revokedAt) return { ok: true }; // idempotent
+
+  if (!(await canActOnInvite(session, invite))) {
+    return { ok: false, error: "You don't have permission to revoke this invite." };
+  }
+
   await prisma.invite.update({
     where: { id: inviteId },
     data: { revokedAt: new Date() },
   });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "invite.revoked",
+    objectType: "invite",
+    objectId: inviteId,
+    metadata: { email: invite.email },
+  });
+
   revalidatePath("/dashboard/users");
   return { ok: true };
 }

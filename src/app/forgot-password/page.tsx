@@ -6,7 +6,7 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { Field, Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { forgotPassword } from "@/app/actions/auth";
-import type { ActionResult } from "@/app/actions/invites";
+import type { ActionResult } from "@/app/actions/_types";
 
 export default function ForgotPasswordPage() {
   const [state, formAction, pending] = useActionState<ActionResult | undefined, FormData>(

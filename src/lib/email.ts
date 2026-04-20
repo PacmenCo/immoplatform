@@ -9,9 +9,11 @@ type SendEmailArgs = {
 };
 
 export async function sendEmail(args: SendEmailArgs): Promise<void> {
-  if (process.env.EMAIL_PROVIDER === "postmark") {
-    // TODO: integrate Postmark/Resend here.
-    return;
+  if (process.env.EMAIL_PROVIDER && process.env.EMAIL_PROVIDER !== "dev") {
+    throw new Error(
+      `Email provider "${process.env.EMAIL_PROVIDER}" is not wired up yet. ` +
+        `Leave EMAIL_PROVIDER unset (or "dev") to use the console logger.`,
+    );
   }
 
   console.log("\n📧 [dev email] ──────────────────────────────");

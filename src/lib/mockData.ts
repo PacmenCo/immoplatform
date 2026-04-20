@@ -30,7 +30,7 @@ export const SERVICES: Record<
   },
 };
 
-export type Status = "draft" | "scheduled" | "in_progress" | "delivered" | "completed";
+export type Status = "draft" | "scheduled" | "in_progress" | "delivered" | "completed" | "cancelled";
 
 export const STATUS_META: Record<Status, { label: string; bg: string; fg: string }> = {
   draft: { label: "Draft", bg: "#f1f5f9", fg: "#475569" },
@@ -38,7 +38,14 @@ export const STATUS_META: Record<Status, { label: string; bg: string; fg: string
   in_progress: { label: "In progress", bg: "#fef3c7", fg: "#b45309" },
   delivered: { label: "Delivered", bg: "#dcfce7", fg: "#15803d" },
   completed: { label: "Completed", bg: "#ecfccb", fg: "#365314" },
+  cancelled: { label: "Cancelled", bg: "#fee2e2", fg: "#991b1b" },
 };
+
+export const TERMINAL_STATUSES: Status[] = ["completed", "cancelled"];
+
+export function isTerminalStatus(status: string): boolean {
+  return status === "completed" || status === "cancelled";
+}
 
 export type Assignment = {
   id: string;

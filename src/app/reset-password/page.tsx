@@ -8,7 +8,7 @@ import { Field } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
 import { resetPassword } from "@/app/actions/auth";
-import type { ActionResult } from "@/app/actions/invites";
+import type { ActionResult } from "@/app/actions/_types";
 
 export default function ResetPasswordPage() {
   const params = useSearchParams();

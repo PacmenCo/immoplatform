@@ -48,7 +48,7 @@ model User {
   createdAssignments  Assignment[]          @relation("CreatedAssignment")
   comments            AssignmentComment[]
 
-  @@index([email])
+  @@index([role, deletedAt])
   @@map("users")
 }
 
@@ -118,6 +118,7 @@ model TeamMember {
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([teamId, userId])
+  @@index([userId])
   @@map("team_members")
 }
 
@@ -137,7 +138,7 @@ model Invite {
   resendCount   Int       @default(0)
   lastResentAt  DateTime?
 
-  team          Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  team          Team?     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   invitedBy     User      @relation("InvitedBy", fields: [invitedById], references: [id])
 
   @@index([email])
@@ -256,10 +257,12 @@ model Assignment {
   freelancerId     String?
   createdById      String?
 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  deliveredAt      DateTime?
-  completedAt      DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deliveredAt         DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  cancellationReason  String?
 
   team             Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
   freelancer       User?                @relation("AssignedFreelancer", fields: [freelancerId], references: [id], onDelete: SetNull)
@@ -270,6 +273,7 @@ model Assignment {
   @@index([status])
   @@index([teamId])
   @@index([freelancerId])
+  @@index([createdById])
   @@index([preferredDate])
   @@map("assignments")
 }

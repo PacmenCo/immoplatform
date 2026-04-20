@@ -8,7 +8,7 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Badge } from "@/components/ui/Badge";
 import { IconCheck, IconMail } from "@/components/ui/Icons";
 import { acceptInvite } from "@/app/actions/invites";
-import type { ActionResult } from "@/app/actions/invites";
+import type { ActionResult } from "@/app/actions/_types";
 
 const roleColor: Record<string, { bg: string; fg: string; label: string }> = {
   admin: { bg: "#fef2f2", fg: "#b91c1c", label: "Admin" },

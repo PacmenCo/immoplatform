@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 import type { User, Session } from "@prisma/client";
@@ -23,15 +23,6 @@ export async function verifyPassword(
 ): Promise<boolean> {
   if (!hash) return false;
   return bcrypt.compare(password, hash);
-}
-
-// ─── tokens (invites + password resets) ────────────────────────────
-
-export function safeCompare(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) return false;
-  return timingSafeEqual(ab, bb);
 }
 
 // ─── sessions ──────────────────────────────────────────────────────
@@ -100,10 +91,12 @@ export async function getSession(): Promise<SessionWithUser | null> {
   if (session.expiresAt < new Date()) return null;
   if (session.user.deletedAt) return null;
 
-  // Fire-and-forget touch — refreshes lastSeenAt without blocking the request
+  // Fire-and-forget touch — refreshes lastSeenAt without blocking the request.
+  // revokedAt guard prevents resurrecting revoked sessions if another request
+  // (logout, reset-password) revokes concurrently.
   prisma.session
-    .update({
-      where: { id },
+    .updateMany({
+      where: { id, revokedAt: null },
       data: { lastSeenAt: new Date() },
     })
     .catch(() => {});

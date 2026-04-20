@@ -4,7 +4,7 @@ import { useActionState, useRef, useEffect } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { postComment } from "@/app/actions/assignments";
-import type { ActionResult } from "@/app/actions/invites";
+import type { ActionResult } from "@/app/actions/_types";
 
 export function CommentForm({ assignmentId }: { assignmentId: string }) {
   const [state, formAction, pending] = useActionState<ActionResult | undefined, FormData>(

@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
-import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
 import { SearchSelect } from "@/components/ui/SearchSelect";
 import { Button } from "@/components/ui/Button";
 import { IconMail, IconBuilding, IconShield } from "@/components/ui/Icons";
 import { createInvite } from "@/app/actions/invites";
-import type { ActionResult } from "@/app/actions/invites";
+import type { ActionResult } from "@/app/actions/_types";
 
 type Role = "admin" | "staff" | "realtor" | "freelancer";
 
@@ -70,10 +69,7 @@ export function InviteForm({
   }, [teamHasOwner, teamRole]);
 
   return (
-    <>
-      <Topbar title="Invite user" subtitle="Send an email invite to join your workspace" />
-
-      <form className="max-w-[720px] p-8" action={formAction}>
+    <form className="max-w-[720px] p-8" action={formAction}>
         {/* Hidden fields the server action reads */}
         <input type="hidden" name="role" value={role} />
         {showTeam && <input type="hidden" name="teamId" value={teamId} />}
@@ -338,7 +334,6 @@ export function InviteForm({
           </div>
         </div>
       </form>
-    </>
   );
 }
 

@@ -12,7 +12,14 @@ import { requireSession } from "@/lib/auth";
 import { assignmentScope, composeWhere, role, type Role } from "@/lib/permissions";
 import { initials } from "@/lib/format";
 
-const statusOrder: Status[] = ["draft", "scheduled", "in_progress", "delivered", "completed"];
+const statusOrder: Status[] = [
+  "draft",
+  "scheduled",
+  "in_progress",
+  "delivered",
+  "completed",
+  "cancelled",
+];
 
 const EMPTY_COPY: Record<Role, { title: string; description: string }> = {
   admin: {

@@ -212,3 +212,24 @@ export const IconDownload = ({ size, className }: IconProps) => (
     <path d="M12 15V3" />
   </svg>
 );
+
+export const IconX = ({ size, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);
+
+export const IconPlay = ({ size, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <polygon points="6 4 20 12 6 20 6 4" />
+  </svg>
+);
+
+export const IconUserSwap = ({ size, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="m17 11 4-4-4-4" />
+    <path d="M21 7h-6" />
+  </svg>
+);

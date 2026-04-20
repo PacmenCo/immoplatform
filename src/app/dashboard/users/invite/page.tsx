@@ -95,5 +95,10 @@ export default async function InviteUserPage() {
     );
   }
 
-  return <InviteForm teams={teams} />;
+  return (
+    <>
+      <Topbar title="Invite user" subtitle="Send an email invite to join your workspace" />
+      <InviteForm teams={teams} />
+    </>
+  );
 }

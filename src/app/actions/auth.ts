@@ -15,7 +15,7 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { passwordResetEmail, sendEmail } from "@/lib/email";
-import type { ActionResult } from "./invites";
+import type { ActionResult } from "./_types";
 
 // ─── LOGIN ─────────────────────────────────────────────────────────
 
@@ -207,8 +207,9 @@ export async function switchActiveTeam(teamId: string): Promise<ActionResult> {
 
   const membership = await prisma.teamMember.findUnique({
     where: { teamId_userId: { teamId, userId: session.user.id } },
+    include: { team: { select: { id: true } } },
   });
-  if (!membership) {
+  if (!membership || !membership.team) {
     return { ok: false, error: "You're not a member of that team." };
   }
 
@@ -216,6 +217,14 @@ export async function switchActiveTeam(teamId: string): Promise<ActionResult> {
     where: { id: session.id },
     data: { activeTeamId: teamId },
   });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "session.team_switched",
+    objectType: "team",
+    objectId: teamId,
+  });
+
   revalidatePath("/dashboard", "layout");
   return { ok: true };
 }

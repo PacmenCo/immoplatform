@@ -116,21 +116,6 @@ async function main() {
     });
   }
 
-  // Per-team service price overrides — a couple of teams negotiate better rates
-  const overrides: Array<{ teamId: string; serviceKey: string; priceCents: number }> = [
-    { teamId: "t_01", serviceKey: "asbestos", priceCents: 22500 }, // €225 (vs €245 default)
-    { teamId: "t_01", serviceKey: "epc",      priceCents: 14500 }, // €145
-    { teamId: "t_02", serviceKey: "electrical", priceCents: 18500 },
-    { teamId: "t_04", serviceKey: "fuel",       priceCents: 12500 },
-  ];
-  for (const o of overrides) {
-    await prisma.teamServiceOverride.upsert({
-      where: { teamId_serviceKey: { teamId: o.teamId, serviceKey: o.serviceKey } },
-      create: o,
-      update: { priceCents: o.priceCents },
-    });
-  }
-
   const hash = await bcrypt.hash(DEV_PASSWORD, 12);
 
   // Users
@@ -240,6 +225,22 @@ async function main() {
       where: { key: s.key },
       create: s,
       update: s,
+    });
+  }
+
+  // Per-team service price overrides — FK → Service, so this MUST run after
+  // services are seeded.
+  const overrides: Array<{ teamId: string; serviceKey: string; priceCents: number }> = [
+    { teamId: "t_01", serviceKey: "asbestos", priceCents: 22500 }, // €225 (vs €245 default)
+    { teamId: "t_01", serviceKey: "epc",      priceCents: 14500 }, // €145
+    { teamId: "t_02", serviceKey: "electrical", priceCents: 18500 },
+    { teamId: "t_04", serviceKey: "fuel",       priceCents: 12500 },
+  ];
+  for (const o of overrides) {
+    await prisma.teamServiceOverride.upsert({
+      where: { teamId_serviceKey: { teamId: o.teamId, serviceKey: o.serviceKey } },
+      create: o,
+      update: { priceCents: o.priceCents },
     });
   }
 

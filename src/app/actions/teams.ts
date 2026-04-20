@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { audit, requireSession } from "@/lib/auth";
 import { canEditTeam, hasRole } from "@/lib/permissions";
-import type { ActionResult } from "./invites";
+import type { ActionResult } from "./_types";
 
 export async function transferTeamOwnership(
   teamId: string,
