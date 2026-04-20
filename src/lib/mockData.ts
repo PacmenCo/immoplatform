@@ -436,37 +436,6 @@ export const ODOO_SYNC_LOG: OdooSyncRecord[] = [
   { id: "os_06", at: "2026-04-17 08:15", entity: "product", direction: "push", status: "ok", itemsCount: 5 },
 ];
 
-export type NotificationPref = {
-  key: string;
-  label: string;
-  description: string;
-  group: "assignment" | "team" | "billing" | "platform";
-  defaultEmail: boolean;
-  defaultApp: boolean;
-};
-
-export const NOTIFICATION_PREFS: NotificationPref[] = [
-  // Assignment
-  { key: "assignment_scheduled", label: "Assignment scheduled", description: "When a new assignment is scheduled for you.", group: "assignment", defaultEmail: true, defaultApp: true },
-  { key: "assignment_completed", label: "Assignment completed", description: "When a freelancer marks an assignment as delivered.", group: "assignment", defaultEmail: true, defaultApp: true },
-  { key: "assignment_files_uploaded", label: "Files uploaded", description: "When someone uploads a file to an assignment you follow.", group: "assignment", defaultEmail: true, defaultApp: true },
-  { key: "assignment_files_downloaded", label: "Files downloaded", description: "When the owner / tenant downloads a certificate you delivered.", group: "assignment", defaultEmail: false, defaultApp: true },
-  { key: "assignment_freelancer_assigned", label: "Freelancer assigned", description: "When a new freelancer is assigned to your work.", group: "assignment", defaultEmail: true, defaultApp: true },
-  { key: "assignment_date_changed", label: "Date changed", description: "When the preferred date of an assignment is moved.", group: "assignment", defaultEmail: true, defaultApp: true },
-  { key: "assignment_status_change", label: "Status change", description: "For any status transition (Draft → Scheduled → Delivered).", group: "assignment", defaultEmail: false, defaultApp: true },
-  { key: "assignment_comment", label: "New comment", description: "When someone comments on an assignment you follow.", group: "assignment", defaultEmail: false, defaultApp: true },
-  // Team
-  { key: "team_invite_accepted", label: "Invite accepted", description: "When someone you invited creates their account.", group: "team", defaultEmail: true, defaultApp: true },
-  { key: "team_member_added", label: "Member added to your team", description: "When a new user joins a team you&apos;re part of.", group: "team", defaultEmail: false, defaultApp: true },
-  { key: "team_role_changed", label: "Your role changed", description: "When your role on a team is updated.", group: "team", defaultEmail: true, defaultApp: true },
-  // Billing
-  { key: "billing_invoice_reminder", label: "Monthly invoice reminder", description: "Monthly summary of outstanding commission balance.", group: "billing", defaultEmail: true, defaultApp: true },
-  { key: "billing_payout_sent", label: "Payout sent", description: "When Immo sends a commission payout to your team.", group: "billing", defaultEmail: true, defaultApp: true },
-  // Platform
-  { key: "platform_announcements", label: "Platform announcements", description: "Product updates, maintenance, new features.", group: "platform", defaultEmail: false, defaultApp: true },
-  { key: "platform_security", label: "Security alerts", description: "Sign-ins from new devices, password changes, etc.", group: "platform", defaultEmail: true, defaultApp: true },
-];
-
 export const DASHBOARD_STATS = [
   { label: "Active assignments", value: "47", delta: "+12%" },
   { label: "Due this week", value: "8", delta: "3 today" },

@@ -18,7 +18,13 @@ export async function notify(opts: {
   text: string;
   html?: string;
 }): Promise<void> {
-  if (!shouldSendEmail(opts.to, opts.event)) return;
+  if (!shouldSendEmail(opts.to, opts.event)) {
+    // Observable suppression — without this, there's no way to tell a
+    // skipped send from a successful one when verifying against the dev
+    // console logger.
+    console.debug(`[notify] suppressed ${opts.event} → ${opts.to.email} (opted out)`);
+    return;
+  }
   try {
     await sendEmail({
       to: opts.to.email,

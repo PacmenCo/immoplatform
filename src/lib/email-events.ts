@@ -12,19 +12,14 @@
 import type { Role } from "./permissions";
 
 export const EMAIL_EVENTS = {
-  "assignment.scheduled": {
-    label: "When I'm assigned as the freelancer on a new inspection",
-    description: "Sent to the freelancer when they're placed on an assignment.",
-    forRoles: ["freelancer"] as const,
-  },
   "assignment.date_updated": {
     label: "When an assignment's scheduled date changes",
     description: "Sent to the freelancer + creator when the preferred date is edited.",
     forRoles: ["freelancer", "realtor", "admin", "staff"] as const,
   },
-  "assignment.freelancer_reassigned": {
-    label: "When the freelancer on my assignment changes",
-    description: "Sent to the incoming freelancer. The outgoing freelancer gets a silent unassign today.",
+  "assignment.freelancer_assigned": {
+    label: "When I'm placed on a new assignment (or reassigned)",
+    description: "Sent to the freelancer on first assignment and on any reassignment.",
     forRoles: ["freelancer"] as const,
   },
   "assignment.delivered": {

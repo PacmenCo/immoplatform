@@ -226,26 +226,34 @@ export const uploadAssignmentFiles = withSession(async (
       });
       if (f) notifyRecipients.push(f);
     }
-    const baseUrl = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+    const rawBase = process.env.APP_URL;
+    if (!rawBase && process.env.NODE_ENV === "production") {
+      throw new Error(
+        "APP_URL must be set in production — email links would otherwise point at localhost.",
+      );
+    }
+    const baseUrl = (rawBase ?? "http://localhost:3000").replace(/\/$/, "");
     const assignmentUrl = `${baseUrl}/dashboard/assignments/${meta.id}`;
     const uploaderName = `${session.user.firstName} ${session.user.lastName}`;
-    for (const r of notifyRecipients) {
-      await notify({
-        to: r,
-        event: "assignment.files_uploaded",
-        ...filesUploadedEmail({
-          reference: meta.reference,
-          address: meta.address,
-          city: meta.city,
-          postal: meta.postal,
-          assignmentUrl,
-          recipientName: r.firstName,
-          uploaderName,
-          lane,
-          fileCount: prepared.length,
+    await Promise.all(
+      notifyRecipients.map((r) =>
+        notify({
+          to: r,
+          event: "assignment.files_uploaded",
+          ...filesUploadedEmail({
+            reference: meta.reference,
+            address: meta.address,
+            city: meta.city,
+            postal: meta.postal,
+            assignmentUrl,
+            recipientName: r.firstName,
+            uploaderName,
+            lane,
+            fileCount: prepared.length,
+          }),
         }),
-      });
-    }
+      ),
+    );
   }
 
   revalidatePath(`/dashboard/assignments/${assignmentId}/files`);

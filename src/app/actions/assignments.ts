@@ -25,7 +25,6 @@ import {
   assignmentDateUpdatedEmail,
   assignmentDeliveredEmail,
   assignmentReassignedEmail,
-  assignmentScheduledEmail,
   commentPostedEmail,
 } from "@/lib/email";
 import { notify } from "@/lib/notify";
@@ -45,7 +44,13 @@ async function nextReference(): Promise<string> {
 }
 
 function assignmentUrl(id: string): string {
-  const base = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const raw = process.env.APP_URL;
+  if (!raw && process.env.NODE_ENV === "production") {
+    throw new Error(
+      "APP_URL must be set in production — email links would otherwise point at localhost.",
+    );
+  }
+  const base = (raw ?? "http://localhost:3000").replace(/\/$/, "");
   return `${base}/dashboard/assignments/${id}`;
 }
 
@@ -346,33 +351,31 @@ export const markAssignmentDelivered = withSession(async (
     metadata: { fromStatus: a.status },
   });
 
-  // Notify the agency side — creator + team owner (dedup + exclude the actor).
+  // Notify the agency side — creator + team owners (dedup + exclude the actor).
   const deliveredRecipients = await collectAgencyRecipients({
     teamId: a.teamId,
     createdById: a.createdById,
     exclude: [session.user.id],
   });
-  const freelancerActor =
-    a.freelancerId === session.user.id
-      ? await prisma.user.findUnique({
-          where: { id: a.freelancerId },
-          select: { firstName: true, lastName: true },
-        })
-      : null;
-  const freelancerName = freelancerActor
-    ? fullName(freelancerActor)
-    : `${session.user.firstName} ${session.user.lastName}`;
-  for (const r of deliveredRecipients) {
-    await notify({
-      to: r,
-      event: "assignment.delivered",
-      ...assignmentDeliveredEmail({
-        ...seedFromAssignment(a),
-        recipientName: r.firstName,
-        freelancerName,
+  // Pull the freelancer's name separately from the actor's — when an admin
+  // flips delivered on behalf, recipients should still see whose work it is.
+  const assignedFreelancer = await loadUser(a.freelancerId);
+  const actorName = fullName(session.user);
+  const freelancerName = assignedFreelancer ? fullName(assignedFreelancer) : null;
+  await Promise.all(
+    deliveredRecipients.map((r) =>
+      notify({
+        to: r,
+        event: "assignment.delivered",
+        ...assignmentDeliveredEmail({
+          ...seedFromAssignment(a),
+          recipientName: r.firstName,
+          actorName,
+          freelancerName,
+        }),
       }),
-    });
-  }
+    ),
+  );
 
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
@@ -542,18 +545,20 @@ export const updateAssignment = withSession(async (
       const c = await loadUser(existing.createdById);
       if (c) dateRecipients.push(c);
     }
-    for (const r of dateRecipients) {
-      await notify({
-        to: r,
-        event: "assignment.date_updated",
-        ...assignmentDateUpdatedEmail({
-          ...seedFromAssignment(existing),
-          recipientName: r.firstName,
-          previousDate,
-          newDate,
+    await Promise.all(
+      dateRecipients.map((r) =>
+        notify({
+          to: r,
+          event: "assignment.date_updated",
+          ...assignmentDateUpdatedEmail({
+            ...seedFromAssignment(existing),
+            recipientName: r.firstName,
+            previousDate,
+            newDate,
+          }),
         }),
-      });
-    }
+      ),
+    );
   }
 
   revalidatePath(`/dashboard/assignments/${id}`);
@@ -627,7 +632,7 @@ export const reassignFreelancer = withSession(async (
     if (newFreelancer) {
       await notify({
         to: newFreelancer,
-        event: "assignment.freelancer_reassigned",
+        event: "assignment.freelancer_assigned",
         ...assignmentReassignedEmail({
           ...seedFromAssignment(a),
           freelancerName: newFreelancer.firstName,
@@ -857,18 +862,20 @@ export const cancelAssignment = withSession(async (
     const creator = await loadUser(a.createdById);
     if (creator) cancelRecipients.push(creator);
   }
-  for (const r of cancelRecipients) {
-    await notify({
-      to: r,
-      event: "assignment.cancelled",
-      ...assignmentCancelledEmail({
-        ...seedFromAssignment(a),
-        recipientName: r.firstName,
-        cancelledByName: fullName(session.user),
-        reason: trimmedReason,
+  await Promise.all(
+    cancelRecipients.map((r) =>
+      notify({
+        to: r,
+        event: "assignment.cancelled",
+        ...assignmentCancelledEmail({
+          ...seedFromAssignment(a),
+          recipientName: r.firstName,
+          cancelledByName: fullName(session.user),
+          reason: trimmedReason,
+        }),
       }),
-    });
-  }
+    ),
+  );
 
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
@@ -932,18 +939,20 @@ export const postComment = withSession(async (
     const c = await loadUser(a.createdById);
     if (c) commentRecipients.push(c);
   }
-  for (const r of commentRecipients) {
-    await notify({
-      to: r,
-      event: "assignment.comment_posted",
-      ...commentPostedEmail({
-        ...seedFromAssignment(a),
-        recipientName: r.firstName,
-        authorName: fullName(session.user),
-        body: parsed.data.body,
+  await Promise.all(
+    commentRecipients.map((r) =>
+      notify({
+        to: r,
+        event: "assignment.comment_posted",
+        ...commentPostedEmail({
+          ...seedFromAssignment(a),
+          recipientName: r.firstName,
+          authorName: fullName(session.user),
+          body: parsed.data.body,
+        }),
       }),
-    });
-  }
+    ),
+  );
 
   revalidatePath(`/dashboard/assignments/${parsed.data.assignmentId}`);
   return { ok: true };

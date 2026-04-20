@@ -6,7 +6,15 @@ import {
   shouldSendEmail,
   type EmailEventKey,
 } from "@/lib/email-events";
-import { role as roleOf } from "@/lib/permissions";
+import { role as roleOf, type Role } from "@/lib/permissions";
+
+const ROLE_LABELS: Record<Role, string> = {
+  admin: "an Admin",
+  staff: "a Staff member",
+  realtor: "a Realtor",
+  freelancer: "a Freelancer",
+};
+const roleLabel = (r: Role) => ROLE_LABELS[r];
 import { SettingsNav } from "../_nav";
 import { NotificationsForm, type PrefRow } from "./NotificationsForm";
 
@@ -35,8 +43,8 @@ export default async function NotificationsSettingsPage() {
             Notification preferences
           </h2>
           <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-            Pick which assignment events send you email. Only events relevant to
-            your role ({myRole}) appear here.
+            Pick which assignment events send you email. Only events relevant
+            to your role as {roleLabel(myRole)} appear here.
           </p>
         </div>
 

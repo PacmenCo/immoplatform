@@ -73,6 +73,9 @@ async function sendViaResend(args: SendEmailArgs): Promise<void> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
+    // Hard cap so a Resend slowdown can't stall a user's server action for
+    // the full Node/Vercel request budget. notify() swallows the AbortError.
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) {
@@ -156,29 +159,6 @@ function addressLine(a: AssignmentCtx): string {
   return `${a.address}, ${a.postal} ${a.city}`;
 }
 
-export function assignmentScheduledEmail(opts: AssignmentCtx & {
-  freelancerName: string;
-  preferredDate: Date | null;
-  notes: string | null;
-}): { subject: string; text: string } {
-  const dateLine = opts.preferredDate
-    ? `Preferred date: ${opts.preferredDate.toISOString().slice(0, 10)}\n`
-    : "";
-  const notesLine = opts.notes ? `\nInspector notes: ${opts.notes}\n` : "";
-  return {
-    subject: `New inspection: ${addressLine(opts)} (${opts.reference})`,
-    text: `Hi ${opts.freelancerName},
-
-You've been assigned a new inspection.
-
-Reference: ${opts.reference}
-Property:  ${addressLine(opts)}
-${dateLine}${notesLine}
-Open the assignment:
-${opts.assignmentUrl}`,
-  };
-}
-
 export function assignmentDateUpdatedEmail(opts: AssignmentCtx & {
   recipientName: string;
   previousDate: Date | null;
@@ -201,13 +181,20 @@ ${opts.assignmentUrl}`,
 
 export function assignmentDeliveredEmail(opts: AssignmentCtx & {
   recipientName: string;
-  freelancerName: string;
+  /** The person who flipped the status. May be the freelancer or an admin acting on their behalf. */
+  actorName: string;
+  /** The assigned freelancer's name, if any — rendered when actor ≠ freelancer so recipients know whose work was delivered. */
+  freelancerName: string | null;
 }): { subject: string; text: string } {
+  const byLine =
+    opts.freelancerName && opts.freelancerName !== opts.actorName
+      ? `${opts.actorName} marked ${opts.freelancerName}'s inspection`
+      : `${opts.actorName} marked the inspection`;
   return {
     subject: `Delivered: ${addressLine(opts)} (${opts.reference})`,
     text: `Hi ${opts.recipientName},
 
-${opts.freelancerName} marked ${opts.reference} (${addressLine(opts)}) as delivered. Review the files and sign off when you're ready.
+${byLine} at ${addressLine(opts)} (${opts.reference}) as delivered. Review the files and sign off when you're ready.
 
 ${opts.assignmentUrl}`,
   };
@@ -251,7 +238,7 @@ export function assignmentReassignedEmail(opts: AssignmentCtx & {
     ? `Preferred date: ${opts.preferredDate.toISOString().slice(0, 10)}\n`
     : "";
   return {
-    subject: `You're the new inspector on ${addressLine(opts)}`,
+    subject: `New inspection: ${addressLine(opts)} (${opts.reference})`,
     text: `Hi ${opts.freelancerName},
 
 You've been assigned to ${opts.reference} (${addressLine(opts)}).
@@ -271,7 +258,7 @@ export function filesUploadedEmail(opts: AssignmentCtx & {
       ? `delivered ${opts.fileCount} file${opts.fileCount === 1 ? "" : "s"}`
       : `uploaded ${opts.fileCount} supporting file${opts.fileCount === 1 ? "" : "s"}`;
   return {
-    subject: `New files on ${addressLine(opts)}`,
+    subject: `New files: ${addressLine(opts)} (${opts.reference})`,
     text: `Hi ${opts.recipientName},
 
 ${opts.uploaderName} ${what} on ${opts.reference} (${addressLine(opts)}).
@@ -286,9 +273,13 @@ export function commentPostedEmail(opts: AssignmentCtx & {
   authorName: string;
   body: string;
 }): { subject: string; text: string } {
-  const preview = opts.body.length > 200 ? opts.body.slice(0, 200) + "…" : opts.body;
+  // Grapheme-aware truncate — `.slice` splits surrogate pairs and emoji ZWJs
+  // which Gmail renders as replacement characters. Array.from works because
+  // the iterator yields code points grouped for surrogate pairs.
+  const chars = Array.from(opts.body);
+  const preview = chars.length > 200 ? chars.slice(0, 200).join("") + "…" : opts.body;
   return {
-    subject: `New comment on ${addressLine(opts)}`,
+    subject: `New comment: ${addressLine(opts)} (${opts.reference})`,
     text: `Hi ${opts.recipientName},
 
 ${opts.authorName} commented on ${opts.reference} (${addressLine(opts)}):
