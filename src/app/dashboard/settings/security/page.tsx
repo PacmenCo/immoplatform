@@ -34,7 +34,7 @@ export default function SecuritySettingsPage() {
       <Topbar title="Security" subtitle="Password, 2FA and active sessions" />
 
       <div className="p-8 max-w-[960px] space-y-8">
-        <div className="flex items-start gap-3 rounded-md border border-[color-mix(in_srgb,var(--color-electrical)_40%,white)] bg-[color-mix(in_srgb,var(--color-electrical)_10%,white)] p-4">
+        <div className="flex items-start gap-3 rounded-md border border-[color-mix(in_srgb,var(--color-electrical)_40%,var(--color-bg))] bg-[color-mix(in_srgb,var(--color-electrical)_10%,var(--color-bg))] p-4">
           <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--color-electrical)] text-xs font-bold text-white">
             !
           </span>
@@ -120,7 +120,7 @@ export default function SecuritySettingsPage() {
                       </p>
                       {s.current && (
                         <Badge
-                          bg="color-mix(in srgb, var(--color-epc) 14%, white)"
+                          bg="color-mix(in srgb, var(--color-epc) 14%, var(--color-bg))"
                           fg="var(--color-epc)"
                         >
                           This device

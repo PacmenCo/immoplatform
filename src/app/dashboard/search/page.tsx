@@ -46,7 +46,7 @@ export default async function SearchPage({
             name="q"
             defaultValue={query}
             placeholder="Search assignments, teams, users…"
-            className="h-14 w-full rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-white pl-12 pr-4 text-base placeholder:text-[var(--color-ink-faint)] focus:border-[var(--color-brand)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/10"
+            className="h-14 w-full rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-bg)] pl-12 pr-4 text-base placeholder:text-[var(--color-ink-faint)] focus:border-[var(--color-brand)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/10"
             autoFocus
           />
         </form>

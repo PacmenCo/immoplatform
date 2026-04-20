@@ -19,7 +19,7 @@ export function EmptyState({
     variant === "dashed"
       ? "border-2 border-dashed border-[var(--color-border-strong)] bg-[var(--color-bg-alt)]/40"
       : variant === "card"
-        ? "border border-[var(--color-border)] bg-white"
+        ? "border border-[var(--color-border)] bg-[var(--color-bg)]"
         : "";
 
   return (

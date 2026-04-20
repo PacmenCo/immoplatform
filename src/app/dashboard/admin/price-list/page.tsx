@@ -129,7 +129,7 @@ export default function PriceListPage() {
                           <span className="relative inline-block h-6 w-11 rounded-full bg-[var(--color-border-strong)]">
                             <input type="checkbox" defaultChecked={r.active} className="peer sr-only" />
                             <span className="absolute inset-0 rounded-full bg-[var(--color-border-strong)] peer-checked:bg-[var(--color-brand)] transition-colors" />
-                            <span className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm peer-checked:translate-x-5 transition-transform" />
+                            <span className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-[var(--color-bg)] shadow-sm peer-checked:translate-x-5 transition-transform" />
                           </span>
                         </label>
                       </td>

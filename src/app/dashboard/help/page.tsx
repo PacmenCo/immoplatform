@@ -124,7 +124,7 @@ export default function HelpPage() {
                 <CardBody className="flex flex-col items-start gap-3">
                   <span
                     className="grid h-10 w-10 place-items-center rounded-md"
-                    style={{ backgroundColor: `color-mix(in srgb, ${c.accent} 14%, white)`, color: c.accent }}
+                    style={{ backgroundColor: `color-mix(in srgb, ${c.accent} 14%, var(--color-bg))`, color: c.accent }}
                   >
                     <c.icon size={18} />
                   </span>
@@ -145,7 +145,7 @@ export default function HelpPage() {
                 <div className="flex items-center gap-3">
                   <span
                     className="grid h-8 w-8 place-items-center rounded-md"
-                    style={{ backgroundColor: `color-mix(in srgb, ${c.accent} 14%, white)`, color: c.accent }}
+                    style={{ backgroundColor: `color-mix(in srgb, ${c.accent} 14%, var(--color-bg))`, color: c.accent }}
                   >
                     <c.icon size={16} />
                   </span>
@@ -174,7 +174,7 @@ export default function HelpPage() {
         <Card className="bg-[var(--color-bg-alt)]">
           <CardBody className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-md bg-white text-[var(--color-ink-soft)]">
+              <span className="grid h-10 w-10 place-items-center rounded-md bg-[var(--color-bg)] text-[var(--color-ink-soft)]">
                 <IconMail size={18} />
               </span>
               <div>

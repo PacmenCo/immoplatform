@@ -36,7 +36,7 @@ export function Modal({
         className,
       )}
     >
-      <div className="relative mx-auto max-w-xl overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white shadow-[var(--shadow-lg)]">
+      <div className="relative mx-auto max-w-xl overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] shadow-[var(--shadow-lg)]">
         {showClose && (
           closeHref ? (
             <Link href={closeHref} aria-label="Close" className={closeBtnClass}>

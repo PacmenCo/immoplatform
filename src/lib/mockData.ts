@@ -154,15 +154,309 @@ export const TEAMS = [
   { id: "t_06", name: "Brugge Vastgoed", city: "Brugge", members: 4, active: 14, logo: "BV", color: "#6d28d9" },
 ];
 
-export const USERS = [
-  { id: "u_1", name: "Jordan Remy", email: "jordan@asbestexperts.be", role: "admin", team: "—", avatar: "JR", online: true },
-  { id: "u_2", name: "Els Vermeulen", email: "els@vastgoedantwerp.be", role: "realtor", team: "Vastgoed Antwerp", avatar: "EV", online: true },
-  { id: "u_3", name: "Tim De Vos", email: "tim@immo.be", role: "freelancer", team: "—", avatar: "TV", online: false },
-  { id: "u_4", name: "Sofie Janssens", email: "sofie@immo.be", role: "freelancer", team: "—", avatar: "SJ", online: true },
-  { id: "u_5", name: "Dieter Claes", email: "dieter@immo.be", role: "freelancer", team: "—", avatar: "DC", online: false },
-  { id: "u_6", name: "Pierre Dubois", email: "pierre@immobruxelles.be", role: "realtor", team: "Immo Bruxelles", avatar: "PD", online: true },
-  { id: "u_7", name: "Nele Willems", email: "nele@immo.be", role: "freelancer", team: "—", avatar: "NW", online: false },
-  { id: "u_8", name: "Marie Lefevre", email: "marie@immo.be", role: "staff", team: "—", avatar: "ML", online: true },
+export type UserRole = "admin" | "staff" | "realtor" | "freelancer";
+
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: UserRole;
+  team: string;
+  avatar: string;
+  online: boolean;
+  joined: string;
+  region?: string;
+  specialties?: ServiceKey[];
+  bio?: string;
+};
+
+export const USERS: User[] = [
+  {
+    id: "u_1",
+    name: "Jordan Remy",
+    email: "jordan@asbestexperts.be",
+    phone: "+32 474 00 11 22",
+    role: "admin",
+    team: "—",
+    avatar: "JR",
+    online: true,
+    joined: "2026-01-04",
+    region: "Belgium (all regions)",
+    bio: "Platform admin. Handles onboarding, price lists and Odoo integration.",
+  },
+  {
+    id: "u_2",
+    name: "Els Vermeulen",
+    email: "els@vastgoedantwerp.be",
+    phone: "+32 476 12 34 56",
+    role: "realtor",
+    team: "Vastgoed Antwerp",
+    avatar: "EV",
+    online: true,
+    joined: "2026-02-11",
+    region: "Antwerp",
+    bio: "Managing broker at Vastgoed Antwerp — 34 active listings.",
+  },
+  {
+    id: "u_3",
+    name: "Tim De Vos",
+    email: "tim@immo.be",
+    phone: "+32 478 98 12 33",
+    role: "freelancer",
+    team: "—",
+    avatar: "TV",
+    online: false,
+    joined: "2026-01-18",
+    region: "Antwerp · Mechelen",
+    specialties: ["asbestos", "epc"],
+    bio: "Certified asbestos inspector (OVAM). 12 years of field experience.",
+  },
+  {
+    id: "u_4",
+    name: "Sofie Janssens",
+    email: "sofie@immo.be",
+    phone: "+32 479 44 55 66",
+    role: "freelancer",
+    team: "—",
+    avatar: "SJ",
+    online: true,
+    joined: "2026-02-02",
+    region: "Brussels",
+    specialties: ["asbestos", "electrical", "fuel"],
+    bio: "Multi-service inspector. Specialises in mixed-use and commercial properties.",
+  },
+  {
+    id: "u_5",
+    name: "Dieter Claes",
+    email: "dieter@immo.be",
+    phone: "+32 475 11 22 33",
+    role: "freelancer",
+    team: "—",
+    avatar: "DC",
+    online: false,
+    joined: "2026-03-07",
+    region: "Gent · East Flanders",
+    specialties: ["epc"],
+    bio: "EPC specialist. Fast turnaround, focus on single-family homes.",
+  },
+  {
+    id: "u_6",
+    name: "Pierre Dubois",
+    email: "pierre@immobruxelles.be",
+    phone: "+32 472 33 44 55",
+    role: "realtor",
+    team: "Immo Bruxelles",
+    avatar: "PD",
+    online: true,
+    joined: "2026-02-20",
+    region: "Brussels",
+    bio: "Lead broker at Immo Bruxelles. Primary point of contact for our Brussels agency.",
+  },
+  {
+    id: "u_7",
+    name: "Nele Willems",
+    email: "nele@immo.be",
+    phone: "+32 477 22 33 44",
+    role: "freelancer",
+    team: "—",
+    avatar: "NW",
+    online: false,
+    joined: "2026-03-15",
+    region: "Mechelen · Leuven",
+    specialties: ["fuel", "electrical"],
+    bio: "Specialises in fuel-tank and electrical inspections, including buried tanks.",
+  },
+  {
+    id: "u_8",
+    name: "Marie Lefevre",
+    email: "marie@immo.be",
+    phone: "+32 471 99 88 77",
+    role: "staff",
+    team: "—",
+    avatar: "ML",
+    online: true,
+    joined: "2026-01-12",
+    region: "Belgium",
+    bio: "Customer success. Main contact for agency onboarding and support.",
+  },
+];
+
+export type PendingInvite = {
+  id: string;
+  email: string;
+  role: UserRole;
+  teamId?: string;
+  teamRole?: "owner" | "member";
+  invitedBy: string;
+  sentAt: string;
+};
+
+export const PENDING_INVITES: PendingInvite[] = [
+  {
+    id: "inv_01",
+    email: "lucas.mertens@vastgoedantwerp.be",
+    role: "realtor",
+    teamId: "t_01",
+    teamRole: "member",
+    invitedBy: "Jordan Remy",
+    sentAt: "2026-04-18",
+  },
+  {
+    id: "inv_02",
+    email: "sarah.dewitte@gmail.com",
+    role: "freelancer",
+    invitedBy: "Marie Lefevre",
+    sentAt: "2026-04-17",
+  },
+  {
+    id: "inv_03",
+    email: "anna@gent-huizen.be",
+    role: "realtor",
+    teamId: "t_03",
+    teamRole: "owner",
+    invitedBy: "Jordan Remy",
+    sentAt: "2026-04-15",
+  },
+];
+
+export type CommissionStatus = "pending" | "approved" | "paid" | "on_hold";
+
+export type CommissionLine = {
+  id: string;
+  teamId: string;
+  period: string; // YYYY-MM
+  assignmentsCount: number;
+  grossRevenue: number;
+  commissionPercent: number;
+  commissionAmount: number;
+  status: CommissionStatus;
+  paidAt?: string;
+  paidRef?: string;
+};
+
+export const COMMISSIONS: CommissionLine[] = [
+  { id: "c_01", teamId: "t_01", period: "2026-04", assignmentsCount: 18, grossRevenue: 9420, commissionPercent: 15, commissionAmount: 1413, status: "pending" },
+  { id: "c_02", teamId: "t_02", period: "2026-04", assignmentsCount: 12, grossRevenue: 6100, commissionPercent: 15, commissionAmount: 915, status: "approved" },
+  { id: "c_03", teamId: "t_03", period: "2026-04", assignmentsCount: 9, grossRevenue: 4280, commissionPercent: 15, commissionAmount: 642, status: "paid", paidAt: "2026-04-05", paidRef: "PAY-2026-0412" },
+  { id: "c_04", teamId: "t_04", period: "2026-04", assignmentsCount: 4, grossRevenue: 2010, commissionPercent: 15, commissionAmount: 301, status: "pending" },
+  { id: "c_05", teamId: "t_05", period: "2026-04", assignmentsCount: 7, grossRevenue: 2320, commissionPercent: 15, commissionAmount: 348, status: "on_hold" },
+  { id: "c_06", teamId: "t_06", period: "2026-04", assignmentsCount: 3, grossRevenue: 720, commissionPercent: 15, commissionAmount: 108, status: "paid", paidAt: "2026-04-03", paidRef: "PAY-2026-0411" },
+  // March
+  { id: "c_07", teamId: "t_01", period: "2026-03", assignmentsCount: 22, grossRevenue: 11240, commissionPercent: 15, commissionAmount: 1686, status: "paid", paidAt: "2026-03-05", paidRef: "PAY-2026-0310" },
+  { id: "c_08", teamId: "t_02", period: "2026-03", assignmentsCount: 14, grossRevenue: 7130, commissionPercent: 15, commissionAmount: 1069, status: "paid", paidAt: "2026-03-05", paidRef: "PAY-2026-0311" },
+];
+
+export type IntegrationKey = "google_calendar" | "outlook_calendar" | "odoo" | "email_provider" | "eenvoudig_factureren";
+
+export type Integration = {
+  key: IntegrationKey;
+  name: string;
+  vendor: string;
+  description: string;
+  connected: boolean;
+  lastSyncAt?: string;
+  errorCount?: number;
+  scope?: "personal" | "org";
+};
+
+export const INTEGRATIONS: Integration[] = [
+  {
+    key: "google_calendar",
+    name: "Google Calendar",
+    vendor: "Google",
+    description: "Push assignment dates into each team's calendar.",
+    connected: true,
+    lastSyncAt: "2026-04-19 09:42",
+    errorCount: 0,
+    scope: "personal",
+  },
+  {
+    key: "outlook_calendar",
+    name: "Outlook Calendar",
+    vendor: "Microsoft",
+    description: "Push assignment dates into Outlook / Microsoft 365.",
+    connected: false,
+    scope: "personal",
+  },
+  {
+    key: "odoo",
+    name: "Odoo",
+    vendor: "Odoo S.A.",
+    description: "Sync invoices, products and contacts into the Odoo ERP.",
+    connected: true,
+    lastSyncAt: "2026-04-19 08:15",
+    errorCount: 3,
+    scope: "org",
+  },
+  {
+    key: "email_provider",
+    name: "Email provider",
+    vendor: "Postmark",
+    description: "Transactional email for invites, assignment updates, reminders.",
+    connected: true,
+    lastSyncAt: "2026-04-19 09:48",
+    errorCount: 0,
+    scope: "org",
+  },
+  {
+    key: "eenvoudig_factureren",
+    name: "Eenvoudig Factureren",
+    vendor: "Eenvoudig",
+    description: "Belgian invoicing — auto-create customer invoices per assignment.",
+    connected: false,
+    scope: "org",
+  },
+];
+
+export type OdooSyncRecord = {
+  id: string;
+  at: string;
+  entity: "product" | "invoice" | "contact" | "assignment";
+  direction: "push" | "pull";
+  status: "ok" | "failed" | "retrying";
+  message?: string;
+  itemsCount: number;
+};
+
+export const ODOO_SYNC_LOG: OdooSyncRecord[] = [
+  { id: "os_01", at: "2026-04-19 08:15", entity: "invoice", direction: "push", status: "ok", itemsCount: 18 },
+  { id: "os_02", at: "2026-04-19 08:15", entity: "assignment", direction: "push", status: "ok", itemsCount: 42 },
+  { id: "os_03", at: "2026-04-19 02:00", entity: "invoice", direction: "push", status: "failed", itemsCount: 3, message: "Product 'product_fuel_buried' not found in Odoo — price list mismatch." },
+  { id: "os_04", at: "2026-04-18 08:15", entity: "contact", direction: "pull", status: "ok", itemsCount: 7 },
+  { id: "os_05", at: "2026-04-18 02:00", entity: "invoice", direction: "push", status: "retrying", itemsCount: 1, message: "Odoo 504 — will retry in 5 min." },
+  { id: "os_06", at: "2026-04-17 08:15", entity: "product", direction: "push", status: "ok", itemsCount: 5 },
+];
+
+export type NotificationPref = {
+  key: string;
+  label: string;
+  description: string;
+  group: "assignment" | "team" | "billing" | "platform";
+  defaultEmail: boolean;
+  defaultApp: boolean;
+};
+
+export const NOTIFICATION_PREFS: NotificationPref[] = [
+  // Assignment
+  { key: "assignment_scheduled", label: "Assignment scheduled", description: "When a new assignment is scheduled for you.", group: "assignment", defaultEmail: true, defaultApp: true },
+  { key: "assignment_completed", label: "Assignment completed", description: "When a freelancer marks an assignment as delivered.", group: "assignment", defaultEmail: true, defaultApp: true },
+  { key: "assignment_files_uploaded", label: "Files uploaded", description: "When someone uploads a file to an assignment you follow.", group: "assignment", defaultEmail: true, defaultApp: true },
+  { key: "assignment_files_downloaded", label: "Files downloaded", description: "When the owner / tenant downloads a certificate you delivered.", group: "assignment", defaultEmail: false, defaultApp: true },
+  { key: "assignment_freelancer_assigned", label: "Freelancer assigned", description: "When a new freelancer is assigned to your work.", group: "assignment", defaultEmail: true, defaultApp: true },
+  { key: "assignment_date_changed", label: "Date changed", description: "When the preferred date of an assignment is moved.", group: "assignment", defaultEmail: true, defaultApp: true },
+  { key: "assignment_status_change", label: "Status change", description: "For any status transition (Draft → Scheduled → Delivered).", group: "assignment", defaultEmail: false, defaultApp: true },
+  { key: "assignment_comment", label: "New comment", description: "When someone comments on an assignment you follow.", group: "assignment", defaultEmail: false, defaultApp: true },
+  // Team
+  { key: "team_invite_accepted", label: "Invite accepted", description: "When someone you invited creates their account.", group: "team", defaultEmail: true, defaultApp: true },
+  { key: "team_member_added", label: "Member added to your team", description: "When a new user joins a team you&apos;re part of.", group: "team", defaultEmail: false, defaultApp: true },
+  { key: "team_role_changed", label: "Your role changed", description: "When your role on a team is updated.", group: "team", defaultEmail: true, defaultApp: true },
+  // Billing
+  { key: "billing_invoice_reminder", label: "Monthly invoice reminder", description: "Monthly summary of outstanding commission balance.", group: "billing", defaultEmail: true, defaultApp: true },
+  { key: "billing_payout_sent", label: "Payout sent", description: "When Immo sends a commission payout to your team.", group: "billing", defaultEmail: true, defaultApp: true },
+  // Platform
+  { key: "platform_announcements", label: "Platform announcements", description: "Product updates, maintenance, new features.", group: "platform", defaultEmail: false, defaultApp: true },
+  { key: "platform_security", label: "Security alerts", description: "Sign-ins from new devices, password changes, etc.", group: "platform", defaultEmail: true, defaultApp: true },
 ];
 
 export const DASHBOARD_STATS = [

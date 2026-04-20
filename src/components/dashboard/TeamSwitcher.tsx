@@ -1,0 +1,128 @@
+"use client";
+
+import Link from "next/link";
+import { useRef, useState, KeyboardEvent } from "react";
+import { IconCheck, IconBuilding, IconPlus } from "@/components/ui/Icons";
+import { TEAMS } from "@/lib/mockData";
+
+// In production the list comes from the signed-in user's memberships.
+// For the prototype, show 3 teams to illustrate the multi-team case.
+const userTeams = TEAMS.slice(0, 3).map((t, i) => ({
+  ...t,
+  role: i === 0 ? "owner" : ("member" as const),
+}));
+
+export function TeamSwitcher() {
+  const [activeId, setActiveId] = useState(userTeams[0].id);
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const active = userTeams.find((t) => t.id === activeId) ?? userTeams[0];
+
+  if (userTeams.length === 0) {
+    return null;
+  }
+
+  function close() {
+    if (detailsRef.current) detailsRef.current.open = false;
+  }
+
+  function handleKeyDown(e: KeyboardEvent<HTMLDetailsElement>) {
+    if (e.key === "Escape" && detailsRef.current?.open) {
+      close();
+      // Return focus to the summary so the tab order stays sensible
+      const summary = detailsRef.current.querySelector("summary") as HTMLElement | null;
+      summary?.focus();
+    }
+  }
+
+  return (
+    <details ref={detailsRef} onKeyDown={handleKeyDown} className="group relative">
+      <summary
+        aria-label="Switch team"
+        className="inline-flex cursor-pointer list-none items-center gap-2 rounded-md border border-transparent px-2 py-1 text-sm text-[var(--color-ink)] hover:border-[var(--color-border)] hover:bg-[var(--color-bg-alt)] [&::-webkit-details-marker]:hidden"
+      >
+        <span
+          className="grid h-6 w-6 shrink-0 place-items-center rounded text-[10px] font-bold text-white"
+          style={{ backgroundColor: active.color }}
+        >
+          {active.logo}
+        </span>
+        <span className="max-w-[160px] truncate font-medium">{active.name}</span>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+          className="text-[var(--color-ink-muted)] transition-transform group-open:rotate-180"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </summary>
+
+      <div className="absolute left-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-1.5 shadow-[var(--shadow-lg)]">
+        <div className="px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+            Acting as
+          </p>
+        </div>
+
+        <ul className="max-h-80 overflow-y-auto">
+          {userTeams.map((t) => (
+            <li key={t.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveId(t.id);
+                  close();
+                }}
+                className={
+                  "group/item flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--color-bg-muted)] " +
+                  (t.id === activeId ? "bg-[var(--color-bg-muted)]" : "")
+                }
+              >
+                <span
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-xs font-bold text-white"
+                  style={{ backgroundColor: t.color }}
+                >
+                  {t.logo}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-[var(--color-ink)]">
+                    {t.name}
+                  </p>
+                  <p className="text-xs capitalize text-[var(--color-ink-muted)]">
+                    {t.role} · {t.city}
+                  </p>
+                </div>
+                {t.id === activeId && (
+                  <IconCheck size={14} className="text-[var(--color-brand)]" />
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-1 border-t border-[var(--color-border)] pt-1">
+          <Link
+            href="/dashboard/teams"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+          >
+            <IconBuilding size={14} />
+            Manage all teams
+          </Link>
+          <Link
+            href="/dashboard/teams/new"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+          >
+            <IconPlus size={14} />
+            Create a team
+          </Link>
+        </div>
+      </div>
+    </details>
+  );
+}

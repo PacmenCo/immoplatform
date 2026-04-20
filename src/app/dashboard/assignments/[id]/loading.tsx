@@ -20,7 +20,7 @@ export default function AssignmentDetailLoading() {
         <Block className="h-3 w-32" />
       </div>
 
-      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-6">
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="flex-1 space-y-3">
             <div className="flex items-center gap-2">
@@ -39,7 +39,7 @@ export default function AssignmentDetailLoading() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]">
             <div className="border-b border-[var(--color-border)] p-5">
               <Block className="h-5 w-40" />
             </div>
@@ -57,7 +57,7 @@ export default function AssignmentDetailLoading() {
             </div>
           </div>
 
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-5">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-5">
             <Block className="mb-4 h-5 w-32" />
             <div className="space-y-3">
               <Block className="h-3 w-full bg-[var(--color-bg-alt)]" />
@@ -68,7 +68,7 @@ export default function AssignmentDetailLoading() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-5">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-5">
             <Block className="mb-4 h-5 w-28" />
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -80,7 +80,7 @@ export default function AssignmentDetailLoading() {
             </div>
           </div>
 
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-5">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-5">
             <Block className="mb-4 h-5 w-24" />
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (

@@ -2,7 +2,7 @@ import { Children, cloneElement, isValidElement } from "react";
 import { cn } from "@/lib/cn";
 
 const fieldBase =
-  "w-full h-10 px-3 text-sm bg-white border border-[var(--color-border-strong)] rounded-md text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] transition-colors focus:border-[var(--color-brand)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/10 disabled:bg-[var(--color-bg-muted)] disabled:text-[var(--color-ink-muted)] disabled:cursor-not-allowed aria-[invalid=true]:border-[var(--color-asbestos)] aria-[invalid=true]:focus:ring-[var(--color-asbestos)]/15";
+  "w-full h-10 px-3 text-sm bg-[var(--color-bg)] border border-[var(--color-border-strong)] rounded-md text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] transition-colors focus:border-[var(--color-brand)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/10 disabled:bg-[var(--color-bg-muted)] disabled:text-[var(--color-ink-muted)] disabled:cursor-not-allowed aria-[invalid=true]:border-[var(--color-asbestos)] aria-[invalid=true]:focus:ring-[var(--color-asbestos)]/15";
 
 export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn(fieldBase, className)} {...props} />;
@@ -25,15 +25,24 @@ export function Label({
   htmlFor,
   hint,
   hintId,
+  required,
 }: {
   children: React.ReactNode;
   htmlFor?: string;
   hint?: string;
   hintId?: string;
+  required?: boolean;
 }) {
   return (
     <label htmlFor={htmlFor} className="flex flex-col gap-1.5 text-sm">
-      <span className="font-medium text-[var(--color-ink)]">{children}</span>
+      <span className="font-medium text-[var(--color-ink)]">
+        {children}
+        {required && (
+          <span aria-hidden className="ml-0.5 text-[var(--color-asbestos)]">
+            *
+          </span>
+        )}
+      </span>
       {hint && (
         <span id={hintId} className="text-xs text-[var(--color-ink-muted)]">
           {hint}
@@ -60,12 +69,14 @@ export function Field({
   error,
   children,
   id,
+  required,
 }: {
   label: string;
   hint?: string;
   error?: string;
   children: React.ReactNode;
   id?: string;
+  required?: boolean;
 }) {
   const hintId = id && hint ? `${id}-hint` : undefined;
   const errorId = id && error ? `${id}-error` : undefined;
@@ -92,7 +103,7 @@ export function Field({
 
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor={id} hint={hint} hintId={hintId}>
+      <Label htmlFor={id} hint={hint} hintId={hintId} required={required}>
         {label}
       </Label>
       {enhancedChildren}

@@ -43,7 +43,7 @@ function NotifIcon({ name, accent }: { name: Notif["icon"]; accent: string }) {
   return (
     <span
       className="grid h-10 w-10 shrink-0 place-items-center rounded-md"
-      style={{ backgroundColor: `color-mix(in srgb, ${accent} 14%, white)`, color: accent }}
+      style={{ backgroundColor: `color-mix(in srgb, ${accent} 14%, var(--color-bg))`, color: accent }}
     >
       <I size={18} />
     </span>

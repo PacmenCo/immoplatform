@@ -1,0 +1,361 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { prisma } from "@/lib/db";
+import {
+  audit,
+  createSession,
+  generateToken,
+  hashPassword,
+  hashToken,
+  requireRole,
+} from "@/lib/auth";
+import { addedToTeamEmail, inviteEmail, sendEmail } from "@/lib/email";
+
+const createInviteSchema = z.object({
+  email: z.string().email().transform((s) => s.toLowerCase().trim()),
+  role: z.enum(["admin", "staff", "realtor", "freelancer"]),
+  teamId: z.string().optional().or(z.literal("")),
+  teamRole: z.enum(["owner", "member"]).optional().or(z.literal("")),
+  note: z.string().max(500).optional(),
+});
+
+export type ActionResult<T = undefined> =
+  | { ok: true; data?: T }
+  | { ok: false; error: string };
+
+// ─── CREATE INVITE ─────────────────────────────────────────────────
+
+export async function createInvite(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  let session;
+  try {
+    session = await requireRole(["admin", "staff", "realtor"]);
+  } catch {
+    return { ok: false, error: "You don't have permission to invite users." };
+  }
+
+  const raw = {
+    email: formData.get("email") as string,
+    role: formData.get("role") as string,
+    teamId: (formData.get("teamId") as string) || "",
+    teamRole: (formData.get("teamRole") as string) || "",
+    note: (formData.get("note") as string) || undefined,
+  };
+
+  const parsed = createInviteSchema.safeParse(raw);
+  if (!parsed.success) {
+    const err = parsed.error.issues[0];
+    return { ok: false, error: err?.message ?? "Invalid input." };
+  }
+
+  const { email, role, note } = parsed.data;
+  const teamId = parsed.data.teamId || null;
+  const teamRole = parsed.data.teamRole || null;
+
+  if (teamId && !teamRole) {
+    return { ok: false, error: "Pick a team role (Member or Owner)." };
+  }
+  if (teamRole && !teamId) {
+    return { ok: false, error: "Pick a team before setting a team role." };
+  }
+
+  // Enforce single-owner policy: if team already has an owner, reject Owner role.
+  if (teamId && teamRole === "owner") {
+    const existingOwner = await prisma.teamMember.findFirst({
+      where: { teamId, teamRole: "owner" },
+      include: { user: { select: { firstName: true, lastName: true } } },
+    });
+    if (existingOwner) {
+      const ownerName = `${existingOwner.user.firstName} ${existingOwner.user.lastName}`;
+      return {
+        ok: false,
+        error: `This team already has an owner (${ownerName}). Invite as a member, or transfer ownership first.`,
+      };
+    }
+  }
+
+  // Permission checks beyond role:
+  if (session.user.role === "realtor") {
+    // Realtors can only invite to teams they own, and only realtor/freelancer.
+    if (role === "admin" || role === "staff") {
+      return { ok: false, error: "Only admins can invite admin or staff users." };
+    }
+    if (!teamId) {
+      return { ok: false, error: "You must assign the invitee to your team." };
+    }
+    const membership = await prisma.teamMember.findUnique({
+      where: { teamId_userId: { teamId, userId: session.user.id } },
+    });
+    if (!membership || membership.teamRole !== "owner") {
+      return { ok: false, error: "You can only invite to teams you own." };
+    }
+  }
+  if (session.user.role === "staff" && role === "admin") {
+    return { ok: false, error: "Staff cannot invite admins." };
+  }
+
+  // Existing user → add to team silently instead of creating an invite.
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    if (!teamId || !teamRole) {
+      return {
+        ok: false,
+        error: "This email already has an account. Pick a team to add them to.",
+      };
+    }
+    await prisma.teamMember.upsert({
+      where: { teamId_userId: { teamId, userId: existing.id } },
+      create: { teamId, userId: existing.id, teamRole },
+      update: { teamRole },
+    });
+    const team = await prisma.team.findUnique({ where: { id: teamId } });
+    const tpl = addedToTeamEmail({
+      inviterName: `${session.user.firstName} ${session.user.lastName}`,
+      teamName: team!.name,
+      teamRole,
+      loginUrl: `${process.env.APP_URL ?? "http://localhost:3000"}/login`,
+    });
+    await sendEmail({ to: email, ...tpl });
+    await audit({
+      actorId: session.user.id,
+      verb: "team.member_added",
+      objectType: "team",
+      objectId: teamId,
+      metadata: { addedUserId: existing.id, teamRole },
+    });
+    revalidatePath("/dashboard/users");
+    return { ok: true };
+  }
+
+  // Reject duplicate pending invites for this email.
+  const existingPending = await prisma.invite.findFirst({
+    where: { email, acceptedAt: null, revokedAt: null },
+  });
+  if (existingPending) {
+    return {
+      ok: false,
+      error: "There's already a pending invite for this email. Revoke it first.",
+    };
+  }
+
+  // Create invite.
+  const token = generateToken();
+  const invite = await prisma.invite.create({
+    data: {
+      email,
+      role,
+      teamId,
+      teamRole,
+      tokenHash: hashToken(token),
+      invitedById: session.user.id,
+      note: note || null,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+    include: { team: true },
+  });
+
+  const acceptUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/invites/${token}`;
+  const tpl = inviteEmail({
+    inviterName: `${session.user.firstName} ${session.user.lastName}`,
+    acceptUrl,
+    role,
+    teamName: invite.team?.name,
+    teamRole,
+    note: note || null,
+    expiresAt: invite.expiresAt,
+  });
+  await sendEmail({ to: email, ...tpl });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "invite.sent",
+    objectType: "invite",
+    objectId: invite.id,
+    metadata: { email, role, teamId, teamRole },
+  });
+
+  revalidatePath("/dashboard/users");
+  redirect("/dashboard/users");
+}
+
+// ─── GET INVITE BY TOKEN (for the accept page) ─────────────────────
+
+export async function getInviteByToken(token: string) {
+  const invite = await prisma.invite.findUnique({
+    where: { tokenHash: hashToken(token) },
+    include: {
+      team: true,
+      invitedBy: { select: { firstName: true, lastName: true, email: true } },
+    },
+  });
+  if (!invite) return { status: "not_found" as const };
+  if (invite.revokedAt) return { status: "revoked" as const };
+  if (invite.acceptedAt) return { status: "accepted" as const };
+  if (invite.expiresAt < new Date()) return { status: "expired" as const };
+  return { status: "ok" as const, invite };
+}
+
+// ─── ACCEPT INVITE ─────────────────────────────────────────────────
+
+const acceptSchema = z.object({
+  token: z.string().min(10),
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().min(1).max(100),
+  password: z.string().min(10, "Password must be at least 10 characters."),
+  confirm: z.string(),
+});
+
+export async function acceptInvite(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const raw = {
+    token: formData.get("token") as string,
+    firstName: formData.get("firstName") as string,
+    lastName: formData.get("lastName") as string,
+    password: formData.get("password") as string,
+    confirm: formData.get("confirm") as string,
+  };
+  const parsed = acceptSchema.safeParse(raw);
+  if (!parsed.success) {
+    const err = parsed.error.issues[0];
+    return { ok: false, error: err?.message ?? "Invalid input." };
+  }
+  if (parsed.data.password !== parsed.data.confirm) {
+    return { ok: false, error: "Passwords don't match." };
+  }
+
+  const res = await getInviteByToken(parsed.data.token);
+  if (res.status !== "ok") {
+    return {
+      ok: false,
+      error: {
+        not_found: "This invite doesn't exist.",
+        revoked: "This invite has been revoked.",
+        accepted: "This invite has already been used.",
+        expired: "This invite has expired. Ask to be re-invited.",
+      }[res.status],
+    };
+  }
+  const invite = res.invite;
+
+  // Block if email somehow already has a user (race between invite + self-register)
+  const clash = await prisma.user.findUnique({ where: { email: invite.email } });
+  if (clash) {
+    return {
+      ok: false,
+      error: "An account with this email already exists. Try signing in.",
+    };
+  }
+
+  const hash = await hashPassword(parsed.data.password);
+
+  const { user } = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        email: invite.email,
+        passwordHash: hash,
+        firstName: parsed.data.firstName,
+        lastName: parsed.data.lastName,
+        role: invite.role,
+        emailVerifiedAt: new Date(),
+      },
+    });
+    if (invite.teamId && invite.teamRole) {
+      await tx.teamMember.create({
+        data: {
+          teamId: invite.teamId,
+          userId: user.id,
+          teamRole: invite.teamRole,
+        },
+      });
+    }
+    await tx.invite.update({
+      where: { id: invite.id },
+      data: { acceptedAt: new Date() },
+    });
+    return { user };
+  });
+
+  await createSession({
+    userId: user.id,
+    activeTeamId: invite.teamId ?? null,
+  });
+
+  await audit({
+    actorId: user.id,
+    verb: "user.created",
+    objectType: "user",
+    objectId: user.id,
+    metadata: { via: "invite", inviteId: invite.id },
+  });
+
+  redirect("/dashboard");
+}
+
+// ─── RESEND / REVOKE ───────────────────────────────────────────────
+
+export async function resendInvite(inviteId: string): Promise<ActionResult> {
+  try {
+    await requireRole(["admin", "staff", "realtor"]);
+  } catch {
+    return { ok: false, error: "Not allowed." };
+  }
+  const invite = await prisma.invite.findUnique({
+    where: { id: inviteId },
+    include: { team: true, invitedBy: true },
+  });
+  if (!invite) return { ok: false, error: "Invite not found." };
+  if (invite.acceptedAt) return { ok: false, error: "Invite already accepted." };
+  if (invite.revokedAt) return { ok: false, error: "Invite revoked." };
+
+  if (invite.resendCount >= 3 && invite.lastResentAt &&
+      Date.now() - invite.lastResentAt.getTime() < 60 * 60 * 1000) {
+    return { ok: false, error: "Rate limited — try again in an hour." };
+  }
+
+  // Generate a fresh token so the old email's link stops working.
+  const token = generateToken();
+  const updated = await prisma.invite.update({
+    where: { id: invite.id },
+    data: {
+      tokenHash: hashToken(token),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      resendCount: { increment: 1 },
+      lastResentAt: new Date(),
+    },
+  });
+
+  const acceptUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/invites/${token}`;
+  const tpl = inviteEmail({
+    inviterName: `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`,
+    acceptUrl,
+    role: invite.role,
+    teamName: invite.team?.name,
+    teamRole: invite.teamRole,
+    note: invite.note,
+    expiresAt: updated.expiresAt,
+  });
+  await sendEmail({ to: invite.email, ...tpl });
+  revalidatePath("/dashboard/users");
+  return { ok: true };
+}
+
+export async function revokeInvite(inviteId: string): Promise<ActionResult> {
+  try {
+    await requireRole(["admin", "staff", "realtor"]);
+  } catch {
+    return { ok: false, error: "Not allowed." };
+  }
+  await prisma.invite.update({
+    where: { id: inviteId },
+    data: { revokedAt: new Date() },
+  });
+  revalidatePath("/dashboard/users");
+  return { ok: true };
+}

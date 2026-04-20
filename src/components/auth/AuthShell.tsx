@@ -61,7 +61,7 @@ export function AuthShell({
               sales cycle on certificates shortened by 40%.&rdquo;
             </p>
             <div className="mt-6 flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-sm font-semibold">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--color-bg)]/10 text-sm font-semibold">
                 EV
               </span>
               <div>

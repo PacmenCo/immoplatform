@@ -23,7 +23,7 @@ export default function BillingSettingsPage() {
             <div className="flex items-center justify-between gap-4">
               <CardTitle>Current plan</CardTitle>
               <Badge
-                bg="color-mix(in srgb, var(--color-epc) 14%, white)"
+                bg="color-mix(in srgb, var(--color-epc) 14%, var(--color-bg))"
                 fg="var(--color-epc)"
               >
                 Active
@@ -133,7 +133,7 @@ export default function BillingSettingsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <Badge
-                        bg="color-mix(in srgb, var(--color-epc) 14%, white)"
+                        bg="color-mix(in srgb, var(--color-epc) 14%, var(--color-bg))"
                         fg="var(--color-epc)"
                       >
                         {inv.status}

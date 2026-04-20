@@ -12,15 +12,19 @@ import {
   IconChart,
   IconSettings,
   IconMegaphone,
+  IconWallet,
+  IconLogout,
 } from "@/components/ui/Icons";
+import { logout } from "@/app/actions/auth";
 
 const nav = [
   { href: "/dashboard", label: "Overview", icon: IconHome },
   { href: "/dashboard/assignments", label: "Assignments", icon: IconList, badge: "8" },
+  { href: "/dashboard/calendar", label: "Calendar", icon: IconCalendar },
   { href: "/dashboard/teams", label: "Teams", icon: IconBuilding },
   { href: "/dashboard/users", label: "Users", icon: IconUsers },
-  { href: "/dashboard/calendar", label: "Calendar", icon: IconCalendar },
   { href: "/dashboard/overview", label: "Revenue", icon: IconChart },
+  { href: "/dashboard/commissions", label: "Commissions", icon: IconWallet },
   { href: "/dashboard/announcements", label: "Announcements", icon: IconMegaphone },
   { href: "/dashboard/settings", label: "Settings", icon: IconSettings },
 ];
@@ -31,11 +35,18 @@ function isActive(pathname: string | null, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-export function Sidebar() {
+type SidebarUser = {
+  firstName: string;
+  lastName: string;
+  role: string;
+  avatarInitials: string;
+};
+
+export function Sidebar({ user }: { user?: SidebarUser }) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex h-screen w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-white sticky top-0">
+    <aside className="hidden lg:flex h-screen w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-bg)] sticky top-0">
       <div className="flex items-center gap-2 px-6 h-16 border-b border-[var(--color-border)]">
         <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-white text-sm font-bold">
           I
@@ -95,12 +106,30 @@ export function Sidebar() {
           href="/dashboard/settings"
           className="flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-[var(--color-bg-muted)]"
         >
-          <Avatar initials="JR" size="sm" color="#0f172a" online />
+          <Avatar
+            initials={user?.avatarInitials ?? "JR"}
+            size="sm"
+            color="#0f172a"
+            online
+          />
           <div className="flex flex-col min-w-0">
-            <span className="text-sm font-medium text-[var(--color-ink)] truncate">Jordan Remy</span>
-            <span className="text-xs text-[var(--color-ink-muted)] truncate">Admin</span>
+            <span className="text-sm font-medium text-[var(--color-ink)] truncate">
+              {user ? `${user.firstName} ${user.lastName}` : "Jordan Remy"}
+            </span>
+            <span className="text-xs capitalize text-[var(--color-ink-muted)] truncate">
+              {user?.role ?? "admin"}
+            </span>
           </div>
         </Link>
+        <form action={logout} className="mt-1">
+          <button
+            type="submit"
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+          >
+            <IconLogout size={16} className="text-[var(--color-ink-muted)]" />
+            Sign out
+          </button>
+        </form>
       </div>
     </aside>
   );

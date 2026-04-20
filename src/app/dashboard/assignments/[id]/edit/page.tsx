@@ -89,7 +89,7 @@ export default async function EditAssignment({
                 return (
                   <label
                     key={key}
-                    className="group relative flex cursor-pointer items-start gap-4 rounded-[var(--radius-md)] border bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
+                    className="group relative flex cursor-pointer items-start gap-4 rounded-[var(--radius-md)] border bg-[var(--color-bg)] p-5 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
                     style={{
                       borderColor: "var(--color-border)",
                       borderLeftWidth: "4px",

@@ -1,22 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --color-bg: #ffffff;
-  --color-bg-alt: #f8fafc;
-  --color-bg-muted: #f1f5f9;
+  /* Surfaces */
+  --color-bg: #ffffff;          /* Page + card surface */
+  --color-bg-alt: #f8fafc;       /* Subtle offset surface (topbars, table headers) */
+  --color-bg-muted: #f1f5f9;     /* Stronger offset (hover fills, code blocks) */
+  --color-surface-invert: #0f172a; /* Inverted surface (e.g. stats bar) */
 
+  /* Text */
   --color-ink: #0f172a;
   --color-ink-soft: #334155;
   --color-ink-muted: #64748b;
   --color-ink-faint: #94a3b8;
 
+  /* Borders */
   --color-border: #e2e8f0;
   --color-border-strong: #cbd5e1;
 
+  /* Brand */
   --color-brand: #0f172a;
   --color-brand-soft: #1e293b;
+  --color-on-brand: #ffffff;     /* Text color when painted on --color-brand */
   --color-accent: #f59e0b;
 
+  /* Service colors (constant across themes) */
   --color-epc: #10b981;
   --color-asbestos: #e11d48;
   --color-electrical: #f59e0b;
@@ -32,6 +39,39 @@
   --shadow-lg: 0 16px 32px -8px rgb(15 23 42 / 0.08), 0 4px 8px -4px rgb(15 23 42 / 0.04);
 
   --container: 1200px;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  /* Surfaces — layered from deepest background up */
+  --color-bg: #0b1120;            /* Page + card surface */
+  --color-bg-alt: #111827;         /* Subtle offset (topbar, table header) */
+  --color-bg-muted: #1e293b;       /* Stronger offset (hover, muted pills) */
+  --color-surface-invert: #f1f5f9; /* Inverted chrome — rare in dark mode */
+
+  /* Text */
+  --color-ink: #f1f5f9;
+  --color-ink-soft: #cbd5e1;
+  --color-ink-muted: #94a3b8;
+  --color-ink-faint: #64748b;
+
+  /* Borders */
+  --color-border: #1e293b;
+  --color-border-strong: #334155;
+
+  /* Brand — flipped so primary buttons stay high-contrast */
+  --color-brand: #f1f5f9;
+  --color-brand-soft: #e2e8f0;
+  --color-on-brand: #0f172a;
+  --color-accent: #fbbf24;   /* Slightly brighter amber for dark surfaces */
+
+  /* Heavier shadows so cards still lift visually on dark backgrounds */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.35), 0 2px 4px -2px rgb(0 0 0 / 0.25);
+  --shadow-lg: 0 16px 32px -8px rgb(0 0 0 / 0.4), 0 4px 8px -4px rgb(0 0 0 / 0.25);
+
+  color-scheme: dark;
 }
 
 @theme inline {

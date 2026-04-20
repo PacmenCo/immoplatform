@@ -44,8 +44,8 @@ export function ServicePill({ color, label }: { color: string; label: string }) 
       className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider"
       style={{
         color: color,
-        backgroundColor: `color-mix(in srgb, ${color} 14%, white)`,
-        border: `1px solid color-mix(in srgb, ${color} 30%, white)`,
+        backgroundColor: `color-mix(in srgb, ${color} 14%, var(--color-bg))`,
+        border: `1px solid color-mix(in srgb, ${color} 30%, var(--color-bg))`,
       }}
     >
       {label}

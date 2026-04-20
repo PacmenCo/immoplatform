@@ -16,7 +16,7 @@ export default function DashboardError({
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-alt)]">
-      <header className="hidden h-16 items-center justify-between border-b border-[var(--color-border)] bg-white px-6 xl:px-8 lg:flex">
+      <header className="hidden h-16 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)] px-6 xl:px-8 lg:flex">
         <div className="min-w-0">
           <h1 className="truncate text-lg font-semibold text-[var(--color-ink)]">
             Dashboard
@@ -28,8 +28,8 @@ export default function DashboardError({
       </header>
 
       <div className="grid place-items-center px-6 py-16">
-        <div className="w-full max-w-lg rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-8 text-center shadow-[var(--shadow-sm)]">
-          <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-full bg-[color-mix(in_srgb,var(--color-asbestos)_12%,white)] text-[var(--color-asbestos)]">
+        <div className="w-full max-w-lg rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-8 text-center shadow-[var(--shadow-sm)]">
+          <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-full bg-[color-mix(in_srgb,var(--color-asbestos)_12%,var(--color-bg))] text-[var(--color-asbestos)]">
             <svg
               aria-hidden="true"
               viewBox="0 0 24 24"

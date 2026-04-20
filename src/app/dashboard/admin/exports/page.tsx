@@ -70,7 +70,7 @@ export default function ExportsPage() {
                 <div className="flex items-center gap-3">
                   <span
                     className="grid h-10 w-10 place-items-center rounded-md"
-                    style={{ backgroundColor: `color-mix(in srgb, ${e.accent} 14%, white)`, color: e.accent }}
+                    style={{ backgroundColor: `color-mix(in srgb, ${e.accent} 14%, var(--color-bg))`, color: e.accent }}
                   >
                     <e.icon size={18} />
                   </span>

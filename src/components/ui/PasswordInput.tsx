@@ -4,7 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 
 const fieldBase =
-  "w-full h-10 pl-3 pr-10 text-sm bg-white border border-[var(--color-border-strong)] rounded-md text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] transition-colors focus:border-[var(--color-brand)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/10";
+  "w-full h-10 pl-3 pr-10 text-sm bg-[var(--color-bg)] border border-[var(--color-border-strong)] rounded-md text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] transition-colors focus:border-[var(--color-brand)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/10";
 
 type PasswordInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
   showToggle?: boolean;

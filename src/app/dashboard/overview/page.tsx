@@ -34,8 +34,8 @@ export default function RevenueOverviewPage() {
                 key={p}
                 className={
                   i === 0
-                    ? "rounded-md border border-[var(--color-border-strong)] bg-white px-3 py-1.5 text-sm font-medium"
-                    : "rounded-md border border-[var(--color-border)] bg-white px-3 py-1.5 text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
+                    ? "rounded-md border border-[var(--color-border-strong)] bg-[var(--color-bg)] px-3 py-1.5 text-sm font-medium"
+                    : "rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
                 }
               >
                 {p}
@@ -51,26 +51,76 @@ export default function RevenueOverviewPage() {
               <h2 className="text-base font-semibold">Monthly revenue</h2>
               <p className="text-xs text-[var(--color-ink-muted)]">Last 4 months</p>
             </div>
-            <div className="mt-8 flex h-48 items-end justify-between gap-4">
-              {months.map((m) => {
-                const h = (m.value / peakMonth) * 100;
-                return (
-                  <div key={m.label} className="flex flex-1 flex-col items-center gap-2">
-                    <div className="w-full flex flex-col-reverse items-center">
-                      <div
-                        className="w-full rounded-t-md bg-gradient-to-t from-[var(--color-brand)] to-[var(--color-brand-soft)]"
-                        style={{ height: `${h}%` }}
-                        title={`€ ${m.value.toLocaleString()}`}
-                      />
-                    </div>
-                    <p className="text-xs text-[var(--color-ink-muted)]">{m.label}</p>
-                    <p className="text-sm font-medium text-[var(--color-ink)]">
-                      € {m.value.toLocaleString()}
-                    </p>
+
+            {(() => {
+              // Round ceiling up to a nice 5k step so gridlines land on tidy numbers
+              const ceiling = Math.ceil(peakMonth / 5000) * 5000;
+              const ticks = [1, 0.75, 0.5, 0.25, 0];
+              return (
+                <div className="mt-8 flex gap-4">
+                  {/* Y-axis */}
+                  <div className="flex h-56 flex-col justify-between pb-8 text-right text-[10px] tabular-nums text-[var(--color-ink-muted)]">
+                    {ticks.map((t) => (
+                      <span key={t}>€ {((ceiling * t) / 1000).toFixed(0)}k</span>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
+
+                  {/* Chart area */}
+                  <div className="relative flex-1">
+                    {/* Gridlines */}
+                    <div className="absolute inset-0 h-48 flex flex-col justify-between">
+                      {ticks.map((t, i) => (
+                        <div
+                          key={t}
+                          className={
+                            "h-px w-full " +
+                            (i === ticks.length - 1
+                              ? "bg-[var(--color-border-strong)]"
+                              : "bg-[var(--color-border)]")
+                          }
+                        />
+                      ))}
+                    </div>
+
+                    {/* Bars */}
+                    <div className="relative h-48 grid grid-cols-4 gap-6">
+                      {months.map((m) => {
+                        const h = (m.value / ceiling) * 100;
+                        const isPeak = m.value === peakMonth;
+                        return (
+                          <div
+                            key={m.label}
+                            className="group relative flex h-full flex-col items-center justify-end"
+                          >
+                            {/* Value label above the bar */}
+                            <p className="mb-2 text-xs font-medium text-[var(--color-ink)] tabular-nums">
+                              € {(m.value / 1000).toFixed(1)}k
+                            </p>
+                            <div
+                              className={
+                                "relative w-full max-w-14 rounded-t-md transition-all " +
+                                (isPeak
+                                  ? "bg-[var(--color-brand)] group-hover:bg-[var(--color-brand-soft)]"
+                                  : "bg-[var(--color-border-strong)] group-hover:bg-[var(--color-ink-muted)]")
+                              }
+                              style={{ height: `${h}%`, minHeight: "4px" }}
+                              title={`€ ${m.value.toLocaleString()}`}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Month labels */}
+                    <div className="mt-3 grid grid-cols-4 gap-6 text-center text-xs text-[var(--color-ink-muted)]">
+                      {months.map((m) => (
+                        <span key={m.label}>{m.label}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </Card>
 
           <Card>

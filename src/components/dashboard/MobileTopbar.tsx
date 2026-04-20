@@ -37,7 +37,7 @@ export function MobileTopbar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-[var(--color-border)] bg-white px-3 sm:px-4 h-14 lg:hidden">
+    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-3 sm:px-4 h-14 lg:hidden">
       <details className="relative group">
         <summary
           className="grid h-11 w-11 cursor-pointer list-none place-items-center rounded-md text-[var(--color-ink-soft)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)] [&::-webkit-details-marker]:hidden"
@@ -73,7 +73,7 @@ export function MobileTopbar() {
           </svg>
         </summary>
 
-        <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-2 shadow-[var(--shadow-lg)]">
+        <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-2 shadow-[var(--shadow-lg)]">
           <ul className="flex flex-col">
             {NAV.map((item) => {
               const active = isActive(pathname, item.href);

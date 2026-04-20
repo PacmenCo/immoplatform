@@ -15,7 +15,7 @@ export function Card({
     <As
       id={id}
       className={cn(
-        "rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white",
+        "rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]",
         className,
       )}
     >

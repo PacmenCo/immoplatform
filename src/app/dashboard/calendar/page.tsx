@@ -32,19 +32,19 @@ export default function CalendarPage() {
       <div className="p-8 max-w-[1400px]">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button className="h-9 w-9 rounded-md border border-[var(--color-border-strong)] bg-white text-[var(--color-ink-soft)]">
+            <button className="h-9 w-9 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-bg)] text-[var(--color-ink-soft)]">
               ‹
             </button>
             <h2 className="mx-4 text-lg font-semibold">April 2026</h2>
-            <button className="h-9 w-9 rounded-md border border-[var(--color-border-strong)] bg-white text-[var(--color-ink-soft)]">
+            <button className="h-9 w-9 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-bg)] text-[var(--color-ink-soft)]">
               ›
             </button>
           </div>
           <div className="flex gap-2">
-            <button className="rounded-md border border-[var(--color-border)] bg-white px-3 py-1.5 text-sm text-[var(--color-ink-soft)]">
+            <button className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-sm text-[var(--color-ink-soft)]">
               Week
             </button>
-            <button className="rounded-md border border-[var(--color-border-strong)] bg-white px-3 py-1.5 text-sm font-medium">
+            <button className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-bg)] px-3 py-1.5 text-sm font-medium">
               Month
             </button>
           </div>
@@ -91,7 +91,7 @@ export default function CalendarPage() {
                           className="truncate rounded px-1.5 py-0.5 text-[11px] font-medium"
                           style={{
                             color: svc.color,
-                            backgroundColor: `color-mix(in srgb, ${svc.color} 12%, white)`,
+                            backgroundColor: `color-mix(in srgb, ${svc.color} 12%, var(--color-bg))`,
                           }}
                           title={`${e.reference} — ${e.address}`}
                         >

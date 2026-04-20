@@ -95,7 +95,7 @@ export default function TeamSettingsPage() {
                     </div>
                     {i === 0 ? (
                       <Badge
-                        bg="color-mix(in srgb, var(--color-epc) 14%, white)"
+                        bg="color-mix(in srgb, var(--color-epc) 14%, var(--color-bg))"
                         fg="var(--color-epc)"
                       >
                         Default

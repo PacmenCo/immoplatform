@@ -1,0 +1,301 @@
+// Auth + invite + team schema for Immo
+// Using SQLite for dev ergonomics — swap to PostgreSQL via DATABASE_URL in production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  staff
+  realtor
+  freelancer
+}
+
+enum TeamRole {
+  owner
+  member
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  emailVerifiedAt DateTime?
+  passwordHash    String?
+  firstName       String
+  lastName        String
+  role            String    // Role enum — SQLite doesn't have real enums; validated in app
+  phone           String?
+  region          String?
+  avatarUrl       String?
+  bio             String?
+  joinedAt        DateTime  @default(now())
+  lastSeenAt      DateTime?
+  deletedAt       DateTime?
+
+  sessions            Session[]
+  memberships         TeamMember[]
+  sentInvites         Invite[]              @relation("InvitedBy")
+  passwordResets      PasswordReset[]
+  auditEntries        AuditLog[]            @relation("AuditActor")
+  specialties         UserSpecialty[]
+  freelancerAssignments Assignment[]        @relation("AssignedFreelancer")
+  createdAssignments  Assignment[]          @relation("CreatedAssignment")
+  comments            AssignmentComment[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Team {
+  id         String   @id @default(cuid())
+  name       String
+  city       String?
+  logo       String?  // 2-letter display
+  logoColor  String?
+  createdAt  DateTime @default(now())
+
+  // Contact + descriptor
+  email             String?   // team-wide contact email (separate from individual members)
+  description       String?   // free-form notes
+
+  // Legal / billing (used on invoices)
+  legalName         String?
+  vatNumber         String?
+  kboNumber         String?   // KBO / Chamber of Commerce
+  iban              String?
+  billingEmail      String?
+  billingPhone      String?
+  billingAddress    String?
+  billingPostal     String?
+  billingCity       String?
+  billingCountry    String?   @default("Belgium")
+
+  // Branding
+  logoUrl              String?
+  signatureUrl         String?
+  prefersLogoOnPhotos  Boolean @default(false)
+
+  // Invoicing defaults
+  defaultClientType String?   // 'owner' | 'firm' — invoice recipient default
+
+  // Commission config
+  commissionType    String?   // 'percentage' | 'fixed' | null (no commission)
+  commissionValue   Int?      // For percentage: basis points (1500 = 15%); for fixed: cents
+
+  members          TeamMember[]
+  invites          Invite[]
+  assignments      Assignment[]
+  serviceOverrides TeamServiceOverride[]
+
+  @@map("teams")
+}
+
+model TeamServiceOverride {
+  teamId      String
+  serviceKey  String
+  priceCents  Int       // overrides Service.unitPrice for this team
+
+  team     Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  service  Service @relation(fields: [serviceKey], references: [key], onDelete: Cascade)
+
+  @@id([teamId, serviceKey])
+  @@map("team_service_overrides")
+}
+
+model TeamMember {
+  teamId    String
+  userId    String
+  teamRole  String  // TeamRole enum — owner | member
+  joinedAt  DateTime @default(now())
+
+  team      Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@map("team_members")
+}
+
+model Invite {
+  id            String    @id @default(cuid())
+  email         String
+  role          String    // Role enum
+  teamId        String?
+  teamRole      String?   // TeamRole enum, required if teamId set
+  tokenHash     String    @unique
+  invitedById   String
+  note          String?
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime
+  acceptedAt    DateTime?
+  revokedAt     DateTime?
+  resendCount   Int       @default(0)
+  lastResentAt  DateTime?
+
+  team          Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  invitedBy     User      @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@index([email])
+  @@index([tokenHash])
+  @@map("invites")
+}
+
+model Session {
+  id            String    @id           // random 32-byte url-safe string
+  userId        String
+  activeTeamId  String?
+  userAgent     String?
+  ip            String?
+  createdAt     DateTime  @default(now())
+  lastSeenAt    DateTime  @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model PasswordReset {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  usedAt     DateTime?
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@map("password_resets")
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  at          DateTime  @default(now())
+  actorId     String?
+  verb        String    // created | updated | signed_in | invite.sent | etc.
+  objectType  String?
+  objectId    String?
+  metadata    String?   // JSON blob (SQLite has no JSONB)
+
+  actor       User?     @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([at])
+  @@index([actorId])
+  @@index([objectType, objectId])
+  @@map("audit_log")
+}
+
+// ─── Services catalog ──────────────────────────────────────────────
+
+model Service {
+  key         String  @id           // 'epc' | 'asbestos' | 'electrical' | 'fuel'
+  label       String                 // 'Energy Performance Certificate'
+  short       String                 // 'EPC' | 'AIV' | 'EK' | 'TK'
+  color       String                 // CSS variable name, e.g. 'var(--color-epc)'
+  description String
+  unitPrice   Int                    // cents (euros * 100)
+  active      Boolean @default(true)
+
+  assignments  AssignmentService[]
+  specialties  UserSpecialty[]
+  teamOverrides TeamServiceOverride[]
+
+  @@map("services")
+}
+
+model UserSpecialty {
+  userId     String
+  serviceKey String
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceKey], references: [key], onDelete: Cascade)
+
+  @@id([userId, serviceKey])
+  @@map("user_specialties")
+}
+
+// ─── Assignments ───────────────────────────────────────────────────
+
+model Assignment {
+  id               String    @id @default(cuid())
+  reference        String    @unique           // 'ASG-2026-1001'
+  status           String    // 'draft' | 'scheduled' | 'in_progress' | 'delivered' | 'completed'
+
+  // Property
+  address          String
+  city             String
+  postal           String
+  propertyType     String?                     // 'house' | 'apartment' | ...
+  constructionYear Int?
+  areaM2           Int?
+
+  // Scheduling
+  preferredDate    DateTime?
+  keyPickup        String?                     // 'owner' | 'tenant' | 'office' | 'lockbox'
+  notes            String?
+
+  // Contacts
+  ownerName        String
+  ownerEmail       String?
+  ownerPhone       String?
+  tenantName       String?
+  tenantEmail      String?
+  tenantPhone      String?
+
+  // Relations
+  teamId           String?
+  freelancerId     String?
+  createdById      String?
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deliveredAt      DateTime?
+  completedAt      DateTime?
+
+  team             Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  freelancer       User?                @relation("AssignedFreelancer", fields: [freelancerId], references: [id], onDelete: SetNull)
+  createdBy        User?                @relation("CreatedAssignment", fields: [createdById], references: [id], onDelete: SetNull)
+  services         AssignmentService[]
+  comments         AssignmentComment[]
+
+  @@index([status])
+  @@index([teamId])
+  @@index([freelancerId])
+  @@index([preferredDate])
+  @@map("assignments")
+}
+
+model AssignmentService {
+  assignmentId String
+  serviceKey   String
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  service    Service    @relation(fields: [serviceKey], references: [key])
+
+  @@id([assignmentId, serviceKey])
+  @@map("assignment_services")
+}
+
+model AssignmentComment {
+  id           String   @id @default(cuid())
+  assignmentId String
+  authorId     String?                // null = system comment
+  authorLabel  String?                // 'System' display when authorId null
+  body         String
+  createdAt    DateTime @default(now())
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  author     User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([assignmentId, createdAt])
+  @@map("assignment_comments")
+}
