@@ -147,8 +147,10 @@ export async function canUpdateAssignmentFields(
 }
 
 /**
- * Realtor/admin/staff mark a delivered assignment as completed. Freelancers
- * never complete — they delivered their own work; the agency signs off.
+ * Mark a delivered assignment as completed. Freelancers never complete — they
+ * delivered their own work; the agency signs off. Owner-level only on the
+ * realtor side (matches canEditAssignment) — a team member who can't edit
+ * the assignment pre-completion shouldn't be able to close it either.
  */
 export async function canCompleteAssignment(
   s: SessionWithUser,
@@ -157,8 +159,8 @@ export async function canCompleteAssignment(
   if (hasRole(s, "admin", "staff")) return true;
   if (hasRole(s, "freelancer")) return false;
   if (!hasRole(s, "realtor")) return false;
-  const { all } = await getUserTeamIds(s.user.id);
-  return a.createdById === s.user.id || (!!a.teamId && all.includes(a.teamId));
+  const { owned } = await getUserTeamIds(s.user.id);
+  return a.createdById === s.user.id || (!!a.teamId && owned.includes(a.teamId));
 }
 
 /**
@@ -217,11 +219,16 @@ export async function canActOnInvite(
   return membership?.teamRole === "owner";
 }
 
+const FREELANCER_ORBIT_MONTHS = 12;
+
 /**
  * Filter restricting the set of freelancers a caller is allowed to see/assign.
- * Admin/staff see all active freelancers. Realtors only see freelancers already
- * in their orbit: members of their teams, or previously assigned to their
- * teams' work. Prevents cross-tenant enumeration.
+ * Admin/staff see all active freelancers (matches Platform). Realtors only see
+ * freelancers currently in their orbit:
+ *   (a) active member of one of their teams, OR
+ *   (b) worked on an assignment at one of their teams in the last 12 months.
+ * A freelancer who did one job years ago and never returned drops off the list
+ * — prevents permanent cross-tenant residue.
  */
 export async function eligibleFreelancerWhere(
   s: SessionWithUser,
@@ -229,12 +236,22 @@ export async function eligibleFreelancerWhere(
   const base: Prisma.UserWhereInput = { role: "freelancer", deletedAt: null };
   if (hasRole(s, "admin", "staff")) return base;
   const { all } = await getUserTeamIds(s.user.id);
-  if (all.length === 0) return { ...base, id: "__never__" }; // match nothing
+  // Empty IN evaluates to a no-match predicate in Prisma (1=0).
+  if (all.length === 0) return { ...base, id: { in: [] } };
+  const recencyCutoff = new Date();
+  recencyCutoff.setMonth(recencyCutoff.getMonth() - FREELANCER_ORBIT_MONTHS);
   return {
     ...base,
     OR: [
       { memberships: { some: { teamId: { in: all } } } },
-      { freelancerAssignments: { some: { teamId: { in: all } } } },
+      {
+        freelancerAssignments: {
+          some: {
+            teamId: { in: all },
+            createdAt: { gte: recencyCutoff },
+          },
+        },
+      },
     ],
   };
 }
