@@ -2,8 +2,20 @@ import { IconSearch, IconBell, IconPlus } from "@/components/ui/Icons";
 import { Button } from "@/components/ui/Button";
 import { TeamSwitcher } from "./TeamSwitcher";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { getSession } from "@/lib/auth";
+import { hasRole } from "@/lib/permissions";
 
-export function Topbar({ title, subtitle }: { title: string; subtitle?: string }) {
+export async function Topbar({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
+  const session = await getSession();
+  const canCreateAssignment =
+    !!session && hasRole(session, "admin", "staff", "realtor");
+
   return (
     <header className="hidden lg:flex items-center justify-between gap-4 xl:gap-6 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-6 xl:px-8 h-16 sticky top-0 z-40">
       <div className="flex min-w-0 items-center gap-4">
@@ -39,10 +51,12 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
           <IconBell size={18} />
           <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--color-asbestos)]" />
         </button>
-        <Button href="/dashboard/assignments/new" size="sm" className="ml-1.5">
-          <IconPlus size={16} />
-          New assignment
-        </Button>
+        {canCreateAssignment && (
+          <Button href="/dashboard/assignments/new" size="sm" className="ml-1.5">
+            <IconPlus size={16} />
+            New assignment
+          </Button>
+        )}
       </div>
     </header>
   );

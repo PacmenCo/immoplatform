@@ -8,6 +8,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { IconFilter, IconList, IconPlus } from "@/components/ui/Icons";
 import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
+import { requireSession } from "@/lib/auth";
+import { assignmentScope, composeWhere, hasRole } from "@/lib/permissions";
 
 const statusOrder: Status[] = ["draft", "scheduled", "in_progress", "delivered", "completed"];
 
@@ -16,8 +18,14 @@ function initials(first: string, last: string): string {
 }
 
 export default async function AssignmentsList() {
+  const session = await requireSession();
+  const scope = await assignmentScope(session);
+  const isFreelancer = hasRole(session, "freelancer");
+  const isRealtor = hasRole(session, "realtor");
+
   const [assignments, services, counts] = await Promise.all([
     prisma.assignment.findMany({
+      where: composeWhere(scope),
       orderBy: { preferredDate: "desc" },
       include: {
         team: { select: { id: true, name: true } },
@@ -28,6 +36,7 @@ export default async function AssignmentsList() {
     prisma.service.findMany(),
     prisma.assignment.groupBy({
       by: ["status"],
+      where: composeWhere(scope),
       _count: { _all: true },
     }),
   ]);
@@ -81,13 +90,27 @@ export default async function AssignmentsList() {
           <EmptyState
             variant="dashed"
             icon={<IconList size={22} />}
-            title="No assignments yet"
-            description="Create your first property inspection to get started."
+            title={
+              isFreelancer
+                ? "No inspections assigned to you yet"
+                : isRealtor
+                  ? "No certificate orders yet for your team"
+                  : "No assignments yet"
+            }
+            description={
+              isFreelancer
+                ? "Once a realtor assigns you to an inspection, it shows up here."
+                : isRealtor
+                  ? "Click New assignment to order your team's first certificate."
+                  : "Create your first property inspection to get started."
+            }
             action={
-              <Button href="/dashboard/assignments/new" size="md">
-                <IconPlus size={14} />
-                Create assignment
-              </Button>
+              !isFreelancer ? (
+                <Button href="/dashboard/assignments/new" size="md">
+                  <IconPlus size={14} />
+                  Create assignment
+                </Button>
+              ) : undefined
             }
           />
         ) : (

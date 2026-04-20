@@ -5,6 +5,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { audit, requireSession } from "@/lib/auth";
+import {
+  canEditAssignment,
+  canViewAssignment,
+  getUserTeamIds,
+  hasRole,
+} from "@/lib/permissions";
 import type { ActionResult } from "./invites";
 
 // ─── Helpers ───────────────────────────────────────────────────────
@@ -90,7 +96,26 @@ export async function createAssignment(
 
   const d = parsed.data;
   const reference = await nextReference();
-  const teamId = session.activeTeamId ?? null;
+
+  // Decide the effective teamId per caller role.
+  let teamId: string | null = session.activeTeamId ?? null;
+  if (hasRole(session, "freelancer")) {
+    return {
+      ok: false,
+      error: "Freelancers can't create assignments. Ask the realtor who hired you.",
+    };
+  }
+  if (hasRole(session, "realtor")) {
+    const { owned } = await getUserTeamIds(session.user.id);
+    if (teamId && !owned.includes(teamId)) teamId = null; // drop if not owned
+    if (!teamId) teamId = owned[0] ?? null;
+    if (!teamId) {
+      return {
+        ok: false,
+        error: "You need to own a team before you can create an assignment.",
+      };
+    }
+  }
 
   const created = await prisma.assignment.create({
     data: {
@@ -148,6 +173,13 @@ export async function markAssignmentDelivered(id: string): Promise<ActionResult>
     return { ok: false, error: "Already delivered." };
   }
 
+  if (!(await canEditAssignment(session, a))) {
+    return {
+      ok: false,
+      error: "You don't have permission to mark this delivered.",
+    };
+  }
+
   await prisma.assignment.update({
     where: { id },
     data: { status: "delivered", deliveredAt: new Date() },
@@ -187,6 +219,15 @@ export async function postComment(
   });
   if (!parsed.success) {
     return { ok: false, error: "Comment can't be empty." };
+  }
+
+  const a = await prisma.assignment.findUnique({
+    where: { id: parsed.data.assignmentId },
+    select: { teamId: true, freelancerId: true, createdById: true },
+  });
+  if (!a) return { ok: false, error: "Assignment not found." };
+  if (!(await canViewAssignment(session, a))) {
+    return { ok: false, error: "You can't comment on this assignment." };
   }
 
   await prisma.assignmentComment.create({

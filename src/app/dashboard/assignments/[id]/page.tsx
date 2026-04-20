@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/Icons";
 import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
+import { requireSession } from "@/lib/auth";
+import { canViewAssignment } from "@/lib/permissions";
 import { CommentForm } from "./CommentForm";
 import { MarkDeliveredButton } from "./MarkDeliveredButton";
 
@@ -42,6 +44,7 @@ export default async function AssignmentDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await requireSession();
 
   const [assignment, services] = await Promise.all([
     prisma.assignment.findUnique({
@@ -60,6 +63,9 @@ export default async function AssignmentDetail({
   ]);
 
   if (!assignment) notFound();
+
+  // Don't leak existence — 404 for anyone who can't view it.
+  if (!(await canViewAssignment(session, assignment))) notFound();
 
   const servicesByKey = Object.fromEntries(services.map((s) => [s.key, s]));
   const meta = STATUS_META[assignment.status as Status] ?? STATUS_META.draft;

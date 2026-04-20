@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/Icons";
 import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
+import { requireSession } from "@/lib/auth";
+import { canEditTeam, getUserTeamIds, hasRole } from "@/lib/permissions";
+import { TransferOwnershipButton } from "./TransferOwnershipButton";
 
 function initials(first: string, last: string): string {
   return ((first[0] ?? "") + (last[0] ?? "")).toUpperCase() || "??";
@@ -55,6 +58,13 @@ export default async function TeamDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await requireSession();
+
+  // Non-privileged users can only view teams they're a member of.
+  if (!hasRole(session, "admin", "staff")) {
+    const { all } = await getUserTeamIds(session.user.id);
+    if (!all.includes(id)) notFound();
+  }
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   const period = monthStart.toISOString().slice(0, 7); // YYYY-MM
@@ -128,6 +138,21 @@ export default async function TeamDetailPage({
       ? `${((team.commissionValue ?? 0) / 100).toFixed(1)}% of revenue`
       : `${euros(team.commissionValue ?? 0)} flat fee`
     : "Not configured";
+
+  // Transfer-ownership eligibility
+  const canTransfer = await canEditTeam(session, id);
+  const eligibleOwners = team.members
+    .filter(
+      (m) =>
+        m.teamRole === "member" &&
+        ["realtor", "admin"].includes(m.user.role),
+    )
+    .map((m) => ({
+      userId: m.user.id,
+      firstName: m.user.firstName,
+      lastName: m.user.lastName,
+      email: m.user.email,
+    }));
 
   return (
     <>
@@ -451,10 +476,19 @@ export default async function TeamDetailPage({
                   {team.members.length === 1 ? "person has" : "people have"} access to this team.
                 </p>
               </div>
-              <Button href="/dashboard/users/invite" size="sm">
-                <IconPlus size={14} />
-                Invite member
-              </Button>
+              <div className="flex items-center gap-2">
+                {canTransfer && (
+                  <TransferOwnershipButton
+                    teamId={id}
+                    teamName={team.name}
+                    eligible={eligibleOwners}
+                  />
+                )}
+                <Button href={`/dashboard/users/invite?teamId=${id}`} size="sm">
+                  <IconPlus size={14} />
+                  Invite member
+                </Button>
+              </div>
             </CardHeader>
             <CardBody className="p-0">
               {team.members.length === 0 ? (

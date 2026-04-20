@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -6,6 +7,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { IconPlus, IconArrowRight, IconMail } from "@/components/ui/Icons";
 import { prisma } from "@/lib/db";
+import { requireSession } from "@/lib/auth";
+import { hasRole } from "@/lib/permissions";
 import { PendingInviteRow } from "./PendingInviteRow";
 
 const roleBadge: Record<string, { bg: string; fg: string }> = {
@@ -20,6 +23,11 @@ function initials(first: string, last: string): string {
 }
 
 export default async function UsersPage() {
+  const session = await requireSession();
+  if (!hasRole(session, "admin", "staff")) {
+    redirect("/no-access?section=users");
+  }
+
   const [users, pendingInvites] = await Promise.all([
     prisma.user.findMany({
       where: { deletedAt: null },

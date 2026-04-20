@@ -15,15 +15,20 @@ import {
   IconShield,
 } from "@/components/ui/Icons";
 import { prisma } from "@/lib/db";
+import { requireSession } from "@/lib/auth";
+import { composeWhere, teamScope } from "@/lib/permissions";
 
 function initials(first: string, last: string): string {
   return ((first[0] ?? "") + (last[0] ?? "")).toUpperCase() || "??";
 }
 
 export default async function TeamsPage() {
+  const session = await requireSession();
+  const scope = await teamScope(session);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
   const teams = await prisma.team.findMany({
+    where: composeWhere(scope),
     orderBy: { name: "asc" },
     include: {
       members: {

@@ -12,6 +12,7 @@ import {
 import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
+import { assignmentScope, composeWhere, hasRole } from "@/lib/permissions";
 
 export default async function DashboardHome() {
   const session = await requireSession();
@@ -20,23 +21,35 @@ export default async function DashboardHome() {
   const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  const scope = await assignmentScope(session);
+  const isFreelancer = hasRole(session, "freelancer");
+
   const [active, dueThisWeek, deliveredMtd, services, upcoming, recentAudits] =
     await Promise.all([
       prisma.assignment.count({
-        where: { status: { in: ["scheduled", "in_progress"] } },
+        where: composeWhere(
+          { status: { in: ["scheduled", "in_progress"] } },
+          scope,
+        ),
       }),
       prisma.assignment.count({
-        where: {
-          status: { in: ["scheduled", "in_progress"] },
-          preferredDate: { gte: now, lte: weekFromNow },
-        },
+        where: composeWhere(
+          {
+            status: { in: ["scheduled", "in_progress"] },
+            preferredDate: { gte: now, lte: weekFromNow },
+          },
+          scope,
+        ),
       }),
       prisma.assignment.count({
-        where: { deliveredAt: { gte: monthStart } },
+        where: composeWhere({ deliveredAt: { gte: monthStart } }, scope),
       }),
       prisma.service.findMany(),
       prisma.assignment.findMany({
-        where: { status: { in: ["scheduled", "in_progress"] } },
+        where: composeWhere(
+          { status: { in: ["scheduled", "in_progress"] } },
+          scope,
+        ),
         orderBy: { preferredDate: "asc" },
         take: 4,
         include: {
@@ -110,13 +123,17 @@ export default async function DashboardHome() {
           <section className="lg:col-span-2">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-[var(--color-ink)]">
-                Upcoming assignments
+                {isFreelancer ? "My upcoming inspections" : "Upcoming assignments"}
               </h2>
               <Link
                 href="/dashboard/assignments"
                 className="text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] inline-flex items-center gap-1"
               >
-                View all
+                {isFreelancer
+                  ? "My inspections"
+                  : hasRole(session, "realtor")
+                    ? "Team assignments"
+                    : "View all"}
                 <IconArrowRight size={14} />
               </Link>
             </div>

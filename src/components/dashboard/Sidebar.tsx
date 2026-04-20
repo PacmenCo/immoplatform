@@ -17,15 +17,48 @@ import {
 } from "@/components/ui/Icons";
 import { logout } from "@/app/actions/auth";
 
-const nav = [
+type NavRole = "admin" | "staff" | "realtor" | "freelancer";
+
+const nav: Array<{
+  href: string;
+  label: string;
+  icon: (p: { size?: number; className?: string }) => React.ReactElement;
+  badge?: string;
+  visibleFor?: NavRole[]; // omitted = everyone
+}> = [
   { href: "/dashboard", label: "Overview", icon: IconHome },
   { href: "/dashboard/assignments", label: "Assignments", icon: IconList, badge: "8" },
   { href: "/dashboard/calendar", label: "Calendar", icon: IconCalendar },
-  { href: "/dashboard/teams", label: "Teams", icon: IconBuilding },
-  { href: "/dashboard/users", label: "Users", icon: IconUsers },
-  { href: "/dashboard/overview", label: "Revenue", icon: IconChart },
-  { href: "/dashboard/commissions", label: "Commissions", icon: IconWallet },
-  { href: "/dashboard/announcements", label: "Announcements", icon: IconMegaphone },
+  {
+    href: "/dashboard/teams",
+    label: "Teams",
+    icon: IconBuilding,
+    visibleFor: ["admin", "staff", "realtor"],
+  },
+  {
+    href: "/dashboard/users",
+    label: "Users",
+    icon: IconUsers,
+    visibleFor: ["admin", "staff"],
+  },
+  {
+    href: "/dashboard/overview",
+    label: "Revenue",
+    icon: IconChart,
+    visibleFor: ["admin", "staff"],
+  },
+  {
+    href: "/dashboard/commissions",
+    label: "Commissions",
+    icon: IconWallet,
+    visibleFor: ["admin", "staff"],
+  },
+  {
+    href: "/dashboard/announcements",
+    label: "Announcements",
+    icon: IconMegaphone,
+    visibleFor: ["admin", "staff"],
+  },
   { href: "/dashboard/settings", label: "Settings", icon: IconSettings },
 ];
 
@@ -56,7 +89,13 @@ export function Sidebar({ user }: { user?: SidebarUser }) {
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="flex flex-col gap-1">
-          {nav.map((item) => {
+          {nav
+            .filter(
+              (item) =>
+                !item.visibleFor ||
+                (user && item.visibleFor.includes(user.role as NavRole)),
+            )
+            .map((item) => {
             const active = isActive(pathname, item.href);
             return (
               <li key={item.href}>

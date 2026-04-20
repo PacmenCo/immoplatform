@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileTopbar } from "@/components/dashboard/MobileTopbar";
 import { getSession } from "@/lib/auth";
+import { hasRole } from "@/lib/permissions";
+import { prisma } from "@/lib/db";
 
 export default async function DashboardLayout({
   children,
@@ -11,6 +13,15 @@ export default async function DashboardLayout({
   const session = await getSession();
   if (!session) {
     redirect("/login");
+  }
+
+  // Realtor-needs-team gate. Admins & staff bypass (they act on every team).
+  // Freelancers are allowed without a team — they may work independently.
+  if (hasRole(session, "realtor")) {
+    const count = await prisma.teamMember.count({
+      where: { userId: session.user.id },
+    });
+    if (count === 0) redirect("/no-team");
   }
 
   const user = session.user;
