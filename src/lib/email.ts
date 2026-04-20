@@ -1,5 +1,20 @@
-// Dev email transport — logs to the server console instead of sending.
-// When Postmark/Resend is wired up, replace the body of `sendEmail`.
+/**
+ * Email transport dispatcher.
+ *
+ * Dev default (EMAIL_PROVIDER unset or "dev"): logs to the server console.
+ * Prod: set EMAIL_PROVIDER=resend + RESEND_API_KEY + EMAIL_FROM.
+ *
+ * Template helpers (`inviteEmail`, `passwordResetEmail`, `addedToTeamEmail`)
+ * return `{ subject, text }`; the transport is body-type-agnostic so we
+ * can add HTML variants without touching the interface.
+ *
+ * Caller contract: `sendEmail` throws on delivery failure. Callers decide
+ * whether to surface the error to the user or swallow it — `forgotPassword`
+ * intentionally swallows to avoid email enumeration, while `createInvite`
+ * currently propagates so staff see when delivery is broken.
+ */
+
+import "server-only";
 
 type SendEmailArgs = {
   to: string;
@@ -9,13 +24,20 @@ type SendEmailArgs = {
 };
 
 export async function sendEmail(args: SendEmailArgs): Promise<void> {
-  if (process.env.EMAIL_PROVIDER && process.env.EMAIL_PROVIDER !== "dev") {
-    throw new Error(
-      `Email provider "${process.env.EMAIL_PROVIDER}" is not wired up yet. ` +
-        `Leave EMAIL_PROVIDER unset (or "dev") to use the console logger.`,
-    );
+  const provider = (process.env.EMAIL_PROVIDER ?? "dev").toLowerCase();
+  if (provider === "dev") {
+    logToConsole(args);
+    return;
   }
+  if (provider === "resend") {
+    return sendViaResend(args);
+  }
+  throw new Error(
+    `Unknown EMAIL_PROVIDER "${provider}". Supported: "dev" (default) or "resend".`,
+  );
+}
 
+function logToConsole(args: SendEmailArgs): void {
   console.log("\n📧 [dev email] ──────────────────────────────");
   console.log(`To:      ${args.to}`);
   console.log(`Subject: ${args.subject}`);
@@ -23,6 +45,45 @@ export async function sendEmail(args: SendEmailArgs): Promise<void> {
   console.log(args.text);
   console.log("─────────────────────────────────────────────\n");
 }
+
+async function sendViaResend(args: SendEmailArgs): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY is not set.");
+  }
+  if (!from) {
+    throw new Error(
+      'EMAIL_FROM is not set. Use e.g. "Immo <no-reply@yourdomain.com>".',
+    );
+  }
+
+  const body: Record<string, unknown> = {
+    from,
+    to: [args.to],
+    subject: args.subject,
+    text: args.text,
+  };
+  if (args.html) body.html = args.html;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(
+      `Resend rejected the email: ${res.status} ${res.statusText} ${errText}`.trim(),
+    );
+  }
+}
+
+// ─── Templates ─────────────────────────────────────────────────────
 
 export function inviteEmail(opts: {
   inviterName: string;
