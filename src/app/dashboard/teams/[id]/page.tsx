@@ -233,14 +233,19 @@ export default async function TeamDetailPage({
               <Button href="/dashboard/teams" variant="ghost" size="sm">
                 ← All teams
               </Button>
-              <Button href="/dashboard/users/invite" variant="secondary" size="sm">
+              <Button
+                href={`/dashboard/users/invite?teamId=${id}`}
+                variant="secondary"
+                size="sm"
+              >
                 <IconPlus size={14} />
                 Invite member
               </Button>
-              <Button size="sm">
-                <IconCheck size={14} />
-                Save changes
-              </Button>
+              {canTransfer && (
+                <Button href={`/dashboard/teams/${id}/edit`} size="sm">
+                  Edit team
+                </Button>
+              )}
             </div>
           </CardBody>
         </Card>

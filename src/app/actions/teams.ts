@@ -1,10 +1,228 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/auth";
-import { canEditTeam, hasRole } from "@/lib/permissions";
+import { canCreateTeam, canEditTeam, hasRole } from "@/lib/permissions";
 import { withSession, type ActionResult } from "./_types";
+
+// ─── Schemas ───────────────────────────────────────────────────────
+
+const hexColor = z
+  .string()
+  .trim()
+  .regex(/^#?[0-9a-fA-F]{3,8}$/, "Use a valid hex color, e.g. #0f172a.")
+  .transform((s) => (s.startsWith("#") ? s : `#${s}`));
+
+/** 2-letter display badge used on the team card when there's no logo image. */
+const logoBadge = z
+  .string()
+  .trim()
+  .min(1, "Pick a 1–3 character badge.")
+  .max(3, "Badges are at most 3 characters.")
+  .transform((s) => s.toUpperCase());
+
+const optString = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((s) => (s ? s : null))
+    .nullable()
+    .optional();
+
+const teamSchema = z.object({
+  name: z.string().trim().min(1, "Team name is required.").max(120),
+  city: optString(80),
+  email: z
+    .string()
+    .trim()
+    .email("Team email looks invalid.")
+    .max(200)
+    .or(z.literal(""))
+    .optional()
+    .transform((s) => (s ? s : null)),
+  description: optString(1000),
+  logo: logoBadge,
+  logoColor: hexColor,
+
+  // Legal + billing
+  legalName: optString(200),
+  vatNumber: optString(40),
+  kboNumber: optString(40),
+  iban: optString(40),
+  billingEmail: z
+    .string()
+    .trim()
+    .email("Billing email looks invalid.")
+    .max(200)
+    .or(z.literal(""))
+    .optional()
+    .transform((s) => (s ? s : null)),
+  billingPhone: optString(40),
+  billingAddress: optString(200),
+  billingPostal: optString(20),
+  billingCity: optString(80),
+  billingCountry: optString(80),
+
+  // Commission
+  commissionType: z
+    .enum(["percentage", "fixed", "none"])
+    .transform((v) => (v === "none" ? null : v))
+    .nullable()
+    .optional(),
+  commissionValue: z.preprocess(
+    (v) => (v === "" || v === undefined || v === null ? null : v),
+    z.coerce.number().int().min(0).max(100_000_00).nullable(),
+  ),
+});
+
+function readTeamFormData(formData: FormData) {
+  return {
+    name: formData.get("name") as string,
+    city: (formData.get("city") as string) || "",
+    email: (formData.get("email") as string) || "",
+    description: (formData.get("description") as string) || "",
+    logo: (formData.get("logo") as string) || "",
+    logoColor: (formData.get("logoColor") as string) || "#0f172a",
+    legalName: (formData.get("legalName") as string) || "",
+    vatNumber: (formData.get("vatNumber") as string) || "",
+    kboNumber: (formData.get("kboNumber") as string) || "",
+    iban: (formData.get("iban") as string) || "",
+    billingEmail: (formData.get("billingEmail") as string) || "",
+    billingPhone: (formData.get("billingPhone") as string) || "",
+    billingAddress: (formData.get("billingAddress") as string) || "",
+    billingPostal: (formData.get("billingPostal") as string) || "",
+    billingCity: (formData.get("billingCity") as string) || "",
+    billingCountry: (formData.get("billingCountry") as string) || "",
+    commissionType: (formData.get("commissionType") as string) || "none",
+    commissionValue: (formData.get("commissionValue") as string) || "",
+  };
+}
+
+// ─── Create ────────────────────────────────────────────────────────
+
+export const createTeam = withSession(async (
+  session,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  if (!canCreateTeam(session)) {
+    return { ok: false, error: "You don't have permission to create teams." };
+  }
+
+  const parsed = teamSchema.safeParse(readTeamFormData(formData));
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+  }
+  const d = parsed.data;
+
+  // Creator becomes the initial owner. Admins can transfer afterwards via the
+  // existing transferTeamOwnership flow.
+  const team = await prisma.$transaction(async (tx) => {
+    const t = await tx.team.create({
+      data: {
+        name: d.name,
+        city: d.city ?? null,
+        email: d.email ?? null,
+        description: d.description ?? null,
+        logo: d.logo,
+        logoColor: d.logoColor,
+        legalName: d.legalName ?? null,
+        vatNumber: d.vatNumber ?? null,
+        kboNumber: d.kboNumber ?? null,
+        iban: d.iban ?? null,
+        billingEmail: d.billingEmail ?? null,
+        billingPhone: d.billingPhone ?? null,
+        billingAddress: d.billingAddress ?? null,
+        billingPostal: d.billingPostal ?? null,
+        billingCity: d.billingCity ?? null,
+        billingCountry: d.billingCountry ?? null,
+        commissionType: d.commissionType ?? null,
+        commissionValue: d.commissionValue ?? null,
+      },
+    });
+    await tx.teamMember.create({
+      data: {
+        teamId: t.id,
+        userId: session.user.id,
+        teamRole: "owner",
+      },
+    });
+    return t;
+  });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "team.created",
+    objectType: "team",
+    objectId: team.id,
+    metadata: { name: team.name, city: team.city },
+  });
+
+  revalidatePath("/dashboard/teams");
+  revalidatePath("/dashboard");
+  redirect(`/dashboard/teams/${team.id}`);
+});
+
+// ─── Update ────────────────────────────────────────────────────────
+
+export const updateTeam = withSession(async (
+  session,
+  teamId: string,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  if (!(await canEditTeam(session, teamId))) {
+    return { ok: false, error: "You don't have permission to edit this team." };
+  }
+
+  const parsed = teamSchema.safeParse(readTeamFormData(formData));
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+  }
+  const d = parsed.data;
+
+  await prisma.team.update({
+    where: { id: teamId },
+    data: {
+      name: d.name,
+      city: d.city ?? null,
+      email: d.email ?? null,
+      description: d.description ?? null,
+      logo: d.logo,
+      logoColor: d.logoColor,
+      legalName: d.legalName ?? null,
+      vatNumber: d.vatNumber ?? null,
+      kboNumber: d.kboNumber ?? null,
+      iban: d.iban ?? null,
+      billingEmail: d.billingEmail ?? null,
+      billingPhone: d.billingPhone ?? null,
+      billingAddress: d.billingAddress ?? null,
+      billingPostal: d.billingPostal ?? null,
+      billingCity: d.billingCity ?? null,
+      billingCountry: d.billingCountry ?? null,
+      commissionType: d.commissionType ?? null,
+      commissionValue: d.commissionValue ?? null,
+    },
+  });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "team.updated",
+    objectType: "team",
+    objectId: teamId,
+    metadata: { name: d.name },
+  });
+
+  revalidatePath(`/dashboard/teams/${teamId}`);
+  revalidatePath("/dashboard/teams");
+  redirect(`/dashboard/teams/${teamId}`);
+});
+
+// ─── Transfer ownership ────────────────────────────────────────────
 
 export const transferTeamOwnership = withSession(async (
   session,

@@ -204,6 +204,14 @@ export async function canEditTeam(
   return owned.includes(teamId);
 }
 
+/**
+ * Create a new team. Admin/staff + realtors can — they become the initial
+ * owner. Freelancers cannot — they join existing agencies via invite.
+ */
+export function canCreateTeam(s: SessionWithUser): boolean {
+  return hasRole(s, "admin", "staff", "realtor");
+}
+
 // ─── File policies ─────────────────────────────────────────────────
 
 /**
