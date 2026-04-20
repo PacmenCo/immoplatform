@@ -2,12 +2,13 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 
 /**
- * Client-side cuid-ish id. Prisma's `@default(cuid())` runs inside the DB
- * engine; when we need to pre-generate an id in application code (so a
- * storage key matches a row id), use this.
+ * Application-side id generator used when we need to know the id BEFORE
+ * Prisma's `@default(cuid())` fires — e.g. to bake the id into a storage
+ * key so the path and the row match without a two-phase dance.
  *
- * Collision probability is negligible at our scale — 18 bytes of entropy.
+ * Named `generateCuid` (not `cuid`) to disambiguate from Prisma's
+ * schema-level `cuid()` directive at call sites.
  */
-export function cuid(): string {
+export function generateCuid(): string {
   return "c" + randomBytes(18).toString("hex");
 }

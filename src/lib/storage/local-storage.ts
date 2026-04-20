@@ -1,7 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { createReadStream } from "node:fs";
-import { Readable } from "node:stream";
 import path from "node:path";
 import type { Storage, StoragePutResult } from "./types";
 
@@ -12,7 +10,9 @@ import type { Storage, StoragePutResult } from "./types";
  * inside that root — the caller chooses the layout.
  *
  * Signed URLs route to `/api/files/{key}?exp={unix}&sig={hmacHex}`; the
- * route handler verifies the HMAC before streaming.
+ * route handler verifies the HMAC (via `verifySignature`) and reads bytes
+ * via `readBuffer`. Both methods are LocalStorage-specific: the route
+ * exists only for this backend and guards on `instanceof LocalStorage`.
  */
 export class LocalStorage implements Storage {
   constructor(
@@ -22,6 +22,7 @@ export class LocalStorage implements Storage {
   ) {}
 
   private abs(key: string): string {
+    if (!key) throw new Error("Storage key must be non-empty.");
     const resolved = path.resolve(this.root, key);
     const rootResolved = path.resolve(this.root);
     if (!resolved.startsWith(rootResolved + path.sep) && resolved !== rootResolved) {
@@ -37,28 +38,9 @@ export class LocalStorage implements Storage {
     return { key, sizeBytes: data.byteLength };
   }
 
-  async getStream(key: string): Promise<ReadableStream<Uint8Array> | null> {
-    const absPath = this.abs(key);
-    try {
-      await stat(absPath);
-    } catch {
-      return null;
-    }
-    return Readable.toWeb(createReadStream(absPath)) as ReadableStream<Uint8Array>;
-  }
-
   async delete(key: string): Promise<void> {
     const absPath = this.abs(key);
     await rm(absPath, { force: true });
-  }
-
-  async exists(key: string): Promise<boolean> {
-    try {
-      await stat(this.abs(key));
-      return true;
-    } catch {
-      return false;
-    }
   }
 
   async getSignedUrl(key: string, ttlSec: number): Promise<string> {
@@ -71,9 +53,9 @@ export class LocalStorage implements Storage {
   }
 
   /**
-   * Verify a request against the signing secret. Used by the download route.
-   * Separate from the interface because only `LocalStorage` handles this
-   * in-process; S3 uses its own presigned URL scheme.
+   * Verify a signed-URL request. Used by the `/api/files/*` route — not on
+   * the `Storage` interface because only LocalStorage handles downloads
+   * in-process. S3 presigned URLs are verified at the bucket.
    */
   verifySignature(key: string, exp: number, sig: string): boolean {
     if (Number.isNaN(exp) || exp < Math.floor(Date.now() / 1000)) return false;
@@ -85,14 +67,25 @@ export class LocalStorage implements Storage {
   }
 
   /**
-   * Read the raw bytes. Used by the download route when it wants to set
-   * Content-Length before streaming.
+   * Read the full object into memory. OK at our <= 50 MB per-file cap;
+   * swap to a stream if the limit ever grows. Not on the interface — S3
+   * downloads never touch our server.
    */
   async readBuffer(key: string): Promise<Buffer | null> {
     try {
       return await readFile(this.abs(key));
     } catch {
       return null;
+    }
+  }
+
+  /** Check if the object is present — internal helper for tests/scripts. */
+  async has(key: string): Promise<boolean> {
+    try {
+      await stat(this.abs(key));
+      return true;
+    } catch {
+      return false;
     }
   }
 

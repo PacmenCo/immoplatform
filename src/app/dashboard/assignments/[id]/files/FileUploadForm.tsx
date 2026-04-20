@@ -5,11 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Dropzone } from "@/components/ui/Dropzone";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { uploadAssignmentFiles } from "@/app/actions/files";
-import {
-  FILE_CONSTRAINTS,
-  MAX_FILES_PER_UPLOAD,
-  type FileLane,
-} from "@/lib/file-constraints";
+import { FILE_CONSTRAINTS, type FileLane } from "@/lib/file-constraints";
 import type { ActionResult } from "@/app/actions/_types";
 
 export function FileUploadForm({
@@ -27,17 +23,19 @@ export function FileUploadForm({
   >(action, undefined);
 
   const [files, setFiles] = useState<File[]>([]);
-  const [clientError, setClientError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Clear picked files + errors on successful server upload.
+  // Clear picked files on successful server upload + surface server errors
+  // into the single `error` channel so ErrorAlert shows them.
   useEffect(() => {
-    if (state?.ok) {
+    if (!state) return;
+    if (state.ok) {
       setFiles([]);
-      setClientError(null);
+      setError(null);
+    } else {
+      setError(state.error);
     }
   }, [state]);
-
-  const error = clientError ?? (state && !state.ok ? state.error : null);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -48,7 +46,7 @@ export function FileUploadForm({
         files={files}
         onChange={(next) => {
           setFiles(next);
-          setClientError(null);
+          setError(null);
         }}
         accept={constraints.allowedMimes.join(",")}
         hint={constraints.acceptHint}
@@ -58,8 +56,7 @@ export function FileUploadForm({
             : "Drop floor plans, photos or notes"
         }
         maxMB={constraints.maxMB}
-        maxFiles={MAX_FILES_PER_UPLOAD}
-        onError={setClientError}
+        onError={setError}
         disabled={pending}
       />
 

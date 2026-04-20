@@ -5,12 +5,17 @@ import type { Storage } from "./types";
 export type { Storage, StoragePutResult } from "./types";
 export { LocalStorage } from "./local-storage";
 
+/** Match the session secret guard — 32 bytes is the OWASP HMAC minimum. */
+const MIN_SIGNING_SECRET_LENGTH = 32;
+
 function build(): Storage {
   const provider = process.env.STORAGE_PROVIDER ?? "local";
   const signingSecret = process.env.STORAGE_SIGNING_SECRET;
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
-  if (!signingSecret) {
-    throw new Error("STORAGE_SIGNING_SECRET is not set — required for signed download URLs.");
+  if (!signingSecret || signingSecret.length < MIN_SIGNING_SECRET_LENGTH) {
+    throw new Error(
+      `STORAGE_SIGNING_SECRET must be set to at least ${MIN_SIGNING_SECRET_LENGTH} characters.`,
+    );
   }
 
   if (provider === "local") {

@@ -2,6 +2,9 @@
 
 import { useId, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { formatBytes } from "@/lib/format";
+import { MAX_FILES_PER_UPLOAD } from "@/lib/file-constraints";
+import { IconX } from "./Icons";
 
 function IconUpload({ size = 24, className }: { size?: number; className?: string }) {
   return (
@@ -22,32 +25,6 @@ function IconUpload({ size = 24, className }: { size?: number; className?: strin
       <line x1="12" y1="3" x2="12" y2="15" />
     </svg>
   );
-}
-
-function IconX({ size = 14 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M18 6 6 18M6 6l12 12" />
-    </svg>
-  );
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(1)} KB`;
-  const mb = kb / 1024;
-  return `${mb.toFixed(1)} MB`;
 }
 
 type Props = {
@@ -76,7 +53,7 @@ export function Dropzone({
   accept,
   hint,
   label,
-  maxFiles,
+  maxFiles = MAX_FILES_PER_UPLOAD,
   maxMB,
   className,
   disabled,
@@ -86,18 +63,18 @@ export function Dropzone({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
-  function accept_(candidates: File[]) {
+  function ingest(candidates: File[]) {
     const errs: string[] = [];
     const passed: File[] = [];
     for (const f of candidates) {
       if (maxMB && f.size > maxMB * 1024 * 1024) {
-        errs.push(`"${f.name}" is larger than ${maxMB} MB.`);
+        errs.push(`"${f.name}" is larger than the ${maxMB} MB limit.`);
         continue;
       }
       passed.push(f);
     }
     let next = [...files, ...passed];
-    if (maxFiles && next.length > maxFiles) {
+    if (next.length > maxFiles) {
       errs.push(`At most ${maxFiles} files per upload.`);
       next = next.slice(0, maxFiles);
     }
@@ -119,8 +96,7 @@ export function Dropzone({
 
   function onInput(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(e.target.files ?? []);
-    // Reset so re-picking the same file re-triggers; DataTransfer sync happens next.
-    if (picked.length > 0) accept_(picked);
+    if (picked.length > 0) ingest(picked);
   }
 
   function remove(idx: number) {
@@ -144,7 +120,7 @@ export function Dropzone({
           e.preventDefault();
           setDragging(false);
           const picked = Array.from(e.dataTransfer.files);
-          if (picked.length > 0) accept_(picked);
+          if (picked.length > 0) ingest(picked);
         }}
         className={cn(
           "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[var(--radius-md)] border-2 border-dashed px-6 py-10 text-center transition-colors",
@@ -170,7 +146,7 @@ export function Dropzone({
           ref={inputRef}
           type="file"
           name={name}
-          multiple={!maxFiles || maxFiles > 1}
+          multiple={maxFiles > 1}
           accept={accept}
           disabled={disabled}
           className="sr-only"
@@ -197,7 +173,7 @@ export function Dropzone({
                 aria-label={`Remove ${f.name}`}
                 className="grid h-6 w-6 shrink-0 place-items-center rounded text-[var(--color-ink-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
               >
-                <IconX />
+                <IconX size={14} />
               </button>
             </li>
           ))}

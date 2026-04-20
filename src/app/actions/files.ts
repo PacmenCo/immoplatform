@@ -1,16 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cuid } from "@/lib/cuid";
+import { generateCuid } from "@/lib/cuid";
 import { prisma } from "@/lib/db";
-import { audit } from "@/lib/auth";
+import { audit, type SessionWithUser } from "@/lib/auth";
 import {
   canDeleteAssignmentFile,
   canUploadToFreelancerLane,
   canUploadToRealtorLane,
   canViewAssignmentFiles,
 } from "@/lib/permissions";
-import { isTerminalStatus } from "@/lib/mockData";
+import { TERMINAL_STATUSES, isTerminalStatus } from "@/lib/mockData";
 import {
   FILE_CONSTRAINTS,
   MAX_FILES_PER_UPLOAD,
@@ -23,15 +23,19 @@ import { withSession, type ActionResult } from "./_types";
 /** TTL for signed download URLs. Matches Platform's 5-minute window. */
 const DOWNLOAD_URL_TTL_SEC = 5 * 60;
 
-async function canUploadToLane(
-  session: Parameters<typeof canUploadToFreelancerLane>[0],
-  lane: FileLane,
-  assignment: Parameters<typeof canUploadToFreelancerLane>[1],
-): Promise<boolean> {
-  return lane === "freelancer"
-    ? canUploadToFreelancerLane(session, assignment)
-    : canUploadToRealtorLane(session, assignment);
-}
+type AssignmentPolicyInput = {
+  teamId: string | null;
+  freelancerId: string | null;
+  createdById: string | null;
+};
+
+const LANE_UPLOAD_POLICY: Record<
+  FileLane,
+  (s: SessionWithUser, a: AssignmentPolicyInput) => Promise<boolean>
+> = {
+  freelancer: canUploadToFreelancerLane,
+  realtor: canUploadToRealtorLane,
+};
 
 // ─── Upload ────────────────────────────────────────────────────────
 
@@ -55,7 +59,7 @@ export const uploadAssignmentFiles = withSession(async (
     },
   });
   if (!assignment) return { ok: false, error: "Assignment not found." };
-  if (!(await canUploadToLane(session, lane, assignment))) {
+  if (!(await LANE_UPLOAD_POLICY[lane](session, assignment))) {
     return {
       ok: false,
       error:
@@ -80,7 +84,8 @@ export const uploadAssignmentFiles = withSession(async (
   const { maxMB, allowedMimes } = FILE_CONSTRAINTS[lane];
   const maxBytes = maxMB * 1024 * 1024;
   for (const file of files) {
-    if (!allowedMimes.includes(file.type)) {
+    const mime = file.type.toLowerCase();
+    if (!allowedMimes.includes(mime)) {
       return {
         ok: false,
         error: `"${file.name}" isn't an allowed file type. ${FILE_CONSTRAINTS[lane].acceptHint}.`,
@@ -95,11 +100,17 @@ export const uploadAssignmentFiles = withSession(async (
   }
 
   const store = storage();
+
   // Pre-generate ids so the storage key reflects the final DB id — lets a
   // future reconcile job pair orphan objects with rows unambiguously.
-  const prepared = await Promise.all(
-    files.map(async (file) => {
-      const id = cuid();
+  //
+  // Put phase: if ANY put rejects we must delete already-written bytes
+  // before rethrowing. Sequential loop keeps tracking simple and gives
+  // deterministic cleanup — parallel puts were a lurking orphan bug.
+  const prepared: Array<{ id: string; key: string; sizeBytes: number; file: File }> = [];
+  try {
+    for (const file of files) {
+      const id = generateCuid();
       const key = makeAssignmentFileKey({
         assignmentId,
         lane,
@@ -107,31 +118,45 @@ export const uploadAssignmentFiles = withSession(async (
         originalName: file.name,
       });
       const buf = Buffer.from(await file.arrayBuffer());
-      const put = await store.put(key, buf, { mimeType: file.type });
-      return { id, key, put, file };
-    }),
-  );
+      const { sizeBytes } = await store.put(key, buf, { mimeType: file.type });
+      prepared.push({ id, key, sizeBytes, file });
+    }
+  } catch (err) {
+    await Promise.all(prepared.map((p) => store.delete(p.key).catch(() => {})));
+    throw err;
+  }
 
   try {
-    await prisma.$transaction(
-      prepared.map(({ id, put, file }) =>
-        prisma.assignmentFile.create({
-          data: {
-            id,
-            assignmentId,
-            uploaderId: session.user.id,
-            lane,
-            storageKey: put.key,
-            originalName: file.name,
-            mimeType: file.type,
-            sizeBytes: put.sizeBytes,
-          },
-        }),
-      ),
-    );
+    await prisma.$transaction(async (tx) => {
+      // In-tx status re-check via an update predicate — if the assignment
+      // went terminal between the outer read and here, bail with a sentinel
+      // so the outer catch cleans up the bytes.
+      const claim = await tx.assignment.updateMany({
+        where: { id: assignmentId, status: { notIn: [...TERMINAL_STATUSES] } },
+        data: { updatedAt: new Date() },
+      });
+      if (claim.count === 0) throw new Error("ASSIGNMENT_TERMINAL");
+      await tx.assignmentFile.createMany({
+        data: prepared.map((p) => ({
+          id: p.id,
+          assignmentId,
+          uploaderId: session.user.id,
+          lane,
+          storageKey: p.key,
+          originalName: p.file.name,
+          mimeType: p.file.type.toLowerCase(),
+          sizeBytes: p.sizeBytes,
+        })),
+      });
+    });
   } catch (err) {
-    // DB insert failed — undo the storage writes so we don't orphan bytes.
     await Promise.all(prepared.map((p) => store.delete(p.key).catch(() => {})));
+    if (err instanceof Error && err.message === "ASSIGNMENT_TERMINAL") {
+      return {
+        ok: false,
+        error: "This assignment closed while you were uploading. Reload and try again.",
+      };
+    }
     throw err;
   }
 
@@ -197,10 +222,22 @@ export const deleteAssignmentFile = withSession(async (
     };
   }
 
-  await prisma.assignmentFile.update({
-    where: { id: fileId },
+  // Optimistic predicate catches the race where assignment closes or the
+  // file is deleted between the read above and our write.
+  const claim = await prisma.assignmentFile.updateMany({
+    where: {
+      id: fileId,
+      deletedAt: null,
+      assignment: { status: { notIn: [...TERMINAL_STATUSES] } },
+    },
     data: { deletedAt: new Date() },
   });
+  if (claim.count === 0) {
+    return {
+      ok: false,
+      error: "File state changed while you were away. Reload and try again.",
+    };
+  }
 
   await audit({
     actorId: session.user.id,

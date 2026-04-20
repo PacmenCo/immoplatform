@@ -5,9 +5,20 @@
  * new implementation + an env flag. UI, server actions, and policies
  * never reference a specific backend.
  *
- * Keys are opaque strings owned by the implementation — callers should
- * not parse or build paths by hand. Use `makeStorageKey()` in the caller
- * to generate a key, then hand it to the storage layer.
+ * Keys are opaque strings owned by the caller's layout (see
+ * `makeAssignmentFileKey`). The implementation should not parse them.
+ *
+ * ### Contract
+ *
+ * - `put` accepts `meta.mimeType` — S3-like backends bind it to the
+ *   stored object's Content-Type; LocalStorage doesn't need it because
+ *   our download route reads the MIME from the DB row. Pass it anyway;
+ *   implementations that ignore it are free to.
+ * - `getSignedUrl` returns an absolute URL the browser can GET to
+ *   retrieve the bytes. For LocalStorage this routes through our own
+ *   `/api/files/*` handler (HMAC-verified); for S3 it hits the bucket
+ *   directly via a presigned URL.
+ * - `delete` is idempotent — succeed if the object is already gone.
  */
 
 export interface StoragePutResult {
@@ -16,35 +27,13 @@ export interface StoragePutResult {
 }
 
 export interface Storage {
-  /**
-   * Write bytes to the given key. Overwrites if the key exists.
-   * The caller is responsible for making the key unique (e.g. include a cuid).
-   */
   put(
     key: string,
     data: Buffer,
     meta: { mimeType: string },
   ): Promise<StoragePutResult>;
 
-  /**
-   * Read a Web `ReadableStream` for the given key, or null if not found.
-   * Caller streams the response to the HTTP body.
-   */
-  getStream(key: string): Promise<ReadableStream<Uint8Array> | null>;
-
-  /**
-   * Permanently delete the object at `key`. Idempotent — succeeds if
-   * the object already doesn't exist.
-   */
   delete(key: string): Promise<void>;
 
-  exists(key: string): Promise<boolean>;
-
-  /**
-   * Return an absolute or path-relative URL that grants time-limited
-   * read access to the object. The URL should be self-validating
-   * (e.g. HMAC-signed) so no server-side session lookup is needed
-   * on download — just signature verification.
-   */
   getSignedUrl(key: string, ttlSec: number): Promise<string>;
 }
