@@ -129,7 +129,7 @@ export default async function TeamsPage() {
                   <Link
                     href={`/dashboard/teams/${team.id}`}
                     aria-label={`Open ${team.name}`}
-                    className="absolute inset-0 rounded-[var(--radius-lg)]"
+                    className="absolute inset-0 z-10 rounded-[var(--radius-lg)]"
                   />
 
                   {/* Colored accent strip */}

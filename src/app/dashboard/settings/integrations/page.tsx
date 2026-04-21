@@ -150,7 +150,7 @@ function IntegrationCard({ integration }: { integration: (typeof INTEGRATIONS)[n
         <Link
           href={href}
           aria-label={`Manage ${integration.name}`}
-          className="absolute inset-0 rounded-[var(--radius-lg)]"
+          className="absolute inset-0 z-10 rounded-[var(--radius-lg)]"
         />
       )}
       <CardBody className="relative flex items-center gap-4">
