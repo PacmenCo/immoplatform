@@ -3,23 +3,40 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { IconCheck } from "@/components/ui/Icons";
-import { SettingsNav } from "../../_nav";
+import { requireSession } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import {
+  isGoogleAgencyConfigured,
+  isGooglePersonalConfigured,
+} from "@/lib/calendar/config";
+import { DisconnectButton } from "../DisconnectButton";
 
-const calendars = [
-  { name: "jordan@asbestexperts.be", selected: true, primary: true },
-  { name: "Vastgoed Antwerp — team", selected: true, primary: false },
-  { name: "Personal", selected: false, primary: false },
-];
+type SearchParams = Promise<{ connected?: string; error?: string }>;
 
-export default function GoogleCalendarIntegrationPage() {
+export default async function GoogleCalendarSettings({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const session = await requireSession();
+  const params = await searchParams;
+
+  const agencyReady = isGoogleAgencyConfigured();
+  const personalReady = isGooglePersonalConfigured();
+
+  const account = personalReady
+    ? await prisma.calendarAccount.findUnique({
+        where: { userId_provider: { userId: session.user.id, provider: "google" } },
+      })
+    : null;
+
+  const connected = account && !account.disconnectedAt;
+
   return (
     <>
-      <Topbar title="Google Calendar" subtitle="Sync assignment dates to your calendar" />
-
-      <div className="p-8 max-w-[1000px]">
-        <SettingsNav />
-
-        <nav aria-label="Breadcrumb" className="mt-6 flex items-center gap-2 text-xs text-[var(--color-ink-muted)]">
+      <Topbar title="Google Calendar" subtitle="Two independent integrations — agency shared calendar and your personal one." />
+      <div className="p-8 max-w-[900px] space-y-6">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-[var(--color-ink-muted)]">
           <Link href="/dashboard/settings/integrations" className="hover:text-[var(--color-ink)]">
             Integrations
           </Link>
@@ -27,135 +44,111 @@ export default function GoogleCalendarIntegrationPage() {
           <span className="text-[var(--color-ink-soft)]">Google Calendar</span>
         </nav>
 
-        <div className="mt-6 space-y-6">
-          <Card>
-            <CardBody className="flex items-center gap-4">
-              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-[#e8f0fe] text-base font-bold text-[#1a73e8]">
-                G
-              </span>
-              <div className="flex-1">
-                <p className="text-lg font-semibold text-[var(--color-ink)]">
-                  Google Calendar
-                </p>
-                <p className="text-sm text-[var(--color-ink-soft)]">
-                  Assignment dates push to the calendars you choose — updates and
-                  cancellations sync automatically.
-                </p>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--color-epc)_14%,var(--color-bg))] px-2.5 py-0.5 font-medium text-[var(--color-epc)]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-epc)]" />
-                    Connected as jordan@asbestexperts.be
-                  </span>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm">
-                Disconnect
-              </Button>
-            </CardBody>
-          </Card>
+        {params.connected === "1" && (
+          <p
+            role="status"
+            className="rounded-md border border-[var(--color-epc)]/30 bg-[color-mix(in_srgb,var(--color-epc)_6%,var(--color-bg))] px-3 py-2 text-sm text-[var(--color-ink-soft)]"
+          >
+            <IconCheck size={14} className="mr-1 inline" />
+            Connected successfully.
+          </p>
+        )}
+        {params.error && (
+          <p
+            role="alert"
+            className="rounded-md border border-[var(--color-asbestos)]/30 bg-[color-mix(in_srgb,var(--color-asbestos)_6%,var(--color-bg))] px-3 py-2 text-sm text-[var(--color-asbestos)]"
+          >
+            Could not complete the connection ({params.error}). Try again.
+          </p>
+        )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Calendars to write to</CardTitle>
-              <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                We&apos;ll create events on the calendars you pick. Turning one off
-                won&apos;t delete past events.
+        <Card>
+          <CardHeader>
+            <CardTitle>Agency shared calendar</CardTitle>
+            <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
+              Every scheduled assignment is pushed to a single Google calendar via a service
+              account. Subscribe to it from your own Google to see the agency pipeline.
+            </p>
+          </CardHeader>
+          <CardBody>
+            {agencyReady ? (
+              <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-4 text-sm">
+                <p className="font-medium text-[var(--color-ink)]">
+                  <IconCheck size={14} className="mr-1 inline text-[var(--color-epc)]" />
+                  Sync is active.
+                </p>
+                <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
+                  Calendar id:{" "}
+                  <code className="font-mono text-[var(--color-ink)]">
+                    {process.env.GOOGLE_AGENCY_CALENDAR_ID}
+                  </code>
+                </p>
+                <p className="mt-3 text-sm text-[var(--color-ink-soft)]">
+                  To view it personally: open Google Calendar → &ldquo;Other calendars&rdquo; → &ldquo;+&rdquo;
+                  → Subscribe to calendar → paste the id above. Or ask an admin to share it
+                  with your Google account directly.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-md border border-dashed border-[var(--color-border-strong)] bg-[var(--color-bg-alt)] p-4 text-sm">
+                <p className="font-medium text-[var(--color-ink)]">Not configured</p>
+                <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
+                  An admin needs to set <code className="font-mono">GOOGLE_SERVICE_ACCOUNT_EMAIL</code>,{" "}
+                  <code className="font-mono">GOOGLE_SERVICE_ACCOUNT_KEY</code>, and{" "}
+                  <code className="font-mono">GOOGLE_AGENCY_CALENDAR_ID</code> in the server
+                  environment, then share the target calendar with the service-account email
+                  as &ldquo;Make changes to events&rdquo;.
+                </p>
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>My Google calendar</CardTitle>
+            <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
+              Connect your personal Google account so you can click &ldquo;Add to my calendar&rdquo; on an
+              assignment and have the event land on your own schedule.
+            </p>
+          </CardHeader>
+          <CardBody className="space-y-3">
+            {!personalReady ? (
+              <p className="text-sm text-[var(--color-ink-muted)]">
+                Not configured — an admin needs to set{" "}
+                <code className="font-mono">GOOGLE_OAUTH_CLIENT_ID</code> +{" "}
+                <code className="font-mono">GOOGLE_OAUTH_CLIENT_SECRET</code>.
               </p>
-            </CardHeader>
-            <CardBody>
-              <ul className="divide-y divide-[var(--color-border)]">
-                {calendars.map((c) => (
-                  <li key={c.name} className="flex items-center justify-between py-3">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id={c.name}
-                        defaultChecked={c.selected}
-                        className="h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-brand)]"
-                      />
-                      <label htmlFor={c.name} className="text-sm text-[var(--color-ink)]">
-                        {c.name}
-                      </label>
-                      {c.primary && (
-                        <span className="rounded-full bg-[var(--color-bg-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-ink-muted)]">
-                          Primary
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Event details</CardTitle>
-            </CardHeader>
-            <CardBody className="space-y-4 text-sm">
-              <ToggleRow
-                label="Include property address in event title"
-                description="e.g. 'EPC · Meir 34, Antwerpen' vs just 'EPC'."
-                defaultChecked
-              />
-              <ToggleRow
-                label="Add freelancer as attendee"
-                description="The assigned freelancer gets an invite email from Google."
-                defaultChecked
-              />
-              <ToggleRow
-                label="Add owner as attendee"
-                description="The property owner receives the calendar invite."
-              />
-              <ToggleRow
-                label="Include assignment form as attachment"
-                description="PDF opdrachtformulier is attached to the event."
-                defaultChecked
-              />
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Event notifications</CardTitle>
-            </CardHeader>
-            <CardBody className="space-y-3 text-sm">
-              <div className="flex items-center gap-3">
-                <IconCheck size={14} className="text-[var(--color-epc)]" />
-                <span>1 day before the inspection — email reminder</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <IconCheck size={14} className="text-[var(--color-epc)]" />
-                <span>1 hour before the inspection — push reminder</span>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
+            ) : connected ? (
+              <>
+                <p className="text-sm text-[var(--color-ink)]">
+                  Connected as{" "}
+                  <strong className="font-medium">{account!.providerAccountEmail}</strong>
+                </p>
+                <p className="text-xs text-[var(--color-ink-muted)]">
+                  Connected on {account!.createdAt.toISOString().slice(0, 10)}.
+                </p>
+                <DisconnectButton provider="google" />
+              </>
+            ) : account?.disconnectedAt ? (
+              <>
+                <p className="text-sm text-[var(--color-ink-soft)]">
+                  Your connection expired or was revoked on{" "}
+                  {account.disconnectedAt.toISOString().slice(0, 10)}. Reconnect to keep the
+                  &ldquo;Add to my calendar&rdquo; button working.
+                </p>
+                <Button href="/api/oauth/google/initiate" size="sm">
+                  Reconnect Google
+                </Button>
+              </>
+            ) : (
+              <Button href="/api/oauth/google/initiate" size="sm">
+                Connect my Google calendar
+              </Button>
+            )}
+          </CardBody>
+        </Card>
       </div>
     </>
-  );
-}
-
-function ToggleRow({
-  label,
-  description,
-  defaultChecked,
-}: {
-  label: string;
-  description: string;
-  defaultChecked?: boolean;
-}) {
-  return (
-    <label className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] pb-3 last:border-0 last:pb-0">
-      <div>
-        <p className="font-medium text-[var(--color-ink)]">{label}</p>
-        <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">{description}</p>
-      </div>
-      <input
-        type="checkbox"
-        defaultChecked={defaultChecked}
-        className="mt-1 h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-brand)]"
-      />
-    </label>
   );
 }

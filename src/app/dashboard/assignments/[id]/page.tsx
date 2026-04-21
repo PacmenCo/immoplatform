@@ -33,6 +33,7 @@ import { formatCommissionRate, formatEuros, initials } from "@/lib/format";
 import { isDiscountType, loadAssignmentPricing } from "@/lib/pricing";
 import { loadAssignmentCommission } from "@/lib/commission";
 import { PricingCard } from "@/components/dashboard/PricingCard";
+import { CalendarChips } from "./CalendarChips";
 import { CommentForm } from "./CommentForm";
 import { AssignmentActions } from "./AssignmentActions";
 import { ReassignFreelancerButton } from "./ReassignFreelancerButton";
@@ -114,6 +115,31 @@ export default async function AssignmentDetail({
   const meta = STATUS_META[assignment.status as Status] ?? STATUS_META.draft;
   const isTerminal = isTerminalStatus(assignment.status);
 
+  // Calendar chip state. "Agency Google" is a property of the row itself;
+  // "Your Outlook" only shows for the creator who connected; personal Google
+  // add/remove is per-viewer.
+  const viewerGoogleAccount = await prisma.calendarAccount.findUnique({
+    where: {
+      userId_provider: { userId: session.user.id, provider: "google" },
+    },
+  });
+  const canAddPersonalGoogle = !!viewerGoogleAccount && !viewerGoogleAccount.disconnectedAt;
+  const personalGoogleAdded = canAddPersonalGoogle
+    ? !!(await prisma.assignmentCalendarEvent.findUnique({
+        where: {
+          assignmentId_calendarAccountId: {
+            assignmentId: id,
+            calendarAccountId: viewerGoogleAccount!.id,
+          },
+        },
+        select: { id: true },
+      }))
+    : false;
+  const ownOutlook = !!(
+    assignment.outlookCalendarEventId &&
+    assignment.createdById === session.user.id
+  );
+
   return (
     <>
       <Topbar
@@ -141,6 +167,13 @@ export default async function AssignmentDetail({
                 <ServicePill key={s.serviceKey} color={svc.color} label={svc.short} />
               ) : null;
             })}
+            <CalendarChips
+              assignmentId={assignment.id}
+              agencyGoogle={!!assignment.googleCalendarEventId}
+              ownOutlook={ownOutlook}
+              personalGoogleAdded={personalGoogleAdded}
+              canAddPersonalGoogle={canAddPersonalGoogle}
+            />
           </div>
           <AssignmentActions
             assignmentId={assignment.id}

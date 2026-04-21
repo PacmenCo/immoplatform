@@ -51,6 +51,7 @@ model User {
   uploadedFiles       AssignmentFile[]
   commissionPayoutsMarked CommissionPayout[]
   revenueAdjustmentsCreated RevenueAdjustment[] @relation("RevenueAdjustmentCreator")
+  calendarAccounts    CalendarAccount[]
 
   @@index([role, deletedAt])
   @@map("users")
@@ -336,6 +337,15 @@ model Assignment {
   cancelledAt         DateTime?
   cancellationReason  String?
 
+  // Calendar sync (Platform parity).
+  //   googleCalendarEventId  — event on the agency-shared Google calendar
+  //                             (written via service account).
+  //   outlookCalendarEventId — event on the creator's personal Outlook,
+  //                             written via per-user OAuth.
+  googleCalendarEventId    String?
+  outlookCalendarEventId   String?
+  outlookCalendarAccountId String?
+
   team             Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
   freelancer       User?                @relation("AssignedFreelancer", fields: [freelancerId], references: [id], onDelete: SetNull)
   createdBy        User?                @relation("CreatedAssignment", fields: [createdById], references: [id], onDelete: SetNull)
@@ -343,13 +353,63 @@ model Assignment {
   comments         AssignmentComment[]
   files            AssignmentFile[]
   commission       AssignmentCommission?
+  outlookCalendarAccount  CalendarAccount? @relation("OutlookAssignment", fields: [outlookCalendarAccountId], references: [id], onDelete: SetNull)
+  personalCalendarEvents  AssignmentCalendarEvent[]
 
   @@index([status])
   @@index([teamId])
   @@index([freelancerId])
   @@index([createdById])
   @@index([preferredDate])
+  @@index([outlookCalendarAccountId])
   @@map("assignments")
+}
+
+/// Per-user OAuth connection for external calendar sync.
+/// - provider='google' stores access/refresh tokens from google-auth-library.
+/// - provider='outlook' stores MSAL's serialized token cache (owns both
+///   access + refresh tokens internally).
+/// All ciphertext columns use AES-GCM with `CALENDAR_ENCRYPTION_KEY`.
+model CalendarAccount {
+  id                   String   @id @default(cuid())
+  userId               String
+  provider             String                          // 'google' | 'outlook'
+  providerAccountEmail String
+  accessTokenCipher    String?
+  refreshTokenCipher   String?
+  msalCacheCipher      String?
+  expiresAt            DateTime?
+  scope                String
+  disconnectedAt       DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user                 User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outlookAssignments   Assignment[]              @relation("OutlookAssignment")
+  personalEvents       AssignmentCalendarEvent[]
+
+  @@unique([userId, provider])
+  @@index([provider, disconnectedAt])
+  @@map("calendar_accounts")
+}
+
+/// Per-user personal-calendar event ids. Today only filled by the "Add to
+/// my Google calendar" flow; later reschedules/cancels loop these rows so
+/// every personal copy stays in sync with the agency event.
+model AssignmentCalendarEvent {
+  id                String   @id @default(cuid())
+  assignmentId      String
+  calendarAccountId String
+  providerEventId   String
+  lastSyncedAt      DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  assignment        Assignment      @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  calendarAccount   CalendarAccount @relation(fields: [calendarAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, calendarAccountId])
+  @@index([assignmentId])
+  @@map("assignment_calendar_events")
 }
 
 model AssignmentService {

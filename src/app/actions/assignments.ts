@@ -29,6 +29,7 @@ import {
 } from "@/lib/pricing";
 import { applyCommission } from "@/lib/commission";
 import { quarterOf } from "@/lib/period";
+import { syncAssignmentToCalendars } from "@/lib/calendar/sync";
 import {
   assignmentCancelledEmail,
   assignmentCompletedEmail,
@@ -310,6 +311,8 @@ export const createAssignment = withSession(async (
     objectId: created.id,
     metadata: { reference, services: d.services },
   });
+
+  await syncAssignmentToCalendars(created.id, "create");
 
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
@@ -663,6 +666,13 @@ export const updateAssignment = withSession(async (
     }
   }
 
+  // Only re-sync calendars when a calendar-visible field changed. Status
+  // stays on this assignment (the `status` column isn't in `updateSchema`),
+  // so the trigger is the date move.
+  if (dateChanged) {
+    await syncAssignmentToCalendars(id, "update");
+  }
+
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
@@ -996,6 +1006,8 @@ export const cancelAssignment = withSession(async (
     ),
   );
 
+  await syncAssignmentToCalendars(id, "cancel");
+
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
@@ -1213,6 +1225,12 @@ export const changeAssignmentStatus = withSession(async (
       objectId: id,
       metadata: { amountCents: result.commission.amountCents },
     });
+  }
+
+  // Cancel calendar events when the row lands in `cancelled`. Other status
+  // flips don't move the event — matches Platform's Outlook trigger set.
+  if (target === "cancelled") {
+    await syncAssignmentToCalendars(id, "cancel");
   }
 
   revalidatePath("/dashboard/assignments");
