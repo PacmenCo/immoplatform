@@ -49,9 +49,47 @@ model User {
   createdAssignments  Assignment[]          @relation("CreatedAssignment")
   comments            AssignmentComment[]
   uploadedFiles       AssignmentFile[]
+  commissionPayoutsMarked CommissionPayout[]
 
   @@index([role, deletedAt])
   @@map("users")
+}
+
+model AssignmentCommission {
+  id                    String   @id @default(cuid())
+  assignmentId          String   @unique
+  teamId                String
+  // Snapshots captured at compute time so later Team.commissionValue
+  // edits don't rewrite historical lines.
+  assignmentTotalCents  Int
+  commissionType        String   // "percentage" | "fixed"
+  commissionValue       Int      // bps for percentage, cents for fixed
+  commissionAmountCents Int
+  computedAt            DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId],       references: [id], onDelete: Cascade)
+
+  @@index([teamId, computedAt])
+  @@map("assignment_commissions")
+}
+
+model CommissionPayout {
+  id          String   @id @default(cuid())
+  teamId      String
+  year        Int
+  quarter     Int      // 1-4
+  amountCents Int      // snapshot of the quarter total at mark-paid time
+  paidAt      DateTime @default(now())
+  paidById    String?
+
+  team   Team  @relation(fields: [teamId],   references: [id], onDelete: Cascade)
+  paidBy User? @relation(fields: [paidById], references: [id], onDelete: SetNull)
+
+  @@unique([teamId, year, quarter])
+  @@index([teamId, year])
+  @@map("commission_payouts")
 }
 
 model Team {
@@ -90,10 +128,12 @@ model Team {
   commissionType    String?   // 'percentage' | 'fixed' | null (no commission)
   commissionValue   Int?      // For percentage: basis points (1500 = 15%); for fixed: cents
 
-  members          TeamMember[]
-  invites          Invite[]
-  assignments      Assignment[]
-  serviceOverrides TeamServiceOverride[]
+  members             TeamMember[]
+  invites             Invite[]
+  assignments         Assignment[]
+  serviceOverrides    TeamServiceOverride[]
+  commissionLines     AssignmentCommission[]
+  commissionPayouts   CommissionPayout[]
 
   @@map("teams")
 }
@@ -278,6 +318,7 @@ model Assignment {
   services         AssignmentService[]
   comments         AssignmentComment[]
   files            AssignmentFile[]
+  commission       AssignmentCommission?
 
   @@index([status])
   @@index([teamId])

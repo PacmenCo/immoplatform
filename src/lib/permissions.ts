@@ -236,6 +236,26 @@ export async function canViewAssignmentPricing(
   return a.createdById === s.user.id || (!!a.teamId && all.includes(a.teamId));
 }
 
+/**
+ * View the team's commission lines + quarterly totals. Owners see their own
+ * team; admins/staff see everyone's. Freelancers never — they're paid via
+ * the platform operator, not a share of the invoice.
+ */
+export async function canViewCommission(
+  s: SessionWithUser,
+  teamId: string,
+): Promise<boolean> {
+  if (hasRole(s, "admin", "staff")) return true;
+  if (!hasRole(s, "realtor")) return false;
+  const { owned } = await getUserTeamIds(s.user.id);
+  return owned.includes(teamId);
+}
+
+/** Mark a team's quarterly commission as paid. Admin/staff only. */
+export function canMarkCommissionPaid(s: SessionWithUser): boolean {
+  return hasRole(s, "admin", "staff");
+}
+
 // ─── File policies ─────────────────────────────────────────────────
 
 /**

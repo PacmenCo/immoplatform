@@ -26,6 +26,7 @@ import {
   isDiscountType,
   resolveUnitPrices,
 } from "@/lib/pricing";
+import { applyCommission } from "@/lib/commission";
 import {
   assignmentCancelledEmail,
   assignmentCompletedEmail,
@@ -788,6 +789,24 @@ export const markAssignmentCompleted = withSession(async (
     objectId: id,
     metadata: { completedAt: completedAt.toISOString() },
   });
+
+  // Apply commission now that the agency has signed off. Best-effort — a
+  // commission compute failure shouldn't roll back the completion itself;
+  // admins can re-run via a recomputeCommissions action later.
+  try {
+    const line = await applyCommission(id);
+    if (line) {
+      await audit({
+        actorId: session.user.id,
+        verb: "assignment.commission_applied",
+        objectType: "assignment",
+        objectId: id,
+        metadata: { amountCents: line.amountCents },
+      });
+    }
+  } catch (err) {
+    console.error(`[commission] applyCommission(${id}) failed:`, err);
+  }
 
   // Notify the freelancer that the agency signed off. The actor is the
   // realtor/admin/staff side, so no self-email check needed.

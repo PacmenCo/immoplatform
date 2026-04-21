@@ -26,10 +26,12 @@ import {
   canUpdateAssignmentFields,
   canViewAssignment,
   canViewAssignmentPricing,
+  canViewCommission,
   eligibleFreelancerWhere,
 } from "@/lib/permissions";
-import { initials } from "@/lib/format";
+import { formatEuros, initials } from "@/lib/format";
 import { isDiscountType, loadAssignmentPricing } from "@/lib/pricing";
+import { loadAssignmentCommission } from "@/lib/commission";
 import { PricingCard } from "@/components/dashboard/PricingCard";
 import { CommentForm } from "./CommentForm";
 import { AssignmentActions } from "./AssignmentActions";
@@ -85,6 +87,10 @@ export default async function AssignmentDetail({
     ]);
 
   const pricing = canPricing ? await loadAssignmentPricing(id) : null;
+  const canCommission = assignment.teamId
+    ? await canViewCommission(session, assignment.teamId)
+    : false;
+  const commission = canCommission ? await loadAssignmentCommission(id) : null;
 
   // Only fetch when the user can reassign, AND scope to freelancers already in
   // the caller's orbit (team members, or previously assigned to their work).
@@ -355,6 +361,38 @@ export default async function AssignmentDetail({
                 }}
                 areaM2={assignment.areaM2}
               />
+            )}
+
+            {commission && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Commission</CardTitle>
+                  <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
+                    Applied at completion. Snapshotted — retroactive rate
+                    changes don't rewrite this line.
+                  </p>
+                </CardHeader>
+                <CardBody className="space-y-2 text-sm">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--color-ink-soft)]">
+                      Rate
+                    </span>
+                    <span className="font-medium text-[var(--color-ink)] tabular-nums">
+                      {commission.commissionType === "percentage"
+                        ? `${(commission.commissionValue / 100).toFixed(commission.commissionValue % 100 === 0 ? 0 : 1)}%`
+                        : formatEuros(commission.commissionValue)}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 border-t border-[var(--color-border)] pt-2">
+                    <span className="text-sm font-semibold text-[var(--color-ink)]">
+                      Earned
+                    </span>
+                    <span className="text-base font-semibold text-[var(--color-ink)] tabular-nums">
+                      {formatEuros(commission.commissionAmountCents)}
+                    </span>
+                  </div>
+                </CardBody>
+              </Card>
             )}
 
             <Card>

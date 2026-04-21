@@ -1,0 +1,130 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/db";
+import { audit } from "@/lib/auth";
+import { canMarkCommissionPaid } from "@/lib/permissions";
+import { quarterRange } from "@/lib/commission";
+import { withSession, type ActionResult } from "./_types";
+
+type QuarterInput = {
+  teamId: string;
+  year: number;
+  quarter: number;
+};
+
+function validateQuarter(q: QuarterInput): string | null {
+  if (!q.teamId) return "Missing team.";
+  if (!Number.isInteger(q.year) || q.year < 2020 || q.year > 2100) return "Invalid year.";
+  if (!Number.isInteger(q.quarter) || q.quarter < 1 || q.quarter > 4) return "Invalid quarter.";
+  return null;
+}
+
+/**
+ * Mark a team's quarterly commission accrual as paid. Recomputes the
+ * quarter's total at write time so the payout row reflects the amount
+ * admin actually paid out — even if commission lines change later.
+ *
+ * Idempotent per (team, year, quarter) — upsert on the unique constraint.
+ */
+export const markCommissionQuarterPaid = withSession(async (
+  session,
+  input: QuarterInput,
+): Promise<ActionResult> => {
+  if (!canMarkCommissionPaid(session)) {
+    return { ok: false, error: "Only admins and staff can mark commissions paid." };
+  }
+  const invalid = validateQuarter(input);
+  if (invalid) return { ok: false, error: invalid };
+
+  const team = await prisma.team.findUnique({
+    where: { id: input.teamId },
+    select: { id: true, name: true },
+  });
+  if (!team) return { ok: false, error: "Team not found." };
+
+  const { gte, lt } = quarterRange(input.year, input.quarter);
+  const sum = await prisma.assignmentCommission.aggregate({
+    where: { teamId: input.teamId, computedAt: { gte, lt } },
+    _sum: { commissionAmountCents: true },
+  });
+  const amountCents = sum._sum.commissionAmountCents ?? 0;
+
+  await prisma.commissionPayout.upsert({
+    where: {
+      teamId_year_quarter: {
+        teamId: input.teamId,
+        year: input.year,
+        quarter: input.quarter,
+      },
+    },
+    create: {
+      teamId: input.teamId,
+      year: input.year,
+      quarter: input.quarter,
+      amountCents,
+      paidById: session.user.id,
+    },
+    update: {
+      amountCents,
+      paidById: session.user.id,
+      paidAt: new Date(),
+    },
+  });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "commission.quarter_paid",
+    objectType: "team",
+    objectId: input.teamId,
+    metadata: {
+      year: input.year,
+      quarter: input.quarter,
+      amountCents,
+      teamName: team.name,
+    },
+  });
+
+  revalidatePath("/dashboard/commissions");
+  revalidatePath(`/dashboard/teams/${input.teamId}`);
+  return { ok: true };
+});
+
+/**
+ * Undo a quarter's paid status. Deletes the payout row — next write from
+ * markCommissionQuarterPaid starts fresh with today's total.
+ */
+export const undoCommissionQuarterPaid = withSession(async (
+  session,
+  input: QuarterInput,
+): Promise<ActionResult> => {
+  if (!canMarkCommissionPaid(session)) {
+    return { ok: false, error: "Only admins and staff can undo commission payouts." };
+  }
+  const invalid = validateQuarter(input);
+  if (invalid) return { ok: false, error: invalid };
+
+  await prisma.commissionPayout
+    .delete({
+      where: {
+        teamId_year_quarter: {
+          teamId: input.teamId,
+          year: input.year,
+          quarter: input.quarter,
+        },
+      },
+    })
+    .catch(() => {}); // no-op if nothing to undo
+
+  await audit({
+    actorId: session.user.id,
+    verb: "commission.quarter_unpaid",
+    objectType: "team",
+    objectId: input.teamId,
+    metadata: { year: input.year, quarter: input.quarter },
+  });
+
+  revalidatePath("/dashboard/commissions");
+  revalidatePath(`/dashboard/teams/${input.teamId}`);
+  return { ok: true };
+});
