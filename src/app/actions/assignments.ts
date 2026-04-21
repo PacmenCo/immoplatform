@@ -47,7 +47,7 @@ import {
   type Recipient,
 } from "@/lib/assignment-recipients";
 import { fullName } from "@/lib/format";
-import { assignmentUrl } from "@/lib/urls";
+import { addToGoogleCalendarUrl, assignmentUrl } from "@/lib/urls";
 import { withSession, type ActionResult } from "./_types";
 
 // ─── Helpers ───────────────────────────────────────────────────────
@@ -69,13 +69,19 @@ function ctxFromAssignment(a: {
   address: string;
   city: string;
   postal: string;
+  preferredDate?: Date | null;
+  calendarDate?: Date | null;
 }): AssignmentEmailCtx {
+  // Only include the "Add to my calendar" CTA when the assignment has a
+  // scheduled date — otherwise the link would land on an event-less row.
+  const hasDate = !!(a.calendarDate ?? a.preferredDate);
   return {
     reference: a.reference,
     address: a.address,
     city: a.city,
     postal: a.postal,
     assignmentUrl: assignmentUrl(a.id),
+    addToCalendarUrl: hasDate ? addToGoogleCalendarUrl(a.id) : undefined,
   };
 }
 
@@ -170,7 +176,17 @@ const createSchema = z.object({
   tenantEmail: z.string().email().optional().or(z.literal("")),
   tenantPhone: z.string().optional(),
 
+  contactEmail: z.string().email().optional().or(z.literal("")),
+  contactPhone: z.string().optional(),
+  photographerContactPerson: z
+    .enum(["realtor", "owner", "tenant"])
+    .optional()
+    .or(z.literal("")),
+  isLargeProperty: z.boolean().optional(),
+
   preferredDate: z.string().optional(),
+  calendarDate: z.string().optional(),
+  calendarAccountEmail: z.string().email().optional().or(z.literal("")),
   keyPickup: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -202,7 +218,14 @@ export const createAssignment = withSession(async (
     tenantName: (formData.get("tenant-name") as string) || undefined,
     tenantEmail: (formData.get("tenant-email") as string) || "",
     tenantPhone: (formData.get("tenant-phone") as string) || undefined,
+    contactEmail: (formData.get("contactEmail") as string) || "",
+    contactPhone: (formData.get("contactPhone") as string) || undefined,
+    photographerContactPerson:
+      (formData.get("photographerContactPerson") as string) || "",
+    isLargeProperty: formData.get("isLargeProperty") === "on",
     preferredDate: (formData.get("preferred-date") as string) || undefined,
+    calendarDate: (formData.get("calendarDate") as string) || undefined,
+    calendarAccountEmail: (formData.get("calendarAccountEmail") as string) || "",
     keyPickup: (formData.get("key-pickup") as string) || undefined,
     notes: (formData.get("notes") as string) || undefined,
   };
@@ -220,6 +243,9 @@ export const createAssignment = withSession(async (
       return { ok: false, error: "That user isn't an active freelancer." };
     }
   }
+  // calendarDate + calendarAccountEmail are admin/staff only. Silently
+  // drop them from non-privileged submissions (same pattern as discount).
+  const canSetCalendarOverrides = canReassignFreelancer(session);
 
   const parsed = createSchema.safeParse(raw);
   if (!parsed.success) {
@@ -276,7 +302,14 @@ export const createAssignment = withSession(async (
           propertyType: d.propertyType || null,
           constructionYear: d.constructionYear || null,
           areaM2: d.areaM2 || null,
+          isLargeProperty: !!d.isLargeProperty,
           preferredDate: d.preferredDate ? new Date(d.preferredDate) : null,
+          calendarDate:
+            canSetCalendarOverrides && d.calendarDate ? new Date(d.calendarDate) : null,
+          calendarAccountEmail:
+            canSetCalendarOverrides && d.calendarAccountEmail
+              ? d.calendarAccountEmail
+              : null,
           keyPickup: d.keyPickup || null,
           notes: d.notes || null,
           ownerName: d.ownerName,
@@ -285,6 +318,9 @@ export const createAssignment = withSession(async (
           tenantName: d.tenantName || null,
           tenantEmail: d.tenantEmail || null,
           tenantPhone: d.tenantPhone || null,
+          contactEmail: d.contactEmail || null,
+          contactPhone: d.contactPhone || null,
+          photographerContactPerson: d.photographerContactPerson || null,
           teamId,
           freelancerId,
           createdById: session.user.id,
@@ -438,7 +474,17 @@ const updateSchema = z.object({
   tenantEmail: z.string().email().optional().or(z.literal("")),
   tenantPhone: z.string().optional(),
 
+  contactEmail: z.string().email().optional().or(z.literal("")),
+  contactPhone: z.string().optional(),
+  photographerContactPerson: z
+    .enum(["realtor", "owner", "tenant"])
+    .optional()
+    .or(z.literal("")),
+  isLargeProperty: z.boolean().optional(),
+
   preferredDate: z.string().optional(),
+  calendarDate: z.string().optional(),
+  calendarAccountEmail: z.string().email().optional().or(z.literal("")),
   keyPickup: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -483,7 +529,14 @@ export const updateAssignment = withSession(async (
     tenantName: (formData.get("tenant-name") as string) || undefined,
     tenantEmail: (formData.get("tenant-email") as string) || "",
     tenantPhone: (formData.get("tenant-phone") as string) || undefined,
+    contactEmail: (formData.get("contactEmail") as string) || "",
+    contactPhone: (formData.get("contactPhone") as string) || undefined,
+    photographerContactPerson:
+      (formData.get("photographerContactPerson") as string) || "",
+    isLargeProperty: formData.get("isLargeProperty") === "on",
     preferredDate: (formData.get("preferred-date") as string) || undefined,
+    calendarDate: (formData.get("calendarDate") as string) || undefined,
+    calendarAccountEmail: (formData.get("calendarAccountEmail") as string) || "",
     keyPickup: (formData.get("key-pickup") as string) || undefined,
     notes: (formData.get("notes") as string) || undefined,
   };
@@ -538,6 +591,7 @@ export const updateAssignment = withSession(async (
     };
   });
 
+  const canSetCalendarOverrides = canFreelancer;
   const claimed = await prisma.$transaction(async (tx) => {
     // Optimistic guard: refuse to update if status went terminal in the meantime.
     const claim = await tx.assignment.updateMany({
@@ -549,6 +603,7 @@ export const updateAssignment = withSession(async (
         propertyType: d.propertyType || null,
         constructionYear: d.constructionYear || null,
         areaM2: d.areaM2 || null,
+        isLargeProperty: !!d.isLargeProperty,
         preferredDate: d.preferredDate ? new Date(d.preferredDate) : null,
         keyPickup: d.keyPickup || null,
         notes: d.notes || null,
@@ -558,6 +613,15 @@ export const updateAssignment = withSession(async (
         tenantName: d.tenantName || null,
         tenantEmail: d.tenantEmail || null,
         tenantPhone: d.tenantPhone || null,
+        contactEmail: d.contactEmail || null,
+        contactPhone: d.contactPhone || null,
+        photographerContactPerson: d.photographerContactPerson || null,
+        ...(canSetCalendarOverrides
+          ? {
+              calendarDate: d.calendarDate ? new Date(d.calendarDate) : null,
+              calendarAccountEmail: d.calendarAccountEmail || null,
+            }
+          : {}),
         ...(freelancerChanged ? { freelancerId: nextFreelancerId } : {}),
         ...(discountPatch ?? {}),
       },
@@ -667,16 +731,23 @@ export const updateAssignment = withSession(async (
   }
 
   // Re-sync calendars when ANY field embedded in the event payload moved:
-  // date / address / notes / property metadata / contacts. Match
-  // `src/lib/calendar/payload.ts` — if the stored event would render with
-  // different content, we need to push the update.
+  // date / address / notes / property metadata / contacts / large-property
+  // flag / realtor contact / photographer contact person / calendarDate.
+  // Match `src/lib/calendar/payload.ts` — if the stored event would render
+  // with different content, we need to push the update.
+  const nextCalendarDate =
+    canSetCalendarOverrides && d.calendarDate ? new Date(d.calendarDate) : null;
+  const calendarDateChanged =
+    (existing.calendarDate?.getTime() ?? null) !== (nextCalendarDate?.getTime() ?? null);
   const calendarRelevantChanged =
     dateChanged ||
+    calendarDateChanged ||
     existing.address !== d.address ||
     existing.city !== d.city ||
     existing.postal !== d.postal ||
     existing.propertyType !== (d.propertyType ?? null) ||
     (existing.areaM2 ?? null) !== (d.areaM2 ?? null) ||
+    existing.isLargeProperty !== !!d.isLargeProperty ||
     existing.keyPickup !== (d.keyPickup ?? null) ||
     existing.notes !== (d.notes ?? null) ||
     existing.ownerName !== d.ownerName ||
@@ -684,7 +755,10 @@ export const updateAssignment = withSession(async (
     existing.ownerPhone !== (d.ownerPhone ?? null) ||
     existing.tenantName !== (d.tenantName ?? null) ||
     existing.tenantEmail !== (d.tenantEmail || null) ||
-    existing.tenantPhone !== (d.tenantPhone ?? null);
+    existing.tenantPhone !== (d.tenantPhone ?? null) ||
+    existing.contactEmail !== (d.contactEmail || null) ||
+    existing.contactPhone !== (d.contactPhone ?? null) ||
+    existing.photographerContactPerson !== (d.photographerContactPerson || null);
   if (calendarRelevantChanged) {
     await syncAssignmentToCalendars(id, "update");
   }

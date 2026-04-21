@@ -31,10 +31,16 @@ export type AssignmentFormInitial = {
   propertyType: string | null;
   constructionYear: number | null;
   areaM2: number | null;
+  isLargeProperty: boolean;
   services: string[];
   owner: OwnerContact;
   tenant: TenantContact;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  photographerContactPerson: string | null;
   preferredDate: string | null;
+  calendarDate: string | null;
+  calendarAccountEmail: string | null;
   keyPickup: string | null;
   notes: string | null;
   freelancerId: string | null;
@@ -171,6 +177,18 @@ export function AssignmentForm({
               />
             </Field>
           </div>
+          <div className="sm:col-span-6">
+            <label className="flex items-center gap-2 text-sm text-[var(--color-ink-soft)]">
+              <input
+                type="checkbox"
+                name="isLargeProperty"
+                defaultChecked={initial?.isLargeProperty ?? false}
+                className="h-4 w-4 accent-[var(--color-brand)]"
+              />
+              Large property (&gt; 300&nbsp;m²) — renders "Groot pand" on the
+              calendar event and triggers the large-property pricing surcharge.
+            </label>
+          </div>
         </CardBody>
       </Card>
 
@@ -260,6 +278,53 @@ export function AssignmentForm({
               defaultValue={initial?.owner.phone ?? ""}
             />
           </Field>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Agency contact</CardTitle>
+          <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+            The realtor or agency person the inspector should contact. Shown on
+            the calendar event under "Makelaar".
+          </p>
+        </CardHeader>
+        <CardBody className="grid gap-5 sm:grid-cols-2">
+          <Field label="Email" id="contact-email">
+            <Input
+              id="contact-email"
+              name="contactEmail"
+              type="email"
+              placeholder="info@vastgoedantwerp.be"
+              defaultValue={initial?.contactEmail ?? ""}
+            />
+          </Field>
+          <Field label="Phone" id="contact-phone">
+            <Input
+              id="contact-phone"
+              name="contactPhone"
+              placeholder="+32 3 123 45 67"
+              defaultValue={initial?.contactPhone ?? ""}
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field
+              label="Primary contact for the inspector"
+              id="photographer-contact-person"
+              hint="Which contact gets tagged (Jouw contactpersoon) on the calendar event."
+            >
+              <Select
+                id="photographer-contact-person"
+                name="photographerContactPerson"
+                defaultValue={initial?.photographerContactPerson ?? ""}
+              >
+                <option value="">— Pick later —</option>
+                <option value="realtor">Agency / realtor</option>
+                <option value="owner">Owner</option>
+                <option value="tenant">Tenant</option>
+              </Select>
+            </Field>
+          </div>
         </CardBody>
       </Card>
 
@@ -372,6 +437,35 @@ export function AssignmentForm({
                 </Select>
               </Field>
             </div>
+          )}
+          {canSetFreelancer && (
+            <>
+              <Field
+                label="Internal calendar date"
+                id="calendar-date"
+                hint="Overrides the preferred date when pushing to calendars. Customer's date stays untouched."
+              >
+                <Input
+                  id="calendar-date"
+                  name="calendarDate"
+                  type="datetime-local"
+                  defaultValue={initial?.calendarDate ?? ""}
+                />
+              </Field>
+              <Field
+                label="Calendar account (for email CTA)"
+                id="calendar-account-email"
+                hint="The Google account the email's 'Add to my calendar' button targets."
+              >
+                <Input
+                  id="calendar-account-email"
+                  name="calendarAccountEmail"
+                  type="email"
+                  placeholder="you@agency.be"
+                  defaultValue={initial?.calendarAccountEmail ?? ""}
+                />
+              </Field>
+            </>
           )}
           <div className="sm:col-span-2">
             <Field label="Notes for the inspector" id="notes">

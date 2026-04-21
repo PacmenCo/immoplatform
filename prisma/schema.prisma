@@ -318,6 +318,17 @@ model Assignment {
   tenantName       String?
   tenantEmail      String?
   tenantPhone      String?
+  // Realtor-side contact details rendered on the calendar event's
+  // "Makelaar" block and referenced by photographerContactPerson.
+  contactEmail     String?
+  contactPhone     String?
+  // 'realtor' | 'owner' | 'tenant' — used to tag one of the contact
+  // blocks as "(Jouw contactpersoon)" in the calendar event description.
+  photographerContactPerson String?
+  // Large-property flag — drives the Oppervlakte line in the calendar
+  // event ("Groot pand (> 300m²)" vs "Standaard (~ XXX m²)"). Area itself
+  // stays in `areaM2`.
+  isLargeProperty  Boolean @default(false)
 
   // Relations
   teamId           String?

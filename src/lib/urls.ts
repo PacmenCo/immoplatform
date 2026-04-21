@@ -32,3 +32,8 @@ export function inviteAcceptUrl(token: string): string {
 export function passwordResetUrl(token: string): string {
   return `${appBaseUrl()}/reset-password?token=${token}`;
 }
+
+/** One-click "Add to my Google calendar" link for assignment emails. */
+export function addToGoogleCalendarUrl(assignmentId: string): string {
+  return `${appBaseUrl()}/api/calendar/add-to-google?a=${assignmentId}`;
+}

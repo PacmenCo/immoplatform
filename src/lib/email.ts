@@ -201,6 +201,9 @@ export type AssignmentEmailCtx = {
   city: string;
   postal: string;
   assignmentUrl: string;
+  /** Optional — populated for scheduled assignments. Adds the event to the
+   *  recipient's personal Google calendar in one click (session required). */
+  addToCalendarUrl?: string;
 };
 
 // Kept local alias for readability of the per-template intersection types.
@@ -208,6 +211,12 @@ type AssignmentCtx = AssignmentEmailCtx;
 
 function addressLine(a: AssignmentCtx): string {
   return `${a.address}, ${a.postal} ${a.city}`;
+}
+
+function calendarCta(a: AssignmentCtx): string {
+  return a.addToCalendarUrl
+    ? `\n\nAdd this appointment to your Google calendar:\n${a.addToCalendarUrl}`
+    : "";
 }
 
 export function assignmentDateUpdatedEmail(opts: AssignmentCtx & {
@@ -226,7 +235,7 @@ The preferred date for ${opts.reference} (${addressLine(opts)}) has changed.
 Previous: ${prev}
 New:      ${next}
 
-${opts.assignmentUrl}`,
+${opts.assignmentUrl}${calendarCta(opts)}`,
   };
 }
 
@@ -294,7 +303,7 @@ export function assignmentReassignedEmail(opts: AssignmentCtx & {
 
 You've been assigned to ${opts.reference} (${addressLine(opts)}).
 ${dateLine}
-${opts.assignmentUrl}`,
+${opts.assignmentUrl}${calendarCta(opts)}`,
   };
 }
 

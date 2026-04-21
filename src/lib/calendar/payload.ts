@@ -37,6 +37,10 @@ type AssignmentLike = {
   tenantName: string | null;
   tenantEmail: string | null;
   tenantPhone: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  photographerContactPerson: string | null;
+  isLargeProperty: boolean;
   preferredDate: Date | null;
   /** Internal calendar override — falls back to preferredDate. Matches
    *  Platform's `calendar_date ?: actual_date` ladder. */
@@ -91,7 +95,7 @@ export function buildEventPayload(input: PayloadInput): EventPayload | null {
   const clientName = resolveClientName(team, assignment);
   const title = `${clientName} - ${assignment.address}, ${assignment.city}`;
   const location = `${assignment.address}, ${assignment.postal} ${assignment.city}`;
-  const descriptionHtml = buildDescription(assignment, start);
+  const descriptionHtml = buildDescription(assignment, team, start);
 
   return {
     title,
@@ -105,9 +109,17 @@ export function buildEventPayload(input: PayloadInput): EventPayload | null {
 }
 
 function resolveClientName(team: TeamLike, a: AssignmentLike): string {
-  // Platform's chain (simplified to the fields we model today):
-  // team.name → team.legalName → owner → tenant → "KLANT".
-  const candidates = [team?.name, team?.legalName, a.ownerName, a.tenantName];
+  // Platform's chain: team.name → team.legalName → contact branch (email
+  // or phone present) → owner → tenant → "KLANT". Matches as closely as
+  // the fields we model allow.
+  const hasRealtorContact = !!(a.contactEmail || a.contactPhone);
+  const candidates = [
+    team?.name,
+    team?.legalName,
+    hasRealtorContact ? (team?.name ?? "KANTOOR") : null,
+    a.ownerName,
+    a.tenantName,
+  ];
   for (const c of candidates) {
     const trimmed = c?.trim();
     if (trimmed) return trimmed.toUpperCase();
@@ -115,7 +127,7 @@ function resolveClientName(team: TeamLike, a: AssignmentLike): string {
   return "KLANT";
 }
 
-function buildDescription(a: AssignmentLike, start: Date): string {
+function buildDescription(a: AssignmentLike, team: TeamLike, start: Date): string {
   const url = `${requireAppUrl()}/dashboard/assignments/${a.id}`;
   const rows: string[] = [];
 
@@ -131,17 +143,37 @@ function buildDescription(a: AssignmentLike, start: Date): string {
       `<strong>Type woning:</strong> ${escape(labelProperty(a.propertyType))}`,
     );
   }
-  if (a.areaM2) propLines.push(`<strong>Oppervlakte:</strong> ${a.areaM2} m²`);
+  propLines.push(`<strong>Oppervlakte:</strong> ${oppervlakteLine(a)}`);
   if (a.keyPickup) {
     propLines.push(`<strong>Sleutel ophalen:</strong> ${escape(labelKeyPickup(a.keyPickup))}`);
   }
-  if (propLines.length) rows.push(`<p>${propLines.join("<br />")}</p>`);
+  rows.push(`<p>${propLines.join("<br />")}</p>`);
 
+  // Contact blocks — Platform order is Makelaar → Eigenaar → Huurder.
+  // The one tagged by `photographerContactPerson` gets the "(Jouw
+  // contactpersoon)" marker so the inspector knows who to call.
+  const marker = '<em style="color: #666">(Jouw contactpersoon)</em>';
+  const realtorName = team?.name ?? team?.legalName ?? null;
+  if (realtorName || a.contactEmail || a.contactPhone) {
+    rows.push(
+      `<p><strong>Makelaar${
+        a.photographerContactPerson === "realtor" ? ` ${marker}` : ""
+      }:</strong><br />${contactLine(realtorName, a.contactEmail, a.contactPhone)}</p>`,
+    );
+  }
   if (a.ownerName || a.ownerEmail || a.ownerPhone) {
-    rows.push(`<p><strong>Eigenaar:</strong><br />${contactLine(a.ownerName, a.ownerEmail, a.ownerPhone)}</p>`);
+    rows.push(
+      `<p><strong>Eigenaar${
+        a.photographerContactPerson === "owner" ? ` ${marker}` : ""
+      }:</strong><br />${contactLine(a.ownerName, a.ownerEmail, a.ownerPhone)}</p>`,
+    );
   }
   if (a.tenantName || a.tenantEmail || a.tenantPhone) {
-    rows.push(`<p><strong>Huurder:</strong><br />${contactLine(a.tenantName, a.tenantEmail, a.tenantPhone)}</p>`);
+    rows.push(
+      `<p><strong>Huurder${
+        a.photographerContactPerson === "tenant" ? ` ${marker}` : ""
+      }:</strong><br />${contactLine(a.tenantName, a.tenantEmail, a.tenantPhone)}</p>`,
+    );
   }
 
   if (a.notes) {
@@ -174,6 +206,14 @@ function labelProperty(raw: string): string {
 
 function labelKeyPickup(raw: string): string {
   return KEY_PICKUP_LABELS[raw] ?? raw;
+}
+
+function oppervlakteLine(a: AssignmentLike): string {
+  // Matches Platform: "Groot pand (> 300m²)" when flagged, otherwise
+  // "Standaard (≤ 300m²) (~ XXX m²)" when we have a number.
+  if (a.isLargeProperty) return "Groot pand (&gt; 300m²)";
+  if (a.areaM2) return `Standaard (≤ 300m²) (~ ${a.areaM2} m²)`;
+  return "Standaard (≤ 300m²)";
 }
 
 /** dd-mm-YYYY HH:MM in Europe/Brussels. Matches Platform's format exactly. */

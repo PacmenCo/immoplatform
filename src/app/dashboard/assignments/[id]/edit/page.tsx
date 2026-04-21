@@ -52,6 +52,7 @@ export default async function EditAssignment({
     propertyType: assignment.propertyType,
     constructionYear: assignment.constructionYear,
     areaM2: assignment.areaM2,
+    isLargeProperty: assignment.isLargeProperty,
     services: assignment.services.map((s) => s.serviceKey),
     owner: {
       name: assignment.ownerName,
@@ -63,9 +64,16 @@ export default async function EditAssignment({
       email: assignment.tenantEmail,
       phone: assignment.tenantPhone,
     },
+    contactEmail: assignment.contactEmail,
+    contactPhone: assignment.contactPhone,
+    photographerContactPerson: assignment.photographerContactPerson,
     preferredDate: assignment.preferredDate
       ? assignment.preferredDate.toISOString().slice(0, 10)
       : null,
+    calendarDate: assignment.calendarDate
+      ? assignment.calendarDate.toISOString().slice(0, 16)
+      : null,
+    calendarAccountEmail: assignment.calendarAccountEmail,
     keyPickup: assignment.keyPickup,
     notes: assignment.notes,
     freelancerId: assignment.freelancerId,
