@@ -6,6 +6,7 @@ import type { AssignmentFormInitial } from "@/components/dashboard/AssignmentFor
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { canSetDiscount, canUpdateAssignmentFields } from "@/lib/permissions";
+import { isDiscountType } from "@/lib/pricing";
 import { updateAssignment } from "@/app/actions/assignments";
 
 export default async function EditAssignment({
@@ -54,7 +55,9 @@ export default async function EditAssignment({
     keyPickup: assignment.keyPickup,
     notes: assignment.notes,
     discount: {
-      type: assignment.discountType as "percentage" | "fixed" | null,
+      type: isDiscountType(assignment.discountType)
+        ? assignment.discountType
+        : null,
       value: assignment.discountValue,
       reason: assignment.discountReason,
     },

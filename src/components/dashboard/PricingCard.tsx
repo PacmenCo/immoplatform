@@ -1,12 +1,12 @@
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import type { PricingBreakdown } from "@/lib/pricing";
-import { formatEuros } from "@/lib/pricing";
+import type { DiscountType, PricingBreakdown } from "@/lib/pricing";
+import { formatEuros } from "@/lib/format";
 
 type Props = {
   breakdown: PricingBreakdown;
   servicesByKey: Record<string, { label: string; short: string; color: string }>;
   discountMeta: {
-    type: "percentage" | "fixed" | null;
+    type: DiscountType | null;
     value: number | null;
     reason: string | null;
   };
@@ -16,6 +16,8 @@ type Props = {
 /** Read-only pricing card shown on the assignment detail page. */
 export function PricingCard({ breakdown, servicesByKey, discountMeta, areaM2 }: Props) {
   const surchargePct = breakdown.surchargeBps / 100;
+  const hasAdjustments =
+    breakdown.surchargeCents > 0 || breakdown.discountCents > 0;
   const discountDisplay =
     discountMeta.type === "percentage" && discountMeta.value
       ? `${(discountMeta.value / 100).toFixed(discountMeta.value % 100 === 0 ? 0 : 1)}%`
@@ -51,14 +53,16 @@ export function PricingCard({ breakdown, servicesByKey, discountMeta, areaM2 }: 
           })}
         </ul>
 
-        <div className="flex items-baseline justify-between gap-3 border-t border-[var(--color-border)] pt-3">
-          <span className="text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
-            Subtotal
-          </span>
-          <span className="font-medium text-[var(--color-ink)] tabular-nums">
-            {formatEuros(breakdown.subtotalCents)}
-          </span>
-        </div>
+        {hasAdjustments && (
+          <div className="flex items-baseline justify-between gap-3 border-t border-[var(--color-border)] pt-3">
+            <span className="text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
+              Subtotal
+            </span>
+            <span className="font-medium text-[var(--color-ink)] tabular-nums">
+              {formatEuros(breakdown.subtotalCents)}
+            </span>
+          </div>
+        )}
 
         {breakdown.surchargeCents > 0 && (
           <div className="flex items-baseline justify-between gap-3">

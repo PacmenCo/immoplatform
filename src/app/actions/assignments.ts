@@ -20,7 +20,12 @@ import {
   getUserTeamIds,
   hasRole,
 } from "@/lib/permissions";
-import { effectiveUnitPriceCents } from "@/lib/pricing";
+import {
+  MAX_DISCOUNT_FIXED_CENTS,
+  MAX_DISCOUNT_PERCENTAGE_BPS,
+  isDiscountType,
+  resolveUnitPrices,
+} from "@/lib/pricing";
 import {
   assignmentCancelledEmail,
   assignmentCompletedEmail,
@@ -69,29 +74,45 @@ function ctxFromAssignment(a: {
   };
 }
 
+type DiscountPatch = {
+  discountType: string | null;
+  discountValue: number | null;
+  discountReason: string | null;
+};
+
+const EMPTY_DISCOUNT_PATCH: DiscountPatch = {
+  discountType: null,
+  discountValue: null,
+  discountReason: null,
+};
+
 /**
  * Pull discount fields from a FormData. Returns null when the form did not
  * include discount inputs at all (so the caller leaves the DB unchanged).
- * Returns a patch with `null`s when the discount was explicitly cleared.
- * Values are integer — percentage basis points (1500 = 15 %) or cents.
+ * Returns a clearing patch when the input is invalid, missing, or zero.
+ * Percentage is stored as basis points (1500 = 15 %) and capped at 10 000;
+ * fixed is stored as cents and capped at €100 000 as defense-in-depth so a
+ * bad value never reaches downstream math or displays.
  */
-function parseDiscountFromForm(
-  formData: FormData,
-): { discountType: string | null; discountValue: number | null; discountReason: string | null } | null {
+function parseDiscountFromForm(formData: FormData): DiscountPatch | null {
   if (!formData.has("discountType")) return null;
   const rawType = (formData.get("discountType") as string) || "";
-  if (rawType !== "percentage" && rawType !== "fixed") {
-    return { discountType: null, discountValue: null, discountReason: null };
-  }
+  if (!isDiscountType(rawType)) return EMPTY_DISCOUNT_PATCH;
+
   const rawValue = (formData.get("discountValue") as string) || "";
   const parsedValue = Number.parseInt(rawValue, 10);
   if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
-    return { discountType: null, discountValue: null, discountReason: null };
+    return EMPTY_DISCOUNT_PATCH;
   }
+
+  const cap =
+    rawType === "percentage" ? MAX_DISCOUNT_PERCENTAGE_BPS : MAX_DISCOUNT_FIXED_CENTS;
+  const clamped = Math.min(parsedValue, cap);
+
   const reason = ((formData.get("discountReason") as string) || "").trim();
   return {
     discountType: rawType,
-    discountValue: parsedValue,
+    discountValue: clamped,
     discountReason: reason || null,
   };
 }
@@ -209,14 +230,14 @@ export const createAssignment = withSession(async (
   }
 
   // Snapshot the per-service unit price at creation time so retroactive
-  // price-list changes don't alter in-flight invoices. Resolves per-team
-  // override → service base price.
-  const serviceLines = await Promise.all(
-    d.services.map(async (k) => ({
-      serviceKey: k,
-      unitPriceCents: await effectiveUnitPriceCents(teamId, k),
-    })),
-  );
+  // price-list changes don't alter in-flight invoices. Single batched
+  // resolver keeps the snapshot internally consistent if a concurrent
+  // setTeamServiceOverride fires between service keys.
+  const priceMap = await resolveUnitPrices(teamId, d.services);
+  const serviceLines = d.services.map((k) => ({
+    serviceKey: k,
+    unitPriceCents: priceMap.get(k) ?? 0,
+  }));
 
   // Retry on reference-collision — nextReference reads max+1 non-atomically,
   // so two concurrent creates can compute the same value. The unique index
@@ -459,22 +480,23 @@ export const updateAssignment = withSession(async (
 
   // Resolve the final service lines, preserving existing snapshots where
   // possible so a mid-assignment edit doesn't silently re-price an
-  // already-in-flight job.
+  // already-in-flight job. Only fetch new prices for newly-added services.
   const existingSvc = await prisma.assignmentService.findMany({
     where: { assignmentId: id },
     select: { serviceKey: true, unitPriceCents: true },
   });
   const existingByKey = new Map(existingSvc.map((s) => [s.serviceKey, s]));
-  const nextLines = await Promise.all(
-    d.services.map(async (k) => {
-      const prior = existingByKey.get(k);
-      if (prior) return { serviceKey: k, unitPriceCents: prior.unitPriceCents };
-      return {
-        serviceKey: k,
-        unitPriceCents: await effectiveUnitPriceCents(existing.teamId, k),
-      };
-    }),
-  );
+  const newlyAdded = d.services.filter((k) => !existingByKey.has(k));
+  const newPrices = newlyAdded.length
+    ? await resolveUnitPrices(existing.teamId, newlyAdded)
+    : new Map<string, number>();
+  const nextLines = d.services.map((k) => {
+    const prior = existingByKey.get(k);
+    return {
+      serviceKey: k,
+      unitPriceCents: prior?.unitPriceCents ?? newPrices.get(k) ?? 0,
+    };
+  });
 
   const claimed = await prisma.$transaction(async (tx) => {
     // Optimistic guard: refuse to update if status went terminal in the meantime.

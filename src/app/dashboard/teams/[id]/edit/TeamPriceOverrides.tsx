@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { setTeamServiceOverride } from "@/app/actions/teams";
-import { formatEuros } from "@/lib/pricing";
+import { formatEuros } from "@/lib/format";
 
 type ServiceRow = {
   key: string;
@@ -101,9 +101,10 @@ function ServiceOverrideRow({
       <div className="flex items-center gap-1">
         <span className="text-sm text-[var(--color-ink-muted)]">€</span>
         <input
-          type="number"
-          step="0.01"
-          min="0"
+          // type="text" + inputMode="decimal" so Belgian-locale users can
+          // type "145,50" — native number inputs silently drop the comma.
+          type="text"
+          inputMode="decimal"
           value={euros}
           onChange={(e) => setEuros(e.target.value)}
           placeholder={(row.basePriceCents / 100).toFixed(2)}

@@ -29,7 +29,7 @@ import {
   eligibleFreelancerWhere,
 } from "@/lib/permissions";
 import { initials } from "@/lib/format";
-import { loadAssignmentPricing } from "@/lib/pricing";
+import { isDiscountType, loadAssignmentPricing } from "@/lib/pricing";
 import { PricingCard } from "@/components/dashboard/PricingCard";
 import { CommentForm } from "./CommentForm";
 import { AssignmentActions } from "./AssignmentActions";
@@ -347,7 +347,9 @@ export default async function AssignmentDetail({
                 breakdown={pricing}
                 servicesByKey={servicesByKey}
                 discountMeta={{
-                  type: assignment.discountType as "percentage" | "fixed" | null,
+                  type: isDiscountType(assignment.discountType)
+                    ? assignment.discountType
+                    : null,
                   value: assignment.discountValue,
                   reason: assignment.discountReason,
                 }}

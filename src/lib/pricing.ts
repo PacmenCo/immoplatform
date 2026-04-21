@@ -17,6 +17,21 @@ import { prisma } from "./db";
 export const SURCHARGE_THRESHOLD_M2 = 300;
 export const SURCHARGE_PER_BLOCK_BPS = 2000; // 20 % per 100 m² block
 
+/** Closed list of discount types the UI + API accept. Keep in sync with
+ *  `Assignment.discountType` values written by `parseDiscountFromForm`. */
+export const DISCOUNT_TYPES = ["percentage", "fixed"] as const;
+export type DiscountType = (typeof DISCOUNT_TYPES)[number];
+
+export function isDiscountType(s: unknown): s is DiscountType {
+  return (DISCOUNT_TYPES as readonly string[]).includes(s as string);
+}
+
+/** Defensive caps applied at the API edge.  Percentage maxes at 100 %;
+ *  fixed discount capped at €100 000 to catch dumb input while allowing
+ *  real-world volume deals. */
+export const MAX_DISCOUNT_PERCENTAGE_BPS = 10_000;
+export const MAX_DISCOUNT_FIXED_CENTS = 10_000_00 * 100; // €100,000.00
+
 export type PricingLineInput = {
   serviceKey: string;
   unitPriceCents: number;
@@ -27,6 +42,37 @@ export type PricingDiscountInput =
   | { type: "percentage"; bps: number } // 1500 = 15 %
   | { type: "fixed"; cents: number }
   | null;
+
+/**
+ * Resolve the unit-price snapshot for every service in `serviceKeys`
+ * under a given team in TWO queries (not N), so the resulting snapshot
+ * is internally consistent even if a concurrent `setTeamServiceOverride`
+ * fires between rows. Falls back to `Service.unitPrice` when no override
+ * exists for a key. Returns 0 for unknown keys.
+ */
+export async function resolveUnitPrices(
+  teamId: string | null,
+  serviceKeys: string[],
+): Promise<Map<string, number>> {
+  if (serviceKeys.length === 0) return new Map();
+  const [overrides, services] = await Promise.all([
+    teamId
+      ? prisma.teamServiceOverride.findMany({
+          where: { teamId, serviceKey: { in: serviceKeys } },
+          select: { serviceKey: true, priceCents: true },
+        })
+      : Promise.resolve([] as Array<{ serviceKey: string; priceCents: number }>),
+    prisma.service.findMany({
+      where: { key: { in: serviceKeys } },
+      select: { key: true, unitPrice: true },
+    }),
+  ]);
+  const byKey = new Map<string, number>();
+  for (const s of services) byKey.set(s.key, s.unitPrice);
+  for (const o of overrides) byKey.set(o.serviceKey, o.priceCents);
+  for (const k of serviceKeys) if (!byKey.has(k)) byKey.set(k, 0);
+  return byKey;
+}
 
 export type PricingInput = {
   lines: PricingLineInput[];
@@ -112,9 +158,9 @@ export function discountFromAssignment(a: {
   if (!a.discountType || a.discountValue === null || a.discountValue <= 0) {
     return null;
   }
+  if (!isDiscountType(a.discountType)) return null;
   if (a.discountType === "percentage") return { type: "percentage", bps: a.discountValue };
-  if (a.discountType === "fixed") return { type: "fixed", cents: a.discountValue };
-  return null;
+  return { type: "fixed", cents: a.discountValue };
 }
 
 /**
@@ -150,33 +196,14 @@ export async function loadAssignmentPricing(
 }
 
 /**
- * Resolve the effective unit price for a (team, service) pair at assignment-
- * creation time. Prefers a TeamServiceOverride, falls back to Service.unitPrice.
- *
- * Used by createAssignment + updateAssignment to take the price snapshot.
+ * Single-key convenience wrapper over `resolveUnitPrices`.  Prefer the
+ * multi-key version whenever you need prices for more than one service on
+ * the same team — it's atomic.
  */
 export async function effectiveUnitPriceCents(
   teamId: string | null,
   serviceKey: string,
 ): Promise<number> {
-  if (teamId) {
-    const override = await prisma.teamServiceOverride.findUnique({
-      where: { teamId_serviceKey: { teamId, serviceKey } },
-      select: { priceCents: true },
-    });
-    if (override) return override.priceCents;
-  }
-  const service = await prisma.service.findUnique({
-    where: { key: serviceKey },
-    select: { unitPrice: true },
-  });
-  return service?.unitPrice ?? 0;
-}
-
-/** Format cents as "€ 123.45" — UI helper. */
-export function formatEuros(cents: number): string {
-  const whole = Math.floor(Math.abs(cents) / 100);
-  const frac = (Math.abs(cents) % 100).toString().padStart(2, "0");
-  const sign = cents < 0 ? "−" : "";
-  return `${sign}€ ${whole}.${frac}`;
+  const map = await resolveUnitPrices(teamId, [serviceKey]);
+  return map.get(serviceKey) ?? 0;
 }

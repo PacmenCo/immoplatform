@@ -251,7 +251,11 @@ export const setTeamServiceOverride = withSession(async (
   });
   if (!service) return { ok: false, error: "Unknown service." };
 
-  if (priceCents === null || priceCents <= 0) {
+  // Explicit three-state contract:
+  //   null   → clear existing override (revert to base price)
+  //   0 / <0 → reject (misread as "set override to €0", likely a typo)
+  //   > 0    → upsert
+  if (priceCents === null) {
     await prisma.teamServiceOverride
       .delete({ where: { teamId_serviceKey: { teamId, serviceKey } } })
       .catch(() => {}); // no-op if the override never existed
@@ -263,7 +267,14 @@ export const setTeamServiceOverride = withSession(async (
       metadata: { serviceKey },
     });
   } else {
-    if (!Number.isFinite(priceCents) || priceCents > 1_000_000_00) {
+    if (!Number.isFinite(priceCents) || priceCents <= 0) {
+      return {
+        ok: false,
+        error:
+          "Price must be greater than 0. Use Reset to clear the override and fall back to the base price.",
+      };
+    }
+    if (priceCents > 1_000_000_00) {
       return { ok: false, error: "Price looks off — use cents (e.g. 14500 for €145)." };
     }
     await prisma.teamServiceOverride.upsert({

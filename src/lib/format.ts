@@ -18,3 +18,11 @@ export function formatBytes(bytes: number): string {
 export function fullName(u: { firstName: string; lastName: string }): string {
   return `${u.firstName} ${u.lastName}`;
 }
+
+/** Integer cents → "€ 123.45" (or "−€ 25.00" for negatives). */
+export function formatEuros(cents: number): string {
+  const whole = Math.floor(Math.abs(cents) / 100);
+  const frac = (Math.abs(cents) % 100).toString().padStart(2, "0");
+  const sign = cents < 0 ? "−" : "";
+  return `${sign}€ ${whole}.${frac}`;
+}
