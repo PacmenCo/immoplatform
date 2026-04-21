@@ -54,21 +54,21 @@ type AssignmentLike = {
 };
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  house: "Woning",
-  apartment: "Appartement",
-  studio_appartement: "Studio / appartement",
-  studio_room: "Studentenkamer",
-  commercial: "Handelspand",
-  office: "Kantoor",
+  house: "House",
+  apartment: "Apartment",
+  studio_appartement: "Studio / apartment",
+  studio_room: "Student room",
+  commercial: "Commercial",
+  office: "Office",
   villa: "Villa",
-  land: "Grond",
+  land: "Land",
 };
 
 const KEY_PICKUP_LABELS: Record<string, string> = {
-  owner: "Bij de eigenaar",
-  tenant: "Bij de huurder",
-  office: "Op kantoor ophalen",
-  lockbox: "Sleutelkluis ter plaatse",
+  owner: "At the owner's address",
+  tenant: "At the tenant's address",
+  office: "Pick up at the office",
+  lockbox: "Lockbox on-site",
 };
 
 type TeamLike = {
@@ -116,7 +116,7 @@ function resolveClientName(team: TeamLike, a: AssignmentLike): string {
   const candidates = [
     team?.name,
     team?.legalName,
-    hasRealtorContact ? (team?.name ?? "KANTOOR") : null,
+    hasRealtorContact ? (team?.name ?? "OFFICE") : null,
     a.ownerName,
     a.tenantName,
   ];
@@ -124,7 +124,7 @@ function resolveClientName(team: TeamLike, a: AssignmentLike): string {
     const trimmed = c?.trim();
     if (trimmed) return trimmed.toUpperCase();
   }
-  return "KLANT";
+  return "CLIENT";
 }
 
 function buildDescription(a: AssignmentLike, team: TeamLike, start: Date): string {
@@ -133,61 +133,61 @@ function buildDescription(a: AssignmentLike, team: TeamLike, start: Date): strin
 
   rows.push(`<p><strong>${escape(a.reference)}</strong></p>`);
   rows.push(
-    `<p><strong>Adres:</strong> ${escape(a.address)}, ${escape(a.postal)} ${escape(a.city)}</p>`,
+    `<p><strong>Address:</strong> ${escape(a.address)}, ${escape(a.postal)} ${escape(a.city)}</p>`,
   );
-  rows.push(`<p><strong>Datum afspraak:</strong> ${escape(formatNl(start))}</p>`);
+  rows.push(`<p><strong>Appointment:</strong> ${escape(formatLocal(start))}</p>`);
 
   const propLines: string[] = [];
   if (a.propertyType) {
     propLines.push(
-      `<strong>Type woning:</strong> ${escape(labelProperty(a.propertyType))}`,
+      `<strong>Property type:</strong> ${escape(labelProperty(a.propertyType))}`,
     );
   }
-  propLines.push(`<strong>Oppervlakte:</strong> ${oppervlakteLine(a)}`);
+  propLines.push(`<strong>Area:</strong> ${areaLine(a)}`);
   if (a.keyPickup) {
-    propLines.push(`<strong>Sleutel ophalen:</strong> ${escape(labelKeyPickup(a.keyPickup))}`);
+    propLines.push(`<strong>Key pickup:</strong> ${escape(labelKeyPickup(a.keyPickup))}`);
   }
   rows.push(`<p>${propLines.join("<br />")}</p>`);
 
-  // Contact blocks — Platform order is Makelaar → Eigenaar → Huurder.
-  // The one tagged by `photographerContactPerson` gets the "(Jouw
-  // contactpersoon)" marker so the inspector knows who to call.
-  const marker = '<em style="color: #666">(Jouw contactpersoon)</em>';
+  // Contact blocks — order mirrors Platform (Realtor → Owner → Tenant).
+  // The one tagged by `photographerContactPerson` gets the "(Your contact)"
+  // marker so the inspector knows who to call.
+  const marker = '<em style="color: #666">(Your contact)</em>';
   const realtorName = team?.name ?? team?.legalName ?? null;
   if (realtorName || a.contactEmail || a.contactPhone) {
     rows.push(
-      `<p><strong>Makelaar${
+      `<p><strong>Realtor${
         a.photographerContactPerson === "realtor" ? ` ${marker}` : ""
       }:</strong><br />${contactLine(realtorName, a.contactEmail, a.contactPhone)}</p>`,
     );
   }
   if (a.ownerName || a.ownerEmail || a.ownerPhone) {
     rows.push(
-      `<p><strong>Eigenaar${
+      `<p><strong>Owner${
         a.photographerContactPerson === "owner" ? ` ${marker}` : ""
       }:</strong><br />${contactLine(a.ownerName, a.ownerEmail, a.ownerPhone)}</p>`,
     );
   }
   if (a.tenantName || a.tenantEmail || a.tenantPhone) {
     rows.push(
-      `<p><strong>Huurder${
+      `<p><strong>Tenant${
         a.photographerContactPerson === "tenant" ? ` ${marker}` : ""
       }:</strong><br />${contactLine(a.tenantName, a.tenantEmail, a.tenantPhone)}</p>`,
     );
   }
 
   if (a.notes) {
-    rows.push(`<p><strong>Opmerkingen:</strong><br />${escape(a.notes).replace(/\n/g, "<br />")}</p>`);
+    rows.push(`<p><strong>Notes:</strong><br />${escape(a.notes).replace(/\n/g, "<br />")}</p>`);
   }
 
   if (a.comments && a.comments.length) {
     const lastFew = a.comments.slice(-5);
-    rows.push("<p><strong>Laatste activiteit:</strong></p>");
+    rows.push("<p><strong>Recent activity:</strong></p>");
     rows.push("<ul>");
     for (const c of lastFew) {
       const who = c.author ? `${c.author.firstName} ${c.author.lastName}` : "—";
       rows.push(
-        `<li><strong>${escape(who)}</strong> schreef (${escape(formatNl(c.createdAt))}): ${escape(
+        `<li><strong>${escape(who)}</strong> wrote (${escape(formatLocal(c.createdAt))}): ${escape(
           c.body,
         ).replace(/\n/g, " ")}</li>`,
       );
@@ -195,7 +195,7 @@ function buildDescription(a: AssignmentLike, team: TeamLike, start: Date): strin
     rows.push("</ul>");
   }
 
-  rows.push(`<p><a href="${escapeAttr(url)}">Bekijk opdracht →</a></p>`);
+  rows.push(`<p><a href="${escapeAttr(url)}">Open assignment →</a></p>`);
 
   return rows.join("\n");
 }
@@ -208,17 +208,17 @@ function labelKeyPickup(raw: string): string {
   return KEY_PICKUP_LABELS[raw] ?? raw;
 }
 
-function oppervlakteLine(a: AssignmentLike): string {
-  // Matches Platform: "Groot pand (> 300m²)" when flagged, otherwise
-  // "Standaard (≤ 300m²) (~ XXX m²)" when we have a number.
-  if (a.isLargeProperty) return "Groot pand (&gt; 300m²)";
-  if (a.areaM2) return `Standaard (≤ 300m²) (~ ${a.areaM2} m²)`;
-  return "Standaard (≤ 300m²)";
+function areaLine(a: AssignmentLike): string {
+  // Large property flag drives the tier label; areaM2 annotates when known.
+  if (a.isLargeProperty) return "Large property (&gt; 300 m²)";
+  if (a.areaM2) return `Standard (≤ 300 m²) (~ ${a.areaM2} m²)`;
+  return "Standard (≤ 300 m²)";
 }
 
-/** dd-mm-YYYY HH:MM in Europe/Brussels. Matches Platform's format exactly. */
-function formatNl(d: Date): string {
-  const fmt = new Intl.DateTimeFormat("nl-BE", {
+/** dd-mm-YYYY HH:MM in Europe/Brussels. Locale-neutral numeric form so the
+ *  text reads the same regardless of the viewer's Google/Outlook locale. */
+function formatLocal(d: Date): string {
+  const fmt = new Intl.DateTimeFormat("en-GB", {
     timeZone: TIME_ZONE,
     day: "2-digit",
     month: "2-digit",
