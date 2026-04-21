@@ -49,6 +49,15 @@ export async function syncAssignmentToCalendars(
           },
         },
         personalCalendarEvents: { include: { calendarAccount: true } },
+        comments: {
+          orderBy: { createdAt: "asc" },
+          take: 10,
+          select: {
+            createdAt: true,
+            body: true,
+            author: { select: { firstName: true, lastName: true } },
+          },
+        },
       },
     });
     if (!assignment) return;

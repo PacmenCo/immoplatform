@@ -50,7 +50,7 @@ function msalConfig(): Configuration {
   };
 }
 
-export function getOutlookCca(): ConfidentialClientApplication {
+function getOutlookCca(): ConfidentialClientApplication {
   return new ConfidentialClientApplication(msalConfig());
 }
 
@@ -97,14 +97,35 @@ export async function redeemOutlookAuthCode(code: string): Promise<{
 
 type LiveOutlookContext = {
   accessToken: string;
-  cacheDirty: boolean;
   rehydratedCca: ConfidentialClientApplication;
   account: AccountInfo;
 };
 
+/**
+ * Serialize cache rehydrate + refresh + persist per-account so two
+ * concurrent syncs on the same CalendarAccount don't race on the blob.
+ * In-process only — acceptable because AAD's rotated refresh tokens stay
+ * valid for an overlap window, so cross-process races resolve to "last
+ * write wins" without breaking auth.
+ */
+const outlookCacheLocks = new Map<string, Promise<unknown>>();
+
 async function acquireOutlookAccessToken(
   account: CalendarAccount,
 ): Promise<LiveOutlookContext> {
+  const prior = outlookCacheLocks.get(account.id);
+  const run = (prior ?? Promise.resolve()).then(() => doAcquireOutlookToken(account));
+  outlookCacheLocks.set(account.id, run);
+  try {
+    return await run;
+  } finally {
+    if (outlookCacheLocks.get(account.id) === run) {
+      outlookCacheLocks.delete(account.id);
+    }
+  }
+}
+
+async function doAcquireOutlookToken(account: CalendarAccount): Promise<LiveOutlookContext> {
   if (account.provider !== "outlook") {
     throw new Error(`Expected provider=outlook, got ${account.provider}.`);
   }
@@ -128,16 +149,21 @@ async function acquireOutlookAccessToken(
     scopes: OUTLOOK_SCOPES.filter((s) => s !== "openid" && s !== "profile"),
   });
 
-  // Detect cache mutation by re-serializing and comparing. Cheap (~few KB).
+  // MSAL returns `null` rather than throwing when the cache has no usable
+  // refresh token — treat that as a hard auth failure, not a silent bearer
+  // of "" token that Graph would then 401 on.
+  if (!silent || !silent.accessToken) {
+    await markDisconnected(account.id);
+    throw new Error(`MSAL returned no access token for ${account.id}.`);
+  }
+
   const post = await cca.getTokenCache().serialize();
-  const cacheDirty = post !== blob;
-  if (cacheDirty) {
+  if (post !== blob) {
     await persistOutlookCache(account.id, post);
   }
 
   return {
-    accessToken: silent?.accessToken ?? "",
-    cacheDirty,
+    accessToken: silent.accessToken,
     rehydratedCca: cca,
     account: match,
   };

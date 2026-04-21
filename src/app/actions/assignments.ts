@@ -666,10 +666,26 @@ export const updateAssignment = withSession(async (
     }
   }
 
-  // Only re-sync calendars when a calendar-visible field changed. Status
-  // stays on this assignment (the `status` column isn't in `updateSchema`),
-  // so the trigger is the date move.
-  if (dateChanged) {
+  // Re-sync calendars when ANY field embedded in the event payload moved:
+  // date / address / notes / property metadata / contacts. Match
+  // `src/lib/calendar/payload.ts` — if the stored event would render with
+  // different content, we need to push the update.
+  const calendarRelevantChanged =
+    dateChanged ||
+    existing.address !== d.address ||
+    existing.city !== d.city ||
+    existing.postal !== d.postal ||
+    existing.propertyType !== (d.propertyType ?? null) ||
+    (existing.areaM2 ?? null) !== (d.areaM2 ?? null) ||
+    existing.keyPickup !== (d.keyPickup ?? null) ||
+    existing.notes !== (d.notes ?? null) ||
+    existing.ownerName !== d.ownerName ||
+    existing.ownerEmail !== (d.ownerEmail || null) ||
+    existing.ownerPhone !== (d.ownerPhone ?? null) ||
+    existing.tenantName !== (d.tenantName ?? null) ||
+    existing.tenantEmail !== (d.tenantEmail || null) ||
+    existing.tenantPhone !== (d.tenantPhone ?? null);
+  if (calendarRelevantChanged) {
     await syncAssignmentToCalendars(id, "update");
   }
 

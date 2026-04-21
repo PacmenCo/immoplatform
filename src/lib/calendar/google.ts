@@ -32,13 +32,43 @@ function toGoogleEvent(payload: EventPayload): calendar_v3.Schema$Event {
     location: payload.location,
     start: { dateTime: payload.start.toISOString(), timeZone: payload.timeZone },
     end: { dateTime: payload.end.toISOString(), timeZone: payload.timeZone },
-    // Orange — matches Platform's GoogleCalendarService::$colorId.
+    // Banana (Google's colorId 5 is banana/yellow). Matches Platform.
     colorId: "5",
     reminders: {
       useDefault: false,
       overrides: [{ method: "popup", minutes: payload.reminderMinutes }],
     },
   };
+}
+
+/**
+ * Retry once on transient 5xx / 429 after a short sleep. Google writes
+ * are cheap, and without this we silently drop events on brief Google
+ * hiccups — Platform's queued job had 3 retries; one inline retry keeps
+ * the happy-path simple and covers most transient flakes.
+ */
+async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err: unknown) {
+    if (isTransient(err)) {
+      console.warn(`[calendar] ${label} transient error — retrying once:`, err);
+      await sleep(750);
+      return fn();
+    }
+    throw err;
+  }
+}
+
+function isTransient(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { code?: unknown; status?: unknown };
+  const code = typeof e.code === "number" ? e.code : typeof e.status === "number" ? e.status : 0;
+  return code === 429 || (code >= 500 && code <= 599);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 // ─── Agency service-account client ─────────────────────────────────
@@ -71,10 +101,9 @@ function agencyClient(): { calendar: calendar_v3.Calendar; calendarId: string } 
 
 export async function createAgencyGoogleEvent(payload: EventPayload): Promise<string> {
   const { calendar, calendarId } = agencyClient();
-  const res = await calendar.events.insert({
-    calendarId,
-    requestBody: toGoogleEvent(payload),
-  });
+  const res = await withRetry("agency.insert", () =>
+    calendar.events.insert({ calendarId, requestBody: toGoogleEvent(payload) }),
+  );
   const id = res.data.id;
   if (!id) throw new Error("Google agency insert returned no event id.");
   return id;
@@ -86,16 +115,17 @@ export async function updateAgencyGoogleEvent(
 ): Promise<string> {
   const { calendar, calendarId } = agencyClient();
   try {
-    await calendar.events.patch({
-      calendarId,
-      eventId,
-      requestBody: toGoogleEvent(payload),
-    });
+    await withRetry("agency.patch", () =>
+      calendar.events.patch({
+        calendarId,
+        eventId,
+        requestBody: toGoogleEvent(payload),
+      }),
+    );
     return eventId;
   } catch (err: unknown) {
     if (isNotFound(err)) {
-      // Platform parity: fall back to insert on 404 (event was deleted by
-      // a user or vanished from the shared calendar).
+      // 404 → event deleted upstream, re-create.
       return createAgencyGoogleEvent(payload);
     }
     throw err;
@@ -105,7 +135,7 @@ export async function updateAgencyGoogleEvent(
 export async function deleteAgencyGoogleEvent(eventId: string): Promise<void> {
   const { calendar, calendarId } = agencyClient();
   try {
-    await calendar.events.delete({ calendarId, eventId });
+    await withRetry("agency.delete", () => calendar.events.delete({ calendarId, eventId }));
   } catch (err: unknown) {
     if (isNotFound(err) || isGone(err)) return;
     throw err;
@@ -175,10 +205,12 @@ export async function createPersonalGoogleEvent(
   account: CalendarAccount,
   payload: EventPayload,
 ): Promise<string> {
-  const res = await personalClient(account).events.insert({
-    calendarId: "primary",
-    requestBody: toGoogleEvent(payload),
-  });
+  const res = await withRetry("personal.insert", () =>
+    personalClient(account).events.insert({
+      calendarId: "primary",
+      requestBody: toGoogleEvent(payload),
+    }),
+  );
   const id = res.data.id;
   if (!id) throw new Error("Google personal insert returned no event id.");
   return id;
@@ -191,11 +223,13 @@ export async function updatePersonalGoogleEvent(
 ): Promise<string> {
   const calendar = personalClient(account);
   try {
-    await calendar.events.patch({
-      calendarId: "primary",
-      eventId,
-      requestBody: toGoogleEvent(payload),
-    });
+    await withRetry("personal.patch", () =>
+      calendar.events.patch({
+        calendarId: "primary",
+        eventId,
+        requestBody: toGoogleEvent(payload),
+      }),
+    );
     return eventId;
   } catch (err: unknown) {
     if (isNotFound(err)) {
@@ -210,10 +244,9 @@ export async function deletePersonalGoogleEvent(
   eventId: string,
 ): Promise<void> {
   try {
-    await personalClient(account).events.delete({
-      calendarId: "primary",
-      eventId,
-    });
+    await withRetry("personal.delete", () =>
+      personalClient(account).events.delete({ calendarId: "primary", eventId }),
+    );
   } catch (err: unknown) {
     if (isNotFound(err) || isGone(err)) return;
     throw err;

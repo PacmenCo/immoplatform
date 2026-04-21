@@ -2,12 +2,7 @@ import { redirect } from "next/navigation";
 import { google } from "googleapis";
 import { requireSession } from "@/lib/auth";
 import { isGooglePersonalConfigured } from "@/lib/calendar/config";
-import {
-  buildState,
-  redirectUriFor,
-  setStateCookie,
-  settingsRedirectFor,
-} from "@/lib/calendar/oauth";
+import { buildState, redirectUriFor, setStateCookie } from "@/lib/calendar/oauth";
 
 /**
  * Kick off the personal Google OAuth "Add to my calendar" flow.
@@ -38,10 +33,4 @@ export async function GET(): Promise<Response> {
     state,
   });
   redirect(url);
-  // Unreachable, but satisfies Route Handler return type.
-  return settingsResponse();
-}
-
-function settingsResponse(): Response {
-  return Response.redirect(settingsRedirectFor("google"), 302);
 }

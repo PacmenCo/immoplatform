@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Badge } from "@/components/ui/Badge";
 import { IconCheck } from "@/components/ui/Icons";
 import {
   addAssignmentToPersonalGoogle,
@@ -52,28 +53,30 @@ export function CalendarChips({
   return (
     <div className="flex flex-wrap items-center gap-2">
       {agencyGoogle && (
-        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-alt)] px-2.5 py-0.5 text-xs text-[var(--color-ink-soft)]">
+        <Badge size="sm">
           <IconCheck size={10} className="text-[var(--color-epc)]" />
           Agency Google
-        </span>
+        </Badge>
       )}
       {ownOutlook && (
-        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-alt)] px-2.5 py-0.5 text-xs text-[var(--color-ink-soft)]">
+        <Badge size="sm">
           <IconCheck size={10} className="text-[var(--color-epc)]" />
           Your Outlook
-        </span>
+        </Badge>
       )}
       {personalGoogleAdded && (
         <button
           type="button"
           onClick={remove}
           disabled={pending}
-          className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-alt)] px-2.5 py-0.5 text-xs text-[var(--color-ink-soft)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)] disabled:opacity-60"
           title="Remove from my Google calendar"
+          className="rounded-full disabled:opacity-60"
         >
-          <IconCheck size={10} className="text-[var(--color-epc)]" />
-          On your Google
-          <span aria-hidden className="ml-1 text-[var(--color-ink-muted)]">×</span>
+          <Badge size="sm" className="hover:[&>*]:opacity-80">
+            <IconCheck size={10} className="text-[var(--color-epc)]" />
+            On your Google
+            <span aria-hidden className="ml-0.5 text-[var(--color-ink-muted)]">×</span>
+          </Badge>
         </button>
       )}
       {!personalGoogleAdded && canAddPersonalGoogle && (
@@ -81,7 +84,7 @@ export function CalendarChips({
           type="button"
           onClick={add}
           disabled={pending}
-          className="inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--color-border-strong)] bg-[var(--color-bg)] px-2.5 py-0.5 text-xs text-[var(--color-ink-soft)] hover:border-[var(--color-brand)] hover:text-[var(--color-ink)] disabled:opacity-60"
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--color-border-strong)] bg-[var(--color-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-ink-soft)] hover:border-[var(--color-brand)] hover:text-[var(--color-ink)] disabled:opacity-60"
         >
           {pending ? "Adding…" : "+ Add to my Google"}
         </button>

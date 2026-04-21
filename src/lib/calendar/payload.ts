@@ -38,6 +38,12 @@ type AssignmentLike = {
   tenantEmail: string | null;
   tenantPhone: string | null;
   preferredDate: Date | null;
+  /** Optional — include only when caller passed comments on the input. */
+  comments?: Array<{
+    createdAt: Date;
+    body: string;
+    author: { firstName: string; lastName: string } | null;
+  }>;
 };
 
 type TeamLike = {
@@ -50,8 +56,8 @@ export type PayloadInput = {
   team: TeamLike;
 };
 
-/** For callers that want to decide whether an assignment is even syncable. */
-export function canBuildPayload(a: AssignmentLike): a is AssignmentLike & { preferredDate: Date } {
+/** Internal: decide whether the assignment carries enough info to render an event. */
+function canBuildPayload(a: AssignmentLike): a is AssignmentLike & { preferredDate: Date } {
   return a.preferredDate instanceof Date && !Number.isNaN(a.preferredDate.getTime());
 }
 
@@ -113,6 +119,23 @@ function buildDescription(a: AssignmentLike): string {
 
   if (a.notes) {
     rows.push(`<p><strong>Notes:</strong><br />${escape(a.notes).replace(/\n/g, "<br />")}</p>`);
+  }
+
+  if (a.comments && a.comments.length) {
+    const lastFew = a.comments.slice(-5);
+    rows.push("<p><strong>Recent activity:</strong></p>");
+    rows.push("<ul>");
+    for (const c of lastFew) {
+      const when = c.createdAt.toISOString().slice(0, 16).replace("T", " ");
+      const who = c.author ? `${c.author.firstName} ${c.author.lastName}` : "—";
+      rows.push(
+        `<li>${escape(when)} · <strong>${escape(who)}</strong>: ${escape(c.body).replace(
+          /\n/g,
+          " ",
+        )}</li>`,
+      );
+    }
+    rows.push("</ul>");
   }
 
   rows.push(`<p><a href="${escapeAttr(url)}">Open in Immo →</a></p>`);
