@@ -7,16 +7,18 @@ import {
   type EmailEventKey,
 } from "@/lib/email-events";
 import { role as roleOf, type Role } from "@/lib/permissions";
-
-const ROLE_LABELS: Record<Role, string> = {
-  admin: "an Admin",
-  staff: "a Staff member",
-  realtor: "a Realtor",
-  freelancer: "a Freelancer",
-};
-const roleLabel = (r: Role) => ROLE_LABELS[r];
+import { roleBadge } from "@/lib/roleColors";
 import { SettingsNav } from "../_nav";
 import { NotificationsForm, type PrefRow } from "./NotificationsForm";
+
+function articleFor(word: string): string {
+  return /^[aeiou]/i.test(word) ? "an" : "a";
+}
+
+function humanRole(r: Role): string {
+  const label = roleBadge(r).label;
+  return `${articleFor(label)} ${label}`;
+}
 
 export default async function NotificationsSettingsPage() {
   const session = await requireSession();
@@ -44,7 +46,7 @@ export default async function NotificationsSettingsPage() {
           </h2>
           <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
             Pick which assignment events send you email. Only events relevant
-            to your role as {roleLabel(myRole)} appear here.
+            to your role as {humanRole(myRole)} appear here.
           </p>
         </div>
 

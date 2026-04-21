@@ -7,6 +7,13 @@ import { audit, type SessionWithUser } from "@/lib/auth";
 import { filesUploadedEmail } from "@/lib/email";
 import { notify } from "@/lib/notify";
 import {
+  collectAgencyRecipients,
+  loadUser,
+  type Recipient,
+} from "@/lib/assignment-recipients";
+import { fullName } from "@/lib/format";
+import { assignmentUrl as assignmentUrlFor } from "@/lib/urls";
+import {
   canDeleteAssignmentFile,
   canUploadToFreelancerLane,
   canUploadToRealtorLane,
@@ -190,62 +197,32 @@ export const uploadAssignmentFiles = withSession(async (
     },
   });
   if (meta) {
-    const notifyRecipients: Array<{
-      id: string;
-      email: string;
-      emailPrefs: string | null;
-      firstName: string;
-    }> = [];
+    let recipients: Recipient[] = [];
     if (lane === "freelancer") {
-      // Agency side: creator + team owners.
-      const users = await prisma.user.findMany({
-        where: {
-          deletedAt: null,
-          OR: [
-            meta.createdById ? { id: meta.createdById } : {},
-            meta.teamId
-              ? {
-                  memberships: {
-                    some: { teamId: meta.teamId, teamRole: "owner" },
-                  },
-                }
-              : {},
-          ].filter((c) => Object.keys(c).length > 0),
-        },
-        select: { id: true, email: true, emailPrefs: true, firstName: true },
+      recipients = await collectAgencyRecipients({
+        teamId: meta.teamId,
+        createdById: meta.createdById,
+        exclude: [session.user.id],
       });
-      for (const u of users) {
-        if (u.id !== session.user.id && !notifyRecipients.some((r) => r.id === u.id)) {
-          notifyRecipients.push(u);
-        }
-      }
-    } else if (lane === "realtor" && meta.freelancerId && meta.freelancerId !== session.user.id) {
-      const f = await prisma.user.findUnique({
-        where: { id: meta.freelancerId },
-        select: { id: true, email: true, emailPrefs: true, firstName: true },
-      });
-      if (f) notifyRecipients.push(f);
+    } else if (lane === "realtor" && meta.freelancerId !== session.user.id) {
+      const f = await loadUser(meta.freelancerId);
+      if (f) recipients = [f];
     }
-    const rawBase = process.env.APP_URL;
-    if (!rawBase && process.env.NODE_ENV === "production") {
-      throw new Error(
-        "APP_URL must be set in production — email links would otherwise point at localhost.",
-      );
-    }
-    const baseUrl = (rawBase ?? "http://localhost:3000").replace(/\/$/, "");
-    const assignmentUrl = `${baseUrl}/dashboard/assignments/${meta.id}`;
-    const uploaderName = `${session.user.firstName} ${session.user.lastName}`;
+    const uploaderName = fullName(session.user);
+    const ctx = {
+      reference: meta.reference,
+      address: meta.address,
+      city: meta.city,
+      postal: meta.postal,
+      assignmentUrl: assignmentUrlFor(meta.id),
+    };
     await Promise.all(
-      notifyRecipients.map((r) =>
+      recipients.map((r) =>
         notify({
           to: r,
           event: "assignment.files_uploaded",
           ...filesUploadedEmail({
-            reference: meta.reference,
-            address: meta.address,
-            city: meta.city,
-            postal: meta.postal,
-            assignmentUrl,
+            ...ctx,
             recipientName: r.firstName,
             uploaderName,
             lane,

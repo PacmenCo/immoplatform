@@ -15,6 +15,7 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { passwordResetEmail, sendEmail } from "@/lib/email";
+import { passwordResetUrl } from "@/lib/urls";
 import type { ActionResult } from "./_types";
 
 // ─── LOGIN ─────────────────────────────────────────────────────────
@@ -114,10 +115,9 @@ export async function forgotPassword(
         expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1h
       },
     });
-    const url = `${process.env.APP_URL ?? "http://localhost:3000"}/reset-password?token=${token}`;
     const tpl = passwordResetEmail({
       name: user.firstName,
-      resetUrl: url,
+      resetUrl: passwordResetUrl(token),
     });
     await sendEmail({ to: user.email, ...tpl });
   }

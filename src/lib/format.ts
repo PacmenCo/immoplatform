@@ -14,3 +14,7 @@ export function formatBytes(bytes: number): string {
   const mb = kb / 1024;
   return `${mb.toFixed(1)} MB`;
 }
+
+export function fullName(u: { firstName: string; lastName: string }): string {
+  return `${u.firstName} ${u.lastName}`;
+}

@@ -26,8 +26,16 @@ import {
   assignmentDeliveredEmail,
   assignmentReassignedEmail,
   commentPostedEmail,
+  type AssignmentEmailCtx,
 } from "@/lib/email";
 import { notify } from "@/lib/notify";
+import {
+  collectAgencyRecipients,
+  loadUser,
+  type Recipient,
+} from "@/lib/assignment-recipients";
+import { fullName } from "@/lib/format";
+import { assignmentUrl } from "@/lib/urls";
 import { withSession, type ActionResult } from "./_types";
 
 // ─── Helpers ───────────────────────────────────────────────────────
@@ -43,33 +51,13 @@ async function nextReference(): Promise<string> {
   return `ASG-${year}-${(lastNum + 1).toString().padStart(4, "0")}`;
 }
 
-function assignmentUrl(id: string): string {
-  const raw = process.env.APP_URL;
-  if (!raw && process.env.NODE_ENV === "production") {
-    throw new Error(
-      "APP_URL must be set in production — email links would otherwise point at localhost.",
-    );
-  }
-  const base = (raw ?? "http://localhost:3000").replace(/\/$/, "");
-  return `${base}/dashboard/assignments/${id}`;
-}
-
-/** Shape notify() needs + every template's assignment context. */
-type AssignmentEmailSeed = {
-  reference: string;
-  address: string;
-  city: string;
-  postal: string;
-  assignmentUrl: string;
-};
-
-function seedFromAssignment(a: {
+function ctxFromAssignment(a: {
   id: string;
   reference: string;
   address: string;
   city: string;
   postal: string;
-}): AssignmentEmailSeed {
+}): AssignmentEmailCtx {
   return {
     reference: a.reference,
     address: a.address,
@@ -77,68 +65,6 @@ function seedFromAssignment(a: {
     postal: a.postal,
     assignmentUrl: assignmentUrl(a.id),
   };
-}
-
-function fullName(u: { firstName: string; lastName: string }): string {
-  return `${u.firstName} ${u.lastName}`;
-}
-
-type Recipient = {
-  id: string;
-  email: string;
-  emailPrefs: string | null;
-  firstName: string;
-  lastName: string;
-};
-
-/**
- * Collect the "agency side" humans who should be pinged about an assignment:
- * the creator + all team owners. Deduplicated, excluding IDs in `exclude`
- * (typically the actor so they don't email themselves).
- */
-async function collectAgencyRecipients(opts: {
-  teamId: string | null;
-  createdById: string | null;
-  exclude: string[];
-}): Promise<Recipient[]> {
-  const excludeSet = new Set(opts.exclude);
-  const users = await prisma.user.findMany({
-    where: {
-      deletedAt: null,
-      OR: [
-        opts.createdById ? { id: opts.createdById } : {},
-        opts.teamId
-          ? {
-              memberships: {
-                some: { teamId: opts.teamId, teamRole: "owner" },
-              },
-            }
-          : {},
-      ].filter((c) => Object.keys(c).length > 0),
-    },
-    select: {
-      id: true,
-      email: true,
-      emailPrefs: true,
-      firstName: true,
-      lastName: true,
-    },
-  });
-  return users.filter((u) => !excludeSet.has(u.id));
-}
-
-async function loadUser(id: string | null): Promise<Recipient | null> {
-  if (!id) return null;
-  return prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      email: true,
-      emailPrefs: true,
-      firstName: true,
-      lastName: true,
-    },
-  });
 }
 
 function isUniqueReferenceConflict(err: unknown): boolean {
@@ -351,15 +277,25 @@ export const markAssignmentDelivered = withSession(async (
     metadata: { fromStatus: a.status },
   });
 
-  // Notify the agency side — creator + team owners (dedup + exclude the actor).
-  const deliveredRecipients = await collectAgencyRecipients({
-    teamId: a.teamId,
-    createdById: a.createdById,
-    exclude: [session.user.id],
-  });
-  // Pull the freelancer's name separately from the actor's — when an admin
-  // flips delivered on behalf, recipients should still see whose work it is.
-  const assignedFreelancer = await loadUser(a.freelancerId);
+  // Notify everyone on the row who didn't flip the switch: creator + team
+  // owners (agency side) AND the assigned freelancer. When an admin or realtor
+  // marks delivered on behalf, the freelancer should still learn that their
+  // work just moved into the agency's review queue.
+  const [agency, assignedFreelancer] = await Promise.all([
+    collectAgencyRecipients({
+      teamId: a.teamId,
+      createdById: a.createdById,
+      exclude: [session.user.id],
+    }),
+    loadUser(a.freelancerId),
+  ]);
+  const deliveredRecipients: Recipient[] = [...agency];
+  if (assignedFreelancer && assignedFreelancer.id !== session.user.id) {
+    // Avoid double-notifying if the freelancer is also the creator.
+    if (!deliveredRecipients.some((r) => r.id === assignedFreelancer.id)) {
+      deliveredRecipients.push(assignedFreelancer);
+    }
+  }
   const actorName = fullName(session.user);
   const freelancerName = assignedFreelancer ? fullName(assignedFreelancer) : null;
   await Promise.all(
@@ -368,7 +304,7 @@ export const markAssignmentDelivered = withSession(async (
         to: r,
         event: "assignment.delivered",
         ...assignmentDeliveredEmail({
-          ...seedFromAssignment(a),
+          ...ctxFromAssignment(a),
           recipientName: r.firstName,
           actorName,
           freelancerName,
@@ -551,7 +487,7 @@ export const updateAssignment = withSession(async (
           to: r,
           event: "assignment.date_updated",
           ...assignmentDateUpdatedEmail({
-            ...seedFromAssignment(existing),
+            ...ctxFromAssignment(existing),
             recipientName: r.firstName,
             previousDate,
             newDate,
@@ -634,7 +570,7 @@ export const reassignFreelancer = withSession(async (
         to: newFreelancer,
         event: "assignment.freelancer_assigned",
         ...assignmentReassignedEmail({
-          ...seedFromAssignment(a),
+          ...ctxFromAssignment(a),
           freelancerName: newFreelancer.firstName,
           preferredDate: a.preferredDate,
         }),
@@ -773,7 +709,7 @@ export const markAssignmentCompleted = withSession(async (
       to: freelancer,
       event: "assignment.completed",
       ...assignmentCompletedEmail({
-        ...seedFromAssignment(a),
+        ...ctxFromAssignment(a),
         recipientName: freelancer.firstName,
         completedByName: fullName(session.user),
       }),
@@ -868,7 +804,7 @@ export const cancelAssignment = withSession(async (
         to: r,
         event: "assignment.cancelled",
         ...assignmentCancelledEmail({
-          ...seedFromAssignment(a),
+          ...ctxFromAssignment(a),
           recipientName: r.firstName,
           cancelledByName: fullName(session.user),
           reason: trimmedReason,
@@ -945,7 +881,7 @@ export const postComment = withSession(async (
         to: r,
         event: "assignment.comment_posted",
         ...commentPostedEmail({
-          ...seedFromAssignment(a),
+          ...ctxFromAssignment(a),
           recipientName: r.firstName,
           authorName: fullName(session.user),
           body: parsed.data.body,

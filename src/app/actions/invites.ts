@@ -15,6 +15,7 @@ import {
 } from "@/lib/auth";
 import { canActOnInvite } from "@/lib/permissions";
 import { addedToTeamEmail, inviteEmail, sendEmail } from "@/lib/email";
+import { inviteAcceptUrl, loginUrl } from "@/lib/urls";
 import { withSession, type ActionResult } from "./_types";
 
 const createInviteSchema = z.object({
@@ -117,7 +118,7 @@ export async function createInvite(
       inviterName: `${session.user.firstName} ${session.user.lastName}`,
       teamName: team!.name,
       teamRole,
-      loginUrl: `${process.env.APP_URL ?? "http://localhost:3000"}/login`,
+      loginUrl: loginUrl(),
     });
     await sendEmail({ to: email, ...tpl });
     await audit({
@@ -158,7 +159,7 @@ export async function createInvite(
     include: { team: true },
   });
 
-  const acceptUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/invites/${token}`;
+  const acceptUrl = inviteAcceptUrl(token);
   const tpl = inviteEmail({
     inviterName: `${session.user.firstName} ${session.user.lastName}`,
     acceptUrl,
@@ -378,7 +379,7 @@ export const resendInvite = withSession(async (
     },
   });
 
-  const acceptUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/invites/${token}`;
+  const acceptUrl = inviteAcceptUrl(token);
   const tpl = inviteEmail({
     inviterName: `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`,
     acceptUrl,

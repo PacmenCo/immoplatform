@@ -147,13 +147,18 @@ ${opts.loginUrl}`,
 
 // ─── Assignment lifecycle templates ────────────────────────────────
 
-type AssignmentCtx = {
+/** Shared context every assignment email template needs. Exported so action
+ *  code can build it once and spread it into each template. */
+export type AssignmentEmailCtx = {
   reference: string;
   address: string;
   city: string;
   postal: string;
   assignmentUrl: string;
 };
+
+// Kept local alias for readability of the per-template intersection types.
+type AssignmentCtx = AssignmentEmailCtx;
 
 function addressLine(a: AssignmentCtx): string {
   return `${a.address}, ${a.postal} ${a.city}`;
