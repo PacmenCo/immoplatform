@@ -25,9 +25,12 @@ import {
   canReassignFreelancer,
   canUpdateAssignmentFields,
   canViewAssignment,
+  canViewAssignmentPricing,
   eligibleFreelancerWhere,
 } from "@/lib/permissions";
 import { initials } from "@/lib/format";
+import { loadAssignmentPricing } from "@/lib/pricing";
+import { PricingCard } from "@/components/dashboard/PricingCard";
 import { CommentForm } from "./CommentForm";
 import { AssignmentActions } from "./AssignmentActions";
 import { ReassignFreelancerButton } from "./ReassignFreelancerButton";
@@ -71,14 +74,17 @@ export default async function AssignmentDetail({
   if (!assignment) notFound();
   if (!(await canViewAssignment(session, assignment))) notFound();
 
-  const [canTransition, canUpdateFields, canComplete, canCancel, canReassign] =
+  const [canTransition, canUpdateFields, canComplete, canCancel, canReassign, canPricing] =
     await Promise.all([
       canEditAssignment(session, assignment),
       canUpdateAssignmentFields(session, assignment),
       canCompleteAssignment(session, assignment),
       canCancelAssignment(session, assignment),
       canReassignFreelancer(session, assignment),
+      canViewAssignmentPricing(session, assignment),
     ]);
+
+  const pricing = canPricing ? await loadAssignmentPricing(id) : null;
 
   // Only fetch when the user can reassign, AND scope to freelancers already in
   // the caller's orbit (team members, or previously assigned to their work).
@@ -335,6 +341,19 @@ export default async function AssignmentDetail({
                 </div>
               </CardBody>
             </Card>
+
+            {pricing && (
+              <PricingCard
+                breakdown={pricing}
+                servicesByKey={servicesByKey}
+                discountMeta={{
+                  type: assignment.discountType as "percentage" | "fixed" | null,
+                  value: assignment.discountValue,
+                  reason: assignment.discountReason,
+                }}
+                areaM2={assignment.areaM2}
+              />
+            )}
 
             <Card>
               <CardHeader>

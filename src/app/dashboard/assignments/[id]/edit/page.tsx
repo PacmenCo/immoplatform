@@ -5,7 +5,7 @@ import { AssignmentForm } from "@/components/dashboard/AssignmentForm";
 import type { AssignmentFormInitial } from "@/components/dashboard/AssignmentForm";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { canUpdateAssignmentFields } from "@/lib/permissions";
+import { canSetDiscount, canUpdateAssignmentFields } from "@/lib/permissions";
 import { updateAssignment } from "@/app/actions/assignments";
 
 export default async function EditAssignment({
@@ -53,9 +53,15 @@ export default async function EditAssignment({
       : null,
     keyPickup: assignment.keyPickup,
     notes: assignment.notes,
+    discount: {
+      type: assignment.discountType as "percentage" | "fixed" | null,
+      value: assignment.discountValue,
+      reason: assignment.discountReason,
+    },
   };
 
   const boundUpdate = updateAssignment.bind(null, id);
+  const discountEditor = canSetDiscount(session);
 
   return (
     <>
@@ -80,6 +86,7 @@ export default async function EditAssignment({
         action={boundUpdate}
         initial={initial}
         cancelHref={`/dashboard/assignments/${id}`}
+        canSetDiscount={discountEditor}
       />
     </>
   );

@@ -224,6 +224,69 @@ export const updateTeam = withSession(async (
 
 // ─── Transfer ownership ────────────────────────────────────────────
 
+// ─── Team price list overrides ─────────────────────────────────────
+
+/**
+ * Set or replace the per-team override for one service. A zero or
+ * undefined `priceCents` clears the override (falls back to Service.unitPrice
+ * for future assignments). Only team owners / admins.
+ *
+ * Existing assignments retain their snapshotted unitPriceCents — this only
+ * affects freshly-created assignments from here on.
+ */
+export const setTeamServiceOverride = withSession(async (
+  session,
+  teamId: string,
+  serviceKey: string,
+  priceCents: number | null,
+): Promise<ActionResult> => {
+  if (!(await canEditTeam(session, teamId))) {
+    return { ok: false, error: "You don't have permission to edit this team's prices." };
+  }
+
+  // Guard the service key + price value at the edge.
+  const service = await prisma.service.findUnique({
+    where: { key: serviceKey },
+    select: { key: true },
+  });
+  if (!service) return { ok: false, error: "Unknown service." };
+
+  if (priceCents === null || priceCents <= 0) {
+    await prisma.teamServiceOverride
+      .delete({ where: { teamId_serviceKey: { teamId, serviceKey } } })
+      .catch(() => {}); // no-op if the override never existed
+    await audit({
+      actorId: session.user.id,
+      verb: "team.service_override_removed",
+      objectType: "team",
+      objectId: teamId,
+      metadata: { serviceKey },
+    });
+  } else {
+    if (!Number.isFinite(priceCents) || priceCents > 1_000_000_00) {
+      return { ok: false, error: "Price looks off — use cents (e.g. 14500 for €145)." };
+    }
+    await prisma.teamServiceOverride.upsert({
+      where: { teamId_serviceKey: { teamId, serviceKey } },
+      create: { teamId, serviceKey, priceCents },
+      update: { priceCents },
+    });
+    await audit({
+      actorId: session.user.id,
+      verb: "team.service_override_set",
+      objectType: "team",
+      objectId: teamId,
+      metadata: { serviceKey, priceCents },
+    });
+  }
+
+  revalidatePath(`/dashboard/teams/${teamId}`);
+  revalidatePath(`/dashboard/teams/${teamId}/edit`);
+  return { ok: true };
+});
+
+// ─── Ownership transfer ────────────────────────────────────────────
+
 export const transferTeamOwnership = withSession(async (
   session,
   teamId: string,

@@ -259,6 +259,12 @@ model Assignment {
   freelancerId     String?
   createdById      String?
 
+  // Discount — admin/staff only. Percentage stored as basis points
+  // (1500 = 15%); fixed stored as cents.
+  discountType        String?   // 'percentage' | 'fixed' | null
+  discountValue       Int?
+  discountReason      String?
+
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   deliveredAt         DateTime?
@@ -282,8 +288,13 @@ model Assignment {
 }
 
 model AssignmentService {
-  assignmentId String
-  serviceKey   String
+  assignmentId    String
+  serviceKey      String
+  // Price snapshot taken at the moment the assignment was created so
+  // retroactive price list changes don't alter in-flight invoices.
+  // Backfill migration seeds existing rows from TeamServiceOverride
+  // falling back to Service.unitPrice.
+  unitPriceCents  Int      @default(0)
 
   assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   service    Service    @relation(fields: [serviceKey], references: [key])

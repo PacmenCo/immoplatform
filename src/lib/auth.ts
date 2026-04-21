@@ -139,6 +139,8 @@ export type AuditVerb =
   | "invite.accepted"
   | "team.created"
   | "team.updated"
+  | "team.service_override_set"
+  | "team.service_override_removed"
   | "team.member_added"
   | "team.ownership_transferred"
   | "assignment.created"

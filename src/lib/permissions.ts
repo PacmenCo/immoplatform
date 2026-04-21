@@ -212,6 +212,30 @@ export function canCreateTeam(s: SessionWithUser): boolean {
   return hasRole(s, "admin", "staff", "realtor");
 }
 
+/**
+ * Set or clear the discount on an assignment. Admin/staff only — matches
+ * Platform, where discounts are administratively applied and not a realtor
+ * self-serve feature.
+ */
+export function canSetDiscount(s: SessionWithUser): boolean {
+  return hasRole(s, "admin", "staff");
+}
+
+/**
+ * See the pricing breakdown on an assignment (amounts, discount, surcharge).
+ * Agency side only — freelancers never see prices since they're compensated
+ * via commission / payout, not the invoice amount.
+ */
+export async function canViewAssignmentPricing(
+  s: SessionWithUser,
+  a: AssignmentPolicyInput,
+): Promise<boolean> {
+  if (hasRole(s, "admin", "staff")) return true;
+  if (!hasRole(s, "realtor")) return false;
+  const { all } = await getUserTeamIds(s.user.id);
+  return a.createdById === s.user.id || (!!a.teamId && all.includes(a.teamId));
+}
+
 // ─── File policies ─────────────────────────────────────────────────
 
 /**

@@ -13,12 +13,14 @@ import {
   canCompleteAssignment,
   canEditAssignment,
   canReassignFreelancer,
+  canSetDiscount,
   canUpdateAssignmentFields,
   canViewAssignment,
   eligibleFreelancerWhere,
   getUserTeamIds,
   hasRole,
 } from "@/lib/permissions";
+import { effectiveUnitPriceCents } from "@/lib/pricing";
 import {
   assignmentCancelledEmail,
   assignmentCompletedEmail,
@@ -64,6 +66,33 @@ function ctxFromAssignment(a: {
     city: a.city,
     postal: a.postal,
     assignmentUrl: assignmentUrl(a.id),
+  };
+}
+
+/**
+ * Pull discount fields from a FormData. Returns null when the form did not
+ * include discount inputs at all (so the caller leaves the DB unchanged).
+ * Returns a patch with `null`s when the discount was explicitly cleared.
+ * Values are integer — percentage basis points (1500 = 15 %) or cents.
+ */
+function parseDiscountFromForm(
+  formData: FormData,
+): { discountType: string | null; discountValue: number | null; discountReason: string | null } | null {
+  if (!formData.has("discountType")) return null;
+  const rawType = (formData.get("discountType") as string) || "";
+  if (rawType !== "percentage" && rawType !== "fixed") {
+    return { discountType: null, discountValue: null, discountReason: null };
+  }
+  const rawValue = (formData.get("discountValue") as string) || "";
+  const parsedValue = Number.parseInt(rawValue, 10);
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return { discountType: null, discountValue: null, discountReason: null };
+  }
+  const reason = ((formData.get("discountReason") as string) || "").trim();
+  return {
+    discountType: rawType,
+    discountValue: parsedValue,
+    discountReason: reason || null,
   };
 }
 
@@ -179,6 +208,16 @@ export const createAssignment = withSession(async (
     }
   }
 
+  // Snapshot the per-service unit price at creation time so retroactive
+  // price-list changes don't alter in-flight invoices. Resolves per-team
+  // override → service base price.
+  const serviceLines = await Promise.all(
+    d.services.map(async (k) => ({
+      serviceKey: k,
+      unitPriceCents: await effectiveUnitPriceCents(teamId, k),
+    })),
+  );
+
   // Retry on reference-collision — nextReference reads max+1 non-atomically,
   // so two concurrent creates can compute the same value. The unique index
   // on Assignment.reference catches it; we just try a fresh number.
@@ -208,9 +247,7 @@ export const createAssignment = withSession(async (
           tenantPhone: d.tenantPhone || null,
           teamId,
           createdById: session.user.id,
-          services: {
-            create: d.services.map((k) => ({ serviceKey: k })),
-          },
+          services: { create: serviceLines },
         },
       });
       break;
@@ -415,6 +452,30 @@ export const updateAssignment = withSession(async (
   }
   const d = parsed.data;
 
+  // Discount fields are admin/staff-only — silently ignore from others.
+  const discountPatch = canSetDiscount(session)
+    ? parseDiscountFromForm(formData)
+    : null;
+
+  // Resolve the final service lines, preserving existing snapshots where
+  // possible so a mid-assignment edit doesn't silently re-price an
+  // already-in-flight job.
+  const existingSvc = await prisma.assignmentService.findMany({
+    where: { assignmentId: id },
+    select: { serviceKey: true, unitPriceCents: true },
+  });
+  const existingByKey = new Map(existingSvc.map((s) => [s.serviceKey, s]));
+  const nextLines = await Promise.all(
+    d.services.map(async (k) => {
+      const prior = existingByKey.get(k);
+      if (prior) return { serviceKey: k, unitPriceCents: prior.unitPriceCents };
+      return {
+        serviceKey: k,
+        unitPriceCents: await effectiveUnitPriceCents(existing.teamId, k),
+      };
+    }),
+  );
+
   const claimed = await prisma.$transaction(async (tx) => {
     // Optimistic guard: refuse to update if status went terminal in the meantime.
     const claim = await tx.assignment.updateMany({
@@ -435,13 +496,18 @@ export const updateAssignment = withSession(async (
         tenantName: d.tenantName || null,
         tenantEmail: d.tenantEmail || null,
         tenantPhone: d.tenantPhone || null,
+        ...(discountPatch ?? {}),
       },
     });
     if (claim.count === 0) return false;
-    // Wipe + re-create is simpler than diffing on 4 service rows.
+    // Wipe + re-create (carries the resolved price snapshot forward).
     await tx.assignmentService.deleteMany({ where: { assignmentId: id } });
     await tx.assignmentService.createMany({
-      data: d.services.map((k) => ({ assignmentId: id, serviceKey: k })),
+      data: nextLines.map((l) => ({
+        assignmentId: id,
+        serviceKey: l.serviceKey,
+        unitPriceCents: l.unitPriceCents,
+      })),
     });
     return true;
   });

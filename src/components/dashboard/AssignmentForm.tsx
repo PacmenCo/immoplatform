@@ -35,6 +35,11 @@ export type AssignmentFormInitial = {
   preferredDate: string | null;
   keyPickup: string | null;
   notes: string | null;
+  discount?: {
+    type: "percentage" | "fixed" | null;
+    value: number | null;
+    reason: string | null;
+  };
 };
 
 type Props = {
@@ -46,6 +51,8 @@ type Props = {
   initial?: AssignmentFormInitial;
   submitLabel?: string;
   cancelHref: string;
+  /** Render admin/staff-only fields (discount editor). */
+  canSetDiscount?: boolean;
 };
 
 export function AssignmentForm({
@@ -54,6 +61,7 @@ export function AssignmentForm({
   initial,
   submitLabel,
   cancelHref,
+  canSetDiscount,
 }: Props) {
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
@@ -337,6 +345,61 @@ export function AssignmentForm({
           </div>
         </CardBody>
       </Card>
+
+      {canSetDiscount && (
+        <details
+          className="group rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]"
+          open={!!initial?.discount?.type}
+        >
+          <summary className="flex cursor-pointer items-center justify-between p-6 [&::-webkit-details-marker]:hidden">
+            <div>
+              <h3 className="text-base font-semibold text-[var(--color-ink)]">
+                Discount (admin)
+              </h3>
+              <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                Applied to the post-surcharge total. Percentage is in basis points
+                (1500 = 15%); fixed is in cents (2500 = €25.00).
+              </p>
+            </div>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--color-border)] text-[var(--color-ink-muted)] transition-transform group-open:rotate-45">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </span>
+          </summary>
+          <div className="grid gap-5 border-t border-[var(--color-border)] p-6 sm:grid-cols-3">
+            <Field label="Type" id="discountType">
+              <Select
+                id="discountType"
+                name="discountType"
+                defaultValue={initial?.discount?.type ?? "none"}
+              >
+                <option value="none">No discount</option>
+                <option value="percentage">Percentage</option>
+                <option value="fixed">Fixed amount</option>
+              </Select>
+            </Field>
+            <Field label="Value" id="discountValue">
+              <Input
+                id="discountValue"
+                name="discountValue"
+                type="number"
+                min={0}
+                placeholder="1500"
+                defaultValue={initial?.discount?.value ?? ""}
+              />
+            </Field>
+            <Field label="Reason" id="discountReason">
+              <Input
+                id="discountReason"
+                name="discountReason"
+                placeholder="Volume deal"
+                defaultValue={initial?.discount?.reason ?? ""}
+              />
+            </Field>
+          </div>
+        </details>
+      )}
 
       <div className="sticky bottom-0 z-30 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
         <div className="flex items-center justify-between gap-3 px-8 py-4">
