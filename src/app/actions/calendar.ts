@@ -57,7 +57,7 @@ export const addAssignmentToPersonalGoogle = withSession(async (
 
   let providerEventId: string;
   try {
-    providerEventId = await createPersonalGoogleEvent(account, payload);
+    providerEventId = await createPersonalGoogleEvent(account, payload, assignmentId);
   } catch (err) {
     console.error("[calendar] addAssignmentToPersonalGoogle failed:", err);
     return { ok: false, error: "Couldn't add the event to your calendar. Try reconnecting." };

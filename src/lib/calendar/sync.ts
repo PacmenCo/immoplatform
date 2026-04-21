@@ -66,7 +66,11 @@ export async function syncAssignmentToCalendars(
       action === "cancel"
         ? null
         : buildEventPayload({
-            assignment,
+            assignment: {
+              ...assignment,
+              // Prisma type exposes it already; explicit for clarity.
+              calendarDate: assignment.calendarDate,
+            },
             team: assignment.team,
           });
 
@@ -103,8 +107,8 @@ async function syncAgency(
     }
     if (!payload) return;
     const id = a.googleCalendarEventId
-      ? await updateAgencyGoogleEvent(a.googleCalendarEventId, payload)
-      : await createAgencyGoogleEvent(payload);
+      ? await updateAgencyGoogleEvent(a.googleCalendarEventId, payload, a.id)
+      : await createAgencyGoogleEvent(payload, a.id);
     if (id !== a.googleCalendarEventId) {
       await prisma.assignment.update({
         where: { id: a.id },
@@ -210,6 +214,7 @@ async function syncPersonalGoogle(
           row.calendarAccount,
           row.providerEventId,
           payload,
+          a.id,
         );
         if (id !== row.providerEventId) {
           await prisma.assignmentCalendarEvent.update({

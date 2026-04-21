@@ -42,6 +42,26 @@ function toGoogleEvent(payload: EventPayload): calendar_v3.Schema$Event {
 }
 
 /**
+ * Deterministic client-supplied event id. Google accepts caller-set ids
+ * on `events.insert` and returns 409 if one already exists — which makes
+ * the insert idempotent across retries. The id must be base32hex (lowercase
+ * a-v, 0-9) and 5–1024 chars. We use sha1 over a stable key so a retry
+ * after a 5xx never duplicates the event.
+ */
+async function deterministicGoogleEventId(stableKey: string): Promise<string> {
+  const { createHash } = await import("node:crypto");
+  // sha1 hex is base16; map hex to base32hex (0-9 a-v) by a simple pass.
+  const hex = createHash("sha1").update(stableKey).digest("hex");
+  return hex
+    .split("")
+    .map((c) => {
+      const n = parseInt(c, 16);
+      return n < 10 ? String(n) : String.fromCharCode("a".charCodeAt(0) + (n - 10));
+    })
+    .join("");
+}
+
+/**
  * Retry once on transient 5xx / 429 after a short sleep. Google writes
  * are cheap, and without this we silently drop events on brief Google
  * hiccups — Platform's queued job had 3 retries; one inline retry keeps
@@ -63,8 +83,21 @@ async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
 function isTransient(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const e = err as { code?: unknown; status?: unknown };
-  const code = typeof e.code === "number" ? e.code : typeof e.status === "number" ? e.status : 0;
-  return code === 429 || (code >= 500 && code <= 599);
+  // HTTP status (GaxiosError puts it on `.status`, occasionally on `.code`).
+  const httpCode =
+    typeof e.status === "number" ? e.status : typeof e.code === "number" ? e.code : 0;
+  if (httpCode === 429 || (httpCode >= 500 && httpCode <= 599)) return true;
+  // Node system errors surface as string codes on .code.
+  if (typeof e.code === "string") {
+    return (
+      e.code === "ECONNRESET" ||
+      e.code === "ETIMEDOUT" ||
+      e.code === "ECONNREFUSED" ||
+      e.code === "EAI_AGAIN" ||
+      e.code === "ENOTFOUND"
+    );
+  }
+  return false;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -99,19 +132,35 @@ function agencyClient(): { calendar: calendar_v3.Calendar; calendarId: string } 
   return { calendar: cachedAgency, calendarId: cachedAgencyCalendarId };
 }
 
-export async function createAgencyGoogleEvent(payload: EventPayload): Promise<string> {
+export async function createAgencyGoogleEvent(
+  payload: EventPayload,
+  stableKey: string,
+): Promise<string> {
   const { calendar, calendarId } = agencyClient();
-  const res = await withRetry("agency.insert", () =>
-    calendar.events.insert({ calendarId, requestBody: toGoogleEvent(payload) }),
-  );
-  const id = res.data.id;
-  if (!id) throw new Error("Google agency insert returned no event id.");
-  return id;
+  // Deterministic id makes the insert idempotent — a 5xx retry that actually
+  // landed upstream surfaces as a 409 we swallow with a GET, instead of
+  // creating a duplicate event.
+  const requestId = await deterministicGoogleEventId(`agency:${stableKey}`);
+  try {
+    const res = await withRetry("agency.insert", () =>
+      calendar.events.insert({
+        calendarId,
+        requestBody: { ...toGoogleEvent(payload), id: requestId },
+      }),
+    );
+    return res.data.id ?? requestId;
+  } catch (err: unknown) {
+    if (isConflict(err)) {
+      return requestId; // already exists — retry landed twice, return same id
+    }
+    throw err;
+  }
 }
 
 export async function updateAgencyGoogleEvent(
   eventId: string,
   payload: EventPayload,
+  stableKey: string,
 ): Promise<string> {
   const { calendar, calendarId } = agencyClient();
   try {
@@ -126,7 +175,7 @@ export async function updateAgencyGoogleEvent(
   } catch (err: unknown) {
     if (isNotFound(err)) {
       // 404 → event deleted upstream, re-create.
-      return createAgencyGoogleEvent(payload);
+      return createAgencyGoogleEvent(payload, stableKey);
     }
     throw err;
   }
@@ -204,22 +253,28 @@ function personalClient(account: CalendarAccount): calendar_v3.Calendar {
 export async function createPersonalGoogleEvent(
   account: CalendarAccount,
   payload: EventPayload,
+  stableKey: string,
 ): Promise<string> {
-  const res = await withRetry("personal.insert", () =>
-    personalClient(account).events.insert({
-      calendarId: "primary",
-      requestBody: toGoogleEvent(payload),
-    }),
-  );
-  const id = res.data.id;
-  if (!id) throw new Error("Google personal insert returned no event id.");
-  return id;
+  const requestId = await deterministicGoogleEventId(`personal:${account.id}:${stableKey}`);
+  try {
+    const res = await withRetry("personal.insert", () =>
+      personalClient(account).events.insert({
+        calendarId: "primary",
+        requestBody: { ...toGoogleEvent(payload), id: requestId },
+      }),
+    );
+    return res.data.id ?? requestId;
+  } catch (err: unknown) {
+    if (isConflict(err)) return requestId;
+    throw err;
+  }
 }
 
 export async function updatePersonalGoogleEvent(
   account: CalendarAccount,
   eventId: string,
   payload: EventPayload,
+  stableKey: string,
 ): Promise<string> {
   const calendar = personalClient(account);
   try {
@@ -233,7 +288,7 @@ export async function updatePersonalGoogleEvent(
     return eventId;
   } catch (err: unknown) {
     if (isNotFound(err)) {
-      return createPersonalGoogleEvent(account, payload);
+      return createPersonalGoogleEvent(account, payload, stableKey);
     }
     throw err;
   }
@@ -272,6 +327,9 @@ function isNotFound(err: unknown): boolean {
 }
 function isGone(err: unknown): boolean {
   return hasCode(err, 410);
+}
+function isConflict(err: unknown): boolean {
+  return hasCode(err, 409);
 }
 function hasCode(err: unknown, code: number): boolean {
   if (!err || typeof err !== "object") return false;

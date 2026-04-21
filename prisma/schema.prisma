@@ -342,9 +342,16 @@ model Assignment {
   //                             (written via service account).
   //   outlookCalendarEventId — event on the creator's personal Outlook,
   //                             written via per-user OAuth.
+  //   calendarDate           — internal appointment override. Falls back to
+  //                             preferredDate for sync. Customer-visible
+  //                             preferredDate stays untouched.
+  //   calendarAccountEmail   — which staff's personal Google account the
+  //                             "Add to my calendar" email link targets.
   googleCalendarEventId    String?
   outlookCalendarEventId   String?
   outlookCalendarAccountId String?
+  calendarDate             DateTime?
+  calendarAccountEmail     String?
 
   team             Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
   freelancer       User?                @relation("AssignedFreelancer", fields: [freelancerId], references: [id], onDelete: SetNull)

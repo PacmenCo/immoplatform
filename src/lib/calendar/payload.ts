@@ -38,12 +38,33 @@ type AssignmentLike = {
   tenantEmail: string | null;
   tenantPhone: string | null;
   preferredDate: Date | null;
+  /** Internal calendar override — falls back to preferredDate. Matches
+   *  Platform's `calendar_date ?: actual_date` ladder. */
+  calendarDate?: Date | null;
   /** Optional — include only when caller passed comments on the input. */
   comments?: Array<{
     createdAt: Date;
     body: string;
     author: { firstName: string; lastName: string } | null;
   }>;
+};
+
+const PROPERTY_TYPE_LABELS: Record<string, string> = {
+  house: "Woning",
+  apartment: "Appartement",
+  studio_appartement: "Studio / appartement",
+  studio_room: "Studentenkamer",
+  commercial: "Handelspand",
+  office: "Kantoor",
+  villa: "Villa",
+  land: "Grond",
+};
+
+const KEY_PICKUP_LABELS: Record<string, string> = {
+  owner: "Bij de eigenaar",
+  tenant: "Bij de huurder",
+  office: "Op kantoor ophalen",
+  lockbox: "Sleutelkluis ter plaatse",
 };
 
 type TeamLike = {
@@ -56,22 +77,21 @@ export type PayloadInput = {
   team: TeamLike;
 };
 
-/** Internal: decide whether the assignment carries enough info to render an event. */
-function canBuildPayload(a: AssignmentLike): a is AssignmentLike & { preferredDate: Date } {
-  return a.preferredDate instanceof Date && !Number.isNaN(a.preferredDate.getTime());
-}
 
 export function buildEventPayload(input: PayloadInput): EventPayload | null {
   const { assignment, team } = input;
-  if (!canBuildPayload(assignment)) return null;
+  // Platform-parity date ladder: calendarDate overrides preferredDate so
+  // staff can set an internal appointment time without mutating the
+  // customer-visible requested date.
+  const start = assignment.calendarDate ?? assignment.preferredDate;
+  if (!start || Number.isNaN(start.getTime())) return null;
 
-  const start = assignment.preferredDate;
   const end = new Date(start.getTime() + DEFAULT_DURATION_MIN * 60_000);
 
   const clientName = resolveClientName(team, assignment);
   const title = `${clientName} - ${assignment.address}, ${assignment.city}`;
   const location = `${assignment.address}, ${assignment.postal} ${assignment.city}`;
-  const descriptionHtml = buildDescription(assignment);
+  const descriptionHtml = buildDescription(assignment, start);
 
   return {
     title,
@@ -85,62 +105,93 @@ export function buildEventPayload(input: PayloadInput): EventPayload | null {
 }
 
 function resolveClientName(team: TeamLike, a: AssignmentLike): string {
-  const candidates = [
-    team?.name,
-    team?.legalName,
-    a.ownerName,
-    a.tenantName,
-  ];
+  // Platform's chain (simplified to the fields we model today):
+  // team.name → team.legalName → owner → tenant → "KLANT".
+  const candidates = [team?.name, team?.legalName, a.ownerName, a.tenantName];
   for (const c of candidates) {
     const trimmed = c?.trim();
     if (trimmed) return trimmed.toUpperCase();
   }
-  return "CLIENT";
+  return "KLANT";
 }
 
-function buildDescription(a: AssignmentLike): string {
+function buildDescription(a: AssignmentLike, start: Date): string {
   const url = `${requireAppUrl()}/dashboard/assignments/${a.id}`;
   const rows: string[] = [];
 
   rows.push(`<p><strong>${escape(a.reference)}</strong></p>`);
+  rows.push(
+    `<p><strong>Adres:</strong> ${escape(a.address)}, ${escape(a.postal)} ${escape(a.city)}</p>`,
+  );
+  rows.push(`<p><strong>Datum afspraak:</strong> ${escape(formatNl(start))}</p>`);
 
-  const lines: string[] = [];
-  if (a.propertyType) lines.push(`<strong>Type:</strong> ${escape(a.propertyType)}`);
-  if (a.areaM2) lines.push(`<strong>Area:</strong> ${a.areaM2} m²`);
-  if (a.keyPickup) lines.push(`<strong>Key pickup:</strong> ${escape(a.keyPickup)}`);
-  if (lines.length) rows.push(`<p>${lines.join("<br />")}</p>`);
+  const propLines: string[] = [];
+  if (a.propertyType) {
+    propLines.push(
+      `<strong>Type woning:</strong> ${escape(labelProperty(a.propertyType))}`,
+    );
+  }
+  if (a.areaM2) propLines.push(`<strong>Oppervlakte:</strong> ${a.areaM2} m²`);
+  if (a.keyPickup) {
+    propLines.push(`<strong>Sleutel ophalen:</strong> ${escape(labelKeyPickup(a.keyPickup))}`);
+  }
+  if (propLines.length) rows.push(`<p>${propLines.join("<br />")}</p>`);
 
   if (a.ownerName || a.ownerEmail || a.ownerPhone) {
-    rows.push(`<p><strong>Owner:</strong> ${contactLine(a.ownerName, a.ownerEmail, a.ownerPhone)}</p>`);
+    rows.push(`<p><strong>Eigenaar:</strong><br />${contactLine(a.ownerName, a.ownerEmail, a.ownerPhone)}</p>`);
   }
   if (a.tenantName || a.tenantEmail || a.tenantPhone) {
-    rows.push(`<p><strong>Tenant:</strong> ${contactLine(a.tenantName, a.tenantEmail, a.tenantPhone)}</p>`);
+    rows.push(`<p><strong>Huurder:</strong><br />${contactLine(a.tenantName, a.tenantEmail, a.tenantPhone)}</p>`);
   }
 
   if (a.notes) {
-    rows.push(`<p><strong>Notes:</strong><br />${escape(a.notes).replace(/\n/g, "<br />")}</p>`);
+    rows.push(`<p><strong>Opmerkingen:</strong><br />${escape(a.notes).replace(/\n/g, "<br />")}</p>`);
   }
 
   if (a.comments && a.comments.length) {
     const lastFew = a.comments.slice(-5);
-    rows.push("<p><strong>Recent activity:</strong></p>");
+    rows.push("<p><strong>Laatste activiteit:</strong></p>");
     rows.push("<ul>");
     for (const c of lastFew) {
-      const when = c.createdAt.toISOString().slice(0, 16).replace("T", " ");
       const who = c.author ? `${c.author.firstName} ${c.author.lastName}` : "—";
       rows.push(
-        `<li>${escape(when)} · <strong>${escape(who)}</strong>: ${escape(c.body).replace(
-          /\n/g,
-          " ",
-        )}</li>`,
+        `<li><strong>${escape(who)}</strong> schreef (${escape(formatNl(c.createdAt))}): ${escape(
+          c.body,
+        ).replace(/\n/g, " ")}</li>`,
       );
     }
     rows.push("</ul>");
   }
 
-  rows.push(`<p><a href="${escapeAttr(url)}">Open in Immo →</a></p>`);
+  rows.push(`<p><a href="${escapeAttr(url)}">Bekijk opdracht →</a></p>`);
 
   return rows.join("\n");
+}
+
+function labelProperty(raw: string): string {
+  return PROPERTY_TYPE_LABELS[raw] ?? raw.charAt(0).toUpperCase() + raw.slice(1).replace(/_/g, " ");
+}
+
+function labelKeyPickup(raw: string): string {
+  return KEY_PICKUP_LABELS[raw] ?? raw;
+}
+
+/** dd-mm-YYYY HH:MM in Europe/Brussels. Matches Platform's format exactly. */
+function formatNl(d: Date): string {
+  const fmt = new Intl.DateTimeFormat("nl-BE", {
+    timeZone: TIME_ZONE,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = fmt.formatToParts(d).reduce<Record<string, string>>((acc, p) => {
+    if (p.type !== "literal") acc[p.type] = p.value;
+    return acc;
+  }, {});
+  return `${parts.day}-${parts.month}-${parts.year} ${parts.hour}:${parts.minute}`;
 }
 
 function contactLine(name: string | null, email: string | null, phone: string | null): string {
@@ -155,9 +206,11 @@ function escape(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function escapeAttr(s: string): string {
-  return escape(s).replace(/"/g, "&quot;");
+  return escape(s);
 }

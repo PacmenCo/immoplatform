@@ -154,7 +154,11 @@ async function doAcquireOutlookToken(account: CalendarAccount): Promise<LiveOutl
   // of "" token that Graph would then 401 on.
   if (!silent || !silent.accessToken) {
     await markDisconnected(account.id);
-    throw new Error(`MSAL returned no access token for ${account.id}.`);
+    throw new Error(
+      `MSAL returned no access token for CalendarAccount ${account.id} ` +
+        `(${account.providerAccountEmail}) — refresh token likely expired or revoked. ` +
+        `Marked disconnected; user needs to Reconnect from Settings → Integrations.`,
+    );
   }
 
   const post = await cca.getTokenCache().serialize();
