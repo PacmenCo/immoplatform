@@ -37,7 +37,7 @@ export function MarkPaidButton({ teamId, year, quarter, isPaid }: Props) {
         onClick={click}
         loading={pending}
       >
-        {isPaid ? "Undo paid" : "Mark paid"}
+        {isPaid ? "Mark unpaid" : "Mark paid"}
       </Button>
       {error && <ErrorAlert>{error}</ErrorAlert>}
     </div>

@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Field } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
+import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
+import { useFormDirty } from "@/lib/useFormDirty";
 import { resetPassword } from "@/app/actions/auth";
 import type { ActionResult } from "@/app/actions/_types";
 
@@ -17,6 +19,8 @@ export default function ResetPasswordPage() {
     resetPassword,
     undefined,
   );
+  const formRef = useRef<HTMLFormElement>(null);
+  useUnsavedChanges(useFormDirty(formRef));
 
   if (!token) {
     return (
@@ -44,7 +48,7 @@ export default function ResetPasswordPage() {
         </>
       }
     >
-      <form className="space-y-5" action={formAction}>
+      <form ref={formRef} className="space-y-5" action={formAction}>
         <input type="hidden" name="token" value={token} />
         {state && !state.ok && (
           <p

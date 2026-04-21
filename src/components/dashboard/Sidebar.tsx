@@ -27,7 +27,7 @@ const nav: Array<{
   visibleFor?: NavRole[]; // omitted = everyone
 }> = [
   { href: "/dashboard", label: "Overview", icon: IconHome },
-  { href: "/dashboard/assignments", label: "Assignments", icon: IconList, badge: "8" },
+  { href: "/dashboard/assignments", label: "Assignments", icon: IconList },
   { href: "/dashboard/calendar", label: "Calendar", icon: IconCalendar },
   {
     href: "/dashboard/teams",

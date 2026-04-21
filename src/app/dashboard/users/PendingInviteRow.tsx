@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { IconMail } from "@/components/ui/Icons";
 import { resendInvite, revokeInvite } from "@/app/actions/invites";
 
@@ -26,6 +27,7 @@ export function PendingInviteRow({
   sentAt: string;
 }) {
   const [pending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function doResend() {
     startTransition(async () => {
@@ -33,8 +35,8 @@ export function PendingInviteRow({
     });
   }
 
-  function doRevoke() {
-    if (!confirm(`Revoke invite for ${email}?`)) return;
+  function runRevoke() {
+    setConfirmOpen(false);
     startTransition(async () => {
       await revokeInvite(inviteId);
     });
@@ -71,10 +73,25 @@ export function PendingInviteRow({
         <Button variant="ghost" size="sm" onClick={doResend} disabled={pending}>
           Resend
         </Button>
-        <Button variant="ghost" size="sm" onClick={doRevoke} disabled={pending}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setConfirmOpen(true)}
+          disabled={pending}
+        >
           Revoke
         </Button>
       </div>
+      <ConfirmDialog
+        open={confirmOpen}
+        tone="danger"
+        title={`Revoke invite for ${email}?`}
+        description="They won't be able to use the accept link anymore. Sending a fresh invite is still possible afterwards."
+        confirmLabel="Revoke invite"
+        cancelLabel="Keep it"
+        onConfirm={runRevoke}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </li>
   );
 }

@@ -29,7 +29,7 @@ import {
   canViewCommission,
   eligibleFreelancerWhere,
 } from "@/lib/permissions";
-import { formatEuros, initials } from "@/lib/format";
+import { formatCommissionRate, formatEuros, initials } from "@/lib/format";
 import { isDiscountType, loadAssignmentPricing } from "@/lib/pricing";
 import { loadAssignmentCommission } from "@/lib/commission";
 import { PricingCard } from "@/components/dashboard/PricingCard";
@@ -82,7 +82,7 @@ export default async function AssignmentDetail({
       canUpdateAssignmentFields(session, assignment),
       canCompleteAssignment(session, assignment),
       canCancelAssignment(session, assignment),
-      canReassignFreelancer(session, assignment),
+      canReassignFreelancer(session),
       canViewAssignmentPricing(session, assignment),
     ]);
 
@@ -97,7 +97,7 @@ export default async function AssignmentDetail({
   // Prevents cross-tenant enumeration of the full freelancer roster.
   const eligibleFreelancers = canReassign
     ? await prisma.user.findMany({
-        where: await eligibleFreelancerWhere(session),
+        where: eligibleFreelancerWhere(),
         orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
         take: 500,
         select: {
@@ -127,7 +127,6 @@ export default async function AssignmentDetail({
             { label: "Details", href: `/dashboard/assignments/${id}`, active: true },
             { label: "Edit", href: `/dashboard/assignments/${id}/edit` },
             { label: "Files", href: `/dashboard/assignments/${id}/files` },
-            { label: "Complete", href: `/dashboard/assignments/${id}/complete` },
           ]}
         />
       </div>
@@ -378,9 +377,7 @@ export default async function AssignmentDetail({
                       Rate
                     </span>
                     <span className="font-medium text-[var(--color-ink)] tabular-nums">
-                      {commission.commissionType === "percentage"
-                        ? `${(commission.commissionValue / 100).toFixed(commission.commissionValue % 100 === 0 ? 0 : 1)}%`
-                        : formatEuros(commission.commissionValue)}
+                      {formatCommissionRate(commission.commissionType, commission.commissionValue)}
                     </span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3 border-t border-[var(--color-border)] pt-2">

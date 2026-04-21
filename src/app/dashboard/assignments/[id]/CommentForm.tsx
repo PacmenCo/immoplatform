@@ -3,6 +3,8 @@
 import { useActionState, useRef, useEffect } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
+import { useFormDirty } from "@/lib/useFormDirty";
 import { postComment } from "@/app/actions/assignments";
 import type { ActionResult } from "@/app/actions/_types";
 
@@ -12,6 +14,7 @@ export function CommentForm({ assignmentId }: { assignmentId: string }) {
     undefined,
   );
   const formRef = useRef<HTMLFormElement>(null);
+  useUnsavedChanges(useFormDirty(formRef));
 
   useEffect(() => {
     if (state?.ok) formRef.current?.reset();

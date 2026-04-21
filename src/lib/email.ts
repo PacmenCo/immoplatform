@@ -2,7 +2,10 @@
  * Email transport dispatcher.
  *
  * Dev default (EMAIL_PROVIDER unset or "dev"): logs to the server console.
- * Prod: set EMAIL_PROVIDER=resend + RESEND_API_KEY + EMAIL_FROM.
+ * Prod:
+ *   - EMAIL_PROVIDER=postmark + POSTMARK_TOKEN + EMAIL_FROM (reuses the
+ *     token Platform/Asbestexperts is already sending from)
+ *   - EMAIL_PROVIDER=resend   + RESEND_API_KEY   + EMAIL_FROM
  *
  * Template helpers (`inviteEmail`, `passwordResetEmail`, `addedToTeamEmail`)
  * return `{ subject, text }`; the transport is body-type-agnostic so we
@@ -29,11 +32,14 @@ export async function sendEmail(args: SendEmailArgs): Promise<void> {
     logToConsole(args);
     return;
   }
+  if (provider === "postmark") {
+    return sendViaPostmark(args);
+  }
   if (provider === "resend") {
     return sendViaResend(args);
   }
   throw new Error(
-    `Unknown EMAIL_PROVIDER "${provider}". Supported: "dev" (default) or "resend".`,
+    `Unknown EMAIL_PROVIDER "${provider}". Supported: "dev" (default), "postmark", or "resend".`,
   );
 }
 
@@ -44,6 +50,46 @@ function logToConsole(args: SendEmailArgs): void {
   console.log("──────");
   console.log(args.text);
   console.log("─────────────────────────────────────────────\n");
+}
+
+async function sendViaPostmark(args: SendEmailArgs): Promise<void> {
+  const token = process.env.POSTMARK_TOKEN;
+  const from = process.env.EMAIL_FROM;
+  if (!token) {
+    throw new Error("POSTMARK_TOKEN is not set.");
+  }
+  if (!from) {
+    throw new Error(
+      'EMAIL_FROM is not set. Use e.g. "Immo <no-reply@asbestexperts.be>".',
+    );
+  }
+
+  const body: Record<string, unknown> = {
+    From: from,
+    To: args.to,
+    Subject: args.subject,
+    TextBody: args.text,
+    MessageStream: process.env.POSTMARK_MESSAGE_STREAM ?? "outbound",
+  };
+  if (args.html) body.HtmlBody = args.html;
+
+  const res = await fetch("https://api.postmarkapp.com/email", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Postmark-Server-Token": token,
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(
+      `Postmark rejected the email: ${res.status} ${res.statusText} ${errText}`.trim(),
+    );
+  }
 }
 
 async function sendViaResend(args: SendEmailArgs): Promise<void> {
@@ -248,6 +294,19 @@ export function assignmentReassignedEmail(opts: AssignmentCtx & {
 
 You've been assigned to ${opts.reference} (${addressLine(opts)}).
 ${dateLine}
+${opts.assignmentUrl}`,
+  };
+}
+
+export function assignmentUnassignedEmail(opts: AssignmentCtx & {
+  freelancerName: string;
+}): { subject: string; text: string } {
+  return {
+    subject: `Unassigned: ${addressLine(opts)} (${opts.reference})`,
+    text: `Hi ${opts.freelancerName},
+
+You've been removed from ${opts.reference} (${addressLine(opts)}). No action needed on your side.
+
 ${opts.assignmentUrl}`,
   };
 }

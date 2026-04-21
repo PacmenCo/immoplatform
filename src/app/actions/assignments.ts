@@ -6,7 +6,8 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { SERVICE_KEYS, TERMINAL_STATUSES } from "@/lib/mockData";
-import { sourcesOf } from "@/lib/assignmentStatus";
+import { canTransition, sourcesOf } from "@/lib/assignmentStatus";
+import type { Status } from "@/lib/mockData";
 import { audit } from "@/lib/auth";
 import {
   canCancelAssignment,
@@ -27,12 +28,14 @@ import {
   resolveUnitPrices,
 } from "@/lib/pricing";
 import { applyCommission } from "@/lib/commission";
+import { quarterOf } from "@/lib/period";
 import {
   assignmentCancelledEmail,
   assignmentCompletedEmail,
   assignmentDateUpdatedEmail,
   assignmentDeliveredEmail,
   assignmentReassignedEmail,
+  assignmentUnassignedEmail,
   commentPostedEmail,
   type AssignmentEmailCtx,
 } from "@/lib/email";
@@ -202,6 +205,20 @@ export const createAssignment = withSession(async (
     keyPickup: (formData.get("key-pickup") as string) || undefined,
     notes: (formData.get("notes") as string) || undefined,
   };
+  // Freelancer is optional — only admin/staff may set it at create time.
+  const rawFreelancerId = ((formData.get("freelancerId") as string) || "").trim();
+  const freelancerId = rawFreelancerId && canReassignFreelancer(session)
+    ? rawFreelancerId
+    : null;
+  if (freelancerId) {
+    const target = await prisma.user.findFirst({
+      where: { AND: [{ id: freelancerId }, eligibleFreelancerWhere()] },
+      select: { id: true },
+    });
+    if (!target) {
+      return { ok: false, error: "That user isn't an active freelancer." };
+    }
+  }
 
   const parsed = createSchema.safeParse(raw);
   if (!parsed.success) {
@@ -268,6 +285,7 @@ export const createAssignment = withSession(async (
           tenantEmail: d.tenantEmail || null,
           tenantPhone: d.tenantPhone || null,
           teamId,
+          freelancerId,
           createdById: session.user.id,
           services: { create: serviceLines },
         },
@@ -479,6 +497,24 @@ export const updateAssignment = withSession(async (
     ? parseDiscountFromForm(formData)
     : null;
 
+  // Freelancer assignment is admin/staff-only (Platform parity). Anyone else's
+  // `freelancerId` value in the form is silently dropped.
+  const canFreelancer = canReassignFreelancer(session);
+  const rawFreelancerId = ((formData.get("freelancerId") as string) ?? "").trim();
+  const nextFreelancerId = canFreelancer
+    ? rawFreelancerId || null
+    : existing.freelancerId;
+  const freelancerChanged = canFreelancer && nextFreelancerId !== existing.freelancerId;
+  if (freelancerChanged && nextFreelancerId) {
+    const target = await prisma.user.findFirst({
+      where: { AND: [{ id: nextFreelancerId }, eligibleFreelancerWhere()] },
+      select: { id: true },
+    });
+    if (!target) {
+      return { ok: false, error: "That user isn't an active freelancer." };
+    }
+  }
+
   // Resolve the final service lines, preserving existing snapshots where
   // possible so a mid-assignment edit doesn't silently re-price an
   // already-in-flight job. Only fetch new prices for newly-added services.
@@ -519,6 +555,7 @@ export const updateAssignment = withSession(async (
         tenantName: d.tenantName || null,
         tenantEmail: d.tenantEmail || null,
         tenantPhone: d.tenantPhone || null,
+        ...(freelancerChanged ? { freelancerId: nextFreelancerId } : {}),
         ...(discountPatch ?? {}),
       },
     });
@@ -586,6 +623,46 @@ export const updateAssignment = withSession(async (
     );
   }
 
+  if (freelancerChanged) {
+    await audit({
+      actorId: session.user.id,
+      verb: "assignment.reassigned",
+      objectType: "assignment",
+      objectId: id,
+      metadata: {
+        freelancerId: nextFreelancerId,
+        previousFreelancerId: existing.freelancerId,
+      },
+    });
+    if (nextFreelancerId) {
+      const incoming = await loadUser(nextFreelancerId);
+      if (incoming) {
+        await notify({
+          to: incoming,
+          event: "assignment.freelancer_assigned",
+          ...assignmentReassignedEmail({
+            ...ctxFromAssignment(existing),
+            freelancerName: incoming.firstName,
+            preferredDate: d.preferredDate ? new Date(d.preferredDate) : null,
+          }),
+        });
+      }
+    }
+    if (existing.freelancerId) {
+      const outgoing = await loadUser(existing.freelancerId);
+      if (outgoing) {
+        await notify({
+          to: outgoing,
+          event: "assignment.freelancer_unassigned",
+          ...assignmentUnassignedEmail({
+            ...ctxFromAssignment(existing),
+            freelancerName: outgoing.firstName,
+          }),
+        });
+      }
+    }
+  }
+
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
@@ -601,8 +678,8 @@ export const reassignFreelancer = withSession(async (
 ): Promise<ActionResult> => {
   const a = await prisma.assignment.findUnique({ where: { id } });
   if (!a) return { ok: false, error: "Assignment not found." };
-  if (!(await canReassignFreelancer(session, a))) {
-    return { ok: false, error: "You don't have permission to reassign this." };
+  if (!canReassignFreelancer(session)) {
+    return { ok: false, error: "Only admins and staff can assign a freelancer." };
   }
   if (a.status === "completed" || a.status === "cancelled") {
     return {
@@ -612,19 +689,12 @@ export const reassignFreelancer = withSession(async (
   }
 
   if (freelancerId) {
-    // Verify the target is both an active freelancer AND within the caller's
-    // visible roster — prevents assigning a freelancer from another agency.
     const target = await prisma.user.findFirst({
-      where: {
-        AND: [{ id: freelancerId }, await eligibleFreelancerWhere(session)],
-      },
+      where: { AND: [{ id: freelancerId }, eligibleFreelancerWhere()] },
       select: { id: true },
     });
     if (!target) {
-      return {
-        ok: false,
-        error: "That freelancer isn't available to your team.",
-      };
+      return { ok: false, error: "That user isn't an active freelancer." };
     }
   }
 
@@ -647,21 +717,31 @@ export const reassignFreelancer = withSession(async (
     metadata: { freelancerId, previousFreelancerId: a.freelancerId },
   });
 
-  // Notify the incoming freelancer. Outgoing gets a silent unassign today —
-  // product decision to revisit once we have a "dropout" / rebook flow.
+  // Notify both sides — incoming gets the new-job email, outgoing gets
+  // a courtesy unassign email so they don't show up on-site expecting work.
   if (freelancerId && freelancerId !== a.freelancerId) {
-    const newFreelancer = await prisma.user.findUnique({
-      where: { id: freelancerId },
-      select: { email: true, emailPrefs: true, firstName: true, lastName: true },
-    });
-    if (newFreelancer) {
+    const incoming = await loadUser(freelancerId);
+    if (incoming) {
       await notify({
-        to: newFreelancer,
+        to: incoming,
         event: "assignment.freelancer_assigned",
         ...assignmentReassignedEmail({
           ...ctxFromAssignment(a),
-          freelancerName: newFreelancer.firstName,
+          freelancerName: incoming.firstName,
           preferredDate: a.preferredDate,
+        }),
+      });
+    }
+  }
+  if (a.freelancerId && a.freelancerId !== freelancerId) {
+    const outgoing = await loadUser(a.freelancerId);
+    if (outgoing) {
+      await notify({
+        to: outgoing,
+        event: "assignment.freelancer_unassigned",
+        ...assignmentUnassignedEmail({
+          ...ctxFromAssignment(a),
+          freelancerName: outgoing.firstName,
         }),
       });
     }
@@ -757,12 +837,15 @@ export const markAssignmentCompleted = withSession(async (
     ? new Date(parsed.data.finishedAt)
     : new Date();
 
-  const claimed = await prisma.$transaction(async (tx) => {
+  // Status flip + commission apply happen in one transaction so a crash
+  // between the two can't leave a completed assignment without its
+  // commission line (or vice versa).
+  const result = await prisma.$transaction(async (tx) => {
     const claim = await tx.assignment.updateMany({
       where: { id, status: { in: sourcesOf("completed") } },
       data: { status: "completed", completedAt },
     });
-    if (claim.count === 0) return false;
+    if (claim.count === 0) return { claimed: false as const };
     if (parsed.data.note) {
       await tx.assignmentComment.create({
         data: {
@@ -772,10 +855,11 @@ export const markAssignmentCompleted = withSession(async (
         },
       });
     }
-    return true;
+    const commission = await applyCommission(id, tx);
+    return { claimed: true as const, commission };
   });
 
-  if (!claimed) {
+  if (!result.claimed) {
     return {
       ok: false,
       error: "Status changed while you were away. Reload and try again.",
@@ -790,22 +874,14 @@ export const markAssignmentCompleted = withSession(async (
     metadata: { completedAt: completedAt.toISOString() },
   });
 
-  // Apply commission now that the agency has signed off. Best-effort — a
-  // commission compute failure shouldn't roll back the completion itself;
-  // admins can re-run via a recomputeCommissions action later.
-  try {
-    const line = await applyCommission(id);
-    if (line) {
-      await audit({
-        actorId: session.user.id,
-        verb: "assignment.commission_applied",
-        objectType: "assignment",
-        objectId: id,
-        metadata: { amountCents: line.amountCents },
-      });
-    }
-  } catch (err) {
-    console.error(`[commission] applyCommission(${id}) failed:`, err);
+  if (result.commission) {
+    await audit({
+      actorId: session.user.id,
+      verb: "assignment.commission_applied",
+      objectType: "assignment",
+      objectId: id,
+      metadata: { amountCents: result.commission.amountCents },
+    });
   }
 
   // Notify the freelancer that the agency signed off. The actor is the
@@ -998,5 +1074,149 @@ export const postComment = withSession(async (
   );
 
   revalidatePath(`/dashboard/assignments/${parsed.data.assignmentId}`);
+  return { ok: true };
+});
+
+// ─── Inline status change (from the assignments list) ──────────────
+
+/**
+ * Lightweight status flip for the assignments table's inline picker. Uses
+ * the shared `TRANSITIONS` graph and applies side-effects that make sense
+ * without a dedicated form (stamps the *_at timestamp on first arrival,
+ * applies commission on `completed`). The full lifecycle actions
+ * (`markAssignmentCompleted`, `cancelAssignment`, …) remain for flows that
+ * need notes, files, or cancellation reasons.
+ */
+const STATUS_VALUES = [
+  "draft",
+  "scheduled",
+  "in_progress",
+  "delivered",
+  "completed",
+  "cancelled",
+] as const satisfies readonly Status[];
+
+const changeStatusSchema = z.object({
+  to: z.enum(STATUS_VALUES),
+});
+
+const AUDIT_BY_TARGET = {
+  scheduled: "assignment.updated",
+  in_progress: "assignment.started",
+  delivered: "assignment.delivered",
+  completed: "assignment.completed",
+  cancelled: "assignment.cancelled",
+  draft: "assignment.updated",
+} as const;
+
+export const changeAssignmentStatus = withSession(async (
+  session,
+  id: string,
+  input: { to: Status },
+): Promise<ActionResult> => {
+  const parsed = changeStatusSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid status." };
+  const target = parsed.data.to;
+
+  const a = await prisma.assignment.findUnique({ where: { id } });
+  if (!a) return { ok: false, error: "Assignment not found." };
+  const fromStatus = a.status as Status;
+  if (fromStatus === target) return { ok: true };
+
+  // The picker allows any flip, including reversing an accidental complete
+  // or cancel. Transition direction still influences which audit verb and
+  // which permission gate applies.
+  const forward = canTransition(fromStatus, target);
+
+  // Target-specific permission gate — "downgrading out of" completed or
+  // cancelled is treated as an edit, not a completion/cancel action.
+  const allowed =
+    forward && target === "completed"
+      ? await canCompleteAssignment(session, a)
+      : forward && target === "cancelled"
+        ? await canCancelAssignment(session, a)
+        : await canEditAssignment(session, a);
+  if (!allowed) {
+    return { ok: false, error: "You don't have permission to change this status." };
+  }
+
+  // If we're leaving `completed`, verify that the commission line isn't
+  // already locked inside a paid payout. Dropping it silently would make
+  // the CommissionPayout.amountCents snapshot diverge from the live accrual
+  // (paid > accrued) — an accounting mess. Admin must unmark the quarter
+  // paid first.
+  if (fromStatus === "completed" && target !== "completed") {
+    const line = await prisma.assignmentCommission.findUnique({
+      where: { assignmentId: id },
+      select: { teamId: true, computedAt: true },
+    });
+    if (line) {
+      const { year, quarter } = quarterOf(line.computedAt);
+      const payout = await prisma.commissionPayout.findUnique({
+        where: {
+          teamId_year_quarter: { teamId: line.teamId, year, quarter },
+        },
+        select: { id: true },
+      });
+      if (payout) {
+        return {
+          ok: false,
+          error: `Commission for Q${quarter} ${year} was already marked paid. Mark the quarter unpaid first, then reopen this assignment.`,
+        };
+      }
+    }
+  }
+
+  const now = new Date();
+  const data: Prisma.AssignmentUpdateInput = { status: target };
+  if (target === "delivered" && !a.deliveredAt) data.deliveredAt = now;
+  if (target === "completed" && !a.completedAt) data.completedAt = now;
+  if (target === "cancelled" && !a.cancelledAt) data.cancelledAt = now;
+
+  const result = await prisma.$transaction(async (tx) => {
+    const claim = await tx.assignment.updateMany({
+      where: { id, status: fromStatus },
+      data,
+    });
+    if (claim.count === 0) return { claimed: false as const };
+
+    // Leaving `completed` — drop the commission line so accruals don't
+    // count an assignment that's no longer completed. Re-completing will
+    // upsert a fresh one. The payout guard above has already rejected the
+    // flip if the quarter was paid, so this delete is safe.
+    if (fromStatus === "completed" && target !== "completed") {
+      await tx.assignmentCommission.deleteMany({ where: { assignmentId: id } });
+    }
+
+    const commission =
+      target === "completed" ? await applyCommission(id, tx) : null;
+    return { claimed: true as const, commission };
+  });
+
+  if (!result.claimed) {
+    return { ok: false, error: "Status changed while you were away. Reload and try again." };
+  }
+
+  await audit({
+    actorId: session.user.id,
+    verb: forward ? AUDIT_BY_TARGET[target] : "assignment.updated",
+    objectType: "assignment",
+    objectId: id,
+    metadata: { fromStatus, toStatus: target },
+  });
+
+  if (result.commission) {
+    await audit({
+      actorId: session.user.id,
+      verb: "assignment.commission_applied",
+      objectType: "assignment",
+      objectId: id,
+      metadata: { amountCents: result.commission.amountCents },
+    });
+  }
+
+  revalidatePath("/dashboard/assignments");
+  revalidatePath(`/dashboard/assignments/${id}`);
+  revalidatePath("/dashboard");
   return { ok: true };
 });

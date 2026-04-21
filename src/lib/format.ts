@@ -26,3 +26,21 @@ export function formatEuros(cents: number): string {
   const sign = cents < 0 ? "−" : "";
   return `${sign}€ ${whole}.${frac}`;
 }
+
+/**
+ * Display a commission rate the way it was stored: percentage values are in
+ * basis-points (1_000 → "10%", 1_050 → "10.5%"); fixed values are raw cents.
+ * `type` is `string | null` so callers can pass a DB column without narrowing.
+ */
+export function formatCommissionRate(
+  type: string | null | undefined,
+  value: number | null | undefined,
+): string {
+  if (!type || value === null || value === undefined) return "—";
+  if (type === "percentage") {
+    const whole = value % 100 === 0;
+    return `${(value / 100).toFixed(whole ? 0 : 1)}%`;
+  }
+  if (type === "fixed") return formatEuros(value);
+  return "—";
+}

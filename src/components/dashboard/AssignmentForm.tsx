@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
+import { useFormDirty } from "@/lib/useFormDirty";
 import type { ActionResult } from "@/app/actions/_types";
 
 type ServiceRow = {
@@ -35,11 +37,19 @@ export type AssignmentFormInitial = {
   preferredDate: string | null;
   keyPickup: string | null;
   notes: string | null;
+  freelancerId: string | null;
   discount?: {
     type: "percentage" | "fixed" | null;
     value: number | null;
     reason: string | null;
   };
+};
+
+export type FreelancerOption = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  region: string | null;
 };
 
 type Props = {
@@ -53,6 +63,9 @@ type Props = {
   cancelHref: string;
   /** Render admin/staff-only fields (discount editor). */
   canSetDiscount?: boolean;
+  /** Render the freelancer picker — admin/staff only (Platform parity). */
+  canSetFreelancer?: boolean;
+  freelancers?: FreelancerOption[];
 };
 
 export function AssignmentForm({
@@ -62,17 +75,22 @@ export function AssignmentForm({
   submitLabel,
   cancelHref,
   canSetDiscount,
+  canSetFreelancer,
+  freelancers,
 }: Props) {
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
     FormData
   >(action, undefined);
 
+  const formRef = useRef<HTMLFormElement>(null);
+  useUnsavedChanges(useFormDirty(formRef));
+
   const submitCopy =
     submitLabel ?? (initial ? "Save changes" : "Create assignment");
 
   return (
-    <form action={formAction} className="max-w-[960px] p-8 pb-28 space-y-8">
+    <form ref={formRef} action={formAction} className="max-w-[960px] p-8 pb-28 space-y-8">
       {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
 
       <Card>
@@ -332,6 +350,29 @@ export function AssignmentForm({
               <option value="lockbox">Lockbox on-site</option>
             </Select>
           </Field>
+          {canSetFreelancer && freelancers && (
+            <div className="sm:col-span-2">
+              <Field
+                label="Assign freelancer"
+                id="freelancer-id"
+                hint="Optional — leave as Unassigned to assign later."
+              >
+                <Select
+                  id="freelancer-id"
+                  name="freelancerId"
+                  defaultValue={initial?.freelancerId ?? ""}
+                >
+                  <option value="">— Unassigned —</option>
+                  {freelancers.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.firstName} {f.lastName}
+                      {f.region ? ` · ${f.region}` : ""}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+          )}
           <div className="sm:col-span-2">
             <Field label="Notes for the inspector" id="notes">
               <Textarea

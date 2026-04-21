@@ -22,6 +22,11 @@ export const EMAIL_EVENTS = {
     description: "Sent to the freelancer on first assignment and on any reassignment.",
     forRoles: ["freelancer"] as const,
   },
+  "assignment.freelancer_unassigned": {
+    label: "When I'm removed from an assignment",
+    description: "Sent to the freelancer when the agency reassigns their work to someone else.",
+    forRoles: ["freelancer"] as const,
+  },
   "assignment.delivered": {
     label: "When my team's assignment is delivered",
     description: "Sent to the agency when the freelancer flags the work delivered.",

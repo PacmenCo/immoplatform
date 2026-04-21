@@ -5,7 +5,12 @@ import { AssignmentForm } from "@/components/dashboard/AssignmentForm";
 import type { AssignmentFormInitial } from "@/components/dashboard/AssignmentForm";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { canSetDiscount, canUpdateAssignmentFields } from "@/lib/permissions";
+import {
+  canReassignFreelancer,
+  canSetDiscount,
+  canUpdateAssignmentFields,
+  eligibleFreelancerWhere,
+} from "@/lib/permissions";
 import { isDiscountType } from "@/lib/pricing";
 import { updateAssignment } from "@/app/actions/assignments";
 
@@ -17,12 +22,21 @@ export default async function EditAssignment({
   const { id } = await params;
   const session = await requireSession();
 
-  const [assignment, services] = await Promise.all([
+  const canFreelancer = canReassignFreelancer(session);
+  const [assignment, services, freelancers] = await Promise.all([
     prisma.assignment.findUnique({
       where: { id },
       include: { services: true },
     }),
     prisma.service.findMany({ where: { active: true }, orderBy: { key: "asc" } }),
+    canFreelancer
+      ? prisma.user.findMany({
+          where: eligibleFreelancerWhere(),
+          orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+          take: 500,
+          select: { id: true, firstName: true, lastName: true, region: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   if (!assignment) notFound();
@@ -54,6 +68,7 @@ export default async function EditAssignment({
       : null,
     keyPickup: assignment.keyPickup,
     notes: assignment.notes,
+    freelancerId: assignment.freelancerId,
     discount: {
       type: isDiscountType(assignment.discountType)
         ? assignment.discountType
@@ -79,7 +94,6 @@ export default async function EditAssignment({
             { label: "Details", href: `/dashboard/assignments/${id}` },
             { label: "Edit", href: `/dashboard/assignments/${id}/edit`, active: true },
             { label: "Files", href: `/dashboard/assignments/${id}/files` },
-            { label: "Complete", href: `/dashboard/assignments/${id}/complete` },
           ]}
         />
       </div>
@@ -90,6 +104,8 @@ export default async function EditAssignment({
         initial={initial}
         cancelHref={`/dashboard/assignments/${id}`}
         canSetDiscount={discountEditor}
+        canSetFreelancer={canFreelancer}
+        freelancers={freelancers}
       />
     </>
   );

@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { Field, Input, Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { ServicePill } from "@/components/ui/Badge";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Modal } from "@/components/ui/Modal";
 import { markAssignmentCompleted } from "@/app/actions/assignments";
+import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
+import { useFormDirty } from "@/lib/useFormDirty";
 import type { ActionResult } from "@/app/actions/_types";
 
 type Props = {
@@ -30,6 +32,9 @@ export function CompleteForm({
     FormData
   >(boundAction, undefined);
 
+  const formRef = useRef<HTMLFormElement>(null);
+  useUnsavedChanges(useFormDirty(formRef));
+
   return (
     <Modal
       title={`Complete ${reference}`}
@@ -45,7 +50,7 @@ export function CompleteForm({
         </>
       }
     >
-      <form id="complete-form" action={formAction} className="space-y-5">
+      <form ref={formRef} id="complete-form" action={formAction} className="space-y-5">
         {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
 
         <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-alt)] px-4 py-3">

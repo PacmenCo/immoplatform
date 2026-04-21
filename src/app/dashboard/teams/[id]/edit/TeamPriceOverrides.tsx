@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
 import { setTeamServiceOverride } from "@/app/actions/teams";
 import { formatEuros } from "@/lib/format";
 
@@ -78,6 +79,8 @@ function ServiceOverrideRow({
       ? euros.trim() !== ""
       : euros.trim() !==
         (row.overrideCents / 100).toFixed(2).replace(/\.00$/, "");
+
+  useUnsavedChanges(dirty);
 
   return (
     <li className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-6 py-4">

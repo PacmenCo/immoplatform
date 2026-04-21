@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Textarea } from "@/components/ui/Input";
 import { IconCheck, IconPlay, IconX } from "@/components/ui/Icons";
+import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
 import { isTerminalStatus } from "@/lib/mockData";
 import {
   cancelAssignment,
@@ -35,6 +35,10 @@ export function AssignmentActions({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelError, setCancelError] = useState<string | null>(null);
+
+  // Guard the typed cancellation reason — losing it would force the user
+  // to write it again. Only active while the modal is open.
+  useUnsavedChanges(cancelOpen && cancelReason.trim().length > 0);
 
   function runStart() {
     startTransition(async () => {

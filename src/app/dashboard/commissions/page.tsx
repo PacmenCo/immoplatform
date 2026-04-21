@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { IconChart, IconCheck } from "@/components/ui/Icons";
 import { requireSession } from "@/lib/auth";
 import { canMarkCommissionPaid, hasRole } from "@/lib/permissions";
-import { formatEuros } from "@/lib/format";
+import { formatCommissionRate, formatEuros } from "@/lib/format";
 import {
   quarterOf,
   quarterlyTotalsByTeam,
@@ -47,8 +47,11 @@ export default async function CommissionsPage({
   ]);
 
   const grandTotal = totals.reduce((s, r) => s + r.totalCents, 0);
+  // Use the payout's snapshot amount, not the current accrual — the two can
+  // drift if a commission line gets recomputed after mark-paid, and the
+  // "Paid out" tile should reflect what was actually paid.
   const paidTotal = totals.reduce(
-    (s, r) => s + (r.payout ? r.totalCents : 0),
+    (s, r) => s + (r.payout ? r.payout.amountCents : 0),
     0,
   );
   const canMark = canMarkCommissionPaid(session);
@@ -159,6 +162,7 @@ export default async function CommissionsPage({
                 description="Commission lines fire when an assignment reaches 'completed'. Nothing completed this quarter yet — or no completed work had an asbestos service."
               />
             ) : (
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
@@ -230,6 +234,7 @@ export default async function CommissionsPage({
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </CardBody>
         </Card>
@@ -245,6 +250,7 @@ export default async function CommissionsPage({
               </p>
             </CardHeader>
             <CardBody className="p-0">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
@@ -258,10 +264,7 @@ export default async function CommissionsPage({
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
                   {lines.map((l) => {
-                    const rate =
-                      l.commissionType === "percentage"
-                        ? `${(l.commissionValue / 100).toFixed(l.commissionValue % 100 === 0 ? 0 : 1)}%`
-                        : formatEuros(l.commissionValue);
+                    const rate = formatCommissionRate(l.commissionType, l.commissionValue);
                     return (
                       <tr key={l.id} className="hover:bg-[var(--color-bg-alt)]">
                         <td className="px-6 py-3">
@@ -295,6 +298,7 @@ export default async function CommissionsPage({
                   })}
                 </tbody>
               </table>
+              </div>
             </CardBody>
           </Card>
         )}

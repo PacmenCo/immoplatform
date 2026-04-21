@@ -50,6 +50,29 @@ export const markCommissionQuarterPaid = withSession(async (
   });
   const amountCents = sum._sum.commissionAmountCents ?? 0;
 
+  // Block "paid zero" when there's nothing accrued and nothing already on
+  // record — the button would otherwise silently flip state for a team
+  // that hasn't earned anything this quarter. Re-marking an existing paid
+  // row is allowed (that's an intentional refresh).
+  if (amountCents === 0) {
+    const existing = await prisma.commissionPayout.findUnique({
+      where: {
+        teamId_year_quarter: {
+          teamId: input.teamId,
+          year: input.year,
+          quarter: input.quarter,
+        },
+      },
+      select: { id: true },
+    });
+    if (!existing) {
+      return {
+        ok: false,
+        error: "Nothing to mark paid — this team has no commission this quarter.",
+      };
+    }
+  }
+
   await prisma.commissionPayout.upsert({
     where: {
       teamId_year_quarter: {
@@ -104,17 +127,19 @@ export const undoCommissionQuarterPaid = withSession(async (
   const invalid = validateQuarter(input);
   if (invalid) return { ok: false, error: invalid };
 
-  await prisma.commissionPayout
-    .delete({
-      where: {
-        teamId_year_quarter: {
-          teamId: input.teamId,
-          year: input.year,
-          quarter: input.quarter,
-        },
-      },
-    })
-    .catch(() => {}); // no-op if nothing to undo
+  // deleteMany so we can detect whether a row actually went away — the
+  // audit entry + revalidate only make sense if something changed.
+  const deleted = await prisma.commissionPayout.deleteMany({
+    where: {
+      teamId: input.teamId,
+      year: input.year,
+      quarter: input.quarter,
+    },
+  });
+
+  if (deleted.count === 0) {
+    return { ok: true };
+  }
 
   await audit({
     actorId: session.user.id,

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { SkipLink } from "@/components/ui/SkipLink";
 import { ThemeScript } from "@/components/theme/ThemeScript";
+import { UnsavedChangesProvider } from "@/components/dashboard/UnsavedChangesProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,7 +43,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <SkipLink />
-        {children}
+        <UnsavedChangesProvider>{children}</UnsavedChangesProvider>
       </body>
     </html>
   );

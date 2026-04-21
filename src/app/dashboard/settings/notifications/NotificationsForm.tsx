@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { IconMail } from "@/components/ui/Icons";
 import { updateNotificationPrefs } from "@/app/actions/preferences";
+import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
+import { useFormDirty } from "@/lib/useFormDirty";
 import type { ActionResult } from "@/app/actions/_types";
 
 export type PrefRow = {
@@ -21,8 +23,11 @@ export function NotificationsForm({ rows }: { rows: PrefRow[] }) {
     FormData
   >(updateNotificationPrefs, undefined);
 
+  const formRef = useRef<HTMLFormElement>(null);
+  useUnsavedChanges(useFormDirty(formRef));
+
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
       {state?.ok && (
         <p

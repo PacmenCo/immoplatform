@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
 import { SearchSelect } from "@/components/ui/SearchSelect";
 import { Button } from "@/components/ui/Button";
 import { IconMail, IconBuilding, IconShield } from "@/components/ui/Icons";
 import { createInvite } from "@/app/actions/invites";
+import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
+import { useFormDirty } from "@/lib/useFormDirty";
 import type { ActionResult } from "@/app/actions/_types";
 
 type Role = "admin" | "staff" | "realtor" | "freelancer";
@@ -68,13 +70,15 @@ export function InviteForm({
     }
   }, [teamHasOwner, teamRole]);
 
-  return (
-    <form className="max-w-[720px] p-8" action={formAction}>
-        {/* Hidden fields the server action reads */}
-        <input type="hidden" name="role" value={role} />
-        {showTeam && <input type="hidden" name="teamId" value={teamId} />}
-        {showTeam && teamId && <input type="hidden" name="teamRole" value={teamRole} />}
+  const formRef = useRef<HTMLFormElement>(null);
+  useUnsavedChanges(useFormDirty(formRef));
 
+  const selectedRole = roleOptions.find((r) => r.value === role);
+  const selectedTeamForPreview = teamId ? teams.find((t) => t.id === teamId) ?? null : null;
+
+  return (
+    <div className="grid grid-cols-1 gap-8 p-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:max-w-[1280px]">
+      <div>
         <nav
           aria-label="Breadcrumb"
           className="mb-6 flex items-center gap-2 text-xs text-[var(--color-ink-muted)]"
@@ -95,8 +99,14 @@ export function InviteForm({
           </p>
         )}
 
-        <div className="space-y-6">
-          <Card>
+        <form ref={formRef} action={formAction}>
+          {/* Hidden fields the server action reads */}
+          <input type="hidden" name="role" value={role} />
+          {showTeam && <input type="hidden" name="teamId" value={teamId} />}
+          {showTeam && teamId && <input type="hidden" name="teamRole" value={teamRole} />}
+
+          <div className="space-y-6">
+            <Card>
             <CardHeader>
               <CardTitle>Who are you inviting?</CardTitle>
               <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
@@ -273,67 +283,80 @@ export function InviteForm({
             </Card>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Preview email</CardTitle>
-              <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                This is what they&apos;ll receive.
-              </p>
-            </CardHeader>
-            <CardBody>
-              <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-5 text-sm">
-                <div className="mb-3 flex items-center gap-2 text-xs text-[var(--color-ink-muted)]">
-                  <IconMail size={14} />
-                  <span>From: Immo &lt;no-reply@immo.app&gt;</span>
-                </div>
-                <p className="font-semibold text-[var(--color-ink)]">
-                  You&apos;re invited to join Immo
-                </p>
-                <p className="mt-3 text-[var(--color-ink-soft)]">
-                  You&apos;ve been invited to join Immo as a{" "}
-                  <strong>{roleOptions.find((r) => r.value === role)?.label}</strong>
-                  {teamId && (
-                    <>
-                      {" "}on team{" "}
-                      <strong>{teams.find((t) => t.id === teamId)?.name}</strong>
-                      {" "}({teamRole}).
-                    </>
-                  )}
-                  {!teamId && "."}
-                </p>
-                {note && (
-                  <p className="mt-3 rounded border-l-2 border-[var(--color-border-strong)] bg-[var(--color-bg)] px-3 py-2 italic text-[var(--color-ink-soft)]">
-                    &ldquo;{note}&rdquo;
-                  </p>
-                )}
-                <div className="mt-4 inline-block rounded-md bg-[var(--color-brand)] px-4 py-2 text-xs font-semibold text-[var(--color-on-brand)]">
-                  Accept invitation →
-                </div>
-                <p className="mt-4 text-xs text-[var(--color-ink-muted)]">
-                  This link expires in 7 days.
-                </p>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
+          </div>
 
-        <div className="sticky bottom-0 z-30 -mx-8 mt-6 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
-          <div className="flex items-center justify-between gap-3 px-8 py-4">
-            <p className="text-xs text-[var(--color-ink-muted)]">
-              <span aria-hidden className="text-[var(--color-asbestos)]">*</span> Required
-            </p>
-            <div className="flex items-center gap-2">
-              <Button href="/dashboard/users" variant="ghost" size="md">
-                Cancel
-              </Button>
-              <Button type="submit" size="md" loading={pending}>
-                <IconMail size={14} />
-                Send invite
-              </Button>
+          <div className="sticky bottom-0 z-30 mt-6 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
+            <div className="flex items-center justify-between gap-3 py-4">
+              <p className="text-xs text-[var(--color-ink-muted)]">
+                <span aria-hidden className="text-[var(--color-asbestos)]">*</span> Required
+              </p>
+              <div className="flex items-center gap-2">
+                <Button href="/dashboard/users" variant="ghost" size="md">
+                  Cancel
+                </Button>
+                <Button type="submit" size="md" loading={pending}>
+                  <IconMail size={14} />
+                  Send invite
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
+
+      {/* Live email preview — sticks with the viewport so the user can watch
+          it update as they fill in the form. Stacks below on narrow screens. */}
+      <aside className="lg:sticky lg:top-8 lg:self-start">
+        <Card>
+          <CardHeader>
+            <CardTitle>Preview email</CardTitle>
+            <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+              This is what they&apos;ll receive.
+            </p>
+          </CardHeader>
+          <CardBody>
+            <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-5 text-sm">
+              <div className="mb-3 flex items-center gap-2 text-xs text-[var(--color-ink-muted)]">
+                <IconMail size={14} />
+                <span className="truncate">
+                  To: {email || <em className="text-[var(--color-ink-faint)]">colleague@agency.be</em>}
+                </span>
+              </div>
+              <div className="mb-3 flex items-center gap-2 text-xs text-[var(--color-ink-muted)]">
+                <span>From: Immo &lt;no-reply@immo.app&gt;</span>
+              </div>
+              <p className="font-semibold text-[var(--color-ink)]">
+                You&apos;re invited to join Immo
+              </p>
+              <p className="mt-3 text-[var(--color-ink-soft)]">
+                You&apos;ve been invited to join Immo as a{" "}
+                <strong>{selectedRole?.label}</strong>
+                {selectedTeamForPreview ? (
+                  <>
+                    {" "}on team{" "}
+                    <strong>{selectedTeamForPreview.name}</strong>
+                    {" "}({teamRole}).
+                  </>
+                ) : (
+                  "."
+                )}
+              </p>
+              {note && (
+                <p className="mt-3 rounded border-l-2 border-[var(--color-border-strong)] bg-[var(--color-bg)] px-3 py-2 italic text-[var(--color-ink-soft)]">
+                  &ldquo;{note}&rdquo;
+                </p>
+              )}
+              <div className="mt-4 inline-block rounded-md bg-[var(--color-brand)] px-4 py-2 text-xs font-semibold text-[var(--color-on-brand)]">
+                Accept invitation →
+              </div>
+              <p className="mt-4 text-xs text-[var(--color-ink-muted)]">
+                This link expires in 7 days.
+              </p>
+            </div>
+          </CardBody>
+        </Card>
+      </aside>
+    </div>
   );
 }
 

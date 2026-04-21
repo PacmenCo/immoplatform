@@ -50,6 +50,7 @@ model User {
   comments            AssignmentComment[]
   uploadedFiles       AssignmentFile[]
   commissionPayoutsMarked CommissionPayout[]
+  revenueAdjustmentsCreated RevenueAdjustment[] @relation("RevenueAdjustmentCreator")
 
   @@index([role, deletedAt])
   @@map("users")
@@ -134,8 +135,31 @@ model Team {
   serviceOverrides    TeamServiceOverride[]
   commissionLines     AssignmentCommission[]
   commissionPayouts   CommissionPayout[]
+  revenueAdjustments  RevenueAdjustment[]
 
   @@map("teams")
+}
+
+/// Manual revenue adjustments on the financial overview — journal
+/// corrections, bonuses, deductions. Per team per calendar month.
+/// `amountCents` may be negative for deductions. Admin/staff only.
+model RevenueAdjustment {
+  id          String   @id @default(cuid())
+  teamId      String
+  year        Int
+  month       Int      // 1-12
+  description String
+  amountCents Int      // signed — negative = deduction
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  team      Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("RevenueAdjustmentCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([teamId, year, month])
+  @@index([year, month])
+  @@map("revenue_adjustments")
 }
 
 model TeamServiceOverride {

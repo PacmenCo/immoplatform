@@ -22,16 +22,11 @@ import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { canEditTeam, getUserTeamIds, hasRole } from "@/lib/permissions";
-import { initials } from "@/lib/format";
+import { formatCommissionRate, formatEuros, initials } from "@/lib/format";
+import { quarterOf, quarterRange } from "@/lib/commission";
 import { roleBadge } from "@/lib/roleColors";
+import { StatCard } from "@/components/dashboard/StatCard";
 import { TransferOwnershipButton } from "./TransferOwnershipButton";
-
-function euros(cents: number): string {
-  return `€ ${(cents / 100).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -58,9 +53,12 @@ export default async function TeamDetailPage({
   }
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const period = monthStart.toISOString().slice(0, 7); // YYYY-MM
 
-  const [team, services, recentCommissions] = await Promise.all([
+  const now = new Date();
+  const current = quarterOf(now);
+  const currentRange = quarterRange(current.year, current.quarter);
+
+  const [team, services, recentPayouts, currentAccrual] = await Promise.all([
     prisma.team.findUnique({
       where: { id },
       include: {
@@ -90,19 +88,60 @@ export default async function TeamDetailPage({
       },
     }),
     prisma.service.findMany({ orderBy: { key: "asc" } }),
-    // Commission history for the team (when we have the table wired)
-    // For now this is a silent no-op since CommissionLine isn't in Prisma yet.
-    Promise.resolve<
-      Array<{
-        id: string;
-        period: string;
-        commissionAmount: number;
-        status: string;
-      }>
-    >([]),
+    prisma.commissionPayout.findMany({
+      where: { teamId: id },
+      orderBy: [{ year: "desc" }, { quarter: "desc" }],
+      take: 4,
+      select: {
+        id: true,
+        year: true,
+        quarter: true,
+        amountCents: true,
+        paidAt: true,
+      },
+    }),
+    prisma.assignmentCommission.aggregate({
+      where: { teamId: id, computedAt: { gte: currentRange.gte, lt: currentRange.lt } },
+      _sum: { commissionAmountCents: true },
+      _count: { _all: true },
+    }),
   ]);
 
   if (!team) notFound();
+
+  const currentAmount = currentAccrual._sum.commissionAmountCents ?? 0;
+  const currentLineCount = currentAccrual._count._all;
+  const currentPayout = recentPayouts.find(
+    (p) => p.year === current.year && p.quarter === current.quarter,
+  );
+  // Show the running quarter as a live row (unless it's already paid — in
+  // which case the payout row from findMany carries the snapshot). Older
+  // payouts follow, most recent first.
+  const commissionActivity: Array<{
+    key: string;
+    period: string;
+    amountCents: number;
+    status: "current" | "paid";
+    paidAt: Date | null;
+  }> = [];
+  if (!currentPayout && (currentAmount > 0 || currentLineCount > 0)) {
+    commissionActivity.push({
+      key: `current-${current.year}-${current.quarter}`,
+      period: `Q${current.quarter} ${current.year}`,
+      amountCents: currentAmount,
+      status: "current",
+      paidAt: null,
+    });
+  }
+  for (const p of recentPayouts.slice(0, 3)) {
+    commissionActivity.push({
+      key: p.id,
+      period: `Q${p.quarter} ${p.year}`,
+      amountCents: p.amountCents,
+      status: "paid",
+      paidAt: p.paidAt,
+    });
+  }
 
   const svcByKey = Object.fromEntries(services.map((s) => [s.key, s]));
   const overrideByKey = Object.fromEntries(
@@ -126,8 +165,8 @@ export default async function TeamDetailPage({
 
   const commissionLabel = team.commissionType
     ? team.commissionType === "percentage"
-      ? `${((team.commissionValue ?? 0) / 100).toFixed(1)}% of revenue`
-      : `${euros(team.commissionValue ?? 0)} flat fee`
+      ? `${formatCommissionRate(team.commissionType, team.commissionValue)} of revenue`
+      : `${formatCommissionRate(team.commissionType, team.commissionValue)} flat fee`
     : "Not configured";
 
   // Transfer-ownership eligibility
@@ -927,21 +966,31 @@ export default async function TeamDetailPage({
               )}
 
               <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-4 text-sm">
-                <p className="font-medium text-[var(--color-ink)]">Most recent payouts</p>
-                {recentCommissions.length === 0 ? (
+                <p className="font-medium text-[var(--color-ink)]">Commission activity</p>
+                {commissionActivity.length === 0 ? (
                   <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
-                    No payouts recorded yet. Once the commission system is wired to the
-                    database, the last three periods appear here.
+                    No commission accrued yet. Lines are recorded when an assignment
+                    is marked completed.
                   </p>
                 ) : (
-                  <ul className="mt-2 space-y-1 text-xs">
-                    {recentCommissions.map((c) => (
-                      <li key={c.id} className="flex justify-between">
-                        <span className="tabular-nums text-[var(--color-ink-soft)]">
-                          {c.period}
+                  <ul className="mt-2 space-y-1.5 text-xs">
+                    {commissionActivity.map((c) => (
+                      <li key={c.key} className="flex items-baseline justify-between gap-3">
+                        <span className="inline-flex items-center gap-2 text-[var(--color-ink-soft)]">
+                          <span className="tabular-nums">{c.period}</span>
+                          {c.status === "current" ? (
+                            <span className="rounded-sm bg-[var(--color-bg-muted)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
+                              Accruing
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-[var(--color-epc)]">
+                              <IconCheck size={10} />
+                              Paid {c.paidAt?.toISOString().slice(0, 10)}
+                            </span>
+                          )}
                         </span>
                         <span className="font-medium tabular-nums text-[var(--color-ink)]">
-                          {euros(c.commissionAmount)}
+                          {formatEuros(c.amountCents)}
                         </span>
                       </li>
                     ))}
@@ -967,37 +1016,6 @@ export default async function TeamDetailPage({
 }
 
 // ─── Subcomponents ─────────────────────────────────────────────────
-
-function StatCard({
-  label,
-  value,
-  hint,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: "neutral" | "ok" | "warn";
-}) {
-  const dot =
-    tone === "ok"
-      ? "var(--color-epc)"
-      : tone === "warn"
-        ? "#f59e0b"
-        : "var(--color-ink-muted)";
-  return (
-    <Card className="p-5">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: dot }} />
-        {label}
-      </div>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-[var(--color-ink)] tabular-nums">
-        {value}
-      </p>
-      {hint && <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">{hint}</p>}
-    </Card>
-  );
-}
 
 function Fact({
   label,

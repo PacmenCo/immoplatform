@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "./Button";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { ErrorAlert } from "./ErrorAlert";
 import { IconDownload, IconFileText, IconTrash } from "./Icons";
 import { formatBytes } from "@/lib/format";
@@ -26,6 +27,7 @@ export function FileItem({ file }: { file: FileRow }) {
   const [downloading, startDownload] = useTransition();
   const [deleting, startDelete] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function onDownload() {
     setError(null);
@@ -42,8 +44,8 @@ export function FileItem({ file }: { file: FileRow }) {
     });
   }
 
-  function onDelete() {
-    if (!confirm(`Delete "${file.originalName}"?`)) return;
+  function runDelete() {
+    setConfirmOpen(false);
     setError(null);
     startDelete(async () => {
       const res = await deleteAssignmentFile(file.id);
@@ -86,7 +88,7 @@ export function FileItem({ file }: { file: FileRow }) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={onDelete}
+          onClick={() => setConfirmOpen(true)}
           loading={deleting}
           disabled={downloading}
           aria-label={`Delete ${file.originalName}`}
@@ -94,6 +96,16 @@ export function FileItem({ file }: { file: FileRow }) {
           <IconTrash size={14} />
         </Button>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        tone="danger"
+        title="Delete this file?"
+        description={`"${file.originalName}" will be removed from the assignment. This can't be undone.`}
+        confirmLabel="Delete file"
+        cancelLabel="Keep it"
+        onConfirm={runDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </li>
   );
 }

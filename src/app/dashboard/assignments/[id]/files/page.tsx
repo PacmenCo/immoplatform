@@ -87,7 +87,6 @@ export default async function AssignmentFilesPage({
             { label: "Details", href: `/dashboard/assignments/${id}` },
             { label: "Edit", href: `/dashboard/assignments/${id}/edit` },
             { label: "Files", href: `/dashboard/assignments/${id}/files`, active: true },
-            { label: "Complete", href: `/dashboard/assignments/${id}/complete` },
           ]}
         />
       </div>

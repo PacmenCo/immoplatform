@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
+import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
+import { useFormDirty } from "@/lib/useFormDirty";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import type { ActionResult } from "@/app/actions/_types";
@@ -61,10 +63,13 @@ export function TeamForm({ action, initial, submitLabel, cancelHref }: Props) {
   const [logo, setLogo] = useState(initial?.logo ?? "");
   const [logoColor, setLogoColor] = useState(initial?.logoColor ?? "#0f172a");
 
+  const formRef = useRef<HTMLFormElement>(null);
+  useUnsavedChanges(useFormDirty(formRef));
+
   const submit = submitLabel ?? (initial ? "Save changes" : "Create team");
 
   return (
-    <form action={formAction} className="max-w-[960px] p-8 pb-28 space-y-6">
+    <form ref={formRef} action={formAction} className="max-w-[960px] p-8 pb-28 space-y-6">
       {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
 
       <Card>

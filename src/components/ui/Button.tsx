@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
+import { Spinner } from "./Spinner";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
@@ -38,22 +39,7 @@ type ButtonAsButton = CommonProps &
 type ButtonAsLink = CommonProps &
   Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & { href: string };
 
-function Spinner({ size }: { size: Size }) {
-  const px = size === "sm" ? 12 : size === "lg" ? 18 : 14;
-  return (
-    <svg
-      width={px}
-      height={px}
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden
-      className="animate-spin"
-    >
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
-      <path d="M21 12a9 9 0 0 1-9 9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  );
-}
+const SPINNER_PX: Record<Size, number> = { sm: 12, md: 14, lg: 18 };
 
 export function Button(props: ButtonAsButton | ButtonAsLink) {
   const { variant = "primary", size = "md", loading = false, className, children, ...rest } = props;
@@ -61,7 +47,7 @@ export function Button(props: ButtonAsButton | ButtonAsLink) {
 
   const content = loading ? (
     <>
-      <Spinner size={size} />
+      <Spinner size={SPINNER_PX[size]} />
       <span className="opacity-80">{children}</span>
     </>
   ) : (

@@ -180,18 +180,13 @@ export async function canCancelAssignment(
 }
 
 /**
- * Reassigning the inspector is realtor/admin/staff territory. Freelancers
- * can't swap themselves off (that's a cancel), nor can they assign peers.
+ * Assigning or reassigning the freelancer is an agency-side operation —
+ * admin/staff only, matching Platform. Realtors see the assigned inspector
+ * read-only; freelancers can never reassign (that's a cancel, handled
+ * elsewhere).
  */
-export async function canReassignFreelancer(
-  s: SessionWithUser,
-  a: AssignmentPolicyInput,
-): Promise<boolean> {
-  if (hasRole(s, "admin", "staff")) return true;
-  if (hasRole(s, "freelancer")) return false;
-  if (!hasRole(s, "realtor")) return false;
-  const { owned } = await getUserTeamIds(s.user.id);
-  return a.createdById === s.user.id || (!!a.teamId && owned.includes(a.teamId));
+export function canReassignFreelancer(s: SessionWithUser): boolean {
+  return hasRole(s, "admin", "staff");
 }
 
 export async function canEditTeam(
@@ -253,6 +248,15 @@ export async function canViewCommission(
 
 /** Mark a team's quarterly commission as paid. Admin/staff only. */
 export function canMarkCommissionPaid(s: SessionWithUser): boolean {
+  return hasRole(s, "admin", "staff");
+}
+
+/**
+ * Create / delete manual revenue adjustments on the overview dashboard.
+ * Admin/staff only — these rewrite the booked-revenue number, so team
+ * owners don't get to edit them.
+ */
+export function canManageRevenueAdjustments(s: SessionWithUser): boolean {
   return hasRole(s, "admin", "staff");
 }
 
@@ -330,39 +334,11 @@ export async function canActOnInvite(
   return membership?.teamRole === "owner";
 }
 
-const FREELANCER_ORBIT_MONTHS = 12;
-
 /**
- * Filter restricting the set of freelancers a caller is allowed to see/assign.
- * Admin/staff see all active freelancers (matches Platform). Realtors only see
- * freelancers currently in their orbit:
- *   (a) active member of one of their teams, OR
- *   (b) worked on an assignment at one of their teams in the last 12 months.
- * A freelancer who did one job years ago and never returned drops off the list
- * — prevents permanent cross-tenant residue.
+ * The pool of freelancers the caller may assign. Matches Platform: any
+ * active freelancer user is in scope (admin/staff are the only callers —
+ * the UI-level `canReassignFreelancer` gate keeps realtors out entirely).
  */
-export async function eligibleFreelancerWhere(
-  s: SessionWithUser,
-): Promise<Prisma.UserWhereInput> {
-  const base: Prisma.UserWhereInput = { role: "freelancer", deletedAt: null };
-  if (hasRole(s, "admin", "staff")) return base;
-  const { all } = await getUserTeamIds(s.user.id);
-  // Empty IN evaluates to a no-match predicate in Prisma (1=0).
-  if (all.length === 0) return { ...base, id: { in: [] } };
-  const recencyCutoff = new Date();
-  recencyCutoff.setMonth(recencyCutoff.getMonth() - FREELANCER_ORBIT_MONTHS);
-  return {
-    ...base,
-    OR: [
-      { memberships: { some: { teamId: { in: all } } } },
-      {
-        freelancerAssignments: {
-          some: {
-            teamId: { in: all },
-            createdAt: { gte: recencyCutoff },
-          },
-        },
-      },
-    ],
-  };
+export function eligibleFreelancerWhere(): Prisma.UserWhereInput {
+  return { role: "freelancer", deletedAt: null };
 }

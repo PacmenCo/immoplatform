@@ -1,16 +1,26 @@
 import Link from "next/link";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card } from "@/components/ui/Card";
-import { Badge, ServicePill } from "@/components/ui/Badge";
+import { ServicePill } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { IconFilter, IconList, IconPlus } from "@/components/ui/Icons";
+import { IconList, IconPlus } from "@/components/ui/Icons";
 import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { assignmentScope, composeWhere, role, type Role } from "@/lib/permissions";
+import {
+  assignmentScope,
+  composeWhere,
+  hasRole,
+  role,
+  teamScope,
+  type Role,
+} from "@/lib/permissions";
 import { initials } from "@/lib/format";
+import { StatusPicker } from "./StatusPicker";
+import { FiltersBar } from "./FiltersBar";
+import type { Prisma } from "@prisma/client";
 
 const statusOrder: Status[] = [
   "draft",
@@ -20,6 +30,14 @@ const statusOrder: Status[] = [
   "completed",
   "cancelled",
 ];
+
+const SORTS = [
+  { id: "created", label: "Created", column: "createdAt" as const },
+  { id: "address", label: "Property", column: "address" as const },
+  { id: "date", label: "Preferred date", column: "preferredDate" as const },
+  { id: "status", label: "Status", column: "status" as const },
+] as const;
+type SortId = (typeof SORTS)[number]["id"];
 
 const EMPTY_COPY: Record<Role, { title: string; description: string }> = {
   admin: {
@@ -40,16 +58,111 @@ const EMPTY_COPY: Record<Role, { title: string; description: string }> = {
   },
 };
 
-export default async function AssignmentsList() {
+type SearchParams = Promise<{
+  status?: string;
+  q?: string;
+  team?: string;
+  sort?: string;
+  dir?: string;
+}>;
+
+/** Build a URL preserving active filters while overriding one field. */
+function buildUrl(
+  current: { status: Status | null; q: string; team: string; sort: SortId; dir: "asc" | "desc" },
+  patch: Partial<{ status: Status | null; q: string; team: string; sort: SortId; dir: "asc" | "desc" }>,
+): string {
+  const next = { ...current, ...patch };
+  const sp = new URLSearchParams();
+  if (next.status) sp.set("status", next.status);
+  if (next.q) sp.set("q", next.q);
+  if (next.team) sp.set("team", next.team);
+  if (next.sort !== "created") sp.set("sort", next.sort);
+  if (next.dir !== "desc") sp.set("dir", next.dir);
+  const qs = sp.toString();
+  return qs ? `/dashboard/assignments?${qs}` : "/dashboard/assignments";
+}
+
+export default async function AssignmentsList({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const session = await requireSession();
   const scope = await assignmentScope(session);
   const r = role(session);
   const isFreelancer = r === "freelancer";
 
-  const [assignments, services, counts] = await Promise.all([
+  const params = await searchParams;
+  const activeStatus: Status | null = statusOrder.includes(params.status as Status)
+    ? (params.status as Status)
+    : null;
+  const q = (params.q ?? "").trim();
+  const activeTeam = (params.team ?? "").trim();
+  const sort: SortId = SORTS.some((s) => s.id === params.sort)
+    ? (params.sort as SortId)
+    : "created";
+  const dir: "asc" | "desc" = params.dir === "asc" ? "asc" : "desc";
+  const sortColumn = SORTS.find((s) => s.id === sort)!.column;
+
+  // Split on whitespace; every word must substring-match at least one
+  // field (AND across words, OR across fields). So "brugge vastgoed" hits
+  // any row where one field contains "brugge" AND some field (same or
+  // different) contains "vastgoed".
+  const words = q.split(/\s+/).filter(Boolean);
+  const searchWhere: Prisma.AssignmentWhereInput | undefined = words.length
+    ? {
+        AND: words.map((w) => ({
+          OR: [
+            { reference: { contains: w } },
+            { address: { contains: w } },
+            { city: { contains: w } },
+            { postal: { contains: w } },
+            { team: { name: { contains: w } } },
+            {
+              freelancer: {
+                OR: [
+                  { firstName: { contains: w } },
+                  { lastName: { contains: w } },
+                  { email: { contains: w } },
+                ],
+              },
+            },
+            {
+              createdBy: {
+                OR: [
+                  { firstName: { contains: w } },
+                  { lastName: { contains: w } },
+                  { email: { contains: w } },
+                ],
+              },
+            },
+          ],
+        })),
+      }
+    : undefined;
+
+  const teamWhere: Prisma.AssignmentWhereInput | undefined =
+    activeTeam === "" ? undefined
+    : activeTeam === "none" ? { teamId: null }
+    : { teamId: activeTeam };
+
+  const statusWhere = activeStatus ? { status: activeStatus } : undefined;
+  const listWhere = composeWhere(scope, statusWhere, searchWhere, teamWhere);
+  const scopedWhere = composeWhere(scope);
+
+  const canPickTeam = hasRole(session, "admin", "staff", "realtor");
+  const visibleTeamsPromise = canPickTeam
+    ? prisma.team.findMany({
+        where: composeWhere(await teamScope(session)),
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      })
+    : Promise.resolve<Array<{ id: string; name: string }>>([]);
+
+  const [assignments, services, totalCount, visibleTeams] = await Promise.all([
     prisma.assignment.findMany({
-      where: composeWhere(scope),
-      orderBy: { preferredDate: "desc" },
+      where: listWhere,
+      orderBy: { [sortColumn]: dir },
       include: {
         team: { select: { id: true, name: true } },
         freelancer: { select: { id: true, firstName: true, lastName: true } },
@@ -57,66 +170,60 @@ export default async function AssignmentsList() {
       },
     }),
     prisma.service.findMany(),
-    prisma.assignment.groupBy({
-      by: ["status"],
-      where: composeWhere(scope),
-      _count: { _all: true },
-    }),
+    prisma.assignment.count({ where: scopedWhere }),
+    visibleTeamsPromise,
   ]);
 
   const servicesByKey = Object.fromEntries(services.map((s) => [s.key, s]));
-  const countByStatus = Object.fromEntries(
-    counts.map((c) => [c.status, c._count._all]),
-  );
+  const anyFilterActive = activeStatus !== null || q.length > 0 || activeTeam !== "";
+
+  const currentState = { status: activeStatus, q, team: activeTeam, sort, dir };
+
+  const subtitle = activeStatus
+    ? `${assignments.length} ${STATUS_META[activeStatus].label.toLowerCase()} · ${totalCount} total`
+    : `${assignments.length} total`;
 
   return (
     <>
-      <Topbar title="Assignments" subtitle={`${assignments.length} total`} />
+      <Topbar title="Assignments" subtitle={subtitle} />
 
-      <div className="p-8 space-y-6 max-w-[1400px]">
+      <div className="p-8 space-y-4 max-w-[1400px]">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <button className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-bg)] px-3 py-1.5 text-sm font-medium text-[var(--color-ink)] hover:border-[var(--color-ink)]">
-              All
-              <span className="rounded-full bg-[var(--color-bg-muted)] px-1.5 text-xs">
-                {assignments.length}
-              </span>
-            </button>
-            {statusOrder.map((s) => {
-              const count = countByStatus[s] ?? 0;
-              const meta = STATUS_META[s];
-              return (
-                <button
-                  key={s}
-                  className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-sm text-[var(--color-ink-soft)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]"
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: meta.fg }} />
-                  {meta.label}
-                  <span className="text-xs text-[var(--color-ink-muted)]">{count}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm">
-              <IconFilter size={14} />
-              Filters
-            </Button>
-            <Button href="/dashboard/assignments/new" size="sm">
-              <IconPlus size={14} />
-              New
-            </Button>
-          </div>
+          <FiltersBar
+            initialQuery={q}
+            initialStatus={activeStatus}
+            initialTeam={activeTeam}
+            canPickTeam={canPickTeam}
+            teams={visibleTeams}
+            resetHref="/dashboard/assignments"
+            showReset={anyFilterActive}
+          />
+          <Button href="/dashboard/assignments/new" size="sm">
+            <IconPlus size={14} />
+            New
+          </Button>
         </div>
 
         {assignments.length === 0 ? (
           <EmptyState
             variant="dashed"
             icon={<IconList size={22} />}
-            title={EMPTY_COPY[r].title}
-            description={EMPTY_COPY[r].description}
+            title={
+              anyFilterActive
+                ? "No matching assignments"
+                : EMPTY_COPY[r].title
+            }
+            description={
+              anyFilterActive
+                ? "Try broadening the filters — or reset to see all."
+                : EMPTY_COPY[r].description
+            }
             action={
-              isFreelancer ? undefined : (
+              anyFilterActive ? (
+                <Button href="/dashboard/assignments" variant="secondary" size="md">
+                  Reset filters
+                </Button>
+              ) : isFreelancer ? undefined : (
                 <Button href="/dashboard/assignments/new" size="md">
                   <IconPlus size={14} />
                   Create assignment
@@ -130,18 +237,17 @@ export default async function AssignmentsList() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
-                    <th className="text-left font-semibold px-6 py-3">Reference</th>
-                    <th className="text-left font-semibold px-6 py-3">Property</th>
+                    <SortHeader current={currentState} id="created" label="Reference" />
+                    <SortHeader current={currentState} id="address" label="Property" />
                     <th className="text-left font-semibold px-6 py-3">Services</th>
                     <th className="text-left font-semibold px-6 py-3">Team</th>
                     <th className="text-left font-semibold px-6 py-3">Freelancer</th>
-                    <th className="text-left font-semibold px-6 py-3">Preferred date</th>
-                    <th className="text-left font-semibold px-6 py-3">Status</th>
+                    <SortHeader current={currentState} id="date" label="Preferred date" />
+                    <SortHeader current={currentState} id="status" label="Status" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
                   {assignments.map((a) => {
-                    const meta = STATUS_META[a.status as Status] ?? STATUS_META.draft;
                     const visibleServices = a.services.slice(0, 3);
                     const extraServices = a.services.length - visibleServices.length;
                     return (
@@ -207,9 +313,10 @@ export default async function AssignmentsList() {
                           {a.preferredDate?.toISOString().slice(0, 10) ?? "—"}
                         </td>
                         <td className="px-6 py-3">
-                          <Badge bg={meta.bg} fg={meta.fg}>
-                            {meta.label}
-                          </Badge>
+                          <StatusPicker
+                            assignmentId={a.id}
+                            status={a.status as Status}
+                          />
                         </td>
                       </tr>
                     );
@@ -221,5 +328,55 @@ export default async function AssignmentsList() {
         )}
       </div>
     </>
+  );
+}
+
+function SortHeader({
+  current,
+  id,
+  label,
+}: {
+  current: { status: Status | null; q: string; team: string; sort: SortId; dir: "asc" | "desc" };
+  id: SortId;
+  label: string;
+}) {
+  const isActive = current.sort === id;
+  const nextDir: "asc" | "desc" = isActive && current.dir === "desc" ? "asc" : "desc";
+  const href = buildUrl(current, { sort: id, dir: nextDir });
+  return (
+    <th className="text-left font-semibold px-6 py-3">
+      <Link
+        href={href}
+        className={
+          "inline-flex items-center gap-1 uppercase tracking-wider " +
+          (isActive ? "text-[var(--color-ink)]" : "hover:text-[var(--color-ink)]")
+        }
+      >
+        {label}
+        <SortArrow active={isActive} dir={current.dir} />
+      </Link>
+    </th>
+  );
+}
+
+function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (!active) {
+    return (
+      <svg aria-hidden width="10" height="10" viewBox="0 0 10 10" className="opacity-40">
+        <path d="M3 4l2-2 2 2M3 6l2 2 2-2" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden width="10" height="10" viewBox="0 0 10 10">
+      <path
+        d={dir === "asc" ? "M3 6l2-2 2 2" : "M3 4l2 2 2-2"}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

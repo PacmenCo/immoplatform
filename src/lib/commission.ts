@@ -1,4 +1,5 @@
 import "server-only";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import {
   discountFromAssignment,
@@ -6,6 +7,11 @@ import {
   isDiscountType,
   type PricingBreakdown,
 } from "./pricing";
+import { quarterRange } from "./period";
+
+/** Either the shared Prisma client or a `$transaction` tx client — both
+ *  expose the model delegates we need inside applyCommission. */
+type CommissionDb = Pick<Prisma.TransactionClient, "assignment" | "assignmentCommission">;
 
 /**
  * Commission engine — ports Platform's CommissionService to TypeScript.
@@ -24,6 +30,15 @@ export const EXCLUDED_PROPERTY_TYPES: ReadonlySet<string> = new Set(["studio_roo
 
 /** Assignment must include at least one of these service keys to earn commission. */
 export const COMMISSION_ELIGIBLE_SERVICES: ReadonlySet<string> = new Set(["asbestos"]);
+
+/** Defensive ceiling on percentage commission — matches the discount cap. */
+export const MAX_COMMISSION_PERCENTAGE_BPS = 10_000;
+
+export const COMMISSION_TYPES = ["percentage", "fixed"] as const;
+export type CommissionType = (typeof COMMISSION_TYPES)[number];
+export function isCommissionType(s: unknown): s is CommissionType {
+  return (COMMISSION_TYPES as readonly string[]).includes(s as string);
+}
 
 export type CommissionInput = {
   totalCents: number;
@@ -48,17 +63,18 @@ export function computeCommission(input: CommissionInput): CommissionResult | nu
   const type = input.team.commissionType;
   const value = input.team.commissionValue;
   if (!type || value === null || value <= 0) return null;
+  if (!isCommissionType(type)) return null;
   if (type === "percentage") {
+    // Clamp at 100 % so a bad stored rate can't out-charge the invoice.
+    const cappedBps = Math.min(value, MAX_COMMISSION_PERCENTAGE_BPS);
     const amountCents = Math.max(
       0,
-      Math.floor((input.totalCents * value) / 10_000),
+      Math.floor((input.totalCents * cappedBps) / 10_000),
     );
     return { amountCents, type: "percentage", value };
   }
-  if (type === "fixed") {
-    return { amountCents: Math.max(0, value), type: "fixed", value };
-  }
-  return null;
+  // Fixed commission — Platform-parity: paid even when invoice total is 0.
+  return { amountCents: Math.max(0, value), type: "fixed", value };
 }
 
 type EligibilityAssignment = {
@@ -82,8 +98,9 @@ export function isAssignmentCommissionEligible(a: EligibilityAssignment): boolea
  */
 export async function applyCommission(
   assignmentId: string,
+  db: CommissionDb = prisma,
 ): Promise<{ id: string; amountCents: number } | null> {
-  const a = await prisma.assignment.findUnique({
+  const a = await db.assignment.findUnique({
     where: { id: assignmentId },
     select: {
       id: true,
@@ -121,7 +138,7 @@ export async function applyCommission(
   });
   if (!result) return null;
 
-  const row = await prisma.assignmentCommission.upsert({
+  const row = await db.assignmentCommission.upsert({
     where: { assignmentId },
     create: {
       assignmentId,
@@ -159,20 +176,9 @@ export async function loadAssignmentCommission(assignmentId: string) {
 
 // ─── Quarterly helpers ─────────────────────────────────────────────
 
-export function quarterOf(date: Date): { year: number; quarter: number } {
-  return {
-    year: date.getFullYear(),
-    quarter: Math.floor(date.getMonth() / 3) + 1,
-  };
-}
-
-/** [gte, lt) range for a calendar quarter. */
-export function quarterRange(year: number, quarter: number): { gte: Date; lt: Date } {
-  const startMonth = (quarter - 1) * 3;
-  const gte = new Date(year, startMonth, 1, 0, 0, 0, 0);
-  const lt = new Date(year, startMonth + 3, 1, 0, 0, 0, 0);
-  return { gte, lt };
-}
+// `quarterOf` + `quarterRange` live in `./period` so both the server-only
+// commission engine and client period pickers can share them.
+export { quarterOf, quarterRange } from "./period";
 
 export type QuarterTotalRow = {
   teamId: string;

@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Badge } from "@/components/ui/Badge";
 import { IconCheck, IconMail } from "@/components/ui/Icons";
+import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
+import { useFormDirty } from "@/lib/useFormDirty";
 import { acceptInvite } from "@/app/actions/invites";
 import type { ActionResult } from "@/app/actions/_types";
 
@@ -32,6 +34,8 @@ export function SetPasswordForm({
     acceptInvite,
     undefined,
   );
+  const formRef = useRef<HTMLFormElement>(null);
+  useUnsavedChanges(useFormDirty(formRef));
   const rc = roleColor[role] ?? roleColor.realtor;
 
   return (
@@ -70,7 +74,7 @@ export function SetPasswordForm({
           </div>
         </div>
 
-        <form className="space-y-5" action={formAction}>
+        <form ref={formRef} className="space-y-5" action={formAction}>
           <input type="hidden" name="token" value={token} />
           {state && !state.ok && (
             <p
