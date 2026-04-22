@@ -15,20 +15,36 @@ This project deliberately starts fresh in Node/TS/Next.js — do not reintroduce
 - **Next.js 16** (App Router, Turbopack) — read `node_modules/next/dist/docs/01-app/` before writing Next-specific code, APIs have shifted from earlier major versions
 - **React 19**, **TypeScript**
 - **Tailwind CSS 4** — tokens live in `src/app/globals.css` under `:root`; the `@theme inline` block exposes them to Tailwind
-- **PostgreSQL** planned for backend (not yet wired)
+- **Prisma 6** — dev runs on **SQLite** (`prisma/dev.db`); PostgreSQL for production (swap via `DATABASE_URL`). Migrations in `prisma/migrations/`. Re-run `npx prisma db seed` after schema changes.
 
 ## Project layout
 
 ```
 src/
 ├── app/
-│   ├── layout.tsx      # root metadata + fonts
-│   ├── page.tsx        # homepage — composes sections only, no logic
+│   ├── (marketing)     # homepage, /services/[slug], /legal/*, /pricing, /login, /register
+│   ├── dashboard/      # authenticated CRM — sections per route segment
+│   ├── api/oauth/…     # per-provider OAuth route handlers (google, outlook)
+│   ├── actions/        # server actions (withSession-wrapped, ActionResult<T>)
+│   ├── layout.tsx      # root metadata + fonts + UnsavedChangesProvider
 │   └── globals.css     # design tokens + resets
-└── components/         # one section per file (Nav, Hero, Services, …)
+├── components/         # marketing sections + shared dashboard + ui/ primitives
+└── lib/                # auth, db, pricing, commission, calendar, financial, …
 ```
 
-Keep page files thin (composition only). Each section lives in its own component file in `src/components/`.
+Keep page files thin (composition only). Business logic lives in `src/lib/*`; server-action-facing glue lives in `src/app/actions/*`.
+
+## Backend reality (as of this session)
+
+- **Auth:** cookie-based session (see `src/lib/auth.ts`); roles `admin | staff | realtor | freelancer`. Permission gates in `src/lib/permissions.ts` (`hasRole`, `canEditAssignment`, scope helpers). Use `withSession` from `src/app/actions/_types.ts` to wrap any mutation.
+- **Money math:** integer cents everywhere; percentages are basis points (15% = `1500`). Never store float prices. Pricing engine `src/lib/pricing.ts`; commission `src/lib/commission.ts`; financial overview `src/lib/financial.ts`.
+- **Audit:** `audit({actorId, verb, ...})` from `src/lib/auth.ts` — the `AuditVerb` union is compile-time-enforced. Extend the union when adding a new mutation.
+- **Emails:** `src/lib/email.ts` wraps dev-console / Postmark / Resend behind `sendEmail`. Event templates live in the same file; user opt-outs via `emailPrefs` JSON + `shouldSendEmail` (`src/lib/email-events.ts`).
+- **Calendar sync:** `src/lib/calendar/*` — agency Google (service account) + per-user Google + Outlook via MSAL/Graph directly (no n8n). Tokens AES-GCM-encrypted using `CALENDAR_ENCRYPTION_KEY`. `syncAssignmentToCalendars(id, action)` is best-effort and called from assignment lifecycle actions.
+- **Forms:** `useFormDirty(ref)` + `useUnsavedChanges(dirty)` (from `src/components/dashboard/UnsavedChangesProvider`) wire an unsaved-changes guard. Use `ConfirmDialog` (`src/components/ui/ConfirmDialog.tsx`), never `window.confirm`.
+- **Prisma-server-only separation:** anything under `src/lib/*` that imports `prisma` or emits queries starts with `import "server-only"`. Keep pure helpers (date math, Period types, etc.) in separate server-safe files so client components can reuse them — see `src/lib/period.ts` as the pattern.
+
+Related codebase to consult for domain parity: **Platform** at `../Platform`. Read its `app/Services/*` + `app/Http/Controllers/*` when porting a feature. Never copy code — port the concept in TypeScript.
 
 ## Design tokens
 
@@ -110,11 +126,15 @@ curl -s https://masterplan.asbestexperts.be/command-center/api/data \
 1. New work not on the board → create a todo in **Backlog** under project `immo`.
 2. Starting on something → move it to **Planned / In Progress**.
 3. Finishing → move it to **Review** (not Done — the human verifies, then moves to Done).
-4. If 2+ todos form a theme → create a feature and re-parent them. Current feature for this work: **Homepage v1** (`feat_1776544666395_c93a0d63`).
+4. If 2+ todos form a theme → create a feature and re-parent them. Pick the feature that matches the area you're touching (run a list fetch first — features pre-exist: Foundation, Assignments (core), Teams & Offices, Notifications, Files & uploads, Scheduling & calendar, Invite & onboarding, Dashboards & lists, Design system & polish, PWA & polish, PDF generation, Admin tools, Homepage v1, Service selection & pricing, Backend — missing endpoints, Frontend interactivity).
 5. Always set `createdBy` / `updatedBy` / activity `author` to your model name so the human can see who did what.
+
+## Commit + push discipline
+
+Never run `git commit` / `git push` / Command Center writes without an explicit user OK in the current turn. The sandbox enforces this with a block; in your own workflow, finish the code, run typecheck + build + seed, report what's staged, and wait for approval before touching origin or the board. See memory file `feedback_git_commit_confirmation.md`.
 
 ## Open questions (blockers)
 
-- Final brand name for the merged entity (placeholder: "Immo")
-- Real names + scope for the 4 services (placeholders: EPC, Asbestos, Electrical, Fuel Tank)
-- Backend: confirm PostgreSQL + Prisma when we start the portal
+- Final brand name for the merged entity (placeholder: "Immo").
+- Real names + scope for the 4 services (placeholders: EPC, Asbestos, Electrical, Fuel Tank).
+- Postgres cutover — Prisma schema works on SQLite today; moving to Postgres needs an enum + JSONB + partial-unique pass.

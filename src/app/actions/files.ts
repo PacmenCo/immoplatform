@@ -31,7 +31,10 @@ import { makeAssignmentFileKey, storage } from "@/lib/storage";
 import { withSession, type ActionResult } from "./_types";
 
 /** TTL for signed download URLs. Matches Platform's 5-minute window. */
-const DOWNLOAD_URL_TTL_SEC = 5 * 60;
+// 1 hour — matches Platform parity (AssignmentController::downloadFile
+// uses `now()->addHour()`). Long enough that a paused or slow download
+// doesn't hit an expired URL; well under AWS's 7-day max.
+const DOWNLOAD_URL_TTL_SEC = 60 * 60;
 
 type LaneUploadPolicy = (
   s: SessionWithUser,
@@ -338,6 +341,12 @@ export const getAssignmentFileDownloadUrl = withSession(async (
     return { ok: false, error: "File not found." };
   }
 
-  const url = await storage().getSignedUrl(file.storageKey, DOWNLOAD_URL_TTL_SEC);
+  // `downloadName` tells S3 / DO Spaces to serve the file with the original
+  // filename via Content-Disposition; LocalStorage ignores it (the
+  // /api/files/* route already reads the name from the DB row).
+  const url = await storage().getSignedUrl(file.storageKey, {
+    ttlSec: DOWNLOAD_URL_TTL_SEC,
+    downloadName: file.originalName,
+  });
   return { ok: true, data: { url, originalName: file.originalName } };
 });

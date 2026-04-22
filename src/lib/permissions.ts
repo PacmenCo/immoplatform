@@ -152,18 +152,45 @@ export async function canUpdateAssignmentFields(
 }
 
 /**
- * Mark a delivered assignment as completed. Freelancers never complete — they
- * delivered their own work; the agency signs off. Owner-level only on the
- * realtor side (matches canEditAssignment) — a team member who can't edit
- * the assignment pre-completion shouldn't be able to close it either.
+ * Mark a delivered assignment as completed. Owner-level realtors + assigned
+ * freelancers + admin/staff. Platform parity — AssignmentController.php:1066
+ * (markFinished) allows the freelancer to self-complete; we align by allowing
+ * the assigned freelancer through the gate. Team members who aren't owner and
+ * aren't the freelancer still can't complete.
  */
 export async function canCompleteAssignment(
   s: SessionWithUser,
   a: AssignmentPolicyInput,
 ): Promise<boolean> {
   if (hasRole(s, "admin", "staff")) return true;
+  if (hasRole(s, "freelancer")) return a.freelancerId === s.user.id;
+  if (!hasRole(s, "realtor")) return false;
+  const { owned } = await getUserTeamIds(s.user.id);
+  return a.createdById === s.user.id || (!!a.teamId && owned.includes(a.teamId));
+}
+
+/**
+ * Delete an assignment. Platform parity (AssignmentPolicy::delete):
+ *   - admin: any assignment
+ *   - medewerker/staff: never (explicit exclusion in Platform)
+ *   - freelancer: never
+ *   - makelaar/realtor: only their own (owner or team-owner), and only if the
+ *     status is "deletable" — completed + delivered are kept for the invoice +
+ *     commission audit trail; cancelled and earlier states are fair game.
+ */
+const DELETABLE_STATUSES = ["draft", "scheduled", "in_progress", "cancelled"] as const;
+
+export async function canDeleteAssignment(
+  s: SessionWithUser,
+  a: AssignmentPolicyInput & { status: string },
+): Promise<boolean> {
+  if (hasRole(s, "admin")) return true;
+  if (hasRole(s, "staff")) return false;
   if (hasRole(s, "freelancer")) return false;
   if (!hasRole(s, "realtor")) return false;
+  if (!DELETABLE_STATUSES.includes(a.status as typeof DELETABLE_STATUSES[number])) {
+    return false;
+  }
   const { owned } = await getUserTeamIds(s.user.id);
   return a.createdById === s.user.id || (!!a.teamId && owned.includes(a.teamId));
 }
@@ -258,6 +285,61 @@ export function canMarkCommissionPaid(s: SessionWithUser): boolean {
  */
 export function canManageRevenueAdjustments(s: SessionWithUser): boolean {
   return hasRole(s, "admin", "staff");
+}
+
+/**
+ * Publish / edit / delete platform-wide announcements. Admin + staff only —
+ * these banners reach every logged-in user. Matches the sidebar's
+ * visibleFor gate on /dashboard/announcements.
+ *
+ * Deliberate deviation from Platform: Platform's routes gate announcements
+ * to admin only (role:admin on the announcement routes). We include staff
+ * because immo's sidebar lists the page for ["admin","staff"] and staff
+ * routinely manage banner copy operationally. Tighten to admin-only here
+ * AND in components/dashboard/Sidebar.tsx:60 if you want strict parity.
+ */
+export function canManageAnnouncements(s: SessionWithUser): boolean {
+  return hasRole(s, "admin", "staff");
+}
+
+/**
+ * Can the viewer open a user record? Mirrors Platform's
+ * UserController::index/show gate (Platform refs: UserController.php:42-46) —
+ * medewerker/staff are blocked from seeing admins or other staff. Users may
+ * always view themselves.
+ */
+export function canViewUser(
+  s: SessionWithUser,
+  target: { id: string; role: string },
+): boolean {
+  if (s.user.id === target.id) return true;
+  if (hasRole(s, "admin")) return true;
+  if (hasRole(s, "staff")) {
+    return !["admin", "staff"].includes(target.role);
+  }
+  return false;
+}
+
+/**
+ * Edit, reset password, or delete another user account. Platform parity
+ * (UserPolicy::update) — admin-only. No self-edit via this gate; the
+ * settings page covers self-profile.
+ */
+export function canAdminUsers(s: SessionWithUser): boolean {
+  return hasRole(s, "admin");
+}
+
+/**
+ * Role where-clause filter for the user list, matching canViewUser. Admin sees
+ * all; staff sees realtors + freelancers. Pair with a separate "always me"
+ * branch when you want the viewer's own row visible regardless of filter.
+ */
+export function userListRoleFilter(
+  s: SessionWithUser,
+): { role: { notIn: string[] } } | undefined {
+  if (hasRole(s, "admin")) return undefined;
+  if (hasRole(s, "staff")) return { role: { notIn: ["admin", "staff"] } };
+  return { role: { notIn: ["admin", "staff", "realtor", "freelancer"] } }; // nobody
 }
 
 // ─── File policies ─────────────────────────────────────────────────

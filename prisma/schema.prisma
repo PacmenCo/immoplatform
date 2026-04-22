@@ -52,6 +52,9 @@ model User {
   commissionPayoutsMarked CommissionPayout[]
   revenueAdjustmentsCreated RevenueAdjustment[] @relation("RevenueAdjustmentCreator")
   calendarAccounts    CalendarAccount[]
+  createdAnnouncements   Announcement[]          @relation("AnnouncementCreator")
+  announcementDismissals AnnouncementDismissal[] @relation("AnnouncementDismissals")
+  emailVerifications     EmailVerification[]
 
   @@index([role, deletedAt])
   @@map("users")
@@ -245,6 +248,27 @@ model PasswordReset {
   @@map("password_resets")
 }
 
+/// Mirror of Platform's Livewire/Settings/Profile re-verification flow. When a
+/// user changes their email, `User.emailVerifiedAt` is cleared and a row lands
+/// here carrying a hash of the one-shot token emailed to them. `email` is
+/// snapshotted so a second email change before clicking the first link makes
+/// the stale token refuse to verify.
+model EmailVerification {
+  id         String    @id @default(cuid())
+  userId     String
+  email      String
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  usedAt     DateTime?
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("email_verifications")
+}
+
 model AuditLog {
   id          String    @id @default(cuid())
   at          DateTime  @default(now())
@@ -315,6 +339,17 @@ model Assignment {
   ownerName        String
   ownerEmail       String?
   ownerPhone       String?
+  // Owner invoicing address — Platform parity (AssignmentController.php:162-164).
+  // Separate from the property address above; used on invoices + certificate PDFs.
+  ownerAddress     String?
+  ownerPostal      String?
+  ownerCity        String?
+  // Owner VAT number for B2B invoicing. Required when clientType='firm' by
+  // downstream invoicing (not enforced at the schema layer).
+  ownerVatNumber   String?
+  // Invoice recipient: 'owner' (particulier) vs 'firm' (bedrijf). Decides which
+  // contact + VAT block prints on the invoice. Null = use team default.
+  clientType       String?
   tenantName       String?
   tenantEmail      String?
   tenantPhone      String?
@@ -479,4 +514,43 @@ model AssignmentFile {
   @@index([assignmentId, lane, deletedAt])
   @@index([uploaderId])
   @@map("assignment_files")
+}
+
+// ─── Announcements ─────────────────────────────────────────────────
+// Platform-wide banner messages published by admin/staff. A time-windowed
+// message is "visible" only while `isActive = true` AND `startsAt <= now <= endsAt`.
+// Per-user dismissals live in AnnouncementDismissal so dismiss doesn't
+// mutate the announcement itself.
+
+model Announcement {
+  id             String   @id @default(cuid())
+  title          String
+  body           String
+  type           String   @default("info")   // 'info' | 'success' | 'warning' | 'danger'
+  isActive       Boolean  @default(true)
+  isDismissible  Boolean  @default(true)
+  startsAt       DateTime
+  endsAt         DateTime
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  createdBy   User?                    @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  dismissals  AnnouncementDismissal[]
+
+  @@index([isActive, startsAt, endsAt])
+  @@map("announcements")
+}
+
+model AnnouncementDismissal {
+  announcementId String
+  userId         String
+  dismissedAt    DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation("AnnouncementDismissals", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([announcementId, userId])
+  @@index([userId])
+  @@map("announcement_dismissals")
 }

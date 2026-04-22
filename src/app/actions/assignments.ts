@@ -12,6 +12,7 @@ import { audit } from "@/lib/auth";
 import {
   canCancelAssignment,
   canCompleteAssignment,
+  canDeleteAssignment,
   canEditAssignment,
   canReassignFreelancer,
   canSetDiscount,
@@ -36,6 +37,7 @@ import {
   assignmentDateUpdatedEmail,
   assignmentDeliveredEmail,
   assignmentReassignedEmail,
+  assignmentScheduledEmail,
   assignmentUnassignedEmail,
   commentPostedEmail,
   type AssignmentEmailCtx,
@@ -47,6 +49,7 @@ import {
   type Recipient,
 } from "@/lib/assignment-recipients";
 import { fullName } from "@/lib/format";
+import { storage } from "@/lib/storage";
 import { addToGoogleCalendarUrl, assignmentUrl } from "@/lib/urls";
 import { withSession, type ActionResult } from "./_types";
 
@@ -171,6 +174,13 @@ const createSchema = z.object({
   ownerName: z.string().trim().min(1, "Owner name is required.").max(200),
   ownerEmail: z.string().email().optional().or(z.literal("")),
   ownerPhone: z.string().optional(),
+  // Owner invoicing address + VAT + recipient type — Platform parity
+  // (AssignmentController.php:162-164, 148, 151).
+  ownerAddress: z.string().trim().max(255).optional().or(z.literal("")),
+  ownerPostal: z.string().trim().max(20).optional().or(z.literal("")),
+  ownerCity: z.string().trim().max(100).optional().or(z.literal("")),
+  ownerVatNumber: z.string().trim().max(50).optional().or(z.literal("")),
+  clientType: z.enum(["owner", "firm"]).optional().or(z.literal("")),
 
   tenantName: z.string().optional(),
   tenantEmail: z.string().email().optional().or(z.literal("")),
@@ -215,6 +225,11 @@ export const createAssignment = withSession(async (
     ownerName: formData.get("owner-name") as string,
     ownerEmail: (formData.get("owner-email") as string) || "",
     ownerPhone: (formData.get("owner-phone") as string) || undefined,
+    ownerAddress: (formData.get("owner-address") as string) || "",
+    ownerPostal: (formData.get("owner-postal") as string) || "",
+    ownerCity: (formData.get("owner-city") as string) || "",
+    ownerVatNumber: (formData.get("owner-vat") as string) || "",
+    clientType: (formData.get("client-type") as string) || "",
     tenantName: (formData.get("tenant-name") as string) || undefined,
     tenantEmail: (formData.get("tenant-email") as string) || "",
     tenantPhone: (formData.get("tenant-phone") as string) || undefined,
@@ -315,6 +330,11 @@ export const createAssignment = withSession(async (
           ownerName: d.ownerName,
           ownerEmail: d.ownerEmail || null,
           ownerPhone: d.ownerPhone || null,
+          ownerAddress: d.ownerAddress || null,
+          ownerPostal: d.ownerPostal || null,
+          ownerCity: d.ownerCity || null,
+          ownerVatNumber: d.ownerVatNumber || null,
+          clientType: d.clientType || null,
           tenantName: d.tenantName || null,
           tenantEmail: d.tenantEmail || null,
           tenantPhone: d.tenantPhone || null,
@@ -349,6 +369,38 @@ export const createAssignment = withSession(async (
   });
 
   await syncAssignmentToCalendars(created.id, "create");
+
+  // Platform parity (AssignmentScheduledMail): the assignment lands in the
+  // "scheduled" state with a date — notify the agency so the realtor + team
+  // owner get the scheduling confirmation. Skipped when no date is set (no
+  // calendar event either).
+  const scheduledAt = created.calendarDate ?? created.preferredDate ?? null;
+  if (scheduledAt) {
+    const [agency, assignedFreelancer] = await Promise.all([
+      collectAgencyRecipients({
+        teamId: created.teamId,
+        createdById: created.createdById,
+        exclude: [session.user.id],
+      }),
+      loadUser(created.freelancerId),
+    ]);
+    const freelancerName = assignedFreelancer ? fullName(assignedFreelancer) : null;
+    const ctx = ctxFromAssignment(created);
+    await Promise.all(
+      agency.map((r) =>
+        notify({
+          to: r,
+          event: "assignment.scheduled",
+          ...assignmentScheduledEmail({
+            ...ctx,
+            recipientName: r.firstName,
+            scheduledAt,
+            freelancerName,
+          }),
+        }),
+      ),
+    );
+  }
 
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
@@ -469,6 +521,13 @@ const updateSchema = z.object({
   ownerName: z.string().trim().min(1, "Owner name is required.").max(200),
   ownerEmail: z.string().email().optional().or(z.literal("")),
   ownerPhone: z.string().optional(),
+  // Owner invoicing address + VAT + recipient type — Platform parity
+  // (AssignmentController.php:162-164, 148, 151).
+  ownerAddress: z.string().trim().max(255).optional().or(z.literal("")),
+  ownerPostal: z.string().trim().max(20).optional().or(z.literal("")),
+  ownerCity: z.string().trim().max(100).optional().or(z.literal("")),
+  ownerVatNumber: z.string().trim().max(50).optional().or(z.literal("")),
+  clientType: z.enum(["owner", "firm"]).optional().or(z.literal("")),
 
   tenantName: z.string().optional(),
   tenantEmail: z.string().email().optional().or(z.literal("")),
@@ -526,6 +585,11 @@ export const updateAssignment = withSession(async (
     ownerName: formData.get("owner-name") as string,
     ownerEmail: (formData.get("owner-email") as string) || "",
     ownerPhone: (formData.get("owner-phone") as string) || undefined,
+    ownerAddress: (formData.get("owner-address") as string) || "",
+    ownerPostal: (formData.get("owner-postal") as string) || "",
+    ownerCity: (formData.get("owner-city") as string) || "",
+    ownerVatNumber: (formData.get("owner-vat") as string) || "",
+    clientType: (formData.get("client-type") as string) || "",
     tenantName: (formData.get("tenant-name") as string) || undefined,
     tenantEmail: (formData.get("tenant-email") as string) || "",
     tenantPhone: (formData.get("tenant-phone") as string) || undefined,
@@ -610,6 +674,11 @@ export const updateAssignment = withSession(async (
         ownerName: d.ownerName,
         ownerEmail: d.ownerEmail || null,
         ownerPhone: d.ownerPhone || null,
+        ownerAddress: d.ownerAddress || null,
+        ownerPostal: d.ownerPostal || null,
+        ownerCity: d.ownerCity || null,
+        ownerVatNumber: d.ownerVatNumber || null,
+        clientType: d.clientType || null,
         tenantName: d.tenantName || null,
         tenantEmail: d.tenantEmail || null,
         tenantPhone: d.tenantPhone || null,
@@ -984,20 +1053,39 @@ export const markAssignmentCompleted = withSession(async (
     });
   }
 
-  // Notify the freelancer that the agency signed off. The actor is the
-  // realtor/admin/staff side, so no self-email check needed.
-  const freelancer = await loadUser(a.freelancerId);
-  if (freelancer) {
-    await notify({
-      to: freelancer,
-      event: "assignment.completed",
-      ...assignmentCompletedEmail({
-        ...ctxFromAssignment(a),
-        recipientName: freelancer.firstName,
-        completedByName: fullName(session.user),
-      }),
-    });
+  // Notify every stakeholder except the actor. Platform parity: when the
+  // freelancer self-completes (markFinished at AssignmentController.php:1066)
+  // Platform mails the admin/contact email; when the agency signs off,
+  // Platform mails the freelancer. Rather than branching, we mail both
+  // sides and exclude the actor — simpler and covers both flows.
+  const [freelancer, agency] = await Promise.all([
+    loadUser(a.freelancerId),
+    collectAgencyRecipients({
+      teamId: a.teamId,
+      createdById: a.createdById,
+      exclude: [session.user.id],
+    }),
+  ]);
+  const recipients: Recipient[] = [...agency];
+  if (freelancer && freelancer.id !== session.user.id) {
+    if (!recipients.some((r) => r.id === freelancer.id)) {
+      recipients.push(freelancer);
+    }
   }
+  const completedByName = fullName(session.user);
+  await Promise.all(
+    recipients.map((r) =>
+      notify({
+        to: r,
+        event: "assignment.completed",
+        ...assignmentCompletedEmail({
+          ...ctxFromAssignment(a),
+          recipientName: r.firstName,
+          completedByName,
+        }),
+      }),
+    ),
+  );
 
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
@@ -1322,6 +1410,116 @@ export const changeAssignmentStatus = withSession(async (
   if (target === "cancelled") {
     await syncAssignmentToCalendars(id, "cancel");
   }
+
+  // Platform parity: a transition INTO "scheduled" (from draft/in_progress/
+  // whatever) creates the external calendar event and fires the scheduled
+  // email. sync.ts's status gate already short-circuits pushes from other
+  // states, so we explicitly trigger sync + notify here only on the entry.
+  if (fromStatus !== "scheduled" && target === "scheduled") {
+    await syncAssignmentToCalendars(id, "update");
+    const scheduledAt = a.calendarDate ?? a.preferredDate ?? null;
+    if (scheduledAt) {
+      const [agency, assignedFreelancer] = await Promise.all([
+        collectAgencyRecipients({
+          teamId: a.teamId,
+          createdById: a.createdById,
+          exclude: [session.user.id],
+        }),
+        loadUser(a.freelancerId),
+      ]);
+      const freelancerName = assignedFreelancer ? fullName(assignedFreelancer) : null;
+      const ctx = ctxFromAssignment(a);
+      await Promise.all(
+        agency.map((r) =>
+          notify({
+            to: r,
+            event: "assignment.scheduled",
+            ...assignmentScheduledEmail({
+              ...ctx,
+              recipientName: r.firstName,
+              scheduledAt,
+              freelancerName,
+            }),
+          }),
+        ),
+      );
+    }
+  }
+
+  revalidatePath("/dashboard/assignments");
+  revalidatePath(`/dashboard/assignments/${id}`);
+  revalidatePath("/dashboard");
+  return { ok: true };
+});
+
+// ─── Delete ────────────────────────────────────────────────────────
+
+/**
+ * Platform parity (AssignmentController::destroy + AssignmentPolicy::delete):
+ * admin deletes anything; staff never; freelancer never; realtor only their
+ * own + only while status is not delivered/completed. Cascades via Prisma
+ * onDelete: Cascade for comments, services, files, commission, and calendar
+ * events. External calendar events get a best-effort cancel first so stale
+ * events don't linger on Google/Outlook calendars.
+ */
+export const deleteAssignment = withSession(async (
+  session,
+  id: string,
+): Promise<ActionResult> => {
+  const existing = await prisma.assignment.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      reference: true,
+      status: true,
+      teamId: true,
+      freelancerId: true,
+      createdById: true,
+    },
+  });
+  if (!existing) return { ok: false, error: "Assignment not found." };
+  if (!(await canDeleteAssignment(session, existing))) {
+    return {
+      ok: false,
+      error:
+        "You don't have permission to delete this assignment, or its status makes it undeletable.",
+    };
+  }
+
+  // Best-effort calendar cleanup before the row is gone — after delete we
+  // lose the provider event ids to unwind with.
+  await syncAssignmentToCalendars(id, "cancel").catch((err) => {
+    console.warn(`calendar cleanup failed for ${id}:`, err);
+  });
+
+  // Mirror Platform's Storage::disk('assignments')->deleteDirectory($id) —
+  // the DB rows cascade via onDelete, but the bytes in storage are still ours
+  // to remove. Single batch call on S3 (`DeleteObjects`); parallel on local fs.
+  const files = await prisma.assignmentFile.findMany({
+    where: { assignmentId: id },
+    select: { storageKey: true },
+  });
+  if (files.length > 0) {
+    await storage()
+      .deleteMany(files.map((f) => f.storageKey))
+      .catch((err) => {
+        console.warn(`file cleanup failed for assignment ${id}:`, err);
+      });
+  }
+
+  await prisma.assignment.delete({ where: { id } });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "assignment.deleted",
+    objectType: "assignment",
+    objectId: id,
+    metadata: {
+      reference: existing.reference,
+      status: existing.status,
+      filesDeleted: files.length,
+    },
+  });
 
   revalidatePath("/dashboard/assignments");
   revalidatePath(`/dashboard/assignments/${id}`);

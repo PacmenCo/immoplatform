@@ -13,7 +13,6 @@ import {
   IconCalendar,
   IconCheck,
   IconFileText,
-  IconDownload,
 } from "@/components/ui/Icons";
 import { STATUS_META, Status, isTerminalStatus } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
@@ -21,6 +20,7 @@ import { requireSession } from "@/lib/auth";
 import {
   canCancelAssignment,
   canCompleteAssignment,
+  canDeleteAssignment,
   canEditAssignment,
   canReassignFreelancer,
   canUpdateAssignmentFields,
@@ -36,6 +36,8 @@ import { PricingCard } from "@/components/dashboard/PricingCard";
 import { CalendarChips } from "./CalendarChips";
 import { CommentForm } from "./CommentForm";
 import { AssignmentActions } from "./AssignmentActions";
+import { DeleteAssignmentButton } from "./DeleteAssignmentButton";
+import { DownloadAssignmentPdfButton } from "./DownloadAssignmentPdfButton";
 import { ReassignFreelancerButton } from "./ReassignFreelancerButton";
 
 function timeAgo(date: Date): string {
@@ -77,7 +79,7 @@ export default async function AssignmentDetail({
   if (!assignment) notFound();
   if (!(await canViewAssignment(session, assignment))) notFound();
 
-  const [canTransition, canUpdateFields, canComplete, canCancel, canReassign, canPricing] =
+  const [canTransition, canUpdateFields, canComplete, canCancel, canReassign, canPricing, canDelete] =
     await Promise.all([
       canEditAssignment(session, assignment),
       canUpdateAssignmentFields(session, assignment),
@@ -85,6 +87,7 @@ export default async function AssignmentDetail({
       canCancelAssignment(session, assignment),
       canReassignFreelancer(session),
       canViewAssignmentPricing(session, assignment),
+      canDeleteAssignment(session, assignment),
     ]);
 
   const pricing = canPricing ? await loadAssignmentPricing(id) : null;
@@ -175,14 +178,22 @@ export default async function AssignmentDetail({
               canAddPersonalGoogle={canAddPersonalGoogle}
             />
           </div>
-          <AssignmentActions
-            assignmentId={assignment.id}
-            status={assignment.status}
-            canTransition={canTransition}
-            canUpdateFields={canUpdateFields}
-            canComplete={canComplete}
-            canCancel={canCancel}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <AssignmentActions
+              assignmentId={assignment.id}
+              status={assignment.status}
+              canTransition={canTransition}
+              canUpdateFields={canUpdateFields}
+              canComplete={canComplete}
+              canCancel={canCancel}
+            />
+            {canDelete && (
+              <DeleteAssignmentButton
+                assignmentId={assignment.id}
+                reference={assignment.reference}
+              />
+            )}
+          </div>
         </div>
 
         {assignment.status === "cancelled" && assignment.cancellationReason && (
@@ -447,13 +458,7 @@ export default async function AssignmentDetail({
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="secondary" size="sm" className="flex-1">
-                    Preview
-                  </Button>
-                  <Button variant="secondary" size="sm" className="flex-1">
-                    <IconDownload size={12} />
-                    Download
-                  </Button>
+                  <DownloadAssignmentPdfButton assignmentId={assignment.id} />
                 </div>
               </CardBody>
             </Card>

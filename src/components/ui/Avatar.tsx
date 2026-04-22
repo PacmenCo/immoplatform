@@ -27,12 +27,17 @@ function hashColor(initials: string) {
 
 export function Avatar({
   initials,
+  imageUrl,
+  alt,
   size = "md",
   color,
   online,
   className,
 }: {
   initials: string;
+  imageUrl?: string | null;
+  /** Alt text when `imageUrl` is set — prefer a full name over initials. */
+  alt?: string;
   size?: keyof typeof sizeMap;
   color?: string;
   online?: boolean;
@@ -41,15 +46,27 @@ export function Avatar({
   const bg = color ?? hashColor(initials);
   return (
     <span className={cn("relative inline-block", className)}>
-      <span
-        className={cn(
-          "grid place-items-center rounded-full text-white font-semibold",
-          sizeMap[size],
-        )}
-        style={{ backgroundColor: bg }}
-      >
-        {initials.slice(0, 2)}
-      </span>
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt={alt ?? initials}
+          className={cn(
+            "rounded-full object-cover bg-[var(--color-bg-muted)]",
+            sizeMap[size],
+          )}
+        />
+      ) : (
+        <span
+          className={cn(
+            "grid place-items-center rounded-full text-white font-semibold",
+            sizeMap[size],
+          )}
+          style={{ backgroundColor: bg }}
+        >
+          {initials.slice(0, 2)}
+        </span>
+      )}
       {online !== undefined && (
         <span
           className={cn(

@@ -33,6 +33,10 @@ export function passwordResetUrl(token: string): string {
   return `${appBaseUrl()}/reset-password?token=${token}`;
 }
 
+export function emailVerificationUrl(token: string): string {
+  return `${appBaseUrl()}/verify-email?token=${token}`;
+}
+
 /** One-click "Add to my Google calendar" link for assignment emails. */
 export function addToGoogleCalendarUrl(assignmentId: string): string {
   return `${appBaseUrl()}/api/calendar/add-to-google?a=${assignmentId}`;

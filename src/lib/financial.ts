@@ -111,7 +111,17 @@ function lineContributions(pricing: PricingBreakdown): Array<{ serviceKey: strin
   }));
 }
 
-export async function loadFinancialOverview(period: Period): Promise<FinancialSnapshot> {
+export type OverviewOptions = {
+  /** Scope every aggregate to a single team. Platform parity: the team
+   *  filter on OverviewList.php — narrows assignments, commission, payouts,
+   *  and adjustments uniformly. */
+  teamId?: string | null;
+};
+
+export async function loadFinancialOverview(
+  period: Period,
+  options: OverviewOptions = {},
+): Promise<FinancialSnapshot> {
   const range = periodRange(period);
   const chartAxis = chartMonths(period);
   const chartStart = new Date(Date.UTC(chartAxis[0].year, chartAxis[0].month - 1, 1));
@@ -120,12 +130,14 @@ export async function loadFinancialOverview(period: Period): Promise<FinancialSn
 
   const axisYearMonths = chartAxis.map((a) => ({ year: a.year, month: a.month }));
   const axisYears = Array.from(new Set(axisYearMonths.map((a) => a.year)));
+  const teamFilter = options.teamId ? { teamId: options.teamId } : {};
 
   const [assignments, commissionLines, payouts, teams, chartAdjustments] = await Promise.all([
     prisma.assignment.findMany({
       where: {
         status: "completed",
         completedAt: { gte: chartStart, lt: chartEnd },
+        ...teamFilter,
       },
       select: {
         id: true,
@@ -139,12 +151,18 @@ export async function loadFinancialOverview(period: Period): Promise<FinancialSn
     }),
     prisma.assignmentCommission.groupBy({
       by: ["teamId"],
-      where: { computedAt: { gte: range.gte, lt: range.lt } },
+      where: {
+        computedAt: { gte: range.gte, lt: range.lt },
+        ...teamFilter,
+      },
       _sum: { commissionAmountCents: true },
     }),
     prisma.commissionPayout.groupBy({
       by: ["teamId"],
-      where: { paidAt: { gte: range.gte, lt: range.lt } },
+      where: {
+        paidAt: { gte: range.gte, lt: range.lt },
+        ...teamFilter,
+      },
       _sum: { amountCents: true },
     }),
     prisma.team.findMany({
@@ -152,7 +170,10 @@ export async function loadFinancialOverview(period: Period): Promise<FinancialSn
       orderBy: { name: "asc" },
     }),
     prisma.revenueAdjustment.findMany({
-      where: { year: { in: axisYears } },
+      where: {
+        year: { in: axisYears },
+        ...teamFilter,
+      },
       orderBy: [{ year: "asc" }, { month: "asc" }, { createdAt: "asc" }],
       include: {
         team: { select: { name: true } },

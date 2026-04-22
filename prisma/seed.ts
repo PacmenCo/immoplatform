@@ -409,6 +409,52 @@ async function main() {
     console.log(`  pending invite for ${p.email} → token: ${token}`);
   }
 
+  // Announcements — platform-wide banner messages. Admin-authored.
+  const now = new Date();
+  const msDay = 24 * 60 * 60 * 1000;
+  const announcements = [
+    {
+      id: "an_01",
+      title: "Easter maintenance window — April 20",
+      body: "The platform will be offline between 02:00 and 04:00 for routine database maintenance.",
+      type: "info",
+      isActive: true,
+      isDismissible: true,
+      startsAt: new Date(now.getTime() - 4 * msDay),
+      endsAt:   new Date(now.getTime() + 3 * msDay),
+      createdById: "u_1",
+    },
+    {
+      id: "an_02",
+      title: "New electrical inspection service now live",
+      body: "You can now request AREI-compliant electrical inspections on any assignment. Pricing starts at €195.",
+      type: "success",
+      isActive: true,
+      isDismissible: true,
+      startsAt: new Date(now.getTime() - 12 * msDay),
+      endsAt:   new Date(now.getTime() + 8 * msDay),
+      createdById: "u_1",
+    },
+    {
+      id: "an_03",
+      title: "Commission payout delayed — March 2026",
+      body: "Payouts for March will be processed April 22 due to the Easter bank holiday.",
+      type: "warning",
+      isActive: false,
+      isDismissible: true,
+      startsAt: new Date(now.getTime() - 17 * msDay),
+      endsAt:   new Date(now.getTime() - 1 * msDay),
+      createdById: "u_1",
+    },
+  ];
+  for (const a of announcements) {
+    await prisma.announcement.upsert({
+      where: { id: a.id },
+      create: a,
+      update: a,
+    });
+  }
+
   console.log("✅ seed complete");
   console.log(`\n  Login:   jordan@asbestexperts.be`);
   console.log(`  Password: ${DEV_PASSWORD}\n`);

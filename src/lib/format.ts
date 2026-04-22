@@ -19,6 +19,38 @@ export function fullName(u: { firstName: string; lastName: string }): string {
   return `${u.firstName} ${u.lastName}`;
 }
 
+// ─── Belgian date/time formatters ──────────────────────────────────
+// Centralised so every surface (dashboards, emails, timestamps) renders
+// dates in the user's real timezone. Immo serves a Belgium-only market;
+// we hard-code Europe/Brussels rather than thread recipient prefs through
+// every call site. Locale nl-BE uses European d/m/y and 24-hour style.
+
+/** Long weekday + day + month — for prominent "today is …" headers. */
+export const BE_DATE_FULL = new Intl.DateTimeFormat("nl-BE", {
+  timeZone: "Europe/Brussels",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+
+/** Short date — for list cells and cards where horizontal space is tight. */
+export const BE_DATE_SHORT = new Intl.DateTimeFormat("nl-BE", {
+  timeZone: "Europe/Brussels",
+  day: "2-digit",
+  month: "short",
+});
+
+/** Date + time — for scheduled-appointment emails and event descriptions. */
+export const BE_DATETIME = new Intl.DateTimeFormat("nl-BE", {
+  timeZone: "Europe/Brussels",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
 /** Integer cents → "€ 123.45" (or "−€ 25.00" for negatives). */
 export function formatEuros(cents: number): string {
   const whole = Math.floor(Math.abs(cents) / 100);

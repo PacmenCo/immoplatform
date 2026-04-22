@@ -60,6 +60,38 @@ export function quarterRange(year: number, quarter: number): { gte: Date; lt: Da
   };
 }
 
+// ─── Short-range helpers for dashboards (UTC boundaries) ───────────
+// Used for "today's jobs", "this week", "this month" counts. UTC-boundary
+// approximation of local day — close enough for dashboard stats and
+// consistent with the rest of immo's UTC storage. See also: Platform's
+// Carbon-based Local-timezone boundaries (`now()->startOfDay()` etc.) —
+// these will differ by up to 2 hours (Brussels offset) near midnight.
+
+export function dayRange(now: Date = new Date()): { gte: Date; lt: Date } {
+  const gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const lt = new Date(gte);
+  lt.setUTCDate(lt.getUTCDate() + 1);
+  return { gte, lt };
+}
+
+export function weekRange(now: Date = new Date()): { gte: Date; lt: Date } {
+  // ISO week — Monday through Sunday. getUTCDay() returns 0-6 with Sunday=0,
+  // so (day + 6) % 7 shifts Monday=0.
+  const weekday = (now.getUTCDay() + 6) % 7;
+  const gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  gte.setUTCDate(gte.getUTCDate() - weekday);
+  const lt = new Date(gte);
+  lt.setUTCDate(lt.getUTCDate() + 7);
+  return { gte, lt };
+}
+
+export function monthRange(now: Date = new Date()): { gte: Date; lt: Date } {
+  return {
+    gte: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)),
+    lt: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)),
+  };
+}
+
 // ─── Period helpers ────────────────────────────────────────────────
 
 export function periodRange(p: Period): { gte: Date; lt: Date } {

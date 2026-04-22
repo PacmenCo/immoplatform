@@ -8,13 +8,17 @@ import { Spinner } from "@/components/ui/Spinner";
 import { STATUS_META, type Status } from "@/lib/mockData";
 
 type Team = { id: string; name: string };
+type Freelancer = { id: string; firstName: string; lastName: string };
 
 type Props = {
   initialQuery: string;
   initialStatus: Status | null;
   initialTeam: string;
+  initialFreelancer: string;
   canPickTeam: boolean;
+  canPickFreelancer: boolean;
   teams: Team[];
+  freelancers: Freelancer[];
   /** Render a "Reset" link on the right when any filter is active. */
   resetHref: string;
   showReset: boolean;
@@ -41,8 +45,11 @@ export function FiltersBar({
   initialQuery,
   initialStatus,
   initialTeam,
+  initialFreelancer,
   canPickTeam,
+  canPickFreelancer,
   teams,
+  freelancers,
   resetHref,
   showReset,
 }: Props) {
@@ -69,7 +76,7 @@ export function FiltersBar({
     [],
   );
 
-  function push(patch: { q?: string; status?: Status | ""; team?: string }) {
+  function push(patch: { q?: string; status?: Status | ""; team?: string; freelancer?: string }) {
     const sp = new URLSearchParams(searchParams.toString());
     if ("q" in patch) {
       if (patch.q) sp.set("q", patch.q);
@@ -82,6 +89,10 @@ export function FiltersBar({
     if ("team" in patch) {
       if (patch.team) sp.set("team", patch.team);
       else sp.delete("team");
+    }
+    if ("freelancer" in patch) {
+      if (patch.freelancer) sp.set("freelancer", patch.freelancer);
+      else sp.delete("freelancer");
     }
     const qs = sp.toString();
     start(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
@@ -148,6 +159,24 @@ export function FiltersBar({
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
+
+        {canPickFreelancer && (
+          <div className="w-[200px] shrink-0">
+            <Select
+              value={initialFreelancer}
+              onChange={(e) => push({ freelancer: e.target.value })}
+              aria-label="Filter by freelancer"
+            >
+              <option value="">All freelancers</option>
+              <option value="none">— Unassigned —</option>
+              {freelancers.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.firstName} {f.lastName}
                 </option>
               ))}
             </Select>

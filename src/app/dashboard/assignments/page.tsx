@@ -12,6 +12,7 @@ import { requireSession } from "@/lib/auth";
 import {
   assignmentScope,
   composeWhere,
+  eligibleFreelancerWhere,
   hasRole,
   role,
   teamScope,
@@ -62,20 +63,22 @@ type SearchParams = Promise<{
   status?: string;
   q?: string;
   team?: string;
+  freelancer?: string;
   sort?: string;
   dir?: string;
 }>;
 
 /** Build a URL preserving active filters while overriding one field. */
 function buildUrl(
-  current: { status: Status | null; q: string; team: string; sort: SortId; dir: "asc" | "desc" },
-  patch: Partial<{ status: Status | null; q: string; team: string; sort: SortId; dir: "asc" | "desc" }>,
+  current: { status: Status | null; q: string; team: string; freelancer: string; sort: SortId; dir: "asc" | "desc" },
+  patch: Partial<{ status: Status | null; q: string; team: string; freelancer: string; sort: SortId; dir: "asc" | "desc" }>,
 ): string {
   const next = { ...current, ...patch };
   const sp = new URLSearchParams();
   if (next.status) sp.set("status", next.status);
   if (next.q) sp.set("q", next.q);
   if (next.team) sp.set("team", next.team);
+  if (next.freelancer) sp.set("freelancer", next.freelancer);
   if (next.sort !== "created") sp.set("sort", next.sort);
   if (next.dir !== "desc") sp.set("dir", next.dir);
   const qs = sp.toString();
@@ -98,6 +101,7 @@ export default async function AssignmentsList({
     : null;
   const q = (params.q ?? "").trim();
   const activeTeam = (params.team ?? "").trim();
+  const activeFreelancer = (params.freelancer ?? "").trim();
   const sort: SortId = SORTS.some((s) => s.id === params.sort)
     ? (params.sort as SortId)
     : "created";
@@ -146,11 +150,21 @@ export default async function AssignmentsList({
     : activeTeam === "none" ? { teamId: null }
     : { teamId: activeTeam };
 
+  // Freelancer filter mirrors the team pattern: ""=all, "none"=unassigned,
+  // "<userId>"=that freelancer. Platform parity (AssignmentsList.php:53,75).
+  const freelancerWhere: Prisma.AssignmentWhereInput | undefined =
+    activeFreelancer === "" ? undefined
+    : activeFreelancer === "none" ? { freelancerId: null }
+    : { freelancerId: activeFreelancer };
+
   const statusWhere = activeStatus ? { status: activeStatus } : undefined;
-  const listWhere = composeWhere(scope, statusWhere, searchWhere, teamWhere);
+  const listWhere = composeWhere(scope, statusWhere, searchWhere, teamWhere, freelancerWhere);
   const scopedWhere = composeWhere(scope);
 
   const canPickTeam = hasRole(session, "admin", "staff", "realtor");
+  // Only admin/staff see the freelancer picker — Platform gates it to
+  // medewerker/admin, and the list is hidden from the freelancer pool itself.
+  const canPickFreelancer = hasRole(session, "admin", "staff");
   const visibleTeamsPromise = canPickTeam
     ? prisma.team.findMany({
         where: composeWhere(await teamScope(session)),
@@ -158,8 +172,16 @@ export default async function AssignmentsList({
         orderBy: { name: "asc" },
       })
     : Promise.resolve<Array<{ id: string; name: string }>>([]);
+  const visibleFreelancersPromise = canPickFreelancer
+    ? prisma.user.findMany({
+        where: eligibleFreelancerWhere(),
+        select: { id: true, firstName: true, lastName: true },
+        orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+        take: 500,
+      })
+    : Promise.resolve<Array<{ id: string; firstName: string; lastName: string }>>([]);
 
-  const [assignments, services, totalCount, visibleTeams] = await Promise.all([
+  const [assignments, services, totalCount, visibleTeams, visibleFreelancers] = await Promise.all([
     prisma.assignment.findMany({
       where: listWhere,
       orderBy: { [sortColumn]: dir },
@@ -172,12 +194,24 @@ export default async function AssignmentsList({
     prisma.service.findMany(),
     prisma.assignment.count({ where: scopedWhere }),
     visibleTeamsPromise,
+    visibleFreelancersPromise,
   ]);
 
   const servicesByKey = Object.fromEntries(services.map((s) => [s.key, s]));
-  const anyFilterActive = activeStatus !== null || q.length > 0 || activeTeam !== "";
+  const anyFilterActive =
+    activeStatus !== null ||
+    q.length > 0 ||
+    activeTeam !== "" ||
+    activeFreelancer !== "";
 
-  const currentState = { status: activeStatus, q, team: activeTeam, sort, dir };
+  const currentState = {
+    status: activeStatus,
+    q,
+    team: activeTeam,
+    freelancer: activeFreelancer,
+    sort,
+    dir,
+  };
 
   const subtitle = activeStatus
     ? `${assignments.length} ${STATUS_META[activeStatus].label.toLowerCase()} · ${totalCount} total`
@@ -193,8 +227,11 @@ export default async function AssignmentsList({
             initialQuery={q}
             initialStatus={activeStatus}
             initialTeam={activeTeam}
+            initialFreelancer={activeFreelancer}
             canPickTeam={canPickTeam}
+            canPickFreelancer={canPickFreelancer}
             teams={visibleTeams}
+            freelancers={visibleFreelancers}
             resetHref="/dashboard/assignments"
             showReset={anyFilterActive}
           />
@@ -336,7 +373,7 @@ function SortHeader({
   id,
   label,
 }: {
-  current: { status: Status | null; q: string; team: string; sort: SortId; dir: "asc" | "desc" };
+  current: { status: Status | null; q: string; team: string; freelancer: string; sort: SortId; dir: "asc" | "desc" };
   id: SortId;
   label: string;
 }) {

@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { Storage, StoragePutResult } from "./types";
+import type { SignedUrlOptions, Storage, StoragePutResult } from "./types";
 
 /**
  * Filesystem-backed storage for development and self-hosted deployments.
@@ -11,8 +11,14 @@ import type { Storage, StoragePutResult } from "./types";
  *
  * Signed URLs route to `/api/files/{key}?exp={unix}&sig={hmacHex}`; the
  * route handler verifies the HMAC (via `verifySignature`) and reads bytes
- * via `readBuffer`. Both methods are LocalStorage-specific: the route
- * exists only for this backend and guards on `instanceof LocalStorage`.
+ * via `read`. `verifySignature` is LocalStorage-specific — only this
+ * backend routes downloads through our server; S3 presigned URLs are
+ * verified at the bucket.
+ *
+ * `downloadName` + `inline` are ignored here — the `/api/files/*` route
+ * reads the original filename from the AssignmentFile DB row and sets
+ * Content-Disposition server-side. Keeping the opts on the interface
+ * means the same call site code works unchanged on S3.
  */
 export class LocalStorage implements Storage {
   constructor(
@@ -43,11 +49,26 @@ export class LocalStorage implements Storage {
     await rm(absPath, { force: true });
   }
 
-  async getSignedUrl(key: string, ttlSec: number): Promise<string> {
-    const exp = Math.floor(Date.now() / 1000) + ttlSec;
+  async deleteMany(keys: string[]): Promise<void> {
+    // Local filesystem has no batch primitive — fan out in parallel.
+    // Per-key errors are swallowed so a partial cleanup doesn't abort the
+    // rest; the caller already accepts best-effort semantics at this level.
+    await Promise.all(keys.map((k) => this.delete(k).catch(() => {})));
+  }
+
+  async exists(key: string): Promise<boolean> {
+    try {
+      await access(this.abs(key));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async getSignedUrl(key: string, opts: SignedUrlOptions): Promise<string> {
+    const exp = Math.floor(Date.now() / 1000) + opts.ttlSec;
     const sig = this.sign(key, exp);
     const base = this.appUrl.replace(/\/$/, "");
-    // Encode each path segment but preserve slashes so the route matches.
     const encodedKey = key.split("/").map(encodeURIComponent).join("/");
     return `${base}/api/files/${encodedKey}?exp=${exp}&sig=${sig}`;
   }
@@ -66,12 +87,7 @@ export class LocalStorage implements Storage {
     return timingSafeEqual(a, b);
   }
 
-  /**
-   * Read the full object into memory. OK at our <= 50 MB per-file cap;
-   * swap to a stream if the limit ever grows. Not on the interface — S3
-   * downloads never touch our server.
-   */
-  async readBuffer(key: string): Promise<Buffer | null> {
+  async read(key: string): Promise<Buffer | null> {
     try {
       return await readFile(this.abs(key));
     } catch {

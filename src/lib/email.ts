@@ -18,6 +18,7 @@
  */
 
 import "server-only";
+import { BE_DATETIME } from "./format";
 
 type SendEmailArgs = {
   to: string;
@@ -176,6 +177,22 @@ If you didn't request this, you can safely ignore this email.`,
   };
 }
 
+export function emailVerificationEmail(opts: {
+  name: string;
+  verifyUrl: string;
+}): { subject: string; text: string } {
+  return {
+    subject: "Verify your Immo email address",
+    text: `Hi ${opts.name},
+
+Confirm this is your email address so we can send you account notifications. The link expires in 24 hours.
+
+${opts.verifyUrl}
+
+If you didn't change your email on Immo, you can safely ignore this message — your account stays on the previous address.`,
+  };
+}
+
 export function addedToTeamEmail(opts: {
   inviterName: string;
   teamName: string;
@@ -217,6 +234,31 @@ function calendarCta(a: AssignmentCtx): string {
   return a.addToCalendarUrl
     ? `\n\nAdd this appointment to your Google calendar:\n${a.addToCalendarUrl}`
     : "";
+}
+
+/**
+ * Sent when an assignment lands in `scheduled` with a date set. Platform
+ * parity: AssignmentScheduledMail with action="scheduled". Re-schedules
+ * (already-scheduled + date change) are handled by `assignmentDateUpdatedEmail`;
+ * cancellations by `assignmentCancelledEmail`.
+ */
+export function assignmentScheduledEmail(opts: AssignmentCtx & {
+  recipientName: string;
+  scheduledAt: Date;
+  freelancerName: string | null;
+}): { subject: string; text: string } {
+  const dateStr = BE_DATETIME.format(opts.scheduledAt);
+  const inspectorLine = opts.freelancerName
+    ? `Inspector: ${opts.freelancerName}\n`
+    : "Inspector: not yet assigned\n";
+  return {
+    subject: `Scheduled: ${addressLine(opts)} — ${dateStr} (${opts.reference})`,
+    text: `Hi ${opts.recipientName},
+
+${opts.reference} at ${addressLine(opts)} is now scheduled for ${dateStr}.
+${inspectorLine}
+${opts.assignmentUrl}${calendarCta(opts)}`,
+  };
 }
 
 export function assignmentDateUpdatedEmail(opts: AssignmentCtx & {

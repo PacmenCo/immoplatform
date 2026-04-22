@@ -12,6 +12,12 @@
 import type { Role } from "./permissions";
 
 export const EMAIL_EVENTS = {
+  "assignment.scheduled": {
+    label: "When one of my assignments is scheduled with a date",
+    description:
+      "Sent to the realtor and agency when a new assignment lands in the scheduled state with a preferred date. Platform parity: AssignmentScheduledMail.",
+    forRoles: ["realtor", "admin", "staff"] as const,
+  },
   "assignment.date_updated": {
     label: "When an assignment's scheduled date changes",
     description: "Sent to the freelancer + creator when the preferred date is edited.",

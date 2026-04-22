@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge, ServicePill } from "@/components/ui/Badge";
@@ -13,53 +13,154 @@ import {
   IconBuilding,
   IconArrowRight,
 } from "@/components/ui/Icons";
-import {
-  USERS,
-  ASSIGNMENTS,
-  SERVICES,
-  STATUS_META,
-  ServiceKey,
-  UserRole,
-} from "@/lib/mockData";
-
+import { prisma } from "@/lib/db";
+import { requireSession } from "@/lib/auth";
+import { canAdminUsers, canViewUser } from "@/lib/permissions";
 import { roleBadge } from "@/lib/roleColors";
+import { avatarImageUrl } from "@/lib/avatar";
+import { BE_DATE_FULL, initials } from "@/lib/format";
+import { STATUS_META, type Status } from "@/lib/mockData";
+import { DeleteUserButton } from "../DeleteUserButton";
+
+/**
+ * Treat a user as "online now" if their session touched the server within
+ * this window. Matches the 5-min heuristic Platform uses (User model at
+ * Platform/app/Models/User.php:68-73 derives online from `last_login_at`
+ * within 5 minutes).
+ */
+const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+
+type AuditRow = {
+  at: Date;
+  verb: string;
+  objectType: string | null;
+  objectId: string | null;
+  metadata: string | null;
+};
 
 export default async function UserDetail({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await requireSession();
   const { id } = await params;
-  const user = USERS.find((u) => u.id === id);
-  if (!user) notFound();
+
+  // Single query for the user + everything we render: memberships (with team),
+  // specialties (with service). Assignments + audits come from separate
+  // queries below because their filters differ by role.
+  const user = await prisma.user.findUnique({
+    where: { id },
+    include: {
+      memberships: {
+        orderBy: { joinedAt: "asc" },
+        include: {
+          team: { select: { id: true, name: true, city: true } },
+        },
+      },
+      specialties: {
+        include: {
+          service: {
+            select: {
+              key: true,
+              label: true,
+              short: true,
+              color: true,
+              description: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!user || user.deletedAt) notFound();
+
+  // Platform parity (UserController.php:42-46): staff cannot open admins or
+  // other staff; users may always open themselves.
+  if (!canViewUser(session, { id: user.id, role: user.role })) {
+    redirect("/no-access?section=users");
+  }
 
   const rb = roleBadge(user.role);
+  const fullName = `${user.firstName} ${user.lastName}`;
+  const primaryTeam = user.memberships[0]?.team ?? null;
+  const isOnline = user.lastSeenAt
+    ? Date.now() - user.lastSeenAt.getTime() < ONLINE_WINDOW_MS
+    : false;
 
-  const userAssignments = ASSIGNMENTS.filter((a) => {
-    if (user.role === "freelancer") return a.freelancer?.avatar === user.avatar;
-    if (user.role === "realtor") return a.team === user.team;
-    return false;
-  });
+  // Role-scoped "recent work" + stats. Admin/staff don't carry personal
+  // assignments — those sections render the generic empty state below.
+  // Mirror AssignmentsList.php:232 which scopes a freelancer's visible
+  // work to their own assigned rows; we apply the same rule here when
+  // viewing another user's detail.
+  const recentWhere =
+    user.role === "freelancer"
+      ? { freelancerId: user.id }
+      : user.role === "realtor"
+        ? { createdById: user.id }
+        : null;
 
-  const delivered = userAssignments.filter(
-    (a) => a.status === "delivered" || a.status === "completed",
-  ).length;
-  const active = userAssignments.filter(
-    (a) => a.status === "in_progress" || a.status === "scheduled",
-  ).length;
+  const [recentAssignments, totalAssignments, activeCount, deliveredCount, auditRows] =
+    await Promise.all([
+      recentWhere
+        ? prisma.assignment.findMany({
+            where: recentWhere,
+            orderBy: [{ completedAt: "desc" }, { preferredDate: "desc" }, { createdAt: "desc" }],
+            take: 6,
+            include: { services: { select: { serviceKey: true } } },
+          })
+        : Promise.resolve([]),
+      recentWhere
+        ? prisma.assignment.count({ where: recentWhere })
+        : Promise.resolve(0),
+      recentWhere
+        ? prisma.assignment.count({
+            where: { ...recentWhere, status: { in: ["scheduled", "in_progress"] } },
+          })
+        : Promise.resolve(0),
+      recentWhere
+        ? prisma.assignment.count({
+            where: { ...recentWhere, status: { in: ["delivered", "completed"] } },
+          })
+        : Promise.resolve(0),
+      prisma.auditLog.findMany({
+        where: { actorId: user.id },
+        orderBy: { at: "desc" },
+        take: 6,
+        select: {
+          at: true,
+          verb: true,
+          objectType: true,
+          objectId: true,
+          metadata: true,
+        },
+      }),
+    ]);
+
+  // Cache services to decorate recent-work pills. Small catalog + strong
+  // cache hit rate — one extra Prisma round-trip is cheap here.
+  const services =
+    recentAssignments.length > 0
+      ? await prisma.service.findMany({ select: { key: true, short: true, color: true } })
+      : [];
+  const servicesByKey = Object.fromEntries(services.map((s) => [s.key, s]));
+
+  const avatarSrc = avatarImageUrl(user);
 
   return (
     <>
-      <Topbar title={user.name} subtitle={`${rb.label} · ${user.team === "—" ? "No team" : user.team}`} />
+      <Topbar
+        title={fullName}
+        subtitle={`${rb.label} · ${primaryTeam?.name ?? "No team"}`}
+      />
 
       <div className="p-8 max-w-[1200px]">
-        {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-2 text-xs text-[var(--color-ink-muted)]">
           <Link href="/dashboard/users" className="hover:text-[var(--color-ink)]">
             Users
           </Link>
           <span aria-hidden>/</span>
-          <span className="text-[var(--color-ink-soft)]">{user.name}</span>
+          <span className="text-[var(--color-ink-soft)]">{fullName}</span>
         </nav>
 
         {/* Profile header card */}
@@ -91,10 +192,11 @@ export default async function UserDetail({
             />
           </div>
           <div className="relative px-6 pb-6">
-            {/* Avatar overlaps into the banner */}
             <div className="-mt-12 flex items-start justify-between gap-4">
               <Avatar
-                initials={user.avatar}
+                initials={initials(user.firstName, user.lastName)}
+                imageUrl={avatarSrc}
+                alt={fullName}
                 size="xl"
                 color="#0f172a"
               />
@@ -103,39 +205,53 @@ export default async function UserDetail({
                   <IconMail size={14} />
                   Message
                 </Button>
-                <Button variant="ghost" size="sm">
-                  Edit
-                </Button>
+                {canAdminUsers(session) && (
+                  <>
+                    <Button
+                      href={`/dashboard/users/${user.id}/edit`}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Edit
+                    </Button>
+                    {user.id !== session.user.id && (
+                      <DeleteUserButton
+                        userId={user.id}
+                        userName={fullName}
+                        redirectTo="/dashboard/users"
+                      />
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
             <div className="mt-4">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-ink)]">
-                  {user.name}
+                  {fullName}
                 </h1>
-                <span
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-ink-muted)]"
-                >
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-ink-muted)]">
                   <span
                     className={
                       "h-1.5 w-1.5 rounded-full " +
-                      (user.online
-                        ? "bg-[var(--color-epc)]"
-                        : "bg-[var(--color-ink-faint)]")
+                      (isOnline ? "bg-[var(--color-epc)]" : "bg-[var(--color-ink-faint)]")
                     }
                   />
-                  {user.online ? "Online now" : "Offline"}
+                  {isOnline ? "Online now" : user.lastSeenAt ? `Last seen ${relativeTime(user.lastSeenAt)}` : "Never signed in"}
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[var(--color-ink-soft)]">
-                <Badge bg={rb.bg} fg={rb.fg}>
-                  {rb.label}
-                </Badge>
-                {user.team !== "—" && (
+                <Badge bg={rb.bg} fg={rb.fg}>{rb.label}</Badge>
+                {primaryTeam && (
                   <>
                     <span className="text-[var(--color-ink-faint)]">·</span>
-                    <span>{user.team}</span>
+                    <Link
+                      href={`/dashboard/teams/${primaryTeam.id}`}
+                      className="hover:text-[var(--color-ink)]"
+                    >
+                      {primaryTeam.name}
+                    </Link>
                   </>
                 )}
                 {user.region && (
@@ -154,9 +270,7 @@ export default async function UserDetail({
           <div className="space-y-6 lg:col-span-2">
             {user.bio && (
               <Card>
-                <CardHeader>
-                  <CardTitle>About</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>About</CardTitle></CardHeader>
                 <CardBody>
                   <p className="text-sm leading-relaxed text-[var(--color-ink-soft)]">
                     {user.bio}
@@ -165,8 +279,7 @@ export default async function UserDetail({
               </Card>
             )}
 
-            {/* Role-specific: freelancer specialties */}
-            {user.role === "freelancer" && user.specialties && user.specialties.length > 0 && (
+            {user.role === "freelancer" && user.specialties.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Certifications</CardTitle>
@@ -176,28 +289,30 @@ export default async function UserDetail({
                 </CardHeader>
                 <CardBody>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {user.specialties.map((key) => (
-                      <SpecialtyCard key={key} serviceKey={key} />
+                    {user.specialties.map((sp) => (
+                      <SpecialtyCard
+                        key={sp.service.key}
+                        service={sp.service}
+                      />
                     ))}
                   </div>
                 </CardBody>
               </Card>
             )}
 
-            {/* Recent assignments */}
             <Card>
               <CardHeader className="flex items-center justify-between">
                 <div>
                   <CardTitle>Recent work</CardTitle>
-                  {userAssignments.length > 0 && (
+                  {recentAssignments.length > 0 && (
                     <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
-                      Showing last {Math.min(userAssignments.length, 6)} of {userAssignments.length}
+                      Showing last {recentAssignments.length} of {totalAssignments}
                     </p>
                   )}
                 </div>
               </CardHeader>
               <CardBody className="p-0">
-                {userAssignments.length === 0 ? (
+                {recentAssignments.length === 0 ? (
                   <div className="p-8 text-center text-sm text-[var(--color-ink-muted)]">
                     {user.role === "admin" || user.role === "staff"
                       ? "Admin & staff accounts don't carry assignments directly."
@@ -205,8 +320,8 @@ export default async function UserDetail({
                   </div>
                 ) : (
                   <ul className="divide-y divide-[var(--color-border)]">
-                    {userAssignments.slice(0, 6).map((a) => {
-                      const meta = STATUS_META[a.status];
+                    {recentAssignments.map((a) => {
+                      const meta = STATUS_META[a.status as Status] ?? STATUS_META.draft;
                       return (
                         <li key={a.id}>
                           <Link
@@ -228,13 +343,16 @@ export default async function UserDetail({
                             </div>
                             <div className="flex items-center gap-3">
                               <div className="flex gap-1">
-                                {a.services.slice(0, 3).map((s) => (
-                                  <ServicePill
-                                    key={s}
-                                    color={SERVICES[s].color}
-                                    label={SERVICES[s].short}
-                                  />
-                                ))}
+                                {a.services.slice(0, 3).map((s) => {
+                                  const svc = servicesByKey[s.serviceKey];
+                                  return svc ? (
+                                    <ServicePill
+                                      key={s.serviceKey}
+                                      color={svc.color}
+                                      label={svc.short}
+                                    />
+                                  ) : null;
+                                })}
                               </div>
                               <IconArrowRight
                                 size={14}
@@ -250,26 +368,18 @@ export default async function UserDetail({
               </CardBody>
             </Card>
 
-            {/* Activity timeline */}
             <Card>
-              <CardHeader>
-                <CardTitle>Recent activity</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Recent activity</CardTitle></CardHeader>
               <CardBody className="space-y-4">
-                <ActivityItem
-                  when="2 hr ago"
-                  text={
-                    user.role === "freelancer"
-                      ? "Delivered certificate for ASG-2026-1003"
-                      : "Created assignment ASG-2026-1007"
-                  }
-                />
-                <ActivityItem
-                  when="yesterday"
-                  text="Uploaded 3 files to ASG-2026-1004"
-                />
-                <ActivityItem when="2 days ago" text="Signed in from Brussels" />
-                <ActivityItem when="1 week ago" text="Profile updated" />
+                {auditRows.length === 0 ? (
+                  <p className="text-sm text-[var(--color-ink-muted)]">
+                    No recent activity.
+                  </p>
+                ) : (
+                  auditRows.map((row, i) => (
+                    <ActivityItem key={`${row.at.getTime()}-${i}`} row={row} />
+                  ))
+                )}
               </CardBody>
             </Card>
           </div>
@@ -277,9 +387,7 @@ export default async function UserDetail({
           {/* Sidebar */}
           <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
             <Card>
-              <CardHeader>
-                <CardTitle>Contact</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Contact</CardTitle></CardHeader>
               <CardBody className="space-y-3 text-sm">
                 <a
                   href={`mailto:${user.email}`}
@@ -303,49 +411,50 @@ export default async function UserDetail({
                     <span>{user.region}</span>
                   </div>
                 )}
-                {user.team !== "—" && (
+                {primaryTeam && (
                   <div className="flex items-center gap-3 text-[var(--color-ink-soft)]">
                     <IconBuilding size={15} className="shrink-0 text-[var(--color-ink-muted)]" />
-                    <Link href="/dashboard/teams" className="hover:text-[var(--color-ink)]">
-                      {user.team}
+                    <Link
+                      href={`/dashboard/teams/${primaryTeam.id}`}
+                      className="hover:text-[var(--color-ink)]"
+                    >
+                      {primaryTeam.name}
+                      {user.memberships.length > 1 && (
+                        <span className="ml-1 text-xs text-[var(--color-ink-muted)]">
+                          +{user.memberships.length - 1} more
+                        </span>
+                      )}
                     </Link>
                   </div>
                 )}
                 <div className="flex items-center gap-3 text-[var(--color-ink-soft)]">
                   <IconCalendar size={15} className="shrink-0 text-[var(--color-ink-muted)]" />
-                  <span>Joined {user.joined}</span>
+                  <span>Joined {BE_DATE_FULL.format(user.joinedAt)}</span>
                 </div>
               </CardBody>
             </Card>
 
             {(user.role === "freelancer" || user.role === "realtor") && (
               <Card>
-                <CardHeader>
-                  <CardTitle>At a glance</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>At a glance</CardTitle></CardHeader>
                 <CardBody className="grid grid-cols-2 gap-4">
-                  <Stat label="Active" value={active.toString()} />
+                  <Stat label="Active" value={activeCount.toString()} />
                   <Stat
                     label={user.role === "freelancer" ? "Delivered" : "Closed"}
-                    value={delivered.toString()}
+                    value={deliveredCount.toString()}
                   />
                   {user.role === "freelancer" ? (
-                    <Stat
-                      label="Services"
-                      value={(user.specialties?.length ?? 0).toString()}
-                    />
+                    <Stat label="Services" value={user.specialties.length.toString()} />
                   ) : (
-                    <Stat label="Team size" value="12" />
+                    <Stat label="Teams" value={user.memberships.length.toString()} />
                   )}
-                  <Stat label="Total" value={`${userAssignments.length}`} />
+                  <Stat label="Total" value={totalAssignments.toString()} />
                 </CardBody>
               </Card>
             )}
 
             <Card>
-              <CardHeader>
-                <CardTitle>Role & access</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Role & access</CardTitle></CardHeader>
               <CardBody className="space-y-2.5 text-sm">
                 {user.role === "admin" && (
                   <>
@@ -384,43 +493,125 @@ export default async function UserDetail({
   );
 }
 
-function SpecialtyCard({ serviceKey }: { serviceKey: ServiceKey }) {
-  const svc = SERVICES[serviceKey];
+// ─── Subcomponents ─────────────────────────────────────────────────
+
+type ServiceLite = {
+  key: string;
+  label: string;
+  short: string;
+  color: string;
+  description: string;
+};
+
+function SpecialtyCard({ service }: { service: ServiceLite }) {
   return (
     <div
       className="flex items-start gap-3 rounded-[var(--radius-md)] border bg-[var(--color-bg)] p-3"
       style={{
         borderLeftWidth: "3px",
-        borderLeftColor: svc.color,
+        borderLeftColor: service.color,
         borderColor: "var(--color-border)",
       }}
     >
       <span
         className="grid h-8 w-8 shrink-0 place-items-center rounded text-[10px] font-bold tracking-wider text-white"
-        style={{ backgroundColor: svc.color }}
+        style={{ backgroundColor: service.color }}
       >
-        {svc.short}
+        {service.short}
       </span>
       <div>
-        <p className="text-sm font-medium text-[var(--color-ink)]">{svc.label}</p>
+        <p className="text-sm font-medium text-[var(--color-ink)]">{service.label}</p>
+        <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">{service.description}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Single audit-log entry in the activity feed. Verb → friendly label via a
+ *  small map; unknown verbs fall back to a de-dotted rendering. */
+const VERB_LABELS: Record<string, string> = {
+  "assignment.created": "Created an assignment",
+  "assignment.updated": "Updated an assignment",
+  "assignment.started": "Started an inspection",
+  "assignment.delivered": "Delivered an inspection",
+  "assignment.completed": "Signed off on an assignment",
+  "assignment.cancelled": "Cancelled an assignment",
+  "assignment.deleted": "Deleted an assignment",
+  "assignment.reassigned": "Reassigned an inspector",
+  "assignment.file_uploaded": "Uploaded files",
+  "assignment.file_deleted": "Removed a file",
+  "assignment.commission_applied": "Commission recorded",
+  "commission.quarter_paid": "Marked a quarter paid",
+  "commission.quarter_unpaid": "Reopened a quarter",
+  "team.created": "Created a team",
+  "team.updated": "Updated a team",
+  "team.deleted": "Deleted a team",
+  "team.member_added": "Added a team member",
+  "team.member_removed": "Removed a team member",
+  "team.ownership_transferred": "Transferred ownership",
+  "user.created": "Created a user",
+  "user.deleted": "Deleted a user",
+  "user.profile_updated": "Updated profile",
+  "user.password_changed": "Changed password",
+  "user.email_changed": "Changed email",
+  "user.role_changed": "Changed role",
+  "user.signed_in": "Signed in",
+  "user.signed_out": "Signed out",
+  "invite.sent": "Sent an invite",
+  "invite.accepted": "Invite accepted",
+  "announcement.created": "Published an announcement",
+  "revenue_adjustment.created": "Added a revenue adjustment",
+  "calendar.connected": "Connected a calendar",
+  "calendar.disconnected": "Disconnected a calendar",
+};
+
+function verbLabel(verb: string): string {
+  return VERB_LABELS[verb] ?? verb.replace(/\./g, " ");
+}
+
+function ActivityItem({ row }: { row: AuditRow }) {
+  // Surface the reference / target when the metadata has one — turns
+  // "Created an assignment" into "Created assignment ASG-2026-1004".
+  let suffix = "";
+  if (row.metadata) {
+    try {
+      const meta = JSON.parse(row.metadata) as { reference?: string; title?: string; name?: string };
+      if (meta.reference) suffix = ` ${meta.reference}`;
+      else if (meta.title) suffix = `: ${meta.title}`;
+      else if (meta.name) suffix = `: ${meta.name}`;
+    } catch {
+      // Ignore malformed metadata; rare + non-critical.
+    }
+  }
+  return (
+    <div className="flex gap-3">
+      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--color-border-strong)]" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-[var(--color-ink)]">
+          {verbLabel(row.verb)}
+          {suffix}
+        </p>
         <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
-          {svc.description}
+          {relativeTime(row.at)}
         </p>
       </div>
     </div>
   );
 }
 
-function ActivityItem({ when, text }: { when: string; text: string }) {
-  return (
-    <div className="flex gap-3">
-      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--color-border-strong)]" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-[var(--color-ink)]">{text}</p>
-        <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">{when}</p>
-      </div>
-    </div>
-  );
+function relativeTime(from: Date): string {
+  const diffMs = Date.now() - from.getTime();
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  const mon = Math.floor(day / 30);
+  if (mon < 12) return `${mon}mo ago`;
+  return `${Math.floor(mon / 12)}y ago`;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

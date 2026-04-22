@@ -58,7 +58,15 @@ export default async function EditAssignment({
       name: assignment.ownerName,
       email: assignment.ownerEmail,
       phone: assignment.ownerPhone,
+      address: assignment.ownerAddress,
+      postal: assignment.ownerPostal,
+      city: assignment.ownerCity,
+      vatNumber: assignment.ownerVatNumber,
     },
+    clientType:
+      assignment.clientType === "owner" || assignment.clientType === "firm"
+        ? assignment.clientType
+        : null,
     tenant: {
       name: assignment.tenantName,
       email: assignment.tenantEmail,

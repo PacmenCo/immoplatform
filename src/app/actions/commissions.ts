@@ -109,6 +109,7 @@ export const markCommissionQuarterPaid = withSession(async (
   });
 
   revalidatePath("/dashboard/commissions");
+  revalidatePath("/dashboard/overview");
   revalidatePath(`/dashboard/teams/${input.teamId}`);
   return { ok: true };
 });
@@ -150,6 +151,7 @@ export const undoCommissionQuarterPaid = withSession(async (
   });
 
   revalidatePath("/dashboard/commissions");
+  revalidatePath("/dashboard/overview");
   revalidatePath(`/dashboard/teams/${input.teamId}`);
   return { ok: true };
 });

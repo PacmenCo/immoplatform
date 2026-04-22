@@ -73,6 +73,7 @@ type SidebarUser = {
   lastName: string;
   role: string;
   avatarInitials: string;
+  avatarUrl: string | null;
 };
 
 export function Sidebar({ user }: { user?: SidebarUser }) {
@@ -147,6 +148,7 @@ export function Sidebar({ user }: { user?: SidebarUser }) {
         >
           <Avatar
             initials={user?.avatarInitials ?? "JR"}
+            imageUrl={user?.avatarUrl ?? null}
             size="sm"
             color="#0f172a"
             online

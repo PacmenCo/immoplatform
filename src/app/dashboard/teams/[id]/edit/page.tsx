@@ -2,10 +2,12 @@ import { notFound } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { TeamForm, type TeamFormInitial } from "@/components/dashboard/TeamForm";
+import { BrandingCard } from "@/components/dashboard/BrandingCard";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { canEditTeam } from "@/lib/permissions";
 import { updateTeam } from "@/app/actions/teams";
+import { teamLogoImageUrl, teamSignatureImageUrl } from "@/lib/teamBranding";
 import { TeamPriceOverrides } from "./TeamPriceOverrides";
 
 export default async function EditTeamPage({
@@ -38,6 +40,10 @@ export default async function EditTeamPage({
         billingPostal: true,
         billingCity: true,
         billingCountry: true,
+        defaultClientType: true,
+        prefersLogoOnPhotos: true,
+        logoUrl: true,
+        signatureUrl: true,
         commissionType: true,
         commissionValue: true,
       },
@@ -75,6 +81,15 @@ export default async function EditTeamPage({
         initial={initial}
         cancelHref={`/dashboard/teams/${id}`}
       />
+
+      <div className="px-8 max-w-[960px]">
+        <BrandingCard
+          teamId={id}
+          teamName={team.name}
+          logoUrl={teamLogoImageUrl({ id, logoUrl: team.logoUrl })}
+          signatureUrl={teamSignatureImageUrl({ id, signatureUrl: team.signatureUrl })}
+        />
+      </div>
 
       <div className="px-8 pb-28 max-w-[960px] space-y-6">
         <Card>

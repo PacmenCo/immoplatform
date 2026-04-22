@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileTopbar } from "@/components/dashboard/MobileTopbar";
 import { getSession } from "@/lib/auth";
+import { avatarImageUrl } from "@/lib/avatar";
+import { initials } from "@/lib/format";
 import { getUserTeamIds, hasRole } from "@/lib/permissions";
 
 export default async function DashboardLayout({
@@ -31,8 +33,8 @@ export default async function DashboardLayout({
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
-          avatarInitials:
-            (user.firstName[0] ?? "") + (user.lastName[0] ?? ""),
+          avatarInitials: initials(user.firstName, user.lastName),
+          avatarUrl: avatarImageUrl(user),
         }}
       />
       <div className="flex-1 min-w-0">

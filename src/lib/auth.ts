@@ -131,6 +131,9 @@ export type AuditVerb =
   | "user.signed_out"
   | "user.created"
   | "user.password_changed"
+  | "user.profile_updated"
+  | "user.avatar_uploaded"
+  | "user.avatar_removed"
   | "password_reset.requested"
   | "session.team_switched"
   | "invite.sent"
@@ -158,7 +161,21 @@ export type AuditVerb =
   | "revenue_adjustment.created"
   | "revenue_adjustment.deleted"
   | "calendar.connected"
-  | "calendar.disconnected";
+  | "calendar.disconnected"
+  | "announcement.created"
+  | "announcement.updated"
+  | "announcement.deleted"
+  | "announcement.dismissed"
+  | "user.deleted"
+  | "user.sessions_revoked"
+  | "user.email_changed"
+  | "user.email_verified"
+  | "user.email_verification_sent"
+  | "assignment.deleted"
+  | "assignment.pdf_generated"
+  | "team.deleted"
+  | "team.member_removed"
+  | "user.role_changed";
 
 export async function audit(opts: {
   actorId?: string | null;

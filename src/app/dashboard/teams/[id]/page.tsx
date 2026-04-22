@@ -25,8 +25,11 @@ import { canEditTeam, getUserTeamIds, hasRole } from "@/lib/permissions";
 import { formatCommissionRate, formatEuros, initials } from "@/lib/format";
 import { quarterOf, quarterRange } from "@/lib/commission";
 import { roleBadge } from "@/lib/roleColors";
+import { teamLogoImageUrl, teamSignatureImageUrl } from "@/lib/teamBranding";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TransferOwnershipButton } from "./TransferOwnershipButton";
+import { DeleteTeamButton } from "./DeleteTeamButton";
+import { RemoveMemberButton } from "./RemoveMemberButton";
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -108,6 +111,9 @@ export default async function TeamDetailPage({
   ]);
 
   if (!team) notFound();
+
+  const logoImageUrl = teamLogoImageUrl({ id, logoUrl: team.logoUrl });
+  const signatureImageUrl = teamSignatureImageUrl({ id, signatureUrl: team.signatureUrl });
 
   const currentAmount = currentAccrual._sum.commissionAmountCents ?? 0;
   const currentLineCount = currentAccrual._count._all;
@@ -581,9 +587,16 @@ export default async function TeamDetailPage({
                             {m.joinedAt.toISOString().slice(0, 10)}
                           </td>
                           <td className="px-6 py-3 text-right">
-                            <Button variant="ghost" size="sm">
-                              Manage
-                            </Button>
+                            {canTransfer && m.teamRole !== "owner" && m.userId !== session.user.id ? (
+                              <RemoveMemberButton
+                                teamId={id}
+                                userId={m.userId}
+                                memberName={`${m.user.firstName} ${m.user.lastName}`}
+                                teamName={team.name}
+                              />
+                            ) : (
+                              <span className="text-xs text-[var(--color-ink-muted)]">—</span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -774,31 +787,54 @@ export default async function TeamDetailPage({
             </CardHeader>
             <CardBody className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
-                <Field label="Team logo" hint="PNG or SVG, square, min 256px">
-                  <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-[var(--color-border-strong)] bg-[var(--color-bg-alt)] p-8 text-center transition-colors hover:border-[var(--color-brand)]">
-                    <span
-                      className="grid h-14 w-14 place-items-center rounded-md text-base font-bold text-white"
-                      style={{ backgroundColor: team.logoColor ?? "#0f172a" }}
-                    >
-                      {team.logo ?? "??"}
-                    </span>
-                    <span className="text-sm text-[var(--color-ink-soft)]">
-                      {team.logoUrl ? "Replace logo" : "Drop logo here or click to upload"}
-                    </span>
-                    <input type="file" accept="image/*" className="hidden" />
-                  </label>
-                </Field>
-                <Field label="Signature image" hint="Used on certificates, transparent background preferred">
-                  <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-[var(--color-border-strong)] bg-[var(--color-bg-alt)] p-8 text-center transition-colors hover:border-[var(--color-brand)]">
-                    <span className="font-serif italic text-2xl text-[var(--color-ink-soft)]">
-                      {team.name.split(" ")[0]}
-                    </span>
-                    <span className="text-sm text-[var(--color-ink-soft)]">
-                      {team.signatureUrl ? "Replace signature" : "Drop signature PNG here"}
-                    </span>
-                    <input type="file" accept="image/*" className="hidden" />
-                  </label>
-                </Field>
+                <div>
+                  <p className="mb-2 text-sm font-medium text-[var(--color-ink)]">Team logo</p>
+                  {logoImageUrl ? (
+                    // Rendered via the /api/teams/:id/logo route; redirects to
+                    // a presigned URL on S3, streams bytes on local.
+                    <img
+                      src={logoImageUrl}
+                      alt={`${team.name} logo`}
+                      className="h-28 w-28 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] object-contain p-2"
+                    />
+                  ) : (
+                    <div className="grid h-28 w-28 place-items-center rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs text-[var(--color-ink-muted)]">
+                      No logo
+                    </div>
+                  )}
+                  <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
+                    {canTransfer ? (
+                      <Link href={`/dashboard/teams/${id}/edit#branding`} className="underline-offset-4 hover:underline">
+                        Upload or replace in Edit →
+                      </Link>
+                    ) : (
+                      <span>Shown on dashboards, assignments, and team cards.</span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-2 text-sm font-medium text-[var(--color-ink)]">Signature image</p>
+                  {signatureImageUrl ? (
+                    <img
+                      src={signatureImageUrl}
+                      alt={`${team.name} signature`}
+                      className="h-20 w-56 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] object-contain p-2"
+                    />
+                  ) : (
+                    <div className="grid h-20 w-56 place-items-center rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs text-[var(--color-ink-muted)]">
+                      No signature
+                    </div>
+                  )}
+                  <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
+                    {canTransfer ? (
+                      <Link href={`/dashboard/teams/${id}/edit#branding`} className="underline-offset-4 hover:underline">
+                        Upload or replace in Edit →
+                      </Link>
+                    ) : (
+                      <span>Stamped on certificates and signed assignment forms.</span>
+                    )}
+                  </p>
+                </div>
               </div>
 
               <label className="flex items-start justify-between gap-4 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-4">
@@ -1002,12 +1038,16 @@ export default async function TeamDetailPage({
         </section>
 
         <div className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] pt-6">
-          <Button variant="danger" size="sm">
-            Archive team
-          </Button>
-          <Button size="md">
+          {canTransfer ? (
+            <DeleteTeamButton teamId={id} teamName={team.name} />
+          ) : (
+            <span className="text-xs text-[var(--color-ink-muted)]">
+              Only team owners or admins can delete this team.
+            </span>
+          )}
+          <Button href={`/dashboard/teams/${id}/edit`} size="md">
             <IconCheck size={14} />
-            Save changes
+            Edit team
           </Button>
         </div>
       </div>

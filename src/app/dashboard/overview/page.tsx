@@ -12,6 +12,7 @@ import { hasRole } from "@/lib/permissions";
 import { formatEuros } from "@/lib/format";
 import { SERVICES, type ServiceKey } from "@/lib/mockData";
 import { loadFinancialOverview } from "@/lib/financial";
+import { quarterlyTotalsByTeam } from "@/lib/commission";
 import {
   MONTH_SHORT,
   QUARTERS,
@@ -22,13 +23,24 @@ import {
   periodLabel,
 } from "@/lib/period";
 import { AdjustmentsCard } from "./AdjustmentsCard";
+import { MarkPaidButton } from "@/app/dashboard/commissions/MarkPaidButton";
+import { TeamFilter } from "./TeamFilter";
+import { ByTeamSortHeader, type ByTeamSort } from "./ByTeamSortHeader";
 
 type SearchParams = Promise<{
   period?: string;
   year?: string;
   month?: string;
   quarter?: string;
+  team?: string;
+  sort?: string;
+  dir?: string;
 }>;
+
+const BY_TEAM_SORTS = ["team", "assignments", "revenue", "commission"] as const;
+function isByTeamSort(x: string | undefined): x is ByTeamSort {
+  return (BY_TEAM_SORTS as readonly string[]).includes(x ?? "");
+}
 
 function qs(p: Period): string {
   if (p.kind === "year") return `?period=year&year=${p.year}`;
@@ -66,12 +78,39 @@ export default async function OverviewPage({
 
   const params = await searchParams;
   const period = parsePeriod(params);
-  const snapshot = await loadFinancialOverview(period);
+  const teamId = (params.team ?? "").trim() || null;
+  const sort: ByTeamSort = isByTeamSort(params.sort) ? params.sort : "revenue";
+  const dir: "asc" | "desc" = params.dir === "asc" ? "asc" : "desc";
+
+  // Per-team quarterly payout state — only makes sense in quarter view.
+  // Loaded in parallel with the snapshot to keep the page single-RTT.
+  const [snapshot, quarterTotals] = await Promise.all([
+    loadFinancialOverview(period, { teamId }),
+    period.kind === "quarter"
+      ? quarterlyTotalsByTeam(period.year, period.quarter)
+      : Promise.resolve([]),
+  ]);
 
   const now = currentPeriod("month");
   const yearOptions = [now.year + 1, now.year, now.year - 1, now.year - 2];
   const { totals, byTeam, byService, byMonth, adjustments, allTeams } = snapshot;
   const outstanding = totals.commissionAccruedCents - totals.commissionPaidCents;
+
+  // financial.ts already narrows every query to the selected team, so byTeam
+  // is already scoped. Apply the URL's sort/dir on top. Team-name tie-breaker
+  // keeps the order deterministic when the primary key ties (e.g. two teams
+  // with equal assignment counts).
+  const sortedByTeam = [...byTeam].sort((a, b) => {
+    const mul = dir === "asc" ? 1 : -1;
+    const tiebreak = a.teamName.localeCompare(b.teamName);
+    if (sort === "team") return mul * tiebreak;
+    if (sort === "assignments") return mul * (a.assignmentCount - b.assignmentCount) || tiebreak;
+    if (sort === "commission") return mul * (a.commissionAccruedCents - b.commissionAccruedCents) || tiebreak;
+    return mul * (a.revenueCents - b.revenueCents) || tiebreak;
+  });
+
+  // Quarter view — which teams have a payout row already? We key by teamId.
+  const payoutByTeam = new Map(quarterTotals.map((q) => [q.teamId, q]));
 
   const defaultAdjMonth =
     period.kind === "month"
@@ -90,6 +129,7 @@ export default async function OverviewPage({
           <YearPicker period={period} years={yearOptions} />
           {period.kind === "quarter" && <QuarterPicker period={period} />}
           {period.kind === "month" && <MonthPicker period={period} />}
+          <TeamFilter value={teamId ?? ""} teams={allTeams} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-4">
@@ -142,34 +182,43 @@ export default async function OverviewPage({
             </Link>
           </CardHeader>
           <CardBody className="p-0">
-            {byTeam.length === 0 ? (
+            {sortedByTeam.length === 0 ? (
               <EmptyState
                 variant="dashed"
                 icon={<IconChart size={22} />}
                 title={`No revenue booked in ${periodLabel(period)}`}
-                description="Revenue is booked when an assignment reaches 'completed'. Nothing completed yet this period."
+                description={
+                  teamId
+                    ? "No revenue for that team in this period. Try removing the team filter or switching period."
+                    : "Revenue is booked when an assignment reaches 'completed'. Nothing completed yet this period."
+                }
               />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
-                      <th className="px-6 py-3 text-left font-semibold">Team</th>
-                      <th className="px-6 py-3 text-right font-semibold">Assignments</th>
-                      <th className="px-6 py-3 text-right font-semibold">Revenue</th>
-                      <th className="px-6 py-3 text-right font-semibold">Commission</th>
+                      <ByTeamSortHeader id="team" label="Team" currentSort={sort} currentDir={dir} />
+                      <ByTeamSortHeader id="assignments" label="Assignments" currentSort={sort} currentDir={dir} align="right" />
+                      <ByTeamSortHeader id="revenue" label="Revenue" currentSort={sort} currentDir={dir} align="right" />
+                      <ByTeamSortHeader id="commission" label="Commission" currentSort={sort} currentDir={dir} align="right" />
                       <th className="px-6 py-3 text-right font-semibold">Paid</th>
                       <th className="px-6 py-3 text-left font-semibold">Status</th>
+                      {period.kind === "quarter" && (
+                        <th className="px-6 py-3 text-right font-semibold">Payout</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--color-border)]">
-                    {byTeam.map((row) => {
+                    {sortedByTeam.map((row) => {
                       const fullyPaid =
                         row.commissionAccruedCents > 0 &&
                         row.commissionPaidCents >= row.commissionAccruedCents;
                       const partial =
                         row.commissionPaidCents > 0 &&
                         row.commissionPaidCents < row.commissionAccruedCents;
+                      const quarterPayout =
+                        period.kind === "quarter" ? payoutByTeam.get(row.teamId) : null;
                       return (
                         <tr key={row.teamId} className="hover:bg-[var(--color-bg-alt)]">
                           <td className="px-6 py-3">
@@ -211,6 +260,22 @@ export default async function OverviewPage({
                               <span className="text-xs text-[var(--color-ink-muted)]">Outstanding</span>
                             )}
                           </td>
+                          {period.kind === "quarter" && (
+                            <td className="px-6 py-3 text-right">
+                              {/* Show mark-paid only when there's actually commission accrued
+                                  for the quarter; otherwise the quarter has nothing to pay out. */}
+                              {row.commissionAccruedCents > 0 ? (
+                                <MarkPaidButton
+                                  teamId={row.teamId}
+                                  year={period.year}
+                                  quarter={period.quarter}
+                                  isPaid={!!quarterPayout?.payout}
+                                />
+                              ) : (
+                                <span className="text-xs text-[var(--color-ink-muted)]">—</span>
+                              )}
+                            </td>
+                          )}
                         </tr>
                       );
                     })}

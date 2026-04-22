@@ -17,7 +17,17 @@ type ServiceRow = {
   description: string;
 };
 
-type OwnerContact = { name: string; email: string | null; phone: string | null };
+type OwnerContact = {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  // Owner invoicing fields — Platform parity (AssignmentController.php:162-164).
+  // Shown in the "Invoicing details" card below the Owner section.
+  address: string | null;
+  postal: string | null;
+  city: string | null;
+  vatNumber: string | null;
+};
 type TenantContact = {
   name: string | null;
   email: string | null;
@@ -34,6 +44,8 @@ export type AssignmentFormInitial = {
   isLargeProperty: boolean;
   services: string[];
   owner: OwnerContact;
+  /** 'owner' (particulier) vs 'firm' (bedrijf). Drives invoice routing. */
+  clientType: "owner" | "firm" | null;
   tenant: TenantContact;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -278,6 +290,74 @@ export function AssignmentForm({
               defaultValue={initial?.owner.phone ?? ""}
             />
           </Field>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Invoicing details</CardTitle>
+          <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+            Used on the invoice PDF. Leave blank to use the property address.
+          </p>
+        </CardHeader>
+        <CardBody className="grid gap-5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Field
+              label="Invoice recipient"
+              id="client-type"
+              hint="Particulier = billed to the owner personally. Firm = billed to the company (VAT required)."
+            >
+              <Select
+                id="client-type"
+                name="client-type"
+                defaultValue={initial?.clientType ?? ""}
+              >
+                <option value="">Use team default</option>
+                <option value="owner">Particulier (owner)</option>
+                <option value="firm">Firm (bedrijf)</option>
+              </Select>
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Owner invoicing address" id="owner-address">
+              <Input
+                id="owner-address"
+                name="owner-address"
+                placeholder="Meir 42"
+                defaultValue={initial?.owner.address ?? ""}
+              />
+            </Field>
+          </div>
+          <Field label="Postal code" id="owner-postal">
+            <Input
+              id="owner-postal"
+              name="owner-postal"
+              placeholder="2000"
+              defaultValue={initial?.owner.postal ?? ""}
+            />
+          </Field>
+          <Field label="City" id="owner-city">
+            <Input
+              id="owner-city"
+              name="owner-city"
+              placeholder="Antwerpen"
+              defaultValue={initial?.owner.city ?? ""}
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field
+              label="VAT number"
+              id="owner-vat"
+              hint="Required for firm invoices (e.g. BE 0712.345.678)."
+            >
+              <Input
+                id="owner-vat"
+                name="owner-vat"
+                placeholder="BE 0712.345.678"
+                defaultValue={initial?.owner.vatNumber ?? ""}
+              />
+            </Field>
+          </div>
         </CardBody>
       </Card>
 

@@ -60,7 +60,7 @@ export async function GET(
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
-  const bytes = await store.readBuffer(storageKey);
+  const bytes = await store.read(storageKey);
   if (!bytes) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   const safeName = safeHeaderFilename(row.originalName);

@@ -1,76 +1,65 @@
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Field, Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { prisma } from "@/lib/db";
+import { requireSession } from "@/lib/auth";
+import { formatUserAgent } from "@/lib/userAgent";
+import { PasswordChangeForm } from "./PasswordChangeForm";
+import { RevokeSessionButton, SignOutAllButton } from "./SessionRowActions";
 
-const SESSIONS = [
-  {
-    id: "s_1",
-    device: "MacBook Pro — Safari 18",
-    location: "Antwerpen, Belgium",
-    lastActive: "Active now",
-    current: true,
-  },
-  {
-    id: "s_2",
-    device: "iPhone 16 — Immo iOS",
-    location: "Antwerpen, Belgium",
-    lastActive: "2 hours ago",
-    current: false,
-  },
-  {
-    id: "s_3",
-    device: "Windows 11 — Chrome 139",
-    location: "Brussels, Belgium",
-    lastActive: "3 days ago",
-    current: false,
-  },
-];
+function relativeTime(from: Date, now: Date): string {
+  const diffMs = now.getTime() - from.getTime();
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return "Active now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} minute${min === 1 ? "" : "s"} ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hour${hr === 1 ? "" : "s"} ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day} day${day === 1 ? "" : "s"} ago`;
+  const mon = Math.floor(day / 30);
+  if (mon < 12) return `${mon} month${mon === 1 ? "" : "s"} ago`;
+  return `${Math.floor(mon / 12)} year${Math.floor(mon / 12) === 1 ? "" : "s"} ago`;
+}
 
-export default function SecuritySettingsPage() {
+export default async function SecuritySettingsPage() {
+  const session = await requireSession();
+
+  const sessions = await prisma.session.findMany({
+    where: {
+      userId: session.user.id,
+      revokedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { lastSeenAt: "desc" },
+    select: {
+      id: true,
+      userAgent: true,
+      ip: true,
+      lastSeenAt: true,
+      createdAt: true,
+    },
+  });
+
+  const now = new Date();
+  const otherCount = sessions.filter((s) => s.id !== session.id).length;
+
   return (
     <>
       <Topbar title="Security" subtitle="Password, 2FA and active sessions" />
 
       <div className="p-8 max-w-[960px] space-y-8">
-        <div className="flex items-start gap-3 rounded-md border border-[color-mix(in_srgb,var(--color-electrical)_40%,var(--color-bg))] bg-[color-mix(in_srgb,var(--color-electrical)_10%,var(--color-bg))] p-4">
-          <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--color-electrical)] text-xs font-bold text-white">
-            !
-          </span>
-          <div className="text-sm">
-            <p className="font-medium text-[var(--color-ink)]">
-              Unusual sign-in detected
-            </p>
-            <p className="text-[var(--color-ink-soft)]">
-              A new device signed in from Brussels 3 days ago. If this wasn&apos;t you,
-              change your password immediately.
-            </p>
-          </div>
-        </div>
-
         <Card>
           <CardHeader>
             <CardTitle>Change password</CardTitle>
             <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-              Use at least 10 characters with a mix of letters, numbers and symbols.
+              Use at least 8 characters including a letter and a number. Other
+              devices will be signed out when you save.
             </p>
           </CardHeader>
           <CardBody>
-            <div className="grid gap-5 sm:max-w-md">
-              <Field label="Current password" id="current-pw">
-                <Input id="current-pw" type="password" autoComplete="current-password" />
-              </Field>
-              <Field label="New password" id="new-pw" hint="At least 10 characters.">
-                <Input id="new-pw" type="password" autoComplete="new-password" />
-              </Field>
-              <Field label="Confirm new password" id="confirm-pw">
-                <Input id="confirm-pw" type="password" autoComplete="new-password" />
-              </Field>
-              <div>
-                <Button variant="primary" size="md">Update password</Button>
-              </div>
-            </div>
+            <PasswordChangeForm />
           </CardBody>
         </Card>
 
@@ -94,7 +83,9 @@ export default function SecuritySettingsPage() {
                   Scan a QR code with Google Authenticator, 1Password or similar.
                 </p>
               </div>
-              <Button variant="primary" size="md">Set up 2FA</Button>
+              <Button variant="secondary" size="md" disabled title="Coming soon">
+                Set up 2FA
+              </Button>
             </div>
           </CardBody>
         </Card>
@@ -107,38 +98,48 @@ export default function SecuritySettingsPage() {
             </p>
           </CardHeader>
           <CardBody className="p-0">
-            <ul className="divide-y divide-[var(--color-border)]">
-              {SESSIONS.map((s) => (
-                <li
-                  key={s.id}
-                  className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-[var(--color-ink)]">
-                        {s.device}
-                      </p>
-                      {s.current && (
-                        <Badge
-                          bg="color-mix(in srgb, var(--color-epc) 14%, var(--color-bg))"
-                          fg="var(--color-epc)"
-                        >
-                          This device
-                        </Badge>
+            {sessions.length === 0 ? (
+              <div className="p-8 text-center text-sm text-[var(--color-ink-muted)]">
+                No active sessions.
+              </div>
+            ) : (
+              <ul className="divide-y divide-[var(--color-border)]">
+                {sessions.map((s) => {
+                  const ua = formatUserAgent(s.userAgent);
+                  const isCurrent = s.id === session.id;
+                  return (
+                    <li
+                      key={s.id}
+                      className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-[var(--color-ink)]">
+                            {ua.label}
+                          </p>
+                          {isCurrent && (
+                            <Badge
+                              bg="color-mix(in srgb, var(--color-epc) 14%, var(--color-bg))"
+                              fg="var(--color-epc)"
+                            >
+                              This device
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
+                          {s.ip ?? "IP unknown"} · {relativeTime(s.lastSeenAt, now)}
+                        </p>
+                      </div>
+                      {isCurrent ? (
+                        <span className="text-xs text-[var(--color-ink-muted)]">—</span>
+                      ) : (
+                        <RevokeSessionButton sessionId={s.id} device={ua.label} />
                       )}
-                    </div>
-                    <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
-                      {s.location} · {s.lastActive}
-                    </p>
-                  </div>
-                  {s.current ? (
-                    <span className="text-xs text-[var(--color-ink-muted)]">—</span>
-                  ) : (
-                    <Button variant="ghost" size="sm">Revoke</Button>
-                  )}
-                </li>
-              ))}
-            </ul>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </CardBody>
         </Card>
 
@@ -149,8 +150,11 @@ export default function SecuritySettingsPage() {
           <CardBody className="flex items-center justify-between gap-4">
             <p className="text-sm text-[var(--color-ink-soft)]">
               Revoke every session except this one.
+              {otherCount > 0 && (
+                <> Currently <strong>{otherCount}</strong> other session{otherCount === 1 ? "" : "s"} active.</>
+              )}
             </p>
-            <Button variant="danger" size="sm">Sign out all</Button>
+            <SignOutAllButton hasOthers={otherCount > 0} />
           </CardBody>
         </Card>
       </div>

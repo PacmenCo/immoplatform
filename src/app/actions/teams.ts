@@ -67,6 +67,13 @@ const teamSchema = z.object({
   billingCity: optString(80),
   billingCountry: optString(80),
 
+  defaultClientType: z
+    .enum(["owner", "firm"])
+    .or(z.literal(""))
+    .optional()
+    .transform((v) => (v ? v : null)),
+  prefersLogoOnPhotos: z.boolean(),
+
   // Commission
   commissionType: z
     .enum(["percentage", "fixed", "none"])
@@ -97,6 +104,8 @@ function readTeamFormData(formData: FormData) {
     billingPostal: (formData.get("billingPostal") as string) || "",
     billingCity: (formData.get("billingCity") as string) || "",
     billingCountry: (formData.get("billingCountry") as string) || "",
+    defaultClientType: (formData.get("defaultClientType") as string) || "",
+    prefersLogoOnPhotos: formData.get("prefersLogoOnPhotos") != null,
     commissionType: (formData.get("commissionType") as string) || "none",
     commissionValue: (formData.get("commissionValue") as string) || "",
   };
@@ -140,6 +149,8 @@ export const createTeam = withSession(async (
         billingPostal: d.billingPostal ?? null,
         billingCity: d.billingCity ?? null,
         billingCountry: d.billingCountry ?? null,
+        defaultClientType: d.defaultClientType ?? null,
+        prefersLogoOnPhotos: d.prefersLogoOnPhotos,
         commissionType: d.commissionType ?? null,
         commissionValue: d.commissionValue ?? null,
       },
@@ -204,6 +215,8 @@ export const updateTeam = withSession(async (
       billingPostal: d.billingPostal ?? null,
       billingCity: d.billingCity ?? null,
       billingCountry: d.billingCountry ?? null,
+      defaultClientType: d.defaultClientType ?? null,
+      prefersLogoOnPhotos: d.prefersLogoOnPhotos,
       commissionType: d.commissionType ?? null,
       commissionValue: d.commissionValue ?? null,
     },
@@ -222,7 +235,102 @@ export const updateTeam = withSession(async (
   redirect(`/dashboard/teams/${teamId}`);
 });
 
-// ─── Transfer ownership ────────────────────────────────────────────
+// ─── Delete ────────────────────────────────────────────────────────
+
+/**
+ * Blocks deletion when the team still owns any assignments. Assignment.teamId
+ * is `ON DELETE SET NULL`, so without this guard, invoices and commission
+ * lines would silently orphan — we'd rather refuse and force the admin to
+ * reassign or delete the history first.
+ */
+export const deleteTeam = withSession(async (
+  session,
+  teamId: string,
+): Promise<ActionResult> => {
+  if (!(await canEditTeam(session, teamId))) {
+    return { ok: false, error: "You don't have permission to delete this team." };
+  }
+
+  const [team, assignmentCount] = await Promise.all([
+    prisma.team.findUnique({
+      where: { id: teamId },
+      select: { id: true, name: true },
+    }),
+    prisma.assignment.count({ where: { teamId } }),
+  ]);
+  if (!team) return { ok: false, error: "Team not found." };
+  if (assignmentCount > 0) {
+    return {
+      ok: false,
+      error: `This team has ${assignmentCount} assignment${assignmentCount === 1 ? "" : "s"} on record. Delete or reassign those first — historical teams can't be removed while history references them.`,
+    };
+  }
+
+  await prisma.team.delete({ where: { id: teamId } });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "team.deleted",
+    objectType: "team",
+    objectId: teamId,
+    metadata: { name: team.name },
+  });
+
+  revalidatePath("/dashboard/teams");
+  revalidatePath(`/dashboard/teams/${teamId}`);
+  revalidatePath("/dashboard/users");
+  revalidatePath("/dashboard");
+  return { ok: true };
+});
+
+// ─── Remove member ─────────────────────────────────────────────────
+
+/**
+ * Remove a non-owner member from a team. Owner removal goes through the
+ * transfer-ownership flow instead — doing it here would leave the team
+ * without an owner.
+ */
+export const removeTeamMember = withSession(async (
+  session,
+  teamId: string,
+  userId: string,
+): Promise<ActionResult> => {
+  if (!(await canEditTeam(session, teamId))) {
+    return { ok: false, error: "You don't have permission to manage this team's members." };
+  }
+
+  const membership = await prisma.teamMember.findUnique({
+    where: { teamId_userId: { teamId, userId } },
+    select: { teamRole: true, user: { select: { firstName: true, lastName: true } } },
+  });
+  if (!membership) return { ok: false, error: "That user is not on this team." };
+  if (membership.teamRole === "owner") {
+    return {
+      ok: false,
+      error: "Transfer ownership to another member before removing the current owner.",
+    };
+  }
+
+  await prisma.teamMember.delete({
+    where: { teamId_userId: { teamId, userId } },
+  });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "team.member_removed",
+    objectType: "team",
+    objectId: teamId,
+    metadata: {
+      userId,
+      memberName: `${membership.user.firstName} ${membership.user.lastName}`,
+    },
+  });
+
+  revalidatePath(`/dashboard/teams/${teamId}`);
+  revalidatePath("/dashboard/teams");
+  revalidatePath("/dashboard/users");
+  return { ok: true };
+});
 
 // ─── Team price list overrides ─────────────────────────────────────
 
