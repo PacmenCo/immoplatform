@@ -1,0 +1,41 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Prisma db push (SQLite)
+        # Scoped DATABASE_URL: setting it job-wide would override the
+        # auto-generated tmp path in src/__tests__/_helpers/env.ts (which
+        # uses `??=`), and the smoke test asserts the path matches
+        # /immo-test-/. Prisma only needs the URL for this one CLI call.
+        env:
+          DATABASE_URL: file:/tmp/test.db
+        run: npx prisma db push --accept-data-loss --skip-generate
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test

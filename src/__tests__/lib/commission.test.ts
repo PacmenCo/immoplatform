@@ -203,4 +203,55 @@ describe("computeCommission — fixed math", () => {
     });
     expect(r?.amountCents).toBe(750);
   });
+
+  it("fixed commission is NOT capped at total when total < fixed (Platform parity)", () => {
+    // Platform: `computeCommissionAmount(30.00, 'fixed', 50.00) === 50.00`.
+    // Parity spec: totalCents=3_000 + fixed=5_000 still pays out 5_000 in full —
+    // the previous "total=0" case alone doesn't prove this because 0 is a
+    // special edge; here the total is positive-but-below-fixed.
+    const r = computeCommission({
+      totalCents: 3_000,
+      team: { commissionType: "fixed", commissionValue: 5_000 },
+    });
+    expect(r?.amountCents).toBe(5_000);
+  });
+});
+
+describe("computeCommission — parity spot-checks", () => {
+  // Platform CommissionServiceTest::test_compute_commission_amount_percentage:
+  //   computeCommissionAmount(200.00, 'percentage', 15.00) === 30.00
+  // In our cents/bps idiom that's 20_000 cents × 1500 bps = 3_000 cents.
+  // Existing tests use 100_000 cents which can hide off-by-100-cents scaling
+  // bugs — the clean 20_000 × 15 % case locks down Platform's canonical numbers.
+  it("percentage clean-integer case: 15% of €200 = €30", () => {
+    const r = computeCommission({
+      totalCents: 20_000,
+      team: { commissionType: "percentage", commissionValue: 1500 },
+    });
+    expect(r?.amountCents).toBe(3_000);
+  });
+
+  it("handles very large totals without overflow (10 M €)", () => {
+    // 15% of €10_000_000 = €1_500_000. JS Number is safe up to 2^53,
+    // so 1_000_000_000 × 1500 = 1.5e12 is comfortably below — but the
+    // assertion is cheap insurance against someone swapping to a different
+    // numeric type.
+    const r = computeCommission({
+      totalCents: 1_000_000_000,
+      team: { commissionType: "percentage", commissionValue: 1500 },
+    });
+    expect(r?.amountCents).toBe(150_000_000);
+  });
+
+  it("fixed commission combined with percentage team → only configured type applies", () => {
+    // Platform's team row stores ONE (type, value) pair — there's no hybrid.
+    // Guard against a refactor that accidentally applies both by asserting
+    // a team with type="fixed" completely ignores any percentage surcharge
+    // intuition. Using a weird totalCents proves the return is unrelated.
+    const r = computeCommission({
+      totalCents: 99_999_999,
+      team: { commissionType: "fixed", commissionValue: 4_200 },
+    });
+    expect(r).toEqual({ amountCents: 4_200, type: "fixed", value: 4_200 });
+  });
 });

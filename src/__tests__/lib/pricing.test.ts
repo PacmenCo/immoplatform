@@ -87,6 +87,39 @@ describe("computePricing — subtotal", () => {
     expect(r.lines[0].lineCents).toBe(0);
     expect(r.subtotalCents).toBe(0);
   });
+
+  // Platform AssignmentPricingServiceTeamPriceListTest parity spot-checks.
+  // Immo's lines map 1:1 to Platform's team_price_list_items — the assertion
+  // below locks Platform's canonical "qty=3 × €50 = €150" number directly so
+  // a future refactor can't silently change the multiplier without a test.
+  it.each([
+    { qty: 1, unit: 10_000, expected: 10_000 },
+    { qty: 3, unit: 5_000, expected: 15_000 }, // Platform: 3 × 50.00 = 150.00
+    { qty: 5, unit: 12_345, expected: 61_725 },
+  ])("qty=$qty × unit=$unit cents → $expected cents", ({ qty, unit, expected }) => {
+    const r = computePricing(
+      pricing({
+        lines: [{ serviceKey: "asbestos", unitPriceCents: unit, quantity: qty }],
+      }),
+    );
+    expect(r.subtotalCents).toBe(expected);
+  });
+
+  it("two heterogeneous lines sum independently (Platform 100 + 75.50 parity)", () => {
+    // Platform test_team_pricelist_items_add_to_total asserts €100 + €75.50 = €175.50.
+    // Immo mirrors with 10_000 + 7_550 cents = 17_550 — a single line's
+    // floor shouldn't leak into the sibling line.
+    const r = computePricing(
+      pricing({
+        lines: [
+          { serviceKey: "asbestos", unitPriceCents: 10_000, quantity: 1 },
+          { serviceKey: "asbestos", unitPriceCents: 7_550, quantity: 1 },
+        ],
+      }),
+    );
+    expect(r.subtotalCents).toBe(17_550);
+    expect(r.totalCents).toBe(17_550);
+  });
 });
 
 describe("computePricing — surcharge", () => {

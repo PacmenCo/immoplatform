@@ -35,8 +35,19 @@ export async function resetDb(opts?: { force?: boolean }): Promise<void> {
     const tables: Array<{ name: string }> = await prisma.$queryRawUnsafe(
       `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma_%'`,
     );
-    for (const { name } of tables) {
-      await prisma.$executeRawUnsafe(`DELETE FROM "${name}"`);
+    // SQLite enforces FKs eagerly; because sqlite_master's table order is
+    // not dependency-sorted, a plain DELETE-from-each loop hits FK errors
+    // on tables whose children haven't been emptied yet (e.g. `services`
+    // before `assignment_services`). Dropping the check for the scope of
+    // the reset is the standard SQLite truncation idiom — safe inside
+    // tests because we're wiping everything to a known-empty state.
+    await prisma.$executeRawUnsafe(`PRAGMA foreign_keys = OFF`);
+    try {
+      for (const { name } of tables) {
+        await prisma.$executeRawUnsafe(`DELETE FROM "${name}"`);
+      }
+    } finally {
+      await prisma.$executeRawUnsafe(`PRAGMA foreign_keys = ON`);
     }
     return;
   }
