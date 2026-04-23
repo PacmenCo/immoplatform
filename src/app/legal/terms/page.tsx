@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import { TAP_TARGET_LINK } from "@/components/ui/tap-target";
 
 const sections = [
   {
@@ -155,13 +156,10 @@ export default function TermsPage() {
           <div className="mx-auto grid max-w-[var(--container)] gap-12 px-6 lg:grid-cols-[220px_1fr]">
             <aside className="lg:sticky lg:top-24 lg:self-start">
               <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">On this page</p>
-              <ul className="mt-4 space-y-2 text-sm">
+              <ul className="mt-4 space-y-1 text-sm">
                 {sections.map((s) => (
                   <li key={s.id}>
-                    <Link
-                      href={`#${s.id}`}
-                      className="text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
-                    >
+                    <Link href={`#${s.id}`} className={TAP_TARGET_LINK}>
                       {s.title}
                     </Link>
                   </li>
@@ -169,7 +167,7 @@ export default function TermsPage() {
               </ul>
             </aside>
 
-            <article className="max-w-none">
+            <article className="max-w-prose">
               {sections.map((s) => (
                 <section key={s.id} id={s.id} className="mb-12 scroll-mt-24">
                   <h2 className="text-2xl font-semibold tracking-tight text-[var(--color-ink)]">{s.title}</h2>

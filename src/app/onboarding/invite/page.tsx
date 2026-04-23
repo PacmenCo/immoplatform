@@ -104,7 +104,7 @@ export default function OnboardingInvitePage() {
                 <button
                   type="button"
                   aria-label="Remove row"
-                  className="grid h-10 w-10 place-items-center rounded-md text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+                  className="grid h-11 w-11 place-items-center rounded-md text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
                 >
                   ×
                 </button>

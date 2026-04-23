@@ -188,8 +188,8 @@ export default function PricingPage() {
               </p>
             </div>
 
-            <div className="mt-10 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
-              <table className="w-full text-sm">
+            <div className="mt-10 overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
+              <table className="w-full min-w-[720px] text-sm">
                 <thead className="bg-[var(--color-bg-muted)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
                   <tr>
                     <th className="px-6 py-3 text-left font-medium">Service</th>
@@ -233,8 +233,8 @@ export default function PricingPage() {
               </p>
             </div>
 
-            <div className="mt-10 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
-              <table className="w-full text-sm">
+            <div className="mt-10 overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead className="bg-[var(--color-bg-muted)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
                   <tr>
                     <th className="px-6 py-3 text-left font-medium">Feature</th>

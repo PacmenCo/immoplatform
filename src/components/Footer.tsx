@@ -1,3 +1,5 @@
+import { TAP_TARGET_LINK } from "@/components/ui/tap-target";
+
 const columns = [
   {
     title: "Services",
@@ -58,12 +60,12 @@ export default function Footer() {
               <p className="text-sm font-semibold text-[var(--color-ink)]">
                 {col.title}
               </p>
-              <ul className="mt-4 space-y-3">
+              <ul className="mt-4 space-y-1">
                 {col.links.map((link) => (
                   <li key={link.label}>
                     <a
                       href={link.href}
-                      className="text-sm text-[var(--color-ink-soft)] transition-colors hover:text-[var(--color-ink)]"
+                      className={`${TAP_TARGET_LINK} text-sm transition-colors`}
                     >
                       {link.label}
                     </a>

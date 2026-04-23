@@ -51,7 +51,7 @@ export function MobileNav() {
             <li key={l.href}>
               <Link
                 href={l.href}
-                className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+                className="flex min-h-11 items-center justify-between rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
               >
                 {l.label}
               </Link>
@@ -61,13 +61,13 @@ export function MobileNav() {
         <div className="mt-2 border-t border-[var(--color-border)] pt-2">
           <Link
             href="/login"
-            className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+            className="flex min-h-11 items-center justify-between rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
           >
             Log in
           </Link>
           <Link
             href="/register"
-            className="mt-1 flex items-center justify-center rounded-md bg-[var(--color-brand)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-brand-soft)]"
+            className="mt-1 flex min-h-11 items-center justify-center rounded-md bg-[var(--color-brand)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-brand-soft)]"
           >
             Register as agent
           </Link>
