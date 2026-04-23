@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import {
   audit,
   clearSession,
+  getUserPasswordHash,
   hashPassword,
   verifyPassword,
 } from "@/lib/auth";
@@ -56,11 +57,7 @@ export const changePassword = withSession(async (
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   }
 
-  const { passwordHash } = (await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { passwordHash: true },
-  })) ?? { passwordHash: null };
-
+  const passwordHash = await getUserPasswordHash(session.user.id);
   if (!passwordHash) {
     // Users who signed up via invite + password-reset flow always have a hash.
     // A missing hash is a data bug; fail safely rather than letting the change go through.
@@ -130,11 +127,7 @@ export const deleteOwnAccount = withSession(async (
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Enter your password." };
   }
-  const { passwordHash } = (await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { passwordHash: true },
-  })) ?? { passwordHash: null };
-
+  const passwordHash = await getUserPasswordHash(session.user.id);
   if (!passwordHash) {
     return { ok: false, error: "Your account has no password set — cannot confirm deletion." };
   }

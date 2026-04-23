@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/auth";
 import { canManageAnnouncements } from "@/lib/permissions";
+import { ANNOUNCEMENT_TYPES } from "@/lib/announcementTypes";
 import { withSession, type ActionResult } from "./_types";
 
 /**
@@ -15,8 +16,6 @@ import { withSession, type ActionResult } from "./_types";
  * Dates arrive as `YYYY-MM-DD` from <input type="date"> and are normalised
  * to start-of-day / end-of-day UTC so a same-day window covers the full 24 h.
  */
-
-const TYPES = ["info", "success", "warning", "danger"] as const;
 
 const announcementSchema = z.object({
   title: z
@@ -29,7 +28,7 @@ const announcementSchema = z.object({
     .trim()
     .min(1, "Body is required.")
     .max(2000, "Keep the body under 2000 characters."),
-  type: z.enum(TYPES),
+  type: z.enum(ANNOUNCEMENT_TYPES),
   startsAt: z
     .string()
     .trim()

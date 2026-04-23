@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { hasRole } from "@/lib/permissions";
 import { LocalStorage, storage } from "@/lib/storage";
 import { TEAM_SIGNATURE_EXT_TO_MIME } from "@/lib/teamBranding";
+import { IMAGE_SAFETY_HEADERS } from "@/lib/imageServeHeaders";
 
 /**
  * Serves a team's signature image. Unlike the logo, this is more
@@ -76,8 +77,7 @@ export async function GET(
       "Content-Type": mime,
       "Content-Length": String(bytes.byteLength),
       "Cache-Control": "private, max-age=31536000, immutable",
-      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
-      "X-Content-Type-Options": "nosniff",
+      ...IMAGE_SAFETY_HEADERS,
     },
   });
 }

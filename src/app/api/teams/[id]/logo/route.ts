@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { LocalStorage, storage } from "@/lib/storage";
 import { TEAM_LOGO_EXT_TO_MIME } from "@/lib/teamBranding";
+import { IMAGE_SAFETY_HEADERS } from "@/lib/imageServeHeaders";
 
 /**
  * Serves a team's logo bytes. Session-gated — team logos show on the
@@ -61,12 +62,7 @@ export async function GET(
       "Content-Type": mime,
       "Content-Length": String(bytes.byteLength),
       "Cache-Control": "private, max-age=31536000, immutable",
-      // SVG logos are rendered as documents when the URL is opened directly,
-      // so the browser would otherwise execute embedded <script> or on*
-      // handlers. CSP + sandbox + nosniff block script execution and stop
-      // MIME-sniffing fallbacks. Harmless for PNG/JPG/WebP/GIF too.
-      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
-      "X-Content-Type-Options": "nosniff",
+      ...IMAGE_SAFETY_HEADERS,
     },
   });
 }

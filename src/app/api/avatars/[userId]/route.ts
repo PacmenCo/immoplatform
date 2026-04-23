@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { LocalStorage, storage } from "@/lib/storage";
 import { AVATAR_EXT_TO_MIME } from "@/lib/avatar";
+import { IMAGE_SAFETY_HEADERS } from "@/lib/imageServeHeaders";
 
 /**
  * Serves a user's avatar bytes. Session-gated — any signed-in dashboard
@@ -74,8 +75,7 @@ export async function GET(
       "Content-Type": mime,
       "Content-Length": String(bytes.byteLength),
       "Cache-Control": "private, max-age=31536000, immutable",
-      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
-      "X-Content-Type-Options": "nosniff",
+      ...IMAGE_SAFETY_HEADERS,
     },
   });
 }

@@ -119,6 +119,20 @@ export async function requireSession(): Promise<SessionWithUser> {
   return s;
 }
 
+/**
+ * Fetch a user's password hash. `SessionWithUser` deliberately omits the hash
+ * so it can't leak through server-action returns or audit metadata, so flows
+ * that need to verify a password (change-password, delete-account) call this
+ * at the point of use instead.
+ */
+export async function getUserPasswordHash(userId: string): Promise<string | null> {
+  const row = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { passwordHash: true },
+  });
+  return row?.passwordHash ?? null;
+}
+
 export async function requireRole(
   roles: Array<"admin" | "staff" | "realtor" | "freelancer">,
 ): Promise<SessionWithUser> {

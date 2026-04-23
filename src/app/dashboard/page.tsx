@@ -14,6 +14,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { assignmentScope, composeWhere, role, userScope, type Role } from "@/lib/permissions";
 import { AnnouncementBanner } from "@/components/dashboard/AnnouncementBanner";
+import { loadActiveAnnouncements } from "@/lib/announcements";
 
 const UPCOMING_LINK_LABEL: Record<Role, string> = {
   admin: "View all",
@@ -39,8 +40,16 @@ export default async function DashboardHome() {
   const uScope = await userScope(session);
   const r = role(session);
 
-  const [active, dueThisWeek, deliveredMtd, services, upcoming, recentAudits, memberCount] =
-    await Promise.all([
+  const [
+    active,
+    dueThisWeek,
+    deliveredMtd,
+    services,
+    upcoming,
+    recentAudits,
+    memberCount,
+    announcements,
+  ] = await Promise.all([
       prisma.assignment.count({
         where: composeWhere(
           { status: { in: ["scheduled", "in_progress"] } },
@@ -79,6 +88,7 @@ export default async function DashboardHome() {
       prisma.user.count({
         where: composeWhere({ deletedAt: null }, uScope),
       }),
+      loadActiveAnnouncements(session.user.id),
     ]);
 
   const servicesByKey = Object.fromEntries(services.map((s) => [s.key, s]));
@@ -110,7 +120,7 @@ export default async function DashboardHome() {
     <>
       <Topbar title="Overview" subtitle={`Welcome back, ${session.user.firstName}`} />
       <div className="p-8 space-y-8 max-w-[1400px]">
-        <AnnouncementBanner userId={session.user.id} />
+        <AnnouncementBanner items={announcements} />
 
         <section aria-labelledby="stats-title">
           <h2 id="stats-title" className="sr-only">
