@@ -1,0 +1,35 @@
+// Pins the test environment BEFORE any test module imports.
+// Loaded via `vitest.config.ts#test.setupFiles` so it runs once per fork,
+// ahead of any user `import`. Adjust via `vi.stubEnv(...)` inside a test
+// if you need to exercise a specific env code path.
+
+// Per-test-run SQLite file in the OS tmp dir. We use a real file (not
+// `file::memory:`) so `prisma db push`, which runs in a subprocess, sees
+// the same database as the in-process test client — `file::memory:` is
+// scoped to a single process and can't be shared with a spawned CLI.
+// Path includes a random suffix so parallel `npm test` invocations don't
+// collide. The file is cleaned up by `disconnectDb()` in db.ts.
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+const testDbDir = mkdtempSync(join(tmpdir(), "immo-test-"));
+process.env.DATABASE_URL ??= `file:${join(testDbDir, "test.db")}`;
+
+// Email dispatcher logs to console instead of sending. Matches the default
+// behavior of src/lib/email.tsx when EMAIL_PROVIDER is unset or "dev".
+process.env.EMAIL_PROVIDER ??= "dev";
+process.env.EMAIL_FROM ??= "noreply@immo.test";
+
+// Short-circuit calendar sync so tests never hit Google / Outlook.
+// Gate is implemented at the top of src/lib/calendar/sync.ts.
+process.env.SKIP_CALENDAR_SYNC ??= "1";
+
+// Cron Bearer — used by /api/cron/* routes. Tests sign their requests
+// with this value via the authorizeBearerToken helper.
+process.env.CRON_SECRET ??= "test-cron-secret";
+
+// Base URL for absolute-URL helpers (email templates, calendar links).
+process.env.NEXT_PUBLIC_APP_URL ??= "http://localhost:3000";
+
+// NODE_ENV is set to "test" by Vitest automatically — don't reassign here,
+// Next's TS types mark it read-only.

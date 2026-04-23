@@ -35,6 +35,11 @@ export async function syncAssignmentToCalendars(
   assignmentId: string,
   action: CalendarAction,
 ): Promise<void> {
+  // Test-environment short-circuit. Set SKIP_CALENDAR_SYNC=1 to keep unit
+  // + integration tests off the Google / Outlook wire. No side effects,
+  // no exceptions — matches the "best-effort, never throws" contract.
+  if (process.env.SKIP_CALENDAR_SYNC === "1") return;
+
   try {
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
