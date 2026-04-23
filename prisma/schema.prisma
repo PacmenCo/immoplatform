@@ -36,6 +36,7 @@ model User {
   bio             String?
   joinedAt        DateTime  @default(now())
   lastSeenAt      DateTime?
+  lastLoginAt     DateTime?
   deletedAt       DateTime?
   emailPrefs      String?   // JSON: { eventKey: boolean } — absent key or absent column = default-enabled
 

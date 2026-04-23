@@ -89,6 +89,14 @@ export async function login(
     activeTeamId: firstMembership?.teamId ?? null,
   });
 
+  // Platform parity (Models/User.php + 2025_06_19_211159 migration): bump
+  // `lastLoginAt` only on successful password login — distinct from the
+  // continuous `lastSeenAt` heartbeat that getSession() refreshes.
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
+
   await audit({
     actorId: user.id,
     verb: "user.signed_in",

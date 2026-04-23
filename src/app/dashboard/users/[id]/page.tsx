@@ -17,18 +17,11 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { canAdminUsers, canViewUser } from "@/lib/permissions";
 import { roleBadge } from "@/lib/roleColors";
+import { isOnline } from "@/lib/userStatus";
 import { avatarImageUrl } from "@/lib/avatar";
 import { BE_DATE_FULL, initials } from "@/lib/format";
 import { STATUS_META, type Status } from "@/lib/mockData";
 import { DeleteUserButton } from "../DeleteUserButton";
-
-/**
- * Treat a user as "online now" if their session touched the server within
- * this window. Matches the 5-min heuristic Platform uses (User model at
- * Platform/app/Models/User.php:68-73 derives online from `last_login_at`
- * within 5 minutes).
- */
-const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
 type AuditRow = {
   at: Date;
@@ -84,9 +77,7 @@ export default async function UserDetail({
   const rb = roleBadge(user.role);
   const fullName = `${user.firstName} ${user.lastName}`;
   const primaryTeam = user.memberships[0]?.team ?? null;
-  const isOnline = user.lastSeenAt
-    ? Date.now() - user.lastSeenAt.getTime() < ONLINE_WINDOW_MS
-    : false;
+  const online = isOnline(user);
 
   // Role-scoped "recent work" + stats. Admin/staff don't carry personal
   // assignments — those sections render the generic empty state below.
@@ -235,10 +226,10 @@ export default async function UserDetail({
                   <span
                     className={
                       "h-1.5 w-1.5 rounded-full " +
-                      (isOnline ? "bg-[var(--color-epc)]" : "bg-[var(--color-ink-faint)]")
+                      (online ? "bg-[var(--color-epc)]" : "bg-[var(--color-ink-faint)]")
                     }
                   />
-                  {isOnline ? "Online now" : user.lastSeenAt ? `Last seen ${relativeTime(user.lastSeenAt)}` : "Never signed in"}
+                  {online ? "Online now" : user.lastSeenAt ? `Last seen ${relativeTime(user.lastSeenAt)}` : "Never signed in"}
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[var(--color-ink-soft)]">

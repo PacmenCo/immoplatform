@@ -15,6 +15,7 @@ import {
 } from "@/lib/permissions";
 import { initials } from "@/lib/format";
 import { roleBadge } from "@/lib/roleColors";
+import { isOnline } from "@/lib/userStatus";
 import { SearchInput } from "@/components/dashboard/SearchInput";
 import type { Prisma } from "@prisma/client";
 import { PendingInviteRow } from "./PendingInviteRow";
@@ -117,6 +118,7 @@ export default async function UsersPage({
 
   const canAdmin = canAdminUsers(session);
   const now = new Date();
+  const nowMs = now.getTime();
 
   return (
     <>
@@ -227,6 +229,7 @@ export default async function UsersPage({
                   const teamName = u.memberships[0]?.team.name ?? "—";
                   const fullName = `${u.firstName} ${u.lastName}`;
                   const canDelete = canAdmin && u.id !== session.user.id;
+                  const online = isOnline(u, nowMs);
                   return (
                     <tr
                       key={u.id}
@@ -260,7 +263,17 @@ export default async function UsersPage({
                         {u.joinedAt.toISOString().slice(0, 10)}
                       </td>
                       <td className="px-6 py-3 text-sm text-[var(--color-ink-muted)] tabular-nums">
-                        {relativeTime(u.lastSeenAt, now)}
+                        {online ? (
+                          <span className="inline-flex items-center gap-1.5 font-medium text-[#047857]">
+                            <span
+                              aria-hidden
+                              className="inline-block h-2 w-2 rounded-full bg-[#10b981]"
+                            />
+                            Online
+                          </span>
+                        ) : (
+                          relativeTime(u.lastSeenAt, now)
+                        )}
                       </td>
                       <td className="px-6 py-3 text-right">
                         <div className="inline-flex items-center gap-2">
