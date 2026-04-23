@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import type { AnnouncementBannerItem } from "@/components/dashboard/AnnouncementBanner";
+import type { ActiveAnnouncement, AnnouncementType } from "@/lib/announcementTypes";
 
 /**
  * Load the active, in-window, not-yet-dismissed announcements for a user.
@@ -9,9 +9,9 @@ import type { AnnouncementBannerItem } from "@/components/dashboard/Announcement
  */
 export async function loadActiveAnnouncements(
   userId: string,
-): Promise<AnnouncementBannerItem[]> {
+): Promise<ActiveAnnouncement[]> {
   const now = new Date();
-  return prisma.announcement.findMany({
+  const rows = await prisma.announcement.findMany({
     where: {
       isActive: true,
       startsAt: { lte: now },
@@ -27,4 +27,5 @@ export async function loadActiveAnnouncements(
       isDismissible: true,
     },
   });
+  return rows.map((r) => ({ ...r, type: r.type as AnnouncementType }));
 }

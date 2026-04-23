@@ -1,19 +1,11 @@
 import { AnnouncementDismissButton } from "./AnnouncementDismissButton";
-import type { AnnouncementType } from "@/lib/announcementTypes";
+import type { ActiveAnnouncement, AnnouncementType } from "@/lib/announcementTypes";
 
 /**
  * Presentational banner stack for dashboard home. The caller loads the rows
  * (see `loadActiveAnnouncements`) so the query can run alongside the page's
  * other dashboard queries in a single Promise.all.
  */
-
-export type AnnouncementBannerItem = {
-  id: string;
-  title: string;
-  body: string;
-  type: string;
-  isDismissible: boolean;
-};
 
 const TONE_STYLES: Record<AnnouncementType, string> = {
   info: "border-[var(--color-brand)]/30 bg-[var(--color-brand)]/5 text-[var(--color-ink)]",
@@ -22,13 +14,13 @@ const TONE_STYLES: Record<AnnouncementType, string> = {
   danger: "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-100",
 };
 
-export function AnnouncementBanner({ items }: { items: AnnouncementBannerItem[] }) {
+export function AnnouncementBanner({ items }: { items: ActiveAnnouncement[] }) {
   if (items.length === 0) return null;
 
   return (
     <section aria-label="Announcements" className="space-y-3">
       {items.map((a) => {
-        const tone = TONE_STYLES[a.type as AnnouncementType] ? (a.type as AnnouncementType) : "info";
+        const tone = TONE_STYLES[a.type] ? a.type : "info";
         return (
           <div
             key={a.id}
