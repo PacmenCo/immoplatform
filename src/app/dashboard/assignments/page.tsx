@@ -21,6 +21,7 @@ import {
 import { initials } from "@/lib/format";
 import { StatusPicker } from "./StatusPicker";
 import { FiltersBar } from "./FiltersBar";
+import { AssignmentFilesButton } from "./AssignmentFilesButton";
 import type { Prisma } from "@prisma/client";
 
 const statusOrder: Status[] = [
@@ -281,6 +282,7 @@ export default async function AssignmentsList({
                     <th className="text-left font-semibold px-6 py-3">Freelancer</th>
                     <SortHeader current={currentState} id="date" label="Preferred date" />
                     <SortHeader current={currentState} id="status" label="Status" />
+                    <th className="text-left font-semibold px-6 py-3" aria-label="Files" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
@@ -353,6 +355,12 @@ export default async function AssignmentsList({
                           <StatusPicker
                             assignmentId={a.id}
                             status={a.status as Status}
+                          />
+                        </td>
+                        <td className="px-2 py-3">
+                          <AssignmentFilesButton
+                            assignmentId={a.id}
+                            reference={a.reference}
                           />
                         </td>
                       </tr>

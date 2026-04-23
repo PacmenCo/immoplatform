@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
@@ -15,8 +16,22 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { passwordResetEmail, sendEmail } from "@/lib/email";
+import {
+  checkRateLimit,
+  clientIpFromHeaders,
+  RATE_LIMITS,
+  resetRateLimit,
+} from "@/lib/rateLimit";
 import { passwordResetUrl } from "@/lib/urls";
 import type { ActionResult } from "./_types";
+
+function rateLimitedError(retryAfterSec: number): ActionResult {
+  const minutes = Math.ceil(retryAfterSec / 60);
+  return {
+    ok: false,
+    error: `Too many attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+  };
+}
 
 // ─── LOGIN ─────────────────────────────────────────────────────────
 
@@ -37,6 +52,14 @@ export async function login(
     return { ok: false, error: "Enter your email and password." };
   }
 
+  // Platform parity: 5 attempts per (email, ip) per 60s. IP-awareness stops
+  // one attacker from locking a victim out by guessing their email + wrong
+  // password from a different machine.
+  const ip = clientIpFromHeaders(await headers());
+  const rlKey = `login:${parsed.data.email}:${ip}`;
+  const rl = checkRateLimit(rlKey, RATE_LIMITS.login);
+  if (!rl.ok) return rateLimitedError(rl.retryAfterSec);
+
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
 
   // Constant-time-ish dance: always run bcrypt.compare so timing doesn't leak
@@ -52,6 +75,8 @@ export async function login(
     });
     return { ok: false, error: "Invalid email or password." };
   }
+
+  resetRateLimit(rlKey);
 
   // Pick an active team if the user has memberships.
   const firstMembership = await prisma.teamMember.findFirst({
@@ -105,6 +130,12 @@ export async function forgotPassword(
     return { ok: false, error: "Enter a valid email address." };
   }
 
+  // Per-email throttle avoids email-flooding an account. Per-IP would be
+  // stricter but would block NAT'd offices; per-email is the closer match
+  // to Laravel's Password broker default.
+  const rl = checkRateLimit(`forgot:${parsed.data.email}`, RATE_LIMITS.forgotPassword);
+  if (!rl.ok) return rateLimitedError(rl.retryAfterSec);
+
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (user && !user.deletedAt) {
     const token = generateToken();
@@ -156,8 +187,14 @@ export async function resetPassword(
     return { ok: false, error: "Passwords don't match." };
   }
 
+  // Guard token-consume from brute force; the window is long since legitimate
+  // password-manager retries are rare.
+  const tokenHash = hashToken(parsed.data.token);
+  const rl = checkRateLimit(`reset:${tokenHash}`, RATE_LIMITS.resetPassword);
+  if (!rl.ok) return rateLimitedError(rl.retryAfterSec);
+
   const reset = await prisma.passwordReset.findUnique({
-    where: { tokenHash: hashToken(parsed.data.token) },
+    where: { tokenHash },
     include: { user: true },
   });
   if (!reset || reset.usedAt || reset.expiresAt < new Date()) {

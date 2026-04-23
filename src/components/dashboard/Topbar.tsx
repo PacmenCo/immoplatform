@@ -1,6 +1,7 @@
-import { IconSearch, IconBell, IconPlus } from "@/components/ui/Icons";
+import { IconBell, IconPlus } from "@/components/ui/Icons";
 import { Button } from "@/components/ui/Button";
 import { TeamSwitcher } from "./TeamSwitcher";
+import { TopbarSearch } from "./TopbarSearch";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { getSession } from "@/lib/auth";
 import { hasRole } from "@/lib/permissions";
@@ -28,17 +29,7 @@ export async function Topbar({
       </div>
 
       <div className="flex flex-1 max-w-md items-center">
-        <div className="relative w-full">
-          <IconSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-muted)]" />
-          <input
-            type="search"
-            placeholder="Search assignments, teams, users…"
-            className="w-full h-9 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] pl-9 pr-12 text-sm placeholder:text-[var(--color-ink-faint)] transition-colors hover:bg-[var(--color-bg)] hover:border-[var(--color-border-strong)] focus:bg-[var(--color-bg)] focus:border-[var(--color-ink-soft)] focus:ring-2 focus:ring-[var(--color-brand)]/10 focus:outline-none"
-          />
-          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden xl:inline-flex h-5 items-center gap-0.5 rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-1.5 text-[10px] font-medium text-[var(--color-ink-muted)]">
-            ⌘K
-          </kbd>
-        </div>
+        <TopbarSearch />
       </div>
 
       <div className="flex items-center gap-1.5">

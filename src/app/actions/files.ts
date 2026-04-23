@@ -318,6 +318,51 @@ export const deleteAssignmentFile = withSession(async (
 
 // ─── Get download URL ──────────────────────────────────────────────
 
+/**
+ * List the non-deleted files on an assignment, for rendering in the
+ * download modal on the assignments list. Uses `canViewAssignmentFiles` —
+ * visible to admin/staff, the team's members, the creator, and the
+ * assigned freelancer.
+ */
+export const listAssignmentFiles = withSession(async (
+  session,
+  assignmentId: string,
+): Promise<
+  ActionResult<{
+    files: Array<{
+      id: string;
+      lane: string;
+      originalName: string;
+      mimeType: string;
+      sizeBytes: number;
+      createdAt: Date;
+    }>;
+  }>
+> => {
+  const assignment = await prisma.assignment.findUnique({
+    where: { id: assignmentId },
+    select: { teamId: true, freelancerId: true, createdById: true },
+  });
+  if (!assignment) return { ok: false, error: "Assignment not found." };
+  if (!(await canViewAssignmentFiles(session, assignment))) {
+    return { ok: false, error: "You don't have permission to see this assignment's files." };
+  }
+
+  const files = await prisma.assignmentFile.findMany({
+    where: { assignmentId, deletedAt: null },
+    orderBy: [{ lane: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      lane: true,
+      originalName: true,
+      mimeType: true,
+      sizeBytes: true,
+      createdAt: true,
+    },
+  });
+  return { ok: true, data: { files } };
+});
+
 export const getAssignmentFileDownloadUrl = withSession(async (
   session,
   fileId: string,
