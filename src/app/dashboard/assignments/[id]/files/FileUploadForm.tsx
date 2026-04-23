@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dropzone } from "@/components/ui/Dropzone";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { useToast } from "@/components/ui/Toast";
 import { uploadAssignmentFiles } from "@/app/actions/files";
 import { FILE_CONSTRAINTS, type FileLane } from "@/lib/file-constraints";
 import type { ActionResult } from "@/app/actions/_types";
@@ -24,21 +25,34 @@ export function FileUploadForm({
 
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  // `files` clears on success before the toast fires, so capture the count
+  // at submit-time for the confirmation message.
+  const lastSubmittedCount = useRef(0);
 
-  // Clear picked files on successful server upload + surface server errors
-  // into the single `error` channel so ErrorAlert shows them.
   useEffect(() => {
     if (!state) return;
     if (state.ok) {
+      const n = lastSubmittedCount.current;
       setFiles([]);
       setError(null);
+      if (n > 0) {
+        toast.success(`Uploaded ${n} file${n === 1 ? "" : "s"}.`);
+      }
     } else {
       setError(state.error);
+      toast.error(state.error);
     }
-  }, [state]);
+  }, [state, toast]);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      action={(fd) => {
+        lastSubmittedCount.current = files.length;
+        return formAction(fd);
+      }}
+      className="space-y-4"
+    >
       {error && <ErrorAlert>{error}</ErrorAlert>}
 
       <Dropzone
@@ -56,8 +70,12 @@ export function FileUploadForm({
             : "Drop floor plans, photos or notes"
         }
         maxMB={constraints.maxMB}
-        onError={setError}
+        onError={(msg) => {
+          setError(msg);
+          toast.error(msg);
+        }}
         disabled={pending}
+        uploading={pending}
       />
 
       <div className="flex items-center justify-between">

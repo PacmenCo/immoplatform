@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { formatBytes } from "@/lib/format";
 import { MAX_FILES_PER_UPLOAD } from "@/lib/file-constraints";
 import { IconX } from "./Icons";
+import { Spinner } from "./Spinner";
 
 function IconUpload({ size = 24, className }: { size?: number; className?: string }) {
   return (
@@ -42,6 +43,13 @@ type Props = {
   maxMB?: number;
   className?: string;
   disabled?: boolean;
+  /**
+   * True while the enclosing form's action is in flight. Renders a
+   * spinner in place of each file's remove button and pulses a
+   * subtle in-progress stripe on the row. Server actions don't expose
+   * byte-level progress, so this is deliberately indeterminate.
+   */
+  uploading?: boolean;
   /** Called with a friendly message when client-side validation rejects. */
   onError?: (message: string) => void;
 };
@@ -57,6 +65,7 @@ export function Dropzone({
   maxMB,
   className,
   disabled,
+  uploading,
   onError,
 }: Props) {
   const inputId = useId();
@@ -159,7 +168,10 @@ export function Dropzone({
           {files.map((f, i) => (
             <li
               key={`${f.name}-${i}`}
-              className="flex items-center gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
+              className={cn(
+                "flex items-center gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm transition-opacity",
+                uploading && "opacity-80 animate-pulse",
+              )}
             >
               <span className="min-w-0 flex-1 truncate text-[var(--color-ink)]">
                 {f.name}
@@ -167,14 +179,23 @@ export function Dropzone({
               <span className="shrink-0 text-xs text-[var(--color-ink-muted)] tabular-nums">
                 {formatBytes(f.size)}
               </span>
-              <button
-                type="button"
-                onClick={() => remove(i)}
-                aria-label={`Remove ${f.name}`}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded text-[var(--color-ink-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
-              >
-                <IconX size={14} />
-              </button>
+              {uploading ? (
+                <span
+                  aria-label={`Uploading ${f.name}`}
+                  className="grid h-9 w-9 shrink-0 place-items-center text-[var(--color-brand)]"
+                >
+                  <Spinner />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => remove(i)}
+                  aria-label={`Remove ${f.name}`}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded text-[var(--color-ink-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+                >
+                  <IconX size={14} />
+                </button>
+              )}
             </li>
           ))}
         </ul>

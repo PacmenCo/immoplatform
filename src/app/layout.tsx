@@ -4,6 +4,7 @@ import "./globals.css";
 import { SkipLink } from "@/components/ui/SkipLink";
 import { ThemeScript } from "@/components/theme/ThemeScript";
 import { UnsavedChangesProvider } from "@/components/dashboard/UnsavedChangesProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,7 +62,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <SkipLink />
-        <UnsavedChangesProvider>{children}</UnsavedChangesProvider>
+        <ToastProvider>
+          <UnsavedChangesProvider>{children}</UnsavedChangesProvider>
+        </ToastProvider>
       </body>
     </html>
   );

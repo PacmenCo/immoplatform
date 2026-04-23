@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import type { SessionWithUser } from "./auth";
 import type { Role } from "./permissions.types";
+import { parseRole } from "./enum-validation";
 
 // ─── Roles ─────────────────────────────────────────────────────────
 
@@ -11,8 +12,12 @@ import type { Role } from "./permissions.types";
 // `import { Role } from "@/lib/permissions"` keep working.
 export type { Role };
 
+// Run every session-derived role through parseRole so a drifted
+// `users.role` value falls back to "freelancer" (least-privileged) and
+// emits a warning, instead of silently typing through as an unexpected
+// Role literal.
 export function role(s: SessionWithUser): Role {
-  return s.user.role as Role;
+  return parseRole(s.user.role, "session.user.role");
 }
 
 export function hasRole(s: SessionWithUser, ...rs: Role[]): boolean {

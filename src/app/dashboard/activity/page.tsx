@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -5,36 +6,21 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { IconFilter, IconSearch } from "@/components/ui/Icons";
+import { prisma } from "@/lib/db";
+import { requireSession } from "@/lib/auth";
+import { hasRole } from "@/lib/permissions";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { initials } from "@/lib/format";
 
-type Row = {
-  timestamp: string;
-  actorName: string;
-  actorInitials: string;
-  action: string;
-  kind: "auth" | "create" | "update" | "status" | "delete" | "system";
-  target: string;
-  ip: string;
-};
+// Max rows shown without paginator — 200 is enough to see "recent" activity
+// without triggering a big row read on every page visit. Filter UI (below)
+// is intentionally unwired in this pass; a follow-up wires ?from / ?to /
+// ?kind / ?q into the prisma query.
+const ROW_LIMIT = 200;
 
-const ROWS: Row[] = [
-  { timestamp: "2026-04-18 09:41:12", actorName: "Jordan Remy", actorInitials: "JR", action: "Logged in", kind: "auth", target: "—", ip: "91.183.24.12" },
-  { timestamp: "2026-04-18 09:38:55", actorName: "Els Vermeulen", actorInitials: "EV", action: "Created assignment", kind: "create", target: "ASG-2026-1007", ip: "81.244.88.3" },
-  { timestamp: "2026-04-18 09:14:02", actorName: "Tim De Vos", actorInitials: "TV", action: "Updated status to delivered", kind: "status", target: "ASG-2026-1003", ip: "193.121.44.78" },
-  { timestamp: "2026-04-18 08:57:30", actorName: "Sofie Janssens", actorInitials: "SJ", action: "Uploaded report file", kind: "update", target: "ASG-2026-1002", ip: "81.83.110.2" },
-  { timestamp: "2026-04-17 18:22:10", actorName: "Marie Lefevre", actorInitials: "ML", action: "Updated team branding", kind: "update", target: "t_02 · Immo Bruxelles", ip: "91.183.24.12" },
-  { timestamp: "2026-04-17 16:05:48", actorName: "System", actorInitials: "SY", action: "Generated monthly invoices", kind: "system", target: "March 2026 batch", ip: "—" },
-  { timestamp: "2026-04-17 14:41:09", actorName: "Pierre Dubois", actorInitials: "PD", action: "Invited user", kind: "create", target: "u_new · lucas@immobruxelles.be", ip: "81.244.88.3" },
-  { timestamp: "2026-04-17 13:12:55", actorName: "Jordan Remy", actorInitials: "JR", action: "Changed commission rate to 15%", kind: "update", target: "t_04 · Mechelen Makelaars", ip: "91.183.24.12" },
-  { timestamp: "2026-04-17 11:02:17", actorName: "Nele Willems", actorInitials: "NW", action: "Marked scheduled", kind: "status", target: "ASG-2026-1006", ip: "81.83.110.2" },
-  { timestamp: "2026-04-17 09:08:44", actorName: "Dieter Claes", actorInitials: "DC", action: "Logged in", kind: "auth", target: "—", ip: "193.121.44.78" },
-  { timestamp: "2026-04-16 22:41:01", actorName: "System", actorInitials: "SY", action: "Nightly Odoo sync completed", kind: "system", target: "sync_20260416", ip: "—" },
-  { timestamp: "2026-04-16 17:15:33", actorName: "Jordan Remy", actorInitials: "JR", action: "Archived announcement", kind: "delete", target: "an_3 · Commission payout delayed", ip: "91.183.24.12" },
-  { timestamp: "2026-04-16 15:03:19", actorName: "Els Vermeulen", actorInitials: "EV", action: "Updated owner contact", kind: "update", target: "ASG-2026-1001", ip: "81.244.88.3" },
-  { timestamp: "2026-04-16 10:48:02", actorName: "Tim De Vos", actorInitials: "TV", action: "Failed login", kind: "auth", target: "—", ip: "193.121.44.78" },
-  { timestamp: "2026-04-16 09:22:11", actorName: "Jordan Remy", actorInitials: "JR", action: "Published announcement", kind: "create", target: "an_2 · New electrical inspection", ip: "91.183.24.12" },
-];
+type Kind = "auth" | "create" | "update" | "status" | "delete" | "system";
 
-const KIND_STYLES: Record<Row["kind"], { bg: string; fg: string; label: string }> = {
+const KIND_STYLES: Record<Kind, { bg: string; fg: string; label: string }> = {
   auth: { bg: "#eff6ff", fg: "#1d4ed8", label: "Auth" },
   create: { bg: "#ecfdf5", fg: "#047857", label: "Create" },
   update: { bg: "#fef3c7", fg: "#b45309", label: "Update" },
@@ -43,10 +29,106 @@ const KIND_STYLES: Record<Row["kind"], { bg: string; fg: string; label: string }
   system: { bg: "#ede9fe", fg: "#5b21b6", label: "System" },
 };
 
-export default function ActivityLogPage() {
+// Verb → kind classifier. Keeps the mapping near the UI so it can evolve
+// without touching the AuditVerb union in lib/auth.ts. New verbs default
+// to "update" — visible but unsurprising — which is the right failure mode
+// if someone adds a verb and forgets to list it here.
+function classifyVerb(verb: string): Kind {
+  if (verb.startsWith("auth.")) return "auth";
+  if (
+    verb === "user.signed_in" ||
+    verb === "user.signed_out" ||
+    verb === "user.password_changed" ||
+    verb === "user.email_verified" ||
+    verb === "user.email_verification_sent" ||
+    verb === "password_reset.requested"
+  ) {
+    return "auth";
+  }
+  if (
+    verb.endsWith(".deleted") ||
+    verb.endsWith(".removed") ||
+    verb.endsWith(".revoked") ||
+    verb.endsWith(".dismissed") ||
+    verb === "user.sessions_revoked" ||
+    verb === "user.avatar_removed"
+  ) {
+    return "delete";
+  }
+  if (
+    verb.endsWith(".created") ||
+    verb.endsWith(".sent") ||
+    verb.endsWith(".accepted") ||
+    verb === "assignment.file_uploaded" ||
+    verb === "user.avatar_uploaded" ||
+    verb === "assignment.pdf_generated"
+  ) {
+    return "create";
+  }
+  if (
+    verb === "assignment.started" ||
+    verb === "assignment.delivered" ||
+    verb === "assignment.completed" ||
+    verb === "assignment.cancelled" ||
+    verb === "assignment.reassigned" ||
+    verb === "assignment.commission_applied" ||
+    verb === "commission.quarter_paid" ||
+    verb === "commission.quarter_unpaid" ||
+    verb === "team.ownership_transferred" ||
+    verb === "user.role_changed"
+  ) {
+    return "status";
+  }
+  if (verb.startsWith("invoice_reminder.")) return "system";
+  return "update";
+}
+
+// "assignment.file_uploaded" → "Assignment file uploaded"
+function humanizeVerb(verb: string): string {
+  const parts = verb.split(".");
+  const sentence = parts.join(" ").replace(/_/g, " ");
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
+function formatStamp(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function targetLabel(row: {
+  objectType: string | null;
+  objectId: string | null;
+}): string {
+  if (!row.objectType && !row.objectId) return "—";
+  if (row.objectType && row.objectId) return `${row.objectType} · ${row.objectId}`;
+  return row.objectType ?? row.objectId ?? "—";
+}
+
+export default async function ActivityLogPage() {
+  const session = await requireSession();
+  // Admin-only parity with the earlier "staff + admin see global activity"
+  // convention used by canViewUser / canEditAnnouncement. Freelancers +
+  // realtors see their own per-object audit via assignment detail pages.
+  if (!hasRole(session, "admin", "staff")) notFound();
+
+  const rows = await prisma.auditLog.findMany({
+    orderBy: { at: "desc" },
+    take: ROW_LIMIT,
+    select: {
+      id: true,
+      at: true,
+      verb: true,
+      objectType: true,
+      objectId: true,
+      actor: {
+        select: { firstName: true, lastName: true, avatarUrl: true },
+      },
+    },
+  });
+
   return (
     <>
-      <Topbar title="Activity log" subtitle={`${ROWS.length} recent events`} />
+      <Topbar title="Activity log" subtitle={`${rows.length} recent events`} />
 
       <div className="p-8 max-w-[1400px] space-y-6">
         <Card>
@@ -56,9 +138,9 @@ export default function ActivityLogPage() {
           <CardBody className="grid gap-4 md:grid-cols-4">
             <div className="relative md:col-span-2">
               <IconSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-muted)]" />
-              <Input placeholder="Search by user, target or IP…" className="pl-9" />
+              <Input placeholder="Search by user or target…" className="pl-9" disabled />
             </div>
-            <Select defaultValue="all">
+            <Select defaultValue="all" disabled>
               <option value="all">All event types</option>
               <option value="auth">Auth</option>
               <option value="create">Create</option>
@@ -68,9 +150,9 @@ export default function ActivityLogPage() {
               <option value="system">System</option>
             </Select>
             <div className="flex items-center gap-2">
-              <Input type="date" defaultValue="2026-04-16" />
+              <Input type="date" disabled />
               <span className="text-sm text-[var(--color-ink-muted)]">→</span>
-              <Input type="date" defaultValue="2026-04-18" />
+              <Input type="date" disabled />
             </div>
           </CardBody>
         </Card>
@@ -79,46 +161,72 @@ export default function ActivityLogPage() {
           <CardHeader className="flex items-center justify-between">
             <CardTitle>Events</CardTitle>
             <div className="flex items-center gap-2">
-              <Button variant="secondary" size="sm"><IconFilter size={14} />Saved views</Button>
-              <Button variant="secondary" size="sm">Export CSV</Button>
+              <Button variant="secondary" size="sm" disabled><IconFilter size={14} />Saved views</Button>
+              <Button variant="secondary" size="sm" disabled>Export CSV</Button>
             </div>
           </CardHeader>
           <CardBody className="p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
-                <tr>
-                  <th className="px-6 py-3 text-left font-medium">Timestamp</th>
-                  <th className="px-6 py-3 text-left font-medium">Actor</th>
-                  <th className="px-6 py-3 text-left font-medium">Action</th>
-                  <th className="px-6 py-3 text-left font-medium">Target</th>
-                  <th className="px-6 py-3 text-left font-medium">IP</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ROWS.map((r, i) => {
-                  const k = KIND_STYLES[r.kind];
-                  return (
-                    <tr key={i} className="border-t border-[var(--color-border)]">
-                      <td className="px-6 py-3 font-mono text-xs text-[var(--color-ink-soft)] whitespace-nowrap">{r.timestamp}</td>
-                      <td className="px-6 py-3">
-                        <div className="flex items-center gap-2">
-                          <Avatar initials={r.actorInitials} size="xs" />
-                          <span className="text-[var(--color-ink)]">{r.actorName}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-3">
-                        <div className="flex items-center gap-2">
-                          <Badge bg={k.bg} fg={k.fg}>{k.label}</Badge>
-                          <span className="text-[var(--color-ink-soft)]">{r.action}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-3 font-mono text-xs text-[var(--color-ink-soft)]">{r.target}</td>
-                      <td className="px-6 py-3 font-mono text-xs text-[var(--color-ink-muted)]">{r.ip}</td>
+            {rows.length === 0 ? (
+              <EmptyState
+                title="No activity yet"
+                description="Mutations across the platform will stream into this log as they happen."
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-sm">
+                  <thead className="bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
+                    <tr>
+                      <th className="px-6 py-3 text-left font-medium">Timestamp</th>
+                      <th className="px-6 py-3 text-left font-medium">Actor</th>
+                      <th className="px-6 py-3 text-left font-medium">Action</th>
+                      <th className="px-6 py-3 text-left font-medium">Target</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => {
+                      const kind = classifyVerb(r.verb);
+                      const style = KIND_STYLES[kind];
+                      const actorName = r.actor
+                        ? `${r.actor.firstName} ${r.actor.lastName}`
+                        : "System";
+                      const actorInitials = r.actor
+                        ? initials(r.actor.firstName, r.actor.lastName)
+                        : "SY";
+                      return (
+                        <tr key={r.id} className="border-t border-[var(--color-border)]">
+                          <td className="px-6 py-3 font-mono text-xs text-[var(--color-ink-soft)] whitespace-nowrap">
+                            {formatStamp(r.at)}
+                          </td>
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-2">
+                              <Avatar
+                                initials={actorInitials}
+                                size="xs"
+                                imageUrl={r.actor?.avatarUrl ?? null}
+                              />
+                              <span className="text-[var(--color-ink)]">{actorName}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-2">
+                              <Badge bg={style.bg} fg={style.fg}>
+                                {style.label}
+                              </Badge>
+                              <span className="text-[var(--color-ink-soft)]">
+                                {humanizeVerb(r.verb)}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-3 font-mono text-xs text-[var(--color-ink-soft)]">
+                            {targetLabel(r)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardBody>
         </Card>
       </div>
