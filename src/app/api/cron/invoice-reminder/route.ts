@@ -1,24 +1,31 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 import { audit } from "@/lib/auth";
 import { monthlyInvoiceReminderEmail, sendEmail } from "@/lib/email";
+import { EN_MONTH_YEAR } from "@/lib/format";
+import { endOfMonthMinusDays, isSameUtcDay } from "@/lib/period";
 import { overviewUrl } from "@/lib/urls";
 
 /**
  * Monthly "don't forget to generate invoices" prompt — Platform parity of
- * the MonthlyInvoiceReminder mailable. Fires on day (end-of-month − 3) at
- * whatever hour the external scheduler pings this route; noop on other
- * days so the scheduler can be set to daily without over-firing.
+ * the MonthlyInvoiceReminder mailable. Fires on (end-of-month − 3) UTC;
+ * noop on other days so the scheduler can be set to daily without over-firing.
  *
- * Authorisation: Bearer `CRON_SECRET`. Vercel Crons also pass this header
- * when the dashboard's Cron Jobs UI is used, so the same guard works for
+ * Idempotent: if a `invoice_reminder.sent` audit entry already exists for the
+ * current UTC day, the route returns without resending. Protects against
+ * scheduler retries on transient failures.
+ *
+ * Authorisation: `Bearer CRON_SECRET`. Vercel Crons sets this header when
+ * the dashboard's Cron Jobs UI is used, so the same guard works for
  * both self-hosted (node-cron) and Vercel-hosted deployments.
  *
- * Recipient: `INVOICE_REMINDER_EMAIL` (the platform's billing contact).
- * Mirrors v1's single-CONTACT_EMAIL shape; fan-out to all admins is a
- * later improvement when email prefs have per-user invoice-reminder keys.
+ * Recipient: `INVOICE_REMINDER_EMAIL` — single address, matching v1's
+ * CONTACT_EMAIL shape. Fan-out to admins with per-user opt-out is a later
+ * pass when notification preferences gain an invoice-reminder key.
  *
- * Query param `?force=1` bypasses the date check (for manual triggering
- * + testing). Force-triggered runs still require the Bearer header.
+ * `?force=1` bypasses both the date gate and the idempotency guard for
+ * manual testing. Still requires the Bearer header.
  */
 
 export const dynamic = "force-dynamic";
@@ -28,13 +35,9 @@ const REMINDER_LEAD_DAYS = 3;
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    return NextResponse.json(
-      { error: "CRON_SECRET is not configured." },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "CRON_SECRET is not configured." }, { status: 500 });
   }
-  const authHeader = req.headers.get("authorization") ?? "";
-  if (authHeader !== `Bearer ${secret}`) {
+  if (!authorized(req, secret)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
@@ -46,14 +49,11 @@ export async function GET(req: Request) {
     );
   }
 
-  const url = new URL(req.url);
-  const force = url.searchParams.get("force") === "1";
-
+  const force = new URL(req.url).searchParams.get("force") === "1";
   const now = new Date();
   const target = endOfMonthMinusDays(now, REMINDER_LEAD_DAYS);
-  const shouldFire = force || isSameUtcDay(now, target);
 
-  if (!shouldFire) {
+  if (!force && !isSameUtcDay(now, target)) {
     await audit({
       verb: "invoice_reminder.skipped",
       metadata: { reason: "not-due", today: now.toISOString().slice(0, 10) },
@@ -61,45 +61,43 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, fired: false, nextFireOn: target.toISOString() });
   }
 
-  const monthLabel = formatMonthLabel(now);
+  if (!force && (await alreadySentToday(now))) {
+    await audit({
+      verb: "invoice_reminder.skipped",
+      metadata: { reason: "already-sent-today", today: now.toISOString().slice(0, 10) },
+    });
+    return NextResponse.json({ ok: true, fired: false, reason: "already-sent-today" });
+  }
+
+  const monthLabel = EN_MONTH_YEAR.format(now);
   const tpl = monthlyInvoiceReminderEmail({ monthLabel, overviewUrl: overviewUrl() });
   await sendEmail({ to: recipient, ...tpl });
 
   await audit({
     verb: "invoice_reminder.sent",
-    metadata: {
-      recipient,
-      monthLabel,
-      forced: force,
-    },
+    metadata: { recipient, monthLabel, forced: force },
   });
 
   return NextResponse.json({ ok: true, fired: true, monthLabel });
 }
 
-/** UTC end-of-month minus N days, truncated to midnight. */
-function endOfMonthMinusDays(now: Date, days: number): Date {
-  const y = now.getUTCFullYear();
-  const m = now.getUTCMonth();
-  // Day 0 of the following month = last day of this month.
-  const endOfMonth = new Date(Date.UTC(y, m + 1, 0));
-  endOfMonth.setUTCDate(endOfMonth.getUTCDate() - days);
-  endOfMonth.setUTCHours(0, 0, 0, 0);
-  return endOfMonth;
+/**
+ * Constant-time comparison of the Bearer header. A plain `!==` leaks the
+ * length and prefix of the provided secret via response-time timing.
+ */
+function authorized(req: Request, secret: string): boolean {
+  const header = req.headers.get("authorization") ?? "";
+  const expected = Buffer.from(`Bearer ${secret}`);
+  const actual = Buffer.from(header);
+  if (expected.length !== actual.length) return false;
+  return timingSafeEqual(expected, actual);
 }
 
-function isSameUtcDay(a: Date, b: Date): boolean {
-  return (
-    a.getUTCFullYear() === b.getUTCFullYear() &&
-    a.getUTCMonth() === b.getUTCMonth() &&
-    a.getUTCDate() === b.getUTCDate()
-  );
-}
-
-function formatMonthLabel(d: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(d);
+async function alreadySentToday(now: Date): Promise<boolean> {
+  const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const hit = await prisma.auditLog.findFirst({
+    where: { verb: "invoice_reminder.sent", at: { gte: startOfDay } },
+    select: { id: true },
+  });
+  return hit !== null;
 }

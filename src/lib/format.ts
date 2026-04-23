@@ -51,6 +51,14 @@ export const BE_DATETIME = new Intl.DateTimeFormat("nl-BE", {
   hourCycle: "h23",
 });
 
+/** "April 2026" — English month + year, UTC-anchored. Used in admin emails
+ *  where the body copy is in English regardless of the nl-BE default. */
+export const EN_MONTH_YEAR = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "UTC",
+  month: "long",
+  year: "numeric",
+});
+
 /** Integer cents → "€ 123.45" (or "−€ 25.00" for negatives). */
 export function formatEuros(cents: number): string {
   const whole = Math.floor(Math.abs(cents) / 100);

@@ -92,6 +92,23 @@ export function monthRange(now: Date = new Date()): { gte: Date; lt: Date } {
   };
 }
 
+/** Midnight-UTC of (last day of month − days). Used by the invoice-reminder
+ *  cron to compute its target fire date. */
+export function endOfMonthMinusDays(now: Date, days: number): Date {
+  const endOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+  endOfMonth.setUTCDate(endOfMonth.getUTCDate() - days);
+  endOfMonth.setUTCHours(0, 0, 0, 0);
+  return endOfMonth;
+}
+
+export function isSameUtcDay(a: Date, b: Date): boolean {
+  return (
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
+  );
+}
+
 // ─── Period helpers ────────────────────────────────────────────────
 
 export function periodRange(p: Period): { gte: Date; lt: Date } {
