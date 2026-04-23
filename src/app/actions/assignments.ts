@@ -1504,11 +1504,15 @@ const commentSchema = z.object({
   body: z.string().min(1).max(4000),
 });
 
-export const postComment = withSession(async (
-  session,
+/**
+ * Session-accepting body of `postComment`. Exported for Vitest integration
+ * tests — consumers should use the `withSession`-wrapped form below.
+ */
+export async function postCommentInner(
+  session: SessionWithUser,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const parsed = commentSchema.safeParse({
     assignmentId: formData.get("assignmentId"),
     body: (formData.get("body") as string)?.trim(),
@@ -1570,7 +1574,9 @@ export const postComment = withSession(async (
 
   revalidatePath(`/dashboard/assignments/${parsed.data.assignmentId}`);
   return { ok: true };
-});
+}
+
+export const postComment = withSession(postCommentInner);
 
 // ─── Inline status change (from the assignments list) ──────────────
 

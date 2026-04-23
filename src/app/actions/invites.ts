@@ -12,6 +12,7 @@ import {
   hashPassword,
   hashToken,
   requireRole,
+  type SessionWithUser,
 } from "@/lib/auth";
 import { canActOnInvite } from "@/lib/permissions";
 import { addedToTeamEmail, inviteEmail, sendEmail } from "@/lib/email";
@@ -28,14 +29,17 @@ const createInviteSchema = z.object({
 
 // ─── CREATE INVITE ─────────────────────────────────────────────────
 
-export async function createInvite(
+/**
+ * Session-accepting body of `createInvite`. Exported so Vitest integration
+ * tests can drive the action without a live cookie / request context.
+ * The wrapped form below handles the requireRole gate via cookie session.
+ */
+export async function createInviteInner(
+  session: SessionWithUser,
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  let session;
-  try {
-    session = await requireRole(["admin", "staff", "realtor"]);
-  } catch {
+  if (!["admin", "staff", "realtor"].includes(session.user.role)) {
     return { ok: false, error: "You don't have permission to invite users." };
   }
 
@@ -180,7 +184,22 @@ export async function createInvite(
   });
 
   revalidatePath("/dashboard/users");
-  redirect("/dashboard/users");
+  return { ok: true };
+}
+
+export async function createInvite(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  let session: SessionWithUser;
+  try {
+    session = await requireRole(["admin", "staff", "realtor"]);
+  } catch {
+    return { ok: false, error: "You don't have permission to invite users." };
+  }
+  const result = await createInviteInner(session, undefined, formData);
+  if (result.ok) redirect("/dashboard/users");
+  return result;
 }
 
 // ─── GET INVITE BY TOKEN (for the accept page) ─────────────────────
@@ -210,7 +229,12 @@ const acceptSchema = z.object({
   confirm: z.string(),
 });
 
-export async function acceptInvite(
+/**
+ * Session-less body of `acceptInvite`. Exported so Vitest integration tests
+ * can drive the action without intercepting the redirect. The wrapped form
+ * below calls this, then redirects to /dashboard on success.
+ */
+export async function acceptInviteInner(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
@@ -330,7 +354,16 @@ export async function acceptInvite(
     metadata: { via: "invite", inviteId: invite.id },
   });
 
-  redirect("/dashboard");
+  return { ok: true };
+}
+
+export async function acceptInvite(
+  prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const result = await acceptInviteInner(prev, formData);
+  if (result.ok) redirect("/dashboard");
+  return result;
 }
 
 // ─── RESEND / REVOKE ───────────────────────────────────────────────
@@ -338,10 +371,14 @@ export async function acceptInvite(
 const RESEND_WINDOW_MS = 60 * 60 * 1000; // 1h
 const RESEND_MAX_PER_WINDOW = 3;
 
-export const resendInvite = withSession(async (
-  session,
+/**
+ * Session-accepting body of `resendInvite`. Exported for Vitest integration
+ * tests — consumers should use the `withSession`-wrapped form below.
+ */
+export async function resendInviteInner(
+  session: SessionWithUser,
   inviteId: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const invite = await prisma.invite.findUnique({
     where: { id: inviteId },
     include: { team: true, invitedBy: true },
@@ -401,12 +438,18 @@ export const resendInvite = withSession(async (
 
   revalidatePath("/dashboard/users");
   return { ok: true };
-});
+}
 
-export const revokeInvite = withSession(async (
-  session,
+export const resendInvite = withSession(resendInviteInner);
+
+/**
+ * Session-accepting body of `revokeInvite`. Exported for Vitest integration
+ * tests — consumers should use the `withSession`-wrapped form below.
+ */
+export async function revokeInviteInner(
+  session: SessionWithUser,
   inviteId: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
   if (!invite) return { ok: false, error: "Invite not found." };
   if (invite.acceptedAt) return { ok: false, error: "Invite already accepted." };
@@ -431,4 +474,6 @@ export const revokeInvite = withSession(async (
 
   revalidatePath("/dashboard/users");
   return { ok: true };
-});
+}
+
+export const revokeInvite = withSession(revokeInviteInner);

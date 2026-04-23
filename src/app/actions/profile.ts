@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { audit, generateToken, hashToken } from "@/lib/auth";
+import { audit, generateToken, hashToken, type SessionWithUser } from "@/lib/auth";
 import { makeAvatarKey, storage } from "@/lib/storage";
 import { AVATAR_MAX_BYTES, AVATAR_MIME_TO_EXT } from "@/lib/avatar";
 import { emailVerificationEmail, sendEmail } from "@/lib/email";
@@ -63,11 +63,14 @@ async function startEmailVerification(opts: {
   });
 }
 
-export const updateProfile = withSession(async (
-  session,
+/**
+ * Session-accepting body of `updateProfile`. Exported for Vitest tests.
+ */
+export async function updateProfileInner(
+  session: SessionWithUser,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const parsed = profileSchema.safeParse({
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
@@ -143,16 +146,21 @@ export const updateProfile = withSession(async (
   // refresh the RSC tree so the change shows without a manual reload.
   revalidatePath("/dashboard", "layout");
   return { ok: true };
-});
+}
+
+export const updateProfile = withSession(updateProfileInner);
 
 // ─── Resend / confirm verification ─────────────────────────────────
 
 /**
  * Fire a new verification email for the caller's current address.
  */
-export const resendEmailVerification = withSession(async (
-  session,
-): Promise<ActionResult> => {
+/**
+ * Session-accepting body of `resendEmailVerification`. Exported for tests.
+ */
+export async function resendEmailVerificationInner(
+  session: SessionWithUser,
+): Promise<ActionResult> {
   if (session.user.emailVerifiedAt) {
     return { ok: false, error: "Your email is already verified." };
   }
@@ -167,7 +175,9 @@ export const resendEmailVerification = withSession(async (
     return { ok: false, error: "Couldn't send the verification email right now. Try again in a minute." };
   }
   return { ok: true };
-});
+}
+
+export const resendEmailVerification = withSession(resendEmailVerificationInner);
 
 /**
  * Consume a verification-email token. Unauthenticated — the token itself is
@@ -226,11 +236,14 @@ export async function confirmEmailVerification(
   return { ok: true, data: { email: row.email } };
 }
 
-export const uploadAvatar = withSession(async (
-  session,
+/**
+ * Session-accepting body of `uploadAvatar`. Exported for tests.
+ */
+export async function uploadAvatarInner(
+  session: SessionWithUser,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const file = formData.get("avatar");
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "Pick an image to upload." };
@@ -282,9 +295,14 @@ export const uploadAvatar = withSession(async (
   // refresh the RSC tree so the change shows without a manual reload.
   revalidatePath("/dashboard", "layout");
   return { ok: true };
-});
+}
 
-export const removeAvatar = withSession(async (session): Promise<ActionResult> => {
+export const uploadAvatar = withSession(uploadAvatarInner);
+
+/**
+ * Session-accepting body of `removeAvatar`. Exported for tests.
+ */
+export async function removeAvatarInner(session: SessionWithUser): Promise<ActionResult> {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { avatarUrl: true },
@@ -312,4 +330,6 @@ export const removeAvatar = withSession(async (session): Promise<ActionResult> =
   // refresh the RSC tree so the change shows without a manual reload.
   revalidatePath("/dashboard", "layout");
   return { ok: true };
-});
+}
+
+export const removeAvatar = withSession(removeAvatarInner);

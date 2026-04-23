@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { audit } from "@/lib/auth";
+import { audit, type SessionWithUser } from "@/lib/auth";
 import { canCreateTeam, canEditTeam, hasRole } from "@/lib/permissions";
 import { withSession, type ActionResult } from "./_types";
 
@@ -113,11 +113,15 @@ function readTeamFormData(formData: FormData) {
 
 // ─── Create ────────────────────────────────────────────────────────
 
-export const createTeam = withSession(async (
-  session,
-  _prev: ActionResult | undefined,
+/**
+ * Session-accepting body of `createTeam`. Exported for Vitest integration
+ * tests. Returns the new team id on success; the wrapped form redirects.
+ */
+export async function createTeamInner(
+  session: SessionWithUser,
+  _prev: ActionResult<{ id: string }> | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult<{ id: string }>> {
   if (!canCreateTeam(session)) {
     return { ok: false, error: "You don't have permission to create teams." };
   }
@@ -175,17 +179,32 @@ export const createTeam = withSession(async (
 
   revalidatePath("/dashboard/teams");
   revalidatePath("/dashboard");
-  redirect(`/dashboard/teams/${team.id}`);
+  return { ok: true, data: { id: team.id } };
+}
+
+export const createTeam = withSession(async (
+  session: SessionWithUser,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  const result = await createTeamInner(session, undefined, formData);
+  if (result.ok && result.data) redirect(`/dashboard/teams/${result.data.id}`);
+  if (result.ok) return { ok: true };
+  return result;
 });
 
 // ─── Update ────────────────────────────────────────────────────────
 
-export const updateTeam = withSession(async (
-  session,
+/**
+ * Session-accepting body of `updateTeam`. Exported for Vitest integration
+ * tests; the wrapped form below redirects on success.
+ */
+export async function updateTeamInner(
+  session: SessionWithUser,
   teamId: string,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!(await canEditTeam(session, teamId))) {
     return { ok: false, error: "You don't have permission to edit this team." };
   }
@@ -232,7 +251,18 @@ export const updateTeam = withSession(async (
 
   revalidatePath(`/dashboard/teams/${teamId}`);
   revalidatePath("/dashboard/teams");
-  redirect(`/dashboard/teams/${teamId}`);
+  return { ok: true };
+}
+
+export const updateTeam = withSession(async (
+  session: SessionWithUser,
+  teamId: string,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  const result = await updateTeamInner(session, teamId, _prev, formData);
+  if (result.ok) redirect(`/dashboard/teams/${teamId}`);
+  return result;
 });
 
 // ─── Delete ────────────────────────────────────────────────────────
@@ -243,10 +273,14 @@ export const updateTeam = withSession(async (
  * lines would silently orphan — we'd rather refuse and force the admin to
  * reassign or delete the history first.
  */
-export const deleteTeam = withSession(async (
-  session,
+/**
+ * Session-accepting body of `deleteTeam`. Exported for Vitest integration
+ * tests; consumers should use the `withSession`-wrapped form below.
+ */
+export async function deleteTeamInner(
+  session: SessionWithUser,
   teamId: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!(await canEditTeam(session, teamId))) {
     return { ok: false, error: "You don't have permission to delete this team." };
   }
@@ -281,7 +315,9 @@ export const deleteTeam = withSession(async (
   revalidatePath("/dashboard/users");
   revalidatePath("/dashboard");
   return { ok: true };
-});
+}
+
+export const deleteTeam = withSession(deleteTeamInner);
 
 // ─── Remove member ─────────────────────────────────────────────────
 
@@ -290,11 +326,14 @@ export const deleteTeam = withSession(async (
  * transfer-ownership flow instead — doing it here would leave the team
  * without an owner.
  */
-export const removeTeamMember = withSession(async (
-  session,
+/**
+ * Session-accepting body of `removeTeamMember`. Exported for Vitest tests.
+ */
+export async function removeTeamMemberInner(
+  session: SessionWithUser,
   teamId: string,
   userId: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!(await canEditTeam(session, teamId))) {
     return { ok: false, error: "You don't have permission to manage this team's members." };
   }
@@ -330,7 +369,9 @@ export const removeTeamMember = withSession(async (
   revalidatePath("/dashboard/teams");
   revalidatePath("/dashboard/users");
   return { ok: true };
-});
+}
+
+export const removeTeamMember = withSession(removeTeamMemberInner);
 
 // ─── Team price list overrides ─────────────────────────────────────
 
@@ -342,12 +383,16 @@ export const removeTeamMember = withSession(async (
  * Existing assignments retain their snapshotted unitPriceCents — this only
  * affects freshly-created assignments from here on.
  */
-export const setTeamServiceOverride = withSession(async (
-  session,
+/**
+ * Session-accepting body of `setTeamServiceOverride`. Exported for Vitest
+ * integration tests — this is the money path (drives pricing on new rows).
+ */
+export async function setTeamServiceOverrideInner(
+  session: SessionWithUser,
   teamId: string,
   serviceKey: string,
   priceCents: number | null,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!(await canEditTeam(session, teamId))) {
     return { ok: false, error: "You don't have permission to edit this team's prices." };
   }
@@ -402,15 +447,21 @@ export const setTeamServiceOverride = withSession(async (
   revalidatePath(`/dashboard/teams/${teamId}`);
   revalidatePath(`/dashboard/teams/${teamId}/edit`);
   return { ok: true };
-});
+}
+
+export const setTeamServiceOverride = withSession(setTeamServiceOverrideInner);
 
 // ─── Ownership transfer ────────────────────────────────────────────
 
-export const transferTeamOwnership = withSession(async (
-  session,
+/**
+ * Session-accepting body of `transferTeamOwnership`. Exported for Vitest
+ * integration tests — consumers should use the wrapped form below.
+ */
+export async function transferTeamOwnershipInner(
+  session: SessionWithUser,
   teamId: string,
   newOwnerUserId: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const allowed = hasRole(session, "admin") || (await canEditTeam(session, teamId));
   if (!allowed) {
     return { ok: false, error: "You don't have permission to transfer ownership." };
@@ -481,4 +532,6 @@ export const transferTeamOwnership = withSession(async (
   revalidatePath(`/dashboard/teams/${teamId}`);
   revalidatePath("/dashboard/teams");
   return { ok: true };
-});
+}
+
+export const transferTeamOwnership = withSession(transferTeamOwnershipInner);

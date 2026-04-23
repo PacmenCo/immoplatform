@@ -10,6 +10,7 @@ import {
   getUserPasswordHash,
   hashPassword,
   verifyPassword,
+  type SessionWithUser,
 } from "@/lib/auth";
 import { withSession, type ActionResult } from "./_types";
 
@@ -43,11 +44,15 @@ const passwordSchema = z
     path: ["newPassword"],
   });
 
-export const changePassword = withSession(async (
-  session,
+/**
+ * Session-accepting body of `changePassword`. Exported for Vitest integration
+ * tests — consumers should use the `withSession`-wrapped form below.
+ */
+export async function changePasswordInner(
+  session: SessionWithUser,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const parsed = passwordSchema.safeParse({
     currentPassword: formData.get("currentPassword") ?? "",
     newPassword: formData.get("newPassword") ?? "",
@@ -108,7 +113,9 @@ export const changePassword = withSession(async (
 
   revalidatePath("/dashboard/settings/security");
   return { ok: true };
-});
+}
+
+export const changePassword = withSession(changePasswordInner);
 
 // ─── Delete own account (self-service) ─────────────────────────────
 
@@ -116,11 +123,15 @@ const deleteSchema = z.object({
   password: z.string().min(1, "Enter your password to confirm."),
 });
 
-export const deleteOwnAccount = withSession(async (
-  session,
+/**
+ * Session-accepting body of `deleteOwnAccount`. Exported for Vitest
+ * integration tests — the wrapped form clears the cookie + redirects.
+ */
+export async function deleteOwnAccountInner(
+  session: SessionWithUser,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const parsed = deleteSchema.safeParse({
     password: formData.get("password") ?? "",
   });
@@ -175,8 +186,20 @@ export const deleteOwnAccount = withSession(async (
     metadata: { via: "self_service" },
   });
 
-  await clearSession();
-  redirect("/login?deleted=1");
+  return { ok: true };
+}
+
+export const deleteOwnAccount = withSession(async (
+  session: SessionWithUser,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  const result = await deleteOwnAccountInner(session, _prev, formData);
+  if (result.ok) {
+    await clearSession();
+    redirect("/login?deleted=1");
+  }
+  return result;
 });
 
 // ─── Revoke one session / sign out everywhere ─────────────────────
@@ -186,10 +209,14 @@ export const deleteOwnAccount = withSession(async (
  * sessions — no cross-user reach. If the revoked session is the current one,
  * the browser loses auth on the next request (getSession checks revokedAt).
  */
-export const revokeSession = withSession(async (
-  session,
+/**
+ * Session-accepting body of `revokeSession`. Exported for Vitest integration
+ * tests — consumers should use the `withSession`-wrapped form below.
+ */
+export async function revokeSessionInner(
+  session: SessionWithUser,
   sessionId: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!sessionId || typeof sessionId !== "string") {
     return { ok: false, error: "Invalid session id." };
   }
@@ -217,7 +244,9 @@ export const revokeSession = withSession(async (
 
   revalidatePath("/dashboard/settings/security");
   return { ok: true };
-});
+}
+
+export const revokeSession = withSession(revokeSessionInner);
 
 /**
  * Revoke every active session EXCEPT the caller's current one. The current
@@ -225,9 +254,9 @@ export const revokeSession = withSession(async (
  * this. Callers who want to also sign out locally should follow up with a
  * plain /api logout.
  */
-export const signOutEverywhere = withSession(async (
-  session,
-): Promise<ActionResult<{ count: number }>> => {
+export async function signOutEverywhereInner(
+  session: SessionWithUser,
+): Promise<ActionResult<{ count: number }>> {
   const { count } = await prisma.session.updateMany({
     where: {
       userId: session.user.id,
@@ -249,4 +278,6 @@ export const signOutEverywhere = withSession(async (
 
   revalidatePath("/dashboard/settings/security");
   return { ok: true, data: { count } };
-});
+}
+
+export const signOutEverywhere = withSession(signOutEverywhereInner);
