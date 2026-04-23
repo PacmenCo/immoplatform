@@ -75,7 +75,15 @@ export async function clearSession(): Promise<void> {
   }
 }
 
-export type SessionWithUser = Session & { user: User };
+/**
+ * The User shape carried on a session — deliberately omits `passwordHash` so
+ * it can't leak through server-to-client serialization (server action return
+ * values, revalidate boundary) or into audit metadata by accident. Anything
+ * that actually needs the hash (change-password, delete-account) should
+ * query it from the DB at the point of use.
+ */
+export type SessionUser = Omit<User, "passwordHash">;
+export type SessionWithUser = Session & { user: SessionUser };
 
 export async function getSession(): Promise<SessionWithUser | null> {
   const jar = await cookies();
@@ -100,7 +108,9 @@ export async function getSession(): Promise<SessionWithUser | null> {
       data: { lastSeenAt: new Date() },
     })
     .catch(() => {});
-  return session;
+  const { passwordHash: _ph, ...user } = session.user;
+  void _ph;
+  return { ...session, user };
 }
 
 export async function requireSession(): Promise<SessionWithUser> {

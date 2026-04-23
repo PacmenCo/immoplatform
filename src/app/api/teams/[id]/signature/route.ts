@@ -76,6 +76,8 @@ export async function GET(
       "Content-Type": mime,
       "Content-Length": String(bytes.byteLength),
       "Cache-Control": "private, max-age=31536000, immutable",
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

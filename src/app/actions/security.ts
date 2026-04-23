@@ -56,13 +56,18 @@ export const changePassword = withSession(async (
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   }
 
-  if (!session.user.passwordHash) {
+  const { passwordHash } = (await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { passwordHash: true },
+  })) ?? { passwordHash: null };
+
+  if (!passwordHash) {
     // Users who signed up via invite + password-reset flow always have a hash.
     // A missing hash is a data bug; fail safely rather than letting the change go through.
     return { ok: false, error: "Your account has no password set. Use the forgot-password flow to set one." };
   }
 
-  const ok = await verifyPassword(parsed.data.currentPassword, session.user.passwordHash);
+  const ok = await verifyPassword(parsed.data.currentPassword, passwordHash);
   if (!ok) {
     return { ok: false, error: "Current password is incorrect." };
   }
@@ -125,10 +130,15 @@ export const deleteOwnAccount = withSession(async (
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Enter your password." };
   }
-  if (!session.user.passwordHash) {
+  const { passwordHash } = (await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { passwordHash: true },
+  })) ?? { passwordHash: null };
+
+  if (!passwordHash) {
     return { ok: false, error: "Your account has no password set — cannot confirm deletion." };
   }
-  const ok = await verifyPassword(parsed.data.password, session.user.passwordHash);
+  const ok = await verifyPassword(parsed.data.password, passwordHash);
   if (!ok) {
     return { ok: false, error: "Password is incorrect." };
   }

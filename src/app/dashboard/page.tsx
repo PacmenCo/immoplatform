@@ -13,6 +13,7 @@ import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { assignmentScope, composeWhere, role, userScope, type Role } from "@/lib/permissions";
+import { AnnouncementBanner } from "@/components/dashboard/AnnouncementBanner";
 
 const UPCOMING_LINK_LABEL: Record<Role, string> = {
   admin: "View all",
@@ -109,6 +110,8 @@ export default async function DashboardHome() {
     <>
       <Topbar title="Overview" subtitle={`Welcome back, ${session.user.firstName}`} />
       <div className="p-8 space-y-8 max-w-[1400px]">
+        <AnnouncementBanner userId={session.user.id} />
+
         <section aria-labelledby="stats-title">
           <h2 id="stats-title" className="sr-only">
             Key metrics

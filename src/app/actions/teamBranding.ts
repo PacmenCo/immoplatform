@@ -29,6 +29,24 @@ function listFormats(mimeToExt: Record<string, string>): string {
 }
 
 /**
+ * Crude SVG safety check — looks for the common XSS vectors (scripts, event
+ * handlers, foreignObject, javascript: hrefs). The serving route also sets
+ * CSP + sandbox headers as defence-in-depth; rejecting at upload means we
+ * never store the bytes in the first place. Not a full sanitizer — a user
+ * determined to bypass would need a crafted SVG, but the realistic attacker
+ * (insider uploading something off the internet) is caught here.
+ */
+function containsActiveContent(buf: Buffer): boolean {
+  const text = buf.toString("utf8").toLowerCase();
+  return (
+    /<script\b/.test(text) ||
+    /\son\w+\s*=/.test(text) ||
+    /<foreignobject\b/.test(text) ||
+    /javascript\s*:/.test(text)
+  );
+}
+
+/**
  * Team branding uploads — logo + signature images. The version segment in
  * each storage key rotates per upload (epoch-ms as base36) so the serving
  * route's `?v=` cache-bust works the same way avatars do.
@@ -90,6 +108,13 @@ async function uploadTeamBranding(
   const version = Date.now().toString(36);
   const key = makeTeamBrandingKey({ teamId, kind, version, ext });
   const buf = Buffer.from(await file.arrayBuffer());
+
+  if (mime === "image/svg+xml" && containsActiveContent(buf)) {
+    return {
+      ok: false,
+      error: "This SVG contains scripts or event handlers. Export a clean SVG without JavaScript, or upload as PNG instead.",
+    };
+  }
 
   // Upload bytes and read the prior key in parallel; the DB swap has to wait
   // for the put (don't point the column at missing bytes) but the prior-key
