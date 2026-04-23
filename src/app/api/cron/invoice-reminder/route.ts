@@ -70,7 +70,7 @@ export async function GET(req: Request) {
   }
 
   const monthLabel = EN_MONTH_YEAR.format(now);
-  const tpl = monthlyInvoiceReminderEmail({ monthLabel, overviewUrl: overviewUrl() });
+  const tpl = await monthlyInvoiceReminderEmail({ monthLabel, overviewUrl: overviewUrl() });
   await sendEmail({ to: recipient, ...tpl });
 
   await audit({

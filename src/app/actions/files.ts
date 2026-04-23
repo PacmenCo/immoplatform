@@ -263,17 +263,17 @@ export const uploadAssignmentFiles = withSession(async (
       assignmentUrl: assignmentUrlFor(meta.id),
     };
     await Promise.all(
-      recipients.map((r) =>
+      recipients.map(async (r) =>
         notify({
           to: r,
           event: "assignment.files_uploaded",
-          ...filesUploadedEmail({
+          ...(await filesUploadedEmail({
             ...ctx,
             recipientName: r.firstName,
             uploaderName,
             lane,
             fileCount: prepared.length,
-          }),
+          })),
         }),
       ),
     );

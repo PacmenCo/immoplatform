@@ -19,6 +19,8 @@
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "@microsoft/microsoft-graph-types": "^2.43.1",
     "@prisma/client": "^6.19.3",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.7",
     "bcryptjs": "^3.0.3",
     "google-auth-library": "^10.6.2",
     "googleapis": "^171.4.0",

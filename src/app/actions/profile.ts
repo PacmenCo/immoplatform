@@ -49,7 +49,7 @@ async function startEmailVerification(opts: {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
     },
   });
-  const tpl = emailVerificationEmail({
+  const tpl = await emailVerificationEmail({
     name: opts.firstName,
     verifyUrl: emailVerificationUrl(token),
   });

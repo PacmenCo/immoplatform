@@ -44,7 +44,7 @@ export function AssignmentFilesButton({
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`Files for ${reference}`}
-        className="grid h-7 w-7 place-items-center rounded text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+        className="grid h-9 w-9 place-items-center rounded text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
       >
         <PaperclipIcon />
       </button>
@@ -117,7 +117,7 @@ function FilesModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 rounded p-1 text-[var(--color-ink-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded text-[var(--color-ink-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
           >
             <IconX size={16} />
           </button>

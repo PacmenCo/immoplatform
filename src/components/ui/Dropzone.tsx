@@ -171,7 +171,7 @@ export function Dropzone({
                 type="button"
                 onClick={() => remove(i)}
                 aria-label={`Remove ${f.name}`}
-                className="grid h-6 w-6 shrink-0 place-items-center rounded text-[var(--color-ink-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded text-[var(--color-ink-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
               >
                 <IconX size={14} />
               </button>

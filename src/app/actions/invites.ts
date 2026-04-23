@@ -114,7 +114,7 @@ export async function createInvite(
       update: { teamRole },
     });
     const team = await prisma.team.findUnique({ where: { id: teamId } });
-    const tpl = addedToTeamEmail({
+    const tpl = await addedToTeamEmail({
       inviterName: `${session.user.firstName} ${session.user.lastName}`,
       teamName: team!.name,
       teamRole,
@@ -160,7 +160,7 @@ export async function createInvite(
   });
 
   const acceptUrl = inviteAcceptUrl(token);
-  const tpl = inviteEmail({
+  const tpl = await inviteEmail({
     inviterName: `${session.user.firstName} ${session.user.lastName}`,
     acceptUrl,
     role,
@@ -380,7 +380,7 @@ export const resendInvite = withSession(async (
   });
 
   const acceptUrl = inviteAcceptUrl(token);
-  const tpl = inviteEmail({
+  const tpl = await inviteEmail({
     inviterName: `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`,
     acceptUrl,
     role: invite.role,

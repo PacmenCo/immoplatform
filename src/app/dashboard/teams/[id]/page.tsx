@@ -537,6 +537,7 @@ export default async function TeamDetailPage({
                   No members yet. Invite someone to get started.
                 </div>
               ) : (
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
                     <tr>
@@ -603,6 +604,7 @@ export default async function TeamDetailPage({
                     })}
                   </tbody>
                 </table>
+                </div>
               )}
             </CardBody>
           </Card>
@@ -629,6 +631,7 @@ export default async function TeamDetailPage({
                   No assignments yet.
                 </div>
               ) : (
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
                     <tr>
@@ -700,6 +703,7 @@ export default async function TeamDetailPage({
                     })}
                   </tbody>
                 </table>
+                </div>
               )}
             </CardBody>
           </Card>
@@ -868,6 +872,7 @@ export default async function TeamDetailPage({
               </p>
             </CardHeader>
             <CardBody className="p-0">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
                   <tr>
@@ -920,6 +925,7 @@ export default async function TeamDetailPage({
                   })}
                 </tbody>
               </table>
+              </div>
             </CardBody>
           </Card>
         </section>

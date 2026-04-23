@@ -445,16 +445,16 @@ export const createAssignment = withSession(async (
     const freelancerName = assignedFreelancer ? fullName(assignedFreelancer) : null;
     const ctx = ctxFromAssignment(created);
     await Promise.all(
-      agency.map((r) =>
+      agency.map(async (r) =>
         notify({
           to: r,
           event: "assignment.scheduled",
-          ...assignmentScheduledEmail({
+          ...(await assignmentScheduledEmail({
             ...ctx,
             recipientName: r.firstName,
             scheduledAt,
             freelancerName,
-          }),
+          })),
         }),
       ),
     );
@@ -525,16 +525,16 @@ export const markAssignmentDelivered = withSession(async (
   const actorName = fullName(session.user);
   const freelancerName = assignedFreelancer ? fullName(assignedFreelancer) : null;
   await Promise.all(
-    deliveredRecipients.map((r) =>
+    deliveredRecipients.map(async (r) =>
       notify({
         to: r,
         event: "assignment.delivered",
-        ...assignmentDeliveredEmail({
+        ...(await assignmentDeliveredEmail({
           ...ctxFromAssignment(a),
           recipientName: r.firstName,
           actorName,
           freelancerName,
-        }),
+        })),
       }),
     ),
   );
@@ -706,16 +706,16 @@ async function applyFreelancerUpdate(
     if (c) dateRecipients.push(c);
   }
   await Promise.all(
-    dateRecipients.map((r) =>
+    dateRecipients.map(async (r) =>
       notify({
         to: r,
         event: "assignment.date_updated",
-        ...assignmentDateUpdatedEmail({
+        ...(await assignmentDateUpdatedEmail({
           ...ctxFromAssignment(existing),
           recipientName: r.firstName,
           previousDate,
           newDate,
-        }),
+        })),
       }),
     ),
   );
@@ -978,16 +978,16 @@ export const updateAssignment = withSession(async (
       if (c) dateRecipients.push(c);
     }
     await Promise.all(
-      dateRecipients.map((r) =>
+      dateRecipients.map(async (r) =>
         notify({
           to: r,
           event: "assignment.date_updated",
-          ...assignmentDateUpdatedEmail({
+          ...(await assignmentDateUpdatedEmail({
             ...ctxFromAssignment(existing),
             recipientName: r.firstName,
             previousDate,
             newDate,
-          }),
+          })),
         }),
       ),
     );
@@ -1010,11 +1010,11 @@ export const updateAssignment = withSession(async (
         await notify({
           to: incoming,
           event: "assignment.freelancer_assigned",
-          ...assignmentReassignedEmail({
+          ...(await assignmentReassignedEmail({
             ...ctxFromAssignment(existing),
             freelancerName: incoming.firstName,
             preferredDate: d.preferredDate ? new Date(d.preferredDate) : null,
-          }),
+          })),
         });
       }
     }
@@ -1024,10 +1024,10 @@ export const updateAssignment = withSession(async (
         await notify({
           to: outgoing,
           event: "assignment.freelancer_unassigned",
-          ...assignmentUnassignedEmail({
+          ...(await assignmentUnassignedEmail({
             ...ctxFromAssignment(existing),
             freelancerName: outgoing.firstName,
-          }),
+          })),
         });
       }
     }
@@ -1134,11 +1134,11 @@ export const reassignFreelancer = withSession(async (
       await notify({
         to: incoming,
         event: "assignment.freelancer_assigned",
-        ...assignmentReassignedEmail({
+        ...(await assignmentReassignedEmail({
           ...ctxFromAssignment(a),
           freelancerName: incoming.firstName,
           preferredDate: a.preferredDate,
-        }),
+        })),
       });
     }
   }
@@ -1148,10 +1148,10 @@ export const reassignFreelancer = withSession(async (
       await notify({
         to: outgoing,
         event: "assignment.freelancer_unassigned",
-        ...assignmentUnassignedEmail({
+        ...(await assignmentUnassignedEmail({
           ...ctxFromAssignment(a),
           freelancerName: outgoing.firstName,
-        }),
+        })),
       });
     }
   }
@@ -1314,15 +1314,15 @@ export const markAssignmentCompleted = withSession(async (
   }
   const completedByName = fullName(session.user);
   await Promise.all(
-    recipients.map((r) =>
+    recipients.map(async (r) =>
       notify({
         to: r,
         event: "assignment.completed",
-        ...assignmentCompletedEmail({
+        ...(await assignmentCompletedEmail({
           ...ctxFromAssignment(a),
           recipientName: r.firstName,
           completedByName,
-        }),
+        })),
       }),
     ),
   );
@@ -1410,16 +1410,16 @@ export const cancelAssignment = withSession(async (
     if (creator) cancelRecipients.push(creator);
   }
   await Promise.all(
-    cancelRecipients.map((r) =>
+    cancelRecipients.map(async (r) =>
       notify({
         to: r,
         event: "assignment.cancelled",
-        ...assignmentCancelledEmail({
+        ...(await assignmentCancelledEmail({
           ...ctxFromAssignment(a),
           recipientName: r.firstName,
           cancelledByName: fullName(session.user),
           reason: trimmedReason,
-        }),
+        })),
       }),
     ),
   );
@@ -1489,16 +1489,16 @@ export const postComment = withSession(async (
     if (c) commentRecipients.push(c);
   }
   await Promise.all(
-    commentRecipients.map((r) =>
+    commentRecipients.map(async (r) =>
       notify({
         to: r,
         event: "assignment.comment_posted",
-        ...commentPostedEmail({
+        ...(await commentPostedEmail({
           ...ctxFromAssignment(a),
           recipientName: r.firstName,
           authorName: fullName(session.user),
           body: parsed.data.body,
-        }),
+        })),
       }),
     ),
   );
@@ -1672,16 +1672,16 @@ export const changeAssignmentStatus = withSession(async (
       const freelancerName = assignedFreelancer ? fullName(assignedFreelancer) : null;
       const ctx = ctxFromAssignment(a);
       await Promise.all(
-        agency.map((r) =>
+        agency.map(async (r) =>
           notify({
             to: r,
             event: "assignment.scheduled",
-            ...assignmentScheduledEmail({
+            ...(await assignmentScheduledEmail({
               ...ctx,
               recipientName: r.firstName,
               scheduledAt,
               freelancerName,
-            }),
+            })),
           }),
         ),
       );

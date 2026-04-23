@@ -27,7 +27,7 @@ export function Modal({
   );
 
   const closeBtnClass =
-    "absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-md text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]";
+    "absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-md text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]";
 
   return (
     <div

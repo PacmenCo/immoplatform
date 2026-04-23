@@ -154,7 +154,7 @@ export async function forgotPassword(
         expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1h
       },
     });
-    const tpl = passwordResetEmail({
+    const tpl = await passwordResetEmail({
       name: user.firstName,
       resetUrl: passwordResetUrl(token),
     });
