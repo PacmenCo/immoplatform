@@ -13,8 +13,7 @@ import {
   removeAvatar,
   resendEmailVerification,
 } from "@/app/actions/profile";
-import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
-import { useFormDirty } from "@/lib/useFormDirty";
+import { SettingsSaveBar } from "@/components/dashboard/SettingsSaveBar";
 import { AVATAR_ACCEPT_ATTR, AVATAR_MAX_BYTES } from "@/lib/avatar";
 import type { ActionResult } from "@/app/actions/_types";
 
@@ -112,7 +111,6 @@ function DetailsCard({ initial }: { initial: ProfileFormInitial }) {
   >(updateProfile, undefined);
 
   const formRef = useRef<HTMLFormElement>(null);
-  useUnsavedChanges(useFormDirty(formRef));
 
   return (
     <Card>
@@ -199,11 +197,11 @@ function DetailsCard({ initial }: { initial: ProfileFormInitial }) {
             />
           </Field>
 
-          <div className="flex items-center justify-end">
-            <Button type="submit" size="md" loading={pending}>
-              Save profile
-            </Button>
-          </div>
+          <SettingsSaveBar
+            formRef={formRef}
+            pending={pending}
+            label="Save profile"
+          />
         </form>
       </CardBody>
     </Card>

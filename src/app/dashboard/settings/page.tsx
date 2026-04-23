@@ -7,6 +7,7 @@ import { initials, fullName } from "@/lib/format";
 import { SettingsNav } from "./_nav";
 import { ProfileForm, type ProfileFormInitial } from "./ProfileForm";
 import { DeleteAccountButton } from "./DeleteAccountButton";
+import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
 
 export default async function SettingsPage() {
   const session = await requireSession();
@@ -32,19 +33,7 @@ export default async function SettingsPage() {
         <SettingsNav />
 
         <div className="mt-6 space-y-6">
-          <div className="flex items-start gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-4 text-sm">
-            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--color-bg)] text-[var(--color-ink-muted)]">
-              i
-            </span>
-            <div>
-              <p className="font-medium text-[var(--color-ink)]">
-                Personal settings
-              </p>
-              <p className="mt-0.5 text-[var(--color-ink-soft)]">
-                These apply only to your account.
-              </p>
-            </div>
-          </div>
+          <SettingsScopeBanner scope="personal" />
 
           <ProfileForm initial={initial} />
 

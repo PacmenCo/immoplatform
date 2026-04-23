@@ -4,6 +4,8 @@ import { Field, Select, Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { TEAMS } from "@/lib/mockData";
+import { SettingsNav } from "../_nav";
+import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
 
 const PREFS = [
   {
@@ -37,8 +39,11 @@ export default function TeamSettingsPage() {
     <>
       <Topbar title="Team preferences" subtitle="Defaults and scheduling behaviour for your current team" />
 
-      <div className="p-8 max-w-[960px] space-y-8">
-        <Card>
+      <div className="p-8 max-w-[960px]">
+        <SettingsNav />
+        <div className="mt-6 space-y-8">
+          <SettingsScopeBanner scope="org" />
+          <Card>
           <CardHeader>
             <CardTitle>Current team</CardTitle>
             <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
@@ -155,9 +160,20 @@ export default function TeamSettingsPage() {
           </CardBody>
         </Card>
 
-        <div className="flex items-center justify-end gap-3">
-          <Button variant="secondary" size="md">Discard</Button>
-          <Button variant="primary" size="md">Save preferences</Button>
+          <div className="sticky bottom-0 z-20 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 px-8 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-bg)]/80">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-[var(--color-ink)]">Team preferences</p>
+                <p className="text-xs text-[var(--color-ink-muted)]">
+                  Applies to everyone in this team.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm">Discard</Button>
+                <Button variant="primary" size="sm">Save preferences</Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>

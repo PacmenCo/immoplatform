@@ -3,6 +3,8 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { IconArrowRight } from "@/components/ui/Icons";
+import { SettingsNav } from "../_nav";
+import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
 
 const INVOICES = [
   { id: "INV-2026-04", date: "2026-04-01", amount: "€ 99.00", status: "paid" },
@@ -17,7 +19,10 @@ export default function BillingSettingsPage() {
     <>
       <Topbar title="Billing" subtitle="Plan, payment method, invoices" />
 
-      <div className="p-8 max-w-[960px] space-y-8">
+      <div className="p-8 max-w-[960px]">
+        <SettingsNav />
+        <div className="mt-6 space-y-8">
+          <SettingsScopeBanner scope="org" />
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-4">
@@ -153,6 +158,7 @@ export default function BillingSettingsPage() {
             </table>
           </CardBody>
         </Card>
+        </div>
       </div>
     </>
   );

@@ -141,7 +141,8 @@ export function currentPeriod(kind: PeriodKind, now: Date = new Date()): Period 
 
 /**
  * Normalize a URL search-params shape into a Period. Falls back to the
- * current month if any field is missing or malformed.
+ * current quarter if any field is missing or malformed — mirrors Platform's
+ * OverviewList default (`$periodType = 'kwartaal'`).
  */
 export function parsePeriod(sp: {
   period?: string;
@@ -150,21 +151,21 @@ export function parsePeriod(sp: {
   quarter?: string;
 }): Period {
   const kind: PeriodKind =
-    sp.period === "year" || sp.period === "quarter" ? sp.period : "month";
+    sp.period === "year" || sp.period === "month" ? sp.period : "quarter";
   const now = new Date();
   const year = Number.parseInt(sp.year ?? "", 10);
   const y = Number.isFinite(year) && year >= 2000 && year <= 2100 ? year : now.getUTCFullYear();
   if (kind === "year") return { kind: "year", year: y };
-  if (kind === "quarter") {
-    const q = Number.parseInt(sp.quarter ?? "", 10);
-    const quarter = QUARTERS.includes(q as 1 | 2 | 3 | 4)
-      ? (q as 1 | 2 | 3 | 4)
-      : quarterOf(now).quarter;
-    return { kind: "quarter", year: y, quarter };
+  if (kind === "month") {
+    const m = Number.parseInt(sp.month ?? "", 10);
+    const month = m >= 1 && m <= 12 ? m : now.getUTCMonth() + 1;
+    return { kind: "month", year: y, month };
   }
-  const m = Number.parseInt(sp.month ?? "", 10);
-  const month = m >= 1 && m <= 12 ? m : now.getUTCMonth() + 1;
-  return { kind: "month", year: y, month };
+  const q = Number.parseInt(sp.quarter ?? "", 10);
+  const quarter = QUARTERS.includes(q as 1 | 2 | 3 | 4)
+    ? (q as 1 | 2 | 3 | 4)
+    : quarterOf(now).quarter;
+  return { kind: "quarter", year: y, quarter };
 }
 
 /** Chart axis: the months that should appear under the bar chart. */

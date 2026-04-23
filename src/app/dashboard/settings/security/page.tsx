@@ -7,6 +7,8 @@ import { requireSession } from "@/lib/auth";
 import { formatUserAgent } from "@/lib/userAgent";
 import { PasswordChangeForm } from "./PasswordChangeForm";
 import { RevokeSessionButton, SignOutAllButton } from "./SessionRowActions";
+import { SettingsNav } from "../_nav";
+import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
 
 function relativeTime(from: Date, now: Date): string {
   const diffMs = now.getTime() - from.getTime();
@@ -49,8 +51,11 @@ export default async function SecuritySettingsPage() {
     <>
       <Topbar title="Security" subtitle="Password, 2FA and active sessions" />
 
-      <div className="p-8 max-w-[960px] space-y-8">
-        <Card>
+      <div className="p-8 max-w-[960px]">
+        <SettingsNav />
+        <div className="mt-6 space-y-8">
+          <SettingsScopeBanner scope="personal" />
+          <Card>
           <CardHeader>
             <CardTitle>Change password</CardTitle>
             <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
@@ -157,6 +162,7 @@ export default async function SecuritySettingsPage() {
             <SignOutAllButton hasOthers={otherCount > 0} />
           </CardBody>
         </Card>
+        </div>
       </div>
     </>
   );

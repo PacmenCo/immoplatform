@@ -3,6 +3,8 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { IconPlus, IconArrowRight } from "@/components/ui/Icons";
+import { SettingsNav } from "../_nav";
+import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
 
 const KEYS = [
   {
@@ -36,7 +38,10 @@ export default function ApiSettingsPage() {
     <>
       <Topbar title="API keys" subtitle="Programmatic access to your workspace" />
 
-      <div className="p-8 max-w-[960px] space-y-8">
+      <div className="p-8 max-w-[960px]">
+        <SettingsNav />
+        <div className="mt-6 space-y-8">
+          <SettingsScopeBanner scope="org" />
         <a
           href="#"
           className="group flex items-center justify-between gap-4 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] px-5 py-4 transition-colors hover:border-[var(--color-border-strong)]"
@@ -127,6 +132,7 @@ export default function ApiSettingsPage() {
             </div>
           </CardBody>
         </Card>
+        </div>
       </div>
     </>
   );

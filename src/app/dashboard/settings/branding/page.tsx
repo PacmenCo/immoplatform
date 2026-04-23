@@ -2,6 +2,8 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Field, Input, Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { SettingsNav } from "../_nav";
+import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
 
 const PRESET_COLORS = [
   "#0f172a",
@@ -21,7 +23,10 @@ export default function BrandingSettingsPage() {
     <>
       <Topbar title="Branding" subtitle="Logo, colors and legal identity for certificates" />
 
-      <div className="p-8 max-w-[960px] space-y-8">
+      <div className="p-8 max-w-[960px]">
+        <SettingsNav />
+        <div className="mt-6 space-y-8">
+          <SettingsScopeBanner scope="org" />
         <Card>
           <CardHeader>
             <CardTitle>Logo</CardTitle>
@@ -115,9 +120,20 @@ export default function BrandingSettingsPage() {
           </CardBody>
         </Card>
 
-        <div className="flex items-center justify-end gap-3">
-          <Button variant="secondary" size="md">Discard</Button>
-          <Button variant="primary" size="md">Save branding</Button>
+          <div className="sticky bottom-0 z-20 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 px-8 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-bg)]/80">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-[var(--color-ink)]">Brand identity</p>
+                <p className="text-xs text-[var(--color-ink-muted)]">
+                  Applies to certificates and invoices sent by this workspace.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm">Discard</Button>
+                <Button variant="primary" size="sm">Save branding</Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>
