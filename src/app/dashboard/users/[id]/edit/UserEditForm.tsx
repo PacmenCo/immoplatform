@@ -13,6 +13,7 @@ import {
   updateUserByAdmin,
   resetUserPassword,
 } from "@/app/actions/users";
+import { ROLE_BADGE } from "@/lib/roleColors";
 import type { ActionResult } from "@/app/actions/_types";
 
 export type UserEditInitial = {
@@ -82,10 +83,11 @@ export function UserEditForm({ initial }: { initial: UserEditInitial }) {
                 required
               >
                 <Select id="role" name="role" defaultValue={initial.role}>
-                  <option value="admin">Admin</option>
-                  <option value="staff">Staff</option>
-                  <option value="realtor">Realtor</option>
-                  <option value="freelancer">Freelancer</option>
+                  {Object.entries(ROLE_BADGE).map(([role, { label }]) => (
+                    <option key={role} value={role}>
+                      {label}
+                    </option>
+                  ))}
                 </Select>
               </Field>
             </div>

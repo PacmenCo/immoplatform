@@ -84,8 +84,8 @@ export const updateProfile = withSession(async (
   }
   const d = parsed.data;
 
-  // Platform parity (Livewire/Settings/Profile.php:50-51): on email change we
-  // clear emailVerifiedAt and fire a fresh verification email.
+  // On email change: clear emailVerifiedAt and send a fresh verification
+  // email. Keeps the "verified" badge honest about the current address.
   const emailChanged = d.email !== session.user.email.toLowerCase();
 
   if (emailChanged) {
@@ -248,15 +248,17 @@ export const uploadAvatar = withSession(async (
   const version = Date.now().toString(36);
   const key = makeAvatarKey({ userId: session.user.id, version, ext });
   const buf = Buffer.from(await file.arrayBuffer());
-  await store.put(key, buf, { mimeType: mime });
 
-  // Capture the prior key so we can delete its bytes after the DB swap.
-  // If the delete fails, we log + move on — the row already points at the
-  // new key, so the old bytes are orphaned at worst.
-  const previous = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { avatarUrl: true },
-  });
+  // Upload bytes and read the prior key in parallel; the DB swap has to wait
+  // for the put (we don't want the column pointing at missing bytes) but the
+  // prior-key lookup is independent.
+  const [, previous] = await Promise.all([
+    store.put(key, buf, { mimeType: mime }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { avatarUrl: true },
+    }),
+  ]);
   await prisma.user.update({
     where: { id: session.user.id },
     data: { avatarUrl: key },

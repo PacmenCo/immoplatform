@@ -29,22 +29,9 @@ function listFormats(mimeToExt: Record<string, string>): string {
 }
 
 /**
- * Team branding uploads — logo + signature images. Platform parity:
- * admin/TeamController store/update at lines 123-128 (logo) and
- * TeamController update at lines 308-318 (signature). Simpler than
- * Platform: we use immo's single-form upload pattern rather than
- * Livewire's two-step filepond intermediate — same net effect, fewer
- * moving parts.
- *
- * Both flows:
- *   1. Parse + validate the multipart File.
- *   2. Write bytes via `storage().put(key)`.
- *   3. Swap DB column (logoUrl / signatureUrl) to point at the new key.
- *   4. Best-effort delete the previous file (so we don't orphan bytes).
- *   5. Audit + revalidate.
- *
- * The version segment in each key rotates every upload (epoch-ms as base36),
- * so the serving route's `?v=` cache-bust works the same way avatar does.
+ * Team branding uploads — logo + signature images. The version segment in
+ * each storage key rotates per upload (epoch-ms as base36) so the serving
+ * route's `?v=` cache-bust works the same way avatars do.
  */
 
 type BrandingKind = "logo" | "signature";
@@ -103,15 +90,17 @@ async function uploadTeamBranding(
   const version = Date.now().toString(36);
   const key = makeTeamBrandingKey({ teamId, kind, version, ext });
   const buf = Buffer.from(await file.arrayBuffer());
-  await store.put(key, buf, { mimeType: mime });
 
-  // Capture the previous key so we can reap its bytes after the DB swap.
-  // If deletion fails the row already points at the new key, so the old
-  // bytes are orphaned at worst — logged + moved on.
-  const previous = await prisma.team.findUnique({
-    where: { id: teamId },
-    select: { [cfg.dbField]: true } as never,
-  });
+  // Upload bytes and read the prior key in parallel; the DB swap has to wait
+  // for the put (don't point the column at missing bytes) but the prior-key
+  // lookup is independent.
+  const [, previous] = await Promise.all([
+    store.put(key, buf, { mimeType: mime }),
+    prisma.team.findUnique({
+      where: { id: teamId },
+      select: { [cfg.dbField]: true } as never,
+    }),
+  ]);
   const prevKey = (previous as Record<string, string | null> | null)?.[cfg.dbField] ?? null;
 
   await prisma.team.update({

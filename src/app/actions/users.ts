@@ -9,9 +9,9 @@ import { canAdminUsers } from "@/lib/permissions";
 import { withSession, type ActionResult } from "./_types";
 
 /**
- * Admin-only user management. Platform parity: UserController.php:208-316
- * (edit, update, destroy). Self-service equivalents live in profile.ts +
- * security.ts — this file is exclusively for "admin editing someone else".
+ * Admin-only user management — edit / delete / role-change / password-reset
+ * for someone other than yourself. Self-service equivalents live in
+ * profile.ts + security.ts.
  */
 
 const ROLES = ["admin", "staff", "realtor", "freelancer"] as const;
@@ -31,8 +31,7 @@ const editSchema = z.object({
 /**
  * Update name / email / role on another user. Admin-only. Unlike the
  * self-service profile action, this does NOT clear `emailVerifiedAt` on
- * email change — Platform trusts admins to know what they're doing
- * (UserController.php:244-284 vs Livewire/Settings/Profile.php:50-51).
+ * email change — admins are trusted to know what they're doing.
  */
 export const updateUserByAdmin = withSession(async (
   session,
@@ -137,9 +136,7 @@ const passwordSchema = z
 /**
  * Admin sets a new password on another user's account. Revokes every active
  * session for that user so the old password can't be reused from existing
- * browsers. Platform parity: UserController.php:262-275 (plaintext input,
- * hash + save). Platform does NOT revoke sessions; we do, for the same
- * reason self-service password change does.
+ * browsers — matches the self-service change-password flow.
  */
 export const resetUserPassword = withSession(async (
   session,

@@ -14,12 +14,8 @@ import { withSession, type ActionResult } from "./_types";
 
 /**
  * Self-service security actions: change own password, delete own account.
- * Platform parity:
- *   - Password: Livewire/Settings/Password.php (current_password required,
- *     PasswordRule::defaults, confirmation).
- *   - Delete:   Livewire/Settings/DeleteUserForm.php (current_password required,
- *     log out + delete). Platform's delete() is commented out; we implement
- *     the intent as soft-delete via User.deletedAt.
+ * Delete is implemented as soft-delete (User.deletedAt) so audit history and
+ * any created-by foreign keys keep pointing at a real row.
  */
 
 // ─── Change password ───────────────────────────────────────────────

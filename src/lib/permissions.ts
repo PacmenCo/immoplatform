@@ -303,10 +303,9 @@ export function canManageAnnouncements(s: SessionWithUser): boolean {
 }
 
 /**
- * Can the viewer open a user record? Mirrors Platform's
- * UserController::index/show gate (Platform refs: UserController.php:42-46) —
- * medewerker/staff are blocked from seeing admins or other staff. Users may
- * always view themselves.
+ * Can the viewer open a user record? Staff are blocked from seeing admins
+ * or other staff — only admins see the full user set. Users may always
+ * view themselves.
  */
 export function canViewUser(
   s: SessionWithUser,
