@@ -3,22 +3,13 @@
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { Badge } from "@/components/ui/Badge";
-import { STATUS_META, type Status } from "@/lib/mockData";
+import { STATUS_META, STATUS_ORDER, type Status } from "@/lib/mockData";
 import { changeAssignmentStatus } from "@/app/actions/assignments";
 
 type Props = {
   assignmentId: string;
   status: Status;
 };
-
-const ALL_STATUSES: Status[] = [
-  "draft",
-  "scheduled",
-  "in_progress",
-  "delivered",
-  "completed",
-  "cancelled",
-];
 
 /**
  * Inline status editor on the assignments list.
@@ -123,7 +114,7 @@ export function StatusPicker({ assignmentId, status }: Props) {
             style={{ position: "fixed", top: pos.top, left: pos.left, minWidth: pos.width }}
             className="z-50 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] py-1 shadow-lg"
           >
-            {ALL_STATUSES.map((s) => {
+            {STATUS_ORDER.map((s) => {
               const m = STATUS_META[s];
               const isCurrent = s === status;
               return (

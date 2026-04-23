@@ -329,6 +329,9 @@ model Assignment {
   propertyType     String?                     // 'house' | 'apartment' | ...
   constructionYear Int?
   areaM2           Int?
+  // Package quantity — Platform parity (AssignmentController.php:155,215).
+  // 1..10 enforced at the action layer; Platform also defaults to 1 when omitted.
+  quantity         Int       @default(1)
 
   // Scheduling
   preferredDate    DateTime?

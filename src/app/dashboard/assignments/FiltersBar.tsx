@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Input, Select } from "@/components/ui/Input";
 import { IconSearch } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
-import { STATUS_META, type Status } from "@/lib/mockData";
+import { STATUS_META, STATUS_ORDER, type Status } from "@/lib/mockData";
 
 type Team = { id: string; name: string };
 type Freelancer = { id: string; firstName: string; lastName: string };
@@ -23,15 +23,6 @@ type Props = {
   resetHref: string;
   showReset: boolean;
 };
-
-const STATUS_ORDER: Status[] = [
-  "draft",
-  "scheduled",
-  "in_progress",
-  "delivered",
-  "completed",
-  "cancelled",
-];
 
 /**
  * Unified filter toolbar: search + status + team on one row. Each change

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { generateCuid } from "@/lib/cuid";
 import { prisma } from "@/lib/db";
 import { audit, type SessionWithUser } from "@/lib/auth";
+import { applyCommission } from "@/lib/commission";
 import { filesUploadedEmail } from "@/lib/email";
 import { notify } from "@/lib/notify";
 import {
@@ -135,6 +136,8 @@ export const uploadAssignmentFiles = withSession(async (
     throw err;
   }
 
+  let autoCompleted = false;
+  let commissionAmountCents: number | null = null;
   try {
     await prisma.$transaction(async (tx) => {
       // In-tx status re-check via an update predicate — if the assignment
@@ -157,6 +160,24 @@ export const uploadAssignmentFiles = withSession(async (
           sizeBytes: p.sizeBytes,
         })),
       });
+      // Platform parity (ProcessFilePondUpload.php:260-289 + AssignmentController.php:704-716):
+      // a freelancer-lane upload jumps the assignment straight to `completed`
+      // and fires the commission calc. `deliveredAt` is backfilled atomically
+      // (only when still null) so a concurrent admin set can't be clobbered.
+      if (lane === "freelancer") {
+        const now = new Date();
+        await tx.assignment.update({
+          where: { id: assignmentId },
+          data: { status: "completed", completedAt: now },
+        });
+        await tx.assignment.updateMany({
+          where: { id: assignmentId, deliveredAt: null },
+          data: { deliveredAt: now },
+        });
+        autoCompleted = true;
+        const commission = await applyCommission(assignmentId, tx);
+        commissionAmountCents = commission?.amountCents ?? null;
+      }
     });
   } catch (err) {
     await Promise.all(prepared.map((p) => store.delete(p.key).catch(() => {})));
@@ -182,6 +203,28 @@ export const uploadAssignmentFiles = withSession(async (
         sizeBytes: file.size,
       },
     });
+  }
+
+  if (autoCompleted) {
+    await audit({
+      actorId: session.user.id,
+      verb: "assignment.completed",
+      objectType: "assignment",
+      objectId: assignmentId,
+      metadata: { trigger: "freelancer_upload", fileCount: prepared.length },
+    });
+    if (commissionAmountCents !== null) {
+      await audit({
+        actorId: session.user.id,
+        verb: "assignment.commission_applied",
+        objectType: "assignment",
+        objectId: assignmentId,
+        metadata: {
+          amountCents: commissionAmountCents,
+          trigger: "freelancer_upload",
+        },
+      });
+    }
   }
 
   // Notify the opposite side: freelancer uploads → ping the agency; realtor

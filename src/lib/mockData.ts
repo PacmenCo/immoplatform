@@ -31,16 +31,43 @@ export const SERVICES: Record<
   },
 };
 
-export type Status = "draft" | "scheduled" | "in_progress" | "delivered" | "completed" | "cancelled";
+// Order matches Platform's lifecycle: new → awaiting → scheduled → in progress →
+// delivered → completed, with on_hold as a pause state and cancelled terminal.
+export type Status =
+  | "draft"
+  | "awaiting"
+  | "scheduled"
+  | "in_progress"
+  | "delivered"
+  | "completed"
+  | "on_hold"
+  | "cancelled";
 
 export const STATUS_META: Record<Status, { label: string; bg: string; fg: string }> = {
   draft: { label: "Draft", bg: "#f1f5f9", fg: "#475569" },
+  awaiting: { label: "Awaiting", bg: "#e2e8f0", fg: "#334155" },
   scheduled: { label: "Scheduled", bg: "#dbeafe", fg: "#1d4ed8" },
   in_progress: { label: "In progress", bg: "#fef3c7", fg: "#b45309" },
   delivered: { label: "Delivered", bg: "#dcfce7", fg: "#15803d" },
   completed: { label: "Completed", bg: "#ecfccb", fg: "#365314" },
+  on_hold: { label: "On hold", bg: "#e4e4e7", fg: "#52525b" },
   cancelled: { label: "Cancelled", bg: "#fee2e2", fg: "#991b1b" },
 };
+
+/**
+ * Canonical left-to-right order used by every list, filter, picker, and
+ * enum — single source of truth keeps UI and validator in lockstep.
+ */
+export const STATUS_ORDER = [
+  "draft",
+  "awaiting",
+  "scheduled",
+  "in_progress",
+  "delivered",
+  "completed",
+  "on_hold",
+  "cancelled",
+] as const satisfies readonly Status[];
 
 export const TERMINAL_STATUSES = ["completed", "cancelled"] as const satisfies readonly Status[];
 

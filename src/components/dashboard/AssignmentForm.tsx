@@ -41,6 +41,7 @@ export type AssignmentFormInitial = {
   propertyType: string | null;
   constructionYear: number | null;
   areaM2: number | null;
+  quantity: number;
   isLargeProperty: boolean;
   services: string[];
   owner: OwnerContact;
@@ -186,6 +187,18 @@ export function AssignmentForm({
                 type="number"
                 placeholder="120"
                 defaultValue={initial?.areaM2 ?? ""}
+              />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Packages" id="quantity">
+              <Input
+                id="quantity"
+                name="quantity"
+                type="number"
+                min={1}
+                max={10}
+                defaultValue={initial?.quantity ?? 1}
               />
             </Field>
           </div>
@@ -558,6 +571,18 @@ export function AssignmentForm({
               />
             </Field>
           </div>
+          {!initial && (
+            <div className="sm:col-span-2">
+              <Field label="Initial comment" id="initial-comment">
+                <Textarea
+                  id="initial-comment"
+                  name="initial-comment"
+                  rows={3}
+                  placeholder="First message for the thread (optional) — visible to everyone on the assignment."
+                />
+              </Field>
+            </div>
+          )}
         </CardBody>
       </Card>
 

@@ -9,13 +9,27 @@ import type { Status } from "./mockData";
  * scattered `status: { in: [...] }` predicates cannot.
  */
 export const TRANSITIONS = {
-  draft: ["scheduled", "in_progress", "cancelled"],
-  scheduled: ["in_progress", "delivered", "cancelled"],
-  in_progress: ["delivered", "cancelled"],
+  draft: ["awaiting", "scheduled", "in_progress", "on_hold", "cancelled"],
+  awaiting: ["scheduled", "in_progress", "on_hold", "cancelled"],
+  scheduled: ["awaiting", "in_progress", "delivered", "on_hold", "cancelled"],
+  in_progress: ["delivered", "on_hold", "cancelled"],
   delivered: ["completed", "cancelled"],
+  on_hold: ["awaiting", "scheduled", "in_progress", "cancelled"],
   completed: [],
   cancelled: [],
 } as const satisfies Record<Status, readonly Status[]>;
+
+/**
+ * Early-lifecycle states — Platform's `autoStatusForDateChange` uses the set
+ * { Nieuw, In afwachting, On hold } as the trigger window for bumping to
+ * Ingepland when a date is set. Mirror the same set here so the immo edit
+ * flow auto-transitions identically.
+ */
+export const EARLY_STATUSES: ReadonlySet<Status> = new Set([
+  "draft",
+  "awaiting",
+  "on_hold",
+]);
 
 export function canTransition(from: Status, to: Status): boolean {
   return (TRANSITIONS[from] as readonly Status[]).includes(to);

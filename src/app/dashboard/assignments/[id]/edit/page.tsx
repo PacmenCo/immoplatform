@@ -52,6 +52,7 @@ export default async function EditAssignment({
     propertyType: assignment.propertyType,
     constructionYear: assignment.constructionYear,
     areaM2: assignment.areaM2,
+    quantity: assignment.quantity,
     isLargeProperty: assignment.isLargeProperty,
     services: assignment.services.map((s) => s.serviceKey),
     owner: {

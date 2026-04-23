@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { SERVICE_KEYS, TERMINAL_STATUSES } from "@/lib/mockData";
-import { canTransition, sourcesOf } from "@/lib/assignmentStatus";
+import { SERVICE_KEYS, STATUS_ORDER, TERMINAL_STATUSES } from "@/lib/mockData";
+import { canTransition, EARLY_STATUSES, sourcesOf } from "@/lib/assignmentStatus";
 import type { Status } from "@/lib/mockData";
 import { audit } from "@/lib/auth";
 import {
@@ -168,6 +168,11 @@ const createSchema = z.object({
       .max(100000, "Living area seems too large.")
       .nullable(),
   ),
+  // Platform parity (AssignmentController.php:155): 1..10, defaults to 1.
+  quantity: z.preprocess(
+    (v) => (v === "" || v === undefined || v === null ? null : v),
+    z.coerce.number().int().min(1, "Quantity must be at least 1.").max(10, "Quantity can't exceed 10.").nullable(),
+  ),
 
   services: z.array(z.enum(SERVICE_KEYS)).min(1, "Pick at least one service."),
 
@@ -199,6 +204,10 @@ const createSchema = z.object({
   calendarAccountEmail: z.string().email().optional().or(z.literal("")),
   keyPickup: z.string().optional(),
   notes: z.string().optional(),
+  // Platform parity (AssignmentController.php:172, 266): optional initial
+  // comment at create time → creates an AssignmentComment authored by the
+  // creator. Only honored in createSchema; edits add comments via postComment.
+  initialComment: z.string().max(2000).optional(),
 });
 
 export const createAssignment = withSession(async (
@@ -221,6 +230,7 @@ export const createAssignment = withSession(async (
     propertyType: (formData.get("type") as string) || undefined,
     constructionYear: formData.get("year") as string,
     areaM2: formData.get("area") as string,
+    quantity: (formData.get("quantity") as string) || undefined,
     services,
     ownerName: formData.get("owner-name") as string,
     ownerEmail: (formData.get("owner-email") as string) || "",
@@ -243,6 +253,7 @@ export const createAssignment = withSession(async (
     calendarAccountEmail: (formData.get("calendarAccountEmail") as string) || "",
     keyPickup: (formData.get("key-pickup") as string) || undefined,
     notes: (formData.get("notes") as string) || undefined,
+    initialComment: ((formData.get("initial-comment") as string) || "").trim() || undefined,
   };
   // Freelancer is optional — only admin/staff may set it at create time.
   const rawFreelancerId = ((formData.get("freelancerId") as string) || "").trim();
@@ -299,6 +310,21 @@ export const createAssignment = withSession(async (
     unitPriceCents: priceMap.get(k) ?? 0,
   }));
 
+  // Platform parity (AssignmentController.php:218-219, 129): create-time
+  // defaults pull from session.user (contact email/phone) and the team's
+  // `defaultClientType` when the form left those fields blank. Updates
+  // don't default — respect what the user explicitly sets.
+  const resolvedContactEmail = d.contactEmail || session.user.email;
+  const resolvedContactPhone = d.contactPhone || session.user.phone || null;
+  let resolvedClientType: string | null = d.clientType || null;
+  if (!resolvedClientType && teamId) {
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { defaultClientType: true },
+    });
+    resolvedClientType = team?.defaultClientType ?? null;
+  }
+
   // Retry on reference-collision — nextReference reads max+1 non-atomically,
   // so two concurrent creates can compute the same value. The unique index
   // on Assignment.reference catches it; we just try a fresh number.
@@ -317,6 +343,7 @@ export const createAssignment = withSession(async (
           propertyType: d.propertyType || null,
           constructionYear: d.constructionYear || null,
           areaM2: d.areaM2 || null,
+          quantity: d.quantity ?? 1,
           isLargeProperty: !!d.isLargeProperty,
           preferredDate: d.preferredDate ? new Date(d.preferredDate) : null,
           calendarDate:
@@ -334,17 +361,24 @@ export const createAssignment = withSession(async (
           ownerPostal: d.ownerPostal || null,
           ownerCity: d.ownerCity || null,
           ownerVatNumber: d.ownerVatNumber || null,
-          clientType: d.clientType || null,
+          clientType: resolvedClientType,
           tenantName: d.tenantName || null,
           tenantEmail: d.tenantEmail || null,
           tenantPhone: d.tenantPhone || null,
-          contactEmail: d.contactEmail || null,
-          contactPhone: d.contactPhone || null,
+          contactEmail: resolvedContactEmail,
+          contactPhone: resolvedContactPhone,
           photographerContactPerson: d.photographerContactPerson || null,
           teamId,
           freelancerId,
           createdById: session.user.id,
           services: { create: serviceLines },
+          ...(d.initialComment
+            ? {
+                comments: {
+                  create: [{ authorId: session.user.id, body: d.initialComment }],
+                },
+              }
+            : {}),
         },
       });
       break;
@@ -515,6 +549,11 @@ const updateSchema = z.object({
       .max(100000, "Living area seems too large.")
       .nullable(),
   ),
+  // Platform parity (AssignmentController.php:155): 1..10, defaults to 1.
+  quantity: z.preprocess(
+    (v) => (v === "" || v === undefined || v === null ? null : v),
+    z.coerce.number().int().min(1, "Quantity must be at least 1.").max(10, "Quantity can't exceed 10.").nullable(),
+  ),
 
   services: z.array(z.enum(SERVICE_KEYS)).min(1, "Pick at least one service."),
 
@@ -581,6 +620,7 @@ export const updateAssignment = withSession(async (
     propertyType: (formData.get("type") as string) || undefined,
     constructionYear: formData.get("year") as string,
     areaM2: formData.get("area") as string,
+    quantity: (formData.get("quantity") as string) || undefined,
     services,
     ownerName: formData.get("owner-name") as string,
     ownerEmail: (formData.get("owner-email") as string) || "",
@@ -656,6 +696,23 @@ export const updateAssignment = withSession(async (
   });
 
   const canSetCalendarOverrides = canFreelancer;
+
+  // Platform parity (AssignmentController::autoStatusForDateChange,
+  // app/Http/Controllers/AssignmentController.php:1229-1262):
+  // - Setting a preferredDate on an early-lifecycle assignment auto-bumps to
+  //   `scheduled` so it appears on calendars without a second save.
+  // - Clearing the date on a `scheduled` assignment reverts to `awaiting`
+  //   so it doesn't sit on the schedule with no when.
+  const previousDate = existing.preferredDate;
+  const newDate = d.preferredDate ? new Date(d.preferredDate) : null;
+  const currentStatus = existing.status as Status;
+  let autoStatus: Status | undefined;
+  if (!previousDate && newDate && EARLY_STATUSES.has(currentStatus)) {
+    autoStatus = "scheduled";
+  } else if (previousDate && !newDate && currentStatus === "scheduled") {
+    autoStatus = "awaiting";
+  }
+
   const claimed = await prisma.$transaction(async (tx) => {
     // Optimistic guard: refuse to update if status went terminal in the meantime.
     const claim = await tx.assignment.updateMany({
@@ -667,6 +724,7 @@ export const updateAssignment = withSession(async (
         propertyType: d.propertyType || null,
         constructionYear: d.constructionYear || null,
         areaM2: d.areaM2 || null,
+        quantity: d.quantity ?? 1,
         isLargeProperty: !!d.isLargeProperty,
         preferredDate: d.preferredDate ? new Date(d.preferredDate) : null,
         keyPickup: d.keyPickup || null,
@@ -693,6 +751,7 @@ export const updateAssignment = withSession(async (
           : {}),
         ...(freelancerChanged ? { freelancerId: nextFreelancerId } : {}),
         ...(discountPatch ?? {}),
+        ...(autoStatus ? { status: autoStatus } : {}),
       },
     });
     if (claim.count === 0) return false;
@@ -720,13 +779,23 @@ export const updateAssignment = withSession(async (
     verb: "assignment.updated",
     objectType: "assignment",
     objectId: id,
-    metadata: { services: d.services },
+    metadata: {
+      services: d.services,
+      ...(autoStatus
+        ? {
+            autoStatusTransition: {
+              from: currentStatus,
+              to: autoStatus,
+              trigger: previousDate ? "date_cleared" : "date_set",
+            },
+          }
+        : {}),
+    },
   });
 
   // If the preferredDate changed, ping the freelancer + creator so they can
-  // replan. Other field edits don't warrant a notification.
-  const previousDate = existing.preferredDate;
-  const newDate = d.preferredDate ? new Date(d.preferredDate) : null;
+  // replan. Other field edits don't warrant a notification. `previousDate`
+  // and `newDate` are computed earlier for the auto-status logic.
   const dateChanged =
     (previousDate?.getTime() ?? null) !== (newDate?.getTime() ?? null);
   if (dateChanged) {
@@ -1277,25 +1346,18 @@ export const postComment = withSession(async (
  * (`markAssignmentCompleted`, `cancelAssignment`, …) remain for flows that
  * need notes, files, or cancellation reasons.
  */
-const STATUS_VALUES = [
-  "draft",
-  "scheduled",
-  "in_progress",
-  "delivered",
-  "completed",
-  "cancelled",
-] as const satisfies readonly Status[];
-
 const changeStatusSchema = z.object({
-  to: z.enum(STATUS_VALUES),
+  to: z.enum(STATUS_ORDER),
 });
 
 const AUDIT_BY_TARGET = {
+  awaiting: "assignment.updated",
   scheduled: "assignment.updated",
   in_progress: "assignment.started",
   delivered: "assignment.delivered",
   completed: "assignment.completed",
   cancelled: "assignment.cancelled",
+  on_hold: "assignment.updated",
   draft: "assignment.updated",
 } as const;
 

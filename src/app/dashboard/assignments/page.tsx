@@ -6,7 +6,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { IconList, IconPlus } from "@/components/ui/Icons";
-import { STATUS_META, Status } from "@/lib/mockData";
+import { STATUS_META, STATUS_ORDER, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import {
@@ -23,15 +23,6 @@ import { StatusPicker } from "./StatusPicker";
 import { FiltersBar } from "./FiltersBar";
 import { AssignmentFilesButton } from "./AssignmentFilesButton";
 import type { Prisma } from "@prisma/client";
-
-const statusOrder: Status[] = [
-  "draft",
-  "scheduled",
-  "in_progress",
-  "delivered",
-  "completed",
-  "cancelled",
-];
 
 const SORTS = [
   { id: "created", label: "Created", column: "createdAt" as const },
@@ -97,7 +88,7 @@ export default async function AssignmentsList({
   const isFreelancer = r === "freelancer";
 
   const params = await searchParams;
-  const activeStatus: Status | null = statusOrder.includes(params.status as Status)
+  const activeStatus: Status | null = (STATUS_ORDER as readonly Status[]).includes(params.status as Status)
     ? (params.status as Status)
     : null;
   const q = (params.q ?? "").trim();

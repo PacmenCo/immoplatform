@@ -1,7 +1,7 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/auth";
+import { authorizeBearerToken } from "@/lib/cron-auth";
 import { monthlyInvoiceReminderEmail, sendEmail } from "@/lib/email";
 import { EN_MONTH_YEAR } from "@/lib/format";
 import { endOfMonthMinusDays, isSameUtcDay } from "@/lib/period";
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
   if (!secret) {
     return NextResponse.json({ error: "CRON_SECRET is not configured." }, { status: 500 });
   }
-  if (!authorized(req, secret)) {
+  if (!authorizeBearerToken(req, secret)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
@@ -79,18 +79,6 @@ export async function GET(req: Request) {
   });
 
   return NextResponse.json({ ok: true, fired: true, monthLabel });
-}
-
-/**
- * Constant-time comparison of the Bearer header. A plain `!==` leaks the
- * length and prefix of the provided secret via response-time timing.
- */
-function authorized(req: Request, secret: string): boolean {
-  const header = req.headers.get("authorization") ?? "";
-  const expected = Buffer.from(`Bearer ${secret}`);
-  const actual = Buffer.from(header);
-  if (expected.length !== actual.length) return false;
-  return timingSafeEqual(expected, actual);
 }
 
 async function alreadySentToday(now: Date): Promise<boolean> {
