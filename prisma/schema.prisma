@@ -335,7 +335,16 @@ model Assignment {
 
   // Scheduling
   preferredDate    DateTime?
-  keyPickup        String?                     // 'owner' | 'tenant' | 'office' | 'lockbox'
+  // Key-pickup triple — Platform parity
+  // (add_photographer_contact_and_key_fields_to_assignments_table.php:22-35,
+  // AssignmentController.php:175-177, edit.blade.php:778-825).
+  // Flow: realtor checks `requiresKeyPickup` → picks a locationType
+  // ('office' = pick up at agency, 'other' = custom address → fill
+  // `keyPickupAddress`). Calendar event renders "Sleutel ophalen" when
+  // `requiresKeyPickup` is true (GoogleCalendarService.php:344-353).
+  requiresKeyPickup      Boolean @default(false)
+  keyPickupLocationType  String?                // 'office' | 'other'
+  keyPickupAddress       String?
   notes            String?
 
   // Contacts

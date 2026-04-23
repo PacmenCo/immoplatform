@@ -83,7 +83,13 @@ export default async function EditAssignment({
       ? assignment.calendarDate.toISOString().slice(0, 16)
       : null,
     calendarAccountEmail: assignment.calendarAccountEmail,
-    keyPickup: assignment.keyPickup,
+    requiresKeyPickup: assignment.requiresKeyPickup,
+    keyPickupLocationType:
+      assignment.keyPickupLocationType === "office" ||
+      assignment.keyPickupLocationType === "other"
+        ? assignment.keyPickupLocationType
+        : null,
+    keyPickupAddress: assignment.keyPickupAddress,
     notes: assignment.notes,
     freelancerId: assignment.freelancerId,
     discount: {

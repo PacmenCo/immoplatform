@@ -29,7 +29,10 @@ type AssignmentLike = {
   postal: string;
   propertyType: string | null;
   areaM2: number | null;
-  keyPickup: string | null;
+  /** Platform-parity key-pickup triple — see Assignment model comments. */
+  requiresKeyPickup: boolean;
+  keyPickupLocationType: string | null;
+  keyPickupAddress: string | null;
   notes: string | null;
   ownerName: string;
   ownerEmail: string | null;
@@ -62,13 +65,6 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
   office: "Office",
   villa: "Villa",
   land: "Land",
-};
-
-const KEY_PICKUP_LABELS: Record<string, string> = {
-  owner: "At the owner's address",
-  tenant: "At the tenant's address",
-  office: "Pick up at the office",
-  lockbox: "Lockbox on-site",
 };
 
 type TeamLike = {
@@ -144,8 +140,17 @@ function buildDescription(a: AssignmentLike, team: TeamLike, start: Date): strin
     );
   }
   propLines.push(`<strong>Area:</strong> ${areaLine(a)}`);
-  if (a.keyPickup) {
-    propLines.push(`<strong>Key pickup:</strong> ${escape(labelKeyPickup(a.keyPickup))}`);
+  // Key pickup — Platform GoogleCalendarService.php:344-353 renders a
+  // "Sleutel ophalen" block only when requiresKeyPickup is true. We keep
+  // the English label but mirror the shape: one line per fact.
+  if (a.requiresKeyPickup) {
+    const line =
+      a.keyPickupLocationType === "other"
+        ? a.keyPickupAddress
+          ? `At: ${escape(a.keyPickupAddress)}`
+          : "At a separate address"
+        : "Pick up at the office";
+    propLines.push(`<strong>Key pickup:</strong> ${line}`);
   }
   rows.push(`<p>${propLines.join("<br />")}</p>`);
 
@@ -202,10 +207,6 @@ function buildDescription(a: AssignmentLike, team: TeamLike, start: Date): strin
 
 function labelProperty(raw: string): string {
   return PROPERTY_TYPE_LABELS[raw] ?? raw.charAt(0).toUpperCase() + raw.slice(1).replace(/_/g, " ");
-}
-
-function labelKeyPickup(raw: string): string {
-  return KEY_PICKUP_LABELS[raw] ?? raw;
 }
 
 function areaLine(a: AssignmentLike): string {

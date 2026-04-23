@@ -3,10 +3,13 @@ import { cache } from "react";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import type { SessionWithUser } from "./auth";
+import type { Role } from "./permissions.types";
 
 // ─── Roles ─────────────────────────────────────────────────────────
 
-export type Role = "admin" | "staff" | "realtor" | "freelancer";
+// Re-export the client-safe Role union so callers that already
+// `import { Role } from "@/lib/permissions"` keep working.
+export type { Role };
 
 export function role(s: SessionWithUser): Role {
   return s.user.role as Role;
@@ -142,6 +145,12 @@ export async function canEditAssignment(
  * Freelancers cannot modify these fields on their own assigned rows; they
  * only transition state. Prevents a freelancer from tampering with the
  * property record or contact data.
+ *
+ * The UPDATE action gate for freelancers is intentionally wider than this:
+ * a freelancer may hit the update endpoint to change appointment date,
+ * status, and append a comment. The `FREELANCER_UPDATE_FIELDS` allowlist
+ * below declares exactly which fields survive the filter on that path;
+ * everything else in the submitted FormData is silently dropped.
  */
 export async function canUpdateAssignmentFields(
   s: SessionWithUser,
@@ -149,6 +158,44 @@ export async function canUpdateAssignmentFields(
 ): Promise<boolean> {
   if (hasRole(s, "freelancer")) return false;
   return canEditAssignment(s, a);
+}
+
+/**
+ * Platform parity (AssignmentController::update @ app/Http/Controllers/
+ * AssignmentController.php:406-425): when a freelancer posts to the update
+ * endpoint, only these fields are validated and written — everything else
+ * on the form is ignored. Declared as data (array), not an if-ladder, so
+ * the policy is auditable in one place.
+ *
+ * Platform → Immo field mapping:
+ *   actual_date   → preferredDate   (the scheduled appointment date)
+ *   status_id     → status          (constrained by ROLE_ALLOWED_STATUSES)
+ *   new_comment   → newComment      (a comment to append, not a field edit)
+ *
+ * The form names here mirror the FormData keys `updateAssignment` reads —
+ * change both together.
+ */
+export const FREELANCER_UPDATE_FIELDS = [
+  "preferred-date", // appointment date
+  "status",         // status flip (further gated by ROLE_ALLOWED_STATUSES)
+  "new-comment",    // appended to the thread; not a row field
+] as const;
+export type FreelancerUpdateField = (typeof FREELANCER_UPDATE_FIELDS)[number];
+
+/**
+ * Keep only the freelancer-safe keys on an incoming FormData. Returns a
+ * fresh FormData so the caller can thread it through the rest of the
+ * action unchanged; everything not on the allowlist is dropped silently,
+ * matching Platform (which validates on a 3-field schema and ignores the
+ * rest of the request payload).
+ */
+export function filterUpdateForFreelancer(raw: FormData): FormData {
+  const out = new FormData();
+  for (const key of FREELANCER_UPDATE_FIELDS) {
+    const values = raw.getAll(key);
+    for (const v of values) out.append(key, v);
+  }
+  return out;
 }
 
 /**
@@ -196,14 +243,22 @@ export async function canDeleteAssignment(
 }
 
 /**
- * Cancel policy matches edit — if you can edit it, you can cancel it.
- * Freelancers can cancel their own assigned jobs (they drop out).
+ * Cancel policy — admin/staff + the owning realtor (creator or team owner).
+ * Freelancers cannot cancel: Platform parity (StatusSeeder's role_status pivot
+ * grants freelancers only `In afwachting`, `In verwerking`, `Ingepland` — they
+ * can't pick `Geannuleerd` in the Platform UI). A freelancer who no longer
+ * wants a job asks admin/staff to reassign (`canReassignFreelancer`) instead
+ * of terminating the whole assignment. This keeps the realtor from having to
+ * re-create the row every time an inspector walks away.
  */
 export async function canCancelAssignment(
   s: SessionWithUser,
   a: AssignmentPolicyInput,
 ): Promise<boolean> {
-  return canEditAssignment(s, a);
+  if (hasRole(s, "admin", "staff")) return true;
+  if (!hasRole(s, "realtor")) return false;
+  const { owned } = await getUserTeamIds(s.user.id);
+  return a.createdById === s.user.id || (!!a.teamId && owned.includes(a.teamId));
 }
 
 /**

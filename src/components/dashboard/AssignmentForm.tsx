@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
@@ -54,7 +54,12 @@ export type AssignmentFormInitial = {
   preferredDate: string | null;
   calendarDate: string | null;
   calendarAccountEmail: string | null;
-  keyPickup: string | null;
+  // Key-pickup triple — Platform parity (edit.blade.php:778-825).
+  // `requiresKeyPickup=false` hides the whole block; `locationType='other'`
+  // shows the address textarea; `locationType='office'` does not.
+  requiresKeyPickup: boolean;
+  keyPickupLocationType: "office" | "other" | null;
+  keyPickupAddress: string | null;
   notes: string | null;
   freelancerId: string | null;
   discount?: {
@@ -104,6 +109,16 @@ export function AssignmentForm({
 
   const formRef = useRef<HTMLFormElement>(null);
   useUnsavedChanges(useFormDirty(formRef));
+
+  // Key-pickup triple state — drives the conditional reveals. Mirror of
+  // Platform's Alpine.js block in edit.blade.php:778-824: checkbox toggles
+  // the whole section, location_type radio toggles the address textarea.
+  const [requiresKeyPickup, setRequiresKeyPickup] = useState(
+    initial?.requiresKeyPickup ?? false,
+  );
+  const [keyPickupLocationType, setKeyPickupLocationType] = useState<
+    "office" | "other"
+  >(initial?.keyPickupLocationType ?? "office");
 
   const submitCopy =
     submitLabel ?? (initial ? "Save changes" : "Create assignment");
@@ -496,18 +511,66 @@ export function AssignmentForm({
               defaultValue={initial?.preferredDate ?? ""}
             />
           </Field>
-          <Field label="Key pickup" id="key-pickup">
-            <Select
-              id="key-pickup"
-              name="key-pickup"
-              defaultValue={initial?.keyPickup ?? "owner"}
-            >
-              <option value="owner">At owner&apos;s address</option>
-              <option value="tenant">At tenant&apos;s address</option>
-              <option value="office">Pick up at office</option>
-              <option value="lockbox">Lockbox on-site</option>
-            </Select>
-          </Field>
+          <div className="sm:col-span-2">
+            <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
+              <input
+                type="checkbox"
+                name="requiresKeyPickup"
+                checked={requiresKeyPickup}
+                onChange={(e) => setRequiresKeyPickup(e.target.checked)}
+                className="h-4 w-4 accent-[var(--color-brand)]"
+              />
+              A key needs to be picked up before the inspection
+            </label>
+            {requiresKeyPickup && (
+              <div className="mt-4 ml-6 space-y-4 rounded-lg bg-[var(--color-bg-muted)] p-4">
+                <fieldset>
+                  <legend className="text-sm font-medium text-[var(--color-ink)]">
+                    Where is the key picked up?
+                  </legend>
+                  <div className="mt-2 space-y-2">
+                    <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
+                      <input
+                        type="radio"
+                        name="keyPickupLocationType"
+                        value="office"
+                        checked={keyPickupLocationType === "office"}
+                        onChange={() => setKeyPickupLocationType("office")}
+                        className="h-4 w-4 accent-[var(--color-brand)]"
+                      />
+                      At the agency office
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
+                      <input
+                        type="radio"
+                        name="keyPickupLocationType"
+                        value="other"
+                        checked={keyPickupLocationType === "other"}
+                        onChange={() => setKeyPickupLocationType("other")}
+                        className="h-4 w-4 accent-[var(--color-brand)]"
+                      />
+                      At a different address
+                    </label>
+                  </div>
+                </fieldset>
+                {keyPickupLocationType === "other" && (
+                  <Field
+                    label="Pickup address"
+                    id="key-pickup-address"
+                    hint="Full address where the inspector can pick up the key."
+                  >
+                    <Textarea
+                      id="key-pickup-address"
+                      name="keyPickupAddress"
+                      rows={3}
+                      placeholder="Street, number, postal code, city…"
+                      defaultValue={initial?.keyPickupAddress ?? ""}
+                    />
+                  </Field>
+                )}
+              </div>
+            )}
+          </div>
           {canSetFreelancer && freelancers && (
             <div className="sm:col-span-2">
               <Field

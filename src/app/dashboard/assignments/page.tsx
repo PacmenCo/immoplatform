@@ -346,6 +346,7 @@ export default async function AssignmentsList({
                           <StatusPicker
                             assignmentId={a.id}
                             status={a.status as Status}
+                            role={r}
                           />
                         </td>
                         <td className="px-2 py-3">

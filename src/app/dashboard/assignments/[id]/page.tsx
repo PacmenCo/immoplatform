@@ -364,10 +364,16 @@ export default async function AssignmentDetail({
                     {assignment.preferredDate?.toISOString().slice(0, 10) ?? "—"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <span className="text-[var(--color-ink-muted)]">Key pickup</span>
-                  <span className="font-medium capitalize text-[var(--color-ink)]">
-                    {assignment.keyPickup ?? "—"}
+                  <span className="text-right font-medium text-[var(--color-ink)]">
+                    {assignment.requiresKeyPickup
+                      ? assignment.keyPickupLocationType === "other"
+                        ? assignment.keyPickupAddress
+                          ? assignment.keyPickupAddress
+                          : "Other address"
+                        : "At office"
+                      : "Not required"}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-[var(--color-border)]">

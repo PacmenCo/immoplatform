@@ -1,14 +1,22 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { Badge } from "@/components/ui/Badge";
 import { STATUS_META, STATUS_ORDER, type Status } from "@/lib/mockData";
+import { allowedTargetsForRole } from "@/lib/assignmentStatus";
+import type { Role } from "@/lib/permissions.types";
 import { changeAssignmentStatus } from "@/app/actions/assignments";
 
 type Props = {
   assignmentId: string;
   status: Status;
+  /**
+   * The viewer's role — drives which targets are offered in the menu.
+   * Platform hides disallowed statuses in blade; we match client-side.
+   * Server still re-checks via `canRoleTransitionTo`.
+   */
+  role: Role;
 };
 
 /**
@@ -18,7 +26,7 @@ type Props = {
  * (undo an accidental complete/cancel). The menu is portaled to
  * `document.body` so parent `overflow-*` can't clip it.
  */
-export function StatusPicker({ assignmentId, status }: Props) {
+export function StatusPicker({ assignmentId, status, role }: Props) {
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +35,14 @@ export function StatusPicker({ assignmentId, status }: Props) {
   const menuRef = useRef<HTMLUListElement>(null);
 
   const meta = STATUS_META[status];
+
+  // Keep the canonical STATUS_ORDER, but filter down to what the viewer's
+  // role can actually reach. `allowedTargetsForRole` always includes the
+  // current status so the list never renders empty.
+  const options = useMemo(() => {
+    const allowed = new Set<Status>(allowedTargetsForRole(role, status));
+    return STATUS_ORDER.filter((s) => allowed.has(s));
+  }, [role, status]);
 
   // Position the menu underneath the trigger whenever it opens. Re-measures
   // on scroll/resize so the menu follows the cell instead of drifting.
@@ -114,7 +130,7 @@ export function StatusPicker({ assignmentId, status }: Props) {
             style={{ position: "fixed", top: pos.top, left: pos.left, minWidth: pos.width }}
             className="z-50 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] py-1 shadow-lg"
           >
-            {STATUS_ORDER.map((s) => {
+            {options.map((s) => {
               const m = STATUS_META[s];
               const isCurrent = s === status;
               return (

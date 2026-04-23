@@ -15,10 +15,15 @@ import {
 } from "@/lib/permissions";
 import { initials } from "@/lib/format";
 import { roleBadge } from "@/lib/roleColors";
+import { SearchInput } from "@/components/dashboard/SearchInput";
+import type { Prisma } from "@prisma/client";
 import { PendingInviteRow } from "./PendingInviteRow";
 import { DeleteUserButton } from "./DeleteUserButton";
 
-type SearchParams = Promise<{ role?: string }>;
+type SearchParams = Promise<{ role?: string; q?: string }>;
+
+// Cap user-supplied search terms so the LIKE parameters stay small.
+const MAX_QUERY_LEN = 120;
 
 const ROLE_FILTERS = ["admin", "staff", "realtor", "freelancer"] as const;
 type RoleFilter = (typeof ROLE_FILTERS)[number];
@@ -55,11 +60,30 @@ export default async function UsersPage({
 
   const params = await searchParams;
   const activeRole: RoleFilter | null = isRoleFilter(params.role) ? params.role : null;
+  const q = (params.q ?? "").trim().slice(0, MAX_QUERY_LEN);
 
   // Platform parity (UserController.php:42-46): staff cannot see admins or
   // other staff. Applied to both the user table and the pending-invites list.
   const roleFilter = userListRoleFilter(session);
   const activeRoleWhere = activeRole ? { role: activeRole } : {};
+
+  // Platform parity (UsersList.php:122-127): whitespace-split AND, each word
+  // substring-matches firstName, lastName or email. SQLite's default LIKE is
+  // case-insensitive for ASCII, which matches Platform's MySQL default
+  // collation — no `mode: "insensitive"` needed (and it's unsupported on
+  // SQLite anyway). Same pattern as assignments/page.tsx.
+  const words = q.split(/\s+/).filter(Boolean);
+  const searchWhere: Prisma.UserWhereInput | undefined = words.length
+    ? {
+        AND: words.map((w) => ({
+          OR: [
+            { firstName: { contains: w } },
+            { lastName: { contains: w } },
+            { email: { contains: w } },
+          ],
+        })),
+      }
+    : undefined;
 
   const [users, pendingInvites] = await Promise.all([
     prisma.user.findMany({
@@ -67,6 +91,7 @@ export default async function UsersPage({
         deletedAt: null,
         ...(roleFilter ?? {}),
         ...activeRoleWhere,
+        ...(searchWhere ?? {}),
       },
       orderBy: { joinedAt: "asc" },
       include: {
@@ -135,8 +160,8 @@ export default async function UsersPage({
           </Card>
         )}
 
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/dashboard/users"
               className={
@@ -171,10 +196,16 @@ export default async function UsersPage({
               );
             })}
           </div>
-          <Button href="/dashboard/users/invite" size="sm">
-            <IconPlus size={14} />
-            Invite user
-          </Button>
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-3">
+            <SearchInput
+              initialQuery={q}
+              placeholder="Search by name or email…"
+            />
+            <Button href="/dashboard/users/invite" size="sm">
+              <IconPlus size={14} />
+              Invite user
+            </Button>
+          </div>
         </div>
 
         <Card className="overflow-hidden">

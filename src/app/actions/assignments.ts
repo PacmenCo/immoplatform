@@ -6,7 +6,12 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { SERVICE_KEYS, STATUS_ORDER, TERMINAL_STATUSES } from "@/lib/mockData";
-import { canTransition, EARLY_STATUSES, sourcesOf } from "@/lib/assignmentStatus";
+import {
+  canRoleTransitionTo,
+  canTransition,
+  EARLY_STATUSES,
+  sourcesOf,
+} from "@/lib/assignmentStatus";
 import type { Status } from "@/lib/mockData";
 import { audit } from "@/lib/auth";
 import {
@@ -19,8 +24,10 @@ import {
   canUpdateAssignmentFields,
   canViewAssignment,
   eligibleFreelancerWhere,
+  filterUpdateForFreelancer,
   getUserTeamIds,
   hasRole,
+  role,
 } from "@/lib/permissions";
 import {
   MAX_DISCOUNT_FIXED_CENTS,
@@ -202,7 +209,12 @@ const createSchema = z.object({
   preferredDate: z.string().optional(),
   calendarDate: z.string().optional(),
   calendarAccountEmail: z.string().email().optional().or(z.literal("")),
-  keyPickup: z.string().optional(),
+  // Key-pickup triple — Platform parity (AssignmentController.php:175-177).
+  // location_type is strict `{'office','other'}`; address only meaningful when
+  // requiresKeyPickup=true and locationType='other' (blade edit.blade.php:813).
+  requiresKeyPickup: z.boolean().optional(),
+  keyPickupLocationType: z.enum(["office", "other"]).optional().or(z.literal("")),
+  keyPickupAddress: z.string().trim().max(500).optional().or(z.literal("")),
   notes: z.string().optional(),
   // Platform parity (AssignmentController.php:172, 266): optional initial
   // comment at create time → creates an AssignmentComment authored by the
@@ -251,7 +263,10 @@ export const createAssignment = withSession(async (
     preferredDate: (formData.get("preferred-date") as string) || undefined,
     calendarDate: (formData.get("calendarDate") as string) || undefined,
     calendarAccountEmail: (formData.get("calendarAccountEmail") as string) || "",
-    keyPickup: (formData.get("key-pickup") as string) || undefined,
+    requiresKeyPickup: formData.get("requiresKeyPickup") === "on",
+    keyPickupLocationType:
+      (formData.get("keyPickupLocationType") as string) || "",
+    keyPickupAddress: (formData.get("keyPickupAddress") as string) || "",
     notes: (formData.get("notes") as string) || undefined,
     initialComment: ((formData.get("initial-comment") as string) || "").trim() || undefined,
   };
@@ -352,7 +367,16 @@ export const createAssignment = withSession(async (
             canSetCalendarOverrides && d.calendarAccountEmail
               ? d.calendarAccountEmail
               : null,
-          keyPickup: d.keyPickup || null,
+          // Key-pickup triple — address only kept for locationType='other'
+          // (Platform edit.blade.php:813 renders the textarea only then).
+          requiresKeyPickup: !!d.requiresKeyPickup,
+          keyPickupLocationType: d.requiresKeyPickup
+            ? d.keyPickupLocationType || null
+            : null,
+          keyPickupAddress:
+            d.requiresKeyPickup && d.keyPickupLocationType === "other"
+              ? d.keyPickupAddress || null
+              : null,
           notes: d.notes || null,
           ownerName: d.ownerName,
           ownerEmail: d.ownerEmail || null,
@@ -583,9 +607,125 @@ const updateSchema = z.object({
   preferredDate: z.string().optional(),
   calendarDate: z.string().optional(),
   calendarAccountEmail: z.string().email().optional().or(z.literal("")),
-  keyPickup: z.string().optional(),
+  // Key-pickup triple — Platform parity (AssignmentController.php:469-471).
+  requiresKeyPickup: z.boolean().optional(),
+  keyPickupLocationType: z.enum(["office", "other"]).optional().or(z.literal("")),
+  keyPickupAddress: z.string().trim().max(500).optional().or(z.literal("")),
   notes: z.string().optional(),
 });
+
+/**
+ * Narrow update path used when a freelancer submits the edit form.
+ * Mirrors Platform's AssignmentController.php:406-439 — accepts only
+ * the appointment date (plus auto-status-on-date-change as a side-effect)
+ * and defers status flips / comment-append to their dedicated actions.
+ *
+ * `formData` has already been passed through `filterUpdateForFreelancer`
+ * before it gets here, so every untrusted key from the browser has been
+ * dropped. This function treats the filtered bag as source-of-truth.
+ */
+async function applyFreelancerUpdate(
+  session: Parameters<typeof canEditAssignment>[0],
+  existing: NonNullable<Awaited<ReturnType<typeof prisma.assignment.findUnique>>>,
+  formData: FormData,
+): Promise<ActionResult> {
+  const id = existing.id;
+  const rawDate = ((formData.get("preferred-date") as string) || "").trim();
+  const parsed = z
+    .object({
+      preferredDate: z
+        .string()
+        .trim()
+        .optional()
+        .refine(
+          (s) => !s || !Number.isNaN(Date.parse(s)),
+          "Preferred date must be a valid date.",
+        ),
+    })
+    .safeParse({ preferredDate: rawDate || undefined });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid date." };
+  }
+
+  const previousDate = existing.preferredDate;
+  const newDate = parsed.data.preferredDate ? new Date(parsed.data.preferredDate) : null;
+  const dateChanged =
+    (previousDate?.getTime() ?? null) !== (newDate?.getTime() ?? null);
+  if (!dateChanged) return { ok: true };
+
+  // Auto-status parity with the wide path: setting a date from empty bumps
+  // early-lifecycle rows to `scheduled`; clearing a date on a `scheduled`
+  // row reverts to `awaiting`. Matches Platform's autoStatusForDateChange.
+  const currentStatus = existing.status as Status;
+  let autoStatus: Status | undefined;
+  if (!previousDate && newDate && EARLY_STATUSES.has(currentStatus)) {
+    autoStatus = "scheduled";
+  } else if (previousDate && !newDate && currentStatus === "scheduled") {
+    autoStatus = "awaiting";
+  }
+
+  const claim = await prisma.assignment.updateMany({
+    where: { id, status: { notIn: [...TERMINAL_STATUSES] } },
+    data: {
+      preferredDate: newDate,
+      ...(autoStatus ? { status: autoStatus } : {}),
+    },
+  });
+  if (claim.count === 0) {
+    return {
+      ok: false,
+      error: "Status changed while you were editing. Reload and try again.",
+    };
+  }
+
+  await audit({
+    actorId: session.user.id,
+    verb: "assignment.updated",
+    objectType: "assignment",
+    objectId: id,
+    metadata: {
+      by: "freelancer",
+      dateChanged: true,
+      ...(autoStatus
+        ? {
+            autoStatusTransition: {
+              from: currentStatus,
+              to: autoStatus,
+              trigger: previousDate ? "date_cleared" : "date_set",
+            },
+          }
+        : {}),
+    },
+  });
+
+  // Notify the agency side — creator + team — so the realtor learns the
+  // freelancer rescheduled. The freelancer (=actor) is excluded.
+  const dateRecipients: Recipient[] = [];
+  if (existing.createdById && existing.createdById !== session.user.id) {
+    const c = await loadUser(existing.createdById);
+    if (c) dateRecipients.push(c);
+  }
+  await Promise.all(
+    dateRecipients.map((r) =>
+      notify({
+        to: r,
+        event: "assignment.date_updated",
+        ...assignmentDateUpdatedEmail({
+          ...ctxFromAssignment(existing),
+          recipientName: r.firstName,
+          previousDate,
+          newDate,
+        }),
+      }),
+    ),
+  );
+
+  await syncAssignmentToCalendars(id, "update");
+
+  revalidatePath(`/dashboard/assignments/${id}`);
+  revalidatePath("/dashboard/assignments");
+  return { ok: true };
+}
 
 export const updateAssignment = withSession(async (
   session,
@@ -595,14 +735,29 @@ export const updateAssignment = withSession(async (
 ): Promise<ActionResult> => {
   const existing = await prisma.assignment.findUnique({ where: { id } });
   if (!existing) return { ok: false, error: "Assignment not found." };
-  if (!(await canUpdateAssignmentFields(session, existing))) {
-    return { ok: false, error: "You don't have permission to edit this assignment." };
-  }
   if (existing.status === "completed" || existing.status === "cancelled") {
     return {
       ok: false,
       error: `This assignment is ${existing.status} and can no longer be edited.`,
     };
+  }
+
+  // Platform parity (AssignmentController::update @ 406-439): freelancers hit
+  // the same update endpoint but on a restricted 3-field path — actual_date,
+  // status_id, new_comment. Everything else in the submitted payload is
+  // silently dropped. Status flips + comments already have dedicated actions
+  // (changeAssignmentStatus, postComment) with their own policy gates, so
+  // the only field that actually lands here is the appointment date.
+  if (hasRole(session, "freelancer")) {
+    if (!(await canEditAssignment(session, existing))) {
+      return { ok: false, error: "You don't have permission to edit this assignment." };
+    }
+    const filtered = filterUpdateForFreelancer(formData);
+    return applyFreelancerUpdate(session, existing, filtered);
+  }
+
+  if (!(await canUpdateAssignmentFields(session, existing))) {
+    return { ok: false, error: "You don't have permission to edit this assignment." };
   }
 
   const services = Array.from(
@@ -641,7 +796,10 @@ export const updateAssignment = withSession(async (
     preferredDate: (formData.get("preferred-date") as string) || undefined,
     calendarDate: (formData.get("calendarDate") as string) || undefined,
     calendarAccountEmail: (formData.get("calendarAccountEmail") as string) || "",
-    keyPickup: (formData.get("key-pickup") as string) || undefined,
+    requiresKeyPickup: formData.get("requiresKeyPickup") === "on",
+    keyPickupLocationType:
+      (formData.get("keyPickupLocationType") as string) || "",
+    keyPickupAddress: (formData.get("keyPickupAddress") as string) || "",
     notes: (formData.get("notes") as string) || undefined,
   };
 
@@ -727,7 +885,14 @@ export const updateAssignment = withSession(async (
         quantity: d.quantity ?? 1,
         isLargeProperty: !!d.isLargeProperty,
         preferredDate: d.preferredDate ? new Date(d.preferredDate) : null,
-        keyPickup: d.keyPickup || null,
+        requiresKeyPickup: !!d.requiresKeyPickup,
+        keyPickupLocationType: d.requiresKeyPickup
+          ? d.keyPickupLocationType || null
+          : null,
+        keyPickupAddress:
+          d.requiresKeyPickup && d.keyPickupLocationType === "other"
+            ? d.keyPickupAddress || null
+            : null,
         notes: d.notes || null,
         ownerName: d.ownerName,
         ownerEmail: d.ownerEmail || null,
@@ -886,7 +1051,13 @@ export const updateAssignment = withSession(async (
     existing.propertyType !== (d.propertyType ?? null) ||
     (existing.areaM2 ?? null) !== (d.areaM2 ?? null) ||
     existing.isLargeProperty !== !!d.isLargeProperty ||
-    existing.keyPickup !== (d.keyPickup ?? null) ||
+    existing.requiresKeyPickup !== !!d.requiresKeyPickup ||
+    existing.keyPickupLocationType !==
+      (d.requiresKeyPickup ? d.keyPickupLocationType || null : null) ||
+    existing.keyPickupAddress !==
+      (d.requiresKeyPickup && d.keyPickupLocationType === "other"
+        ? d.keyPickupAddress || null
+        : null) ||
     existing.notes !== (d.notes ?? null) ||
     existing.ownerName !== d.ownerName ||
     existing.ownerEmail !== (d.ownerEmail || null) ||
@@ -1374,6 +1545,15 @@ export const changeAssignmentStatus = withSession(async (
   if (!a) return { ok: false, error: "Assignment not found." };
   const fromStatus = a.status as Status;
   if (fromStatus === target) return { ok: true };
+
+  // Role × target-status gate. Platform derives the per-role allow-list
+  // from the `role_status` pivot (AssignmentController.php:400). Immo's
+  // mirror lives in `ROLE_ALLOWED_STATUSES` inside assignmentStatus.ts.
+  // Block BEFORE the per-row edit gate so a realtor can't e.g. flip to
+  // `completed` on their own row (that's an agency action).
+  if (!canRoleTransitionTo(role(session), fromStatus, target)) {
+    return { ok: false, error: "Your role can't set this status." };
+  }
 
   // The picker allows any flip, including reversing an accidental complete
   // or cancel. Transition direction still influences which audit verb and

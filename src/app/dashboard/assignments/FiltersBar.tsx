@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Input, Select } from "@/components/ui/Input";
-import { IconSearch } from "@/components/ui/Icons";
-import { Spinner } from "@/components/ui/Spinner";
+import { Select } from "@/components/ui/Input";
+import { SearchInput } from "@/components/dashboard/SearchInput";
 import { STATUS_META, STATUS_ORDER, type Status } from "@/lib/mockData";
 
 type Team = { id: string; name: string };
@@ -47,32 +46,10 @@ export function FiltersBar({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [pending, start] = useTransition();
+  const [, start] = useTransition();
 
-  const [query, setQuery] = useState(initialQuery);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastQueryRef = useRef(initialQuery);
-
-  useEffect(() => {
-    lastQueryRef.current = initialQuery;
-    setQuery(initialQuery);
-  }, [initialQuery]);
-
-  // Cancel any pending debounce when the component unmounts so we don't
-  // trigger a router.replace after remount.
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
-
-  function push(patch: { q?: string; status?: Status | ""; team?: string; freelancer?: string }) {
+  function push(patch: { status?: Status | ""; team?: string; freelancer?: string }) {
     const sp = new URLSearchParams(searchParams.toString());
-    if ("q" in patch) {
-      if (patch.q) sp.set("q", patch.q);
-      else sp.delete("q");
-    }
     if ("status" in patch) {
       if (patch.status) sp.set("status", patch.status);
       else sp.delete("status");
@@ -89,34 +66,12 @@ export function FiltersBar({
     start(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
   }
 
-  function onQueryChange(value: string) {
-    setQuery(value);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      if (lastQueryRef.current === value) return;
-      lastQueryRef.current = value;
-      push({ q: value.trim() });
-    }, 250);
-  }
-
   return (
     <div className="flex flex-1 flex-wrap items-center gap-2">
-      <label className="relative min-w-[220px] max-w-md flex-1">
-        <span
-          aria-hidden
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-muted)]"
-        >
-          {pending ? <Spinner /> : <IconSearch size={14} />}
-        </span>
-        <Input
-          type="search"
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Search reference, address, team, person…"
-          className="pl-9"
-          aria-busy={pending}
-        />
-      </label>
+      <SearchInput
+        initialQuery={initialQuery}
+        placeholder="Search reference, address, team, person…"
+      />
 
       {/* Filter group — pushed to the right so the row mirrors Platform's
           layout (search left, filters right, action buttons after).
