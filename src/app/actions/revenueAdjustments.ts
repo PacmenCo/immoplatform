@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { audit } from "@/lib/auth";
+import { audit, type SessionWithUser } from "@/lib/auth";
 import { canManageRevenueAdjustments } from "@/lib/permissions";
 import { withSession, type ActionResult } from "./_types";
 
@@ -32,10 +32,13 @@ const createSchema = z.object({
 
 export type CreateRevenueAdjustmentInput = z.input<typeof createSchema>;
 
-export const createRevenueAdjustment = withSession(async (
-  session,
+/**
+ * Session-accepting body of `createRevenueAdjustment`. Exported for tests.
+ */
+export async function createRevenueAdjustmentInner(
+  session: SessionWithUser,
   input: CreateRevenueAdjustmentInput,
-): Promise<ActionResult<{ id: string }>> => {
+): Promise<ActionResult<{ id: string }>> {
   if (!canManageRevenueAdjustments(session)) {
     return { ok: false, error: "Only admins and staff can add revenue adjustments." };
   }
@@ -83,12 +86,17 @@ export const createRevenueAdjustment = withSession(async (
 
   revalidatePath("/dashboard/overview");
   return { ok: true, data: { id: row.id } };
-});
+}
 
-export const deleteRevenueAdjustment = withSession(async (
-  session,
+export const createRevenueAdjustment = withSession(createRevenueAdjustmentInner);
+
+/**
+ * Session-accepting body of `deleteRevenueAdjustment`. Exported for tests.
+ */
+export async function deleteRevenueAdjustmentInner(
+  session: SessionWithUser,
   id: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!canManageRevenueAdjustments(session)) {
     return { ok: false, error: "Only admins and staff can remove revenue adjustments." };
   }
@@ -123,4 +131,6 @@ export const deleteRevenueAdjustment = withSession(async (
 
   revalidatePath("/dashboard/overview");
   return { ok: true };
-});
+}
+
+export const deleteRevenueAdjustment = withSession(deleteRevenueAdjustmentInner);

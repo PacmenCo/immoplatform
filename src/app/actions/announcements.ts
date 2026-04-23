@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { audit } from "@/lib/auth";
+import { audit, type SessionWithUser } from "@/lib/auth";
 import { canManageAnnouncements } from "@/lib/permissions";
 import { ANNOUNCEMENT_TYPES } from "@/lib/announcementTypes";
 import { withSession, type ActionResult } from "./_types";
@@ -73,11 +73,15 @@ function parseDates(startsAt: string, endsAt: string): ParsedDates {
 
 // ─── Create ────────────────────────────────────────────────────────
 
-export const createAnnouncement = withSession(async (
-  session,
-  _prev: ActionResult | undefined,
+/**
+ * Session-accepting body of `createAnnouncement`. Exported for Vitest tests;
+ * returns the new announcement id on success, the wrapped form redirects.
+ */
+export async function createAnnouncementInner(
+  session: SessionWithUser,
+  _prev: ActionResult<{ id: string }> | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult<{ id: string }>> {
   if (!canManageAnnouncements(session)) {
     return { ok: false, error: "Only admins and staff can publish announcements." };
   }
@@ -112,17 +116,31 @@ export const createAnnouncement = withSession(async (
 
   revalidatePath("/dashboard/announcements");
   revalidatePath("/dashboard");
-  redirect(`/dashboard/announcements/${row.id}`);
+  return { ok: true, data: { id: row.id } };
+}
+
+export const createAnnouncement = withSession(async (
+  session: SessionWithUser,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  const result = await createAnnouncementInner(session, undefined, formData);
+  if (result.ok && result.data) redirect(`/dashboard/announcements/${result.data.id}`);
+  if (result.ok) return { ok: true };
+  return result;
 });
 
 // ─── Update ────────────────────────────────────────────────────────
 
-export const updateAnnouncement = withSession(async (
-  session,
+/**
+ * Session-accepting body of `updateAnnouncement`. Exported for tests.
+ */
+export async function updateAnnouncementInner(
+  session: SessionWithUser,
   id: string,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!canManageAnnouncements(session)) {
     return { ok: false, error: "Only admins and staff can edit announcements." };
   }
@@ -163,15 +181,29 @@ export const updateAnnouncement = withSession(async (
   revalidatePath("/dashboard/announcements");
   revalidatePath(`/dashboard/announcements/${id}`);
   revalidatePath("/dashboard");
-  redirect(`/dashboard/announcements/${id}`);
+  return { ok: true };
+}
+
+export const updateAnnouncement = withSession(async (
+  session: SessionWithUser,
+  id: string,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  const result = await updateAnnouncementInner(session, id, _prev, formData);
+  if (result.ok) redirect(`/dashboard/announcements/${id}`);
+  return result;
 });
 
 // ─── Delete ────────────────────────────────────────────────────────
 
-export const deleteAnnouncement = withSession(async (
-  session,
+/**
+ * Session-accepting body of `deleteAnnouncement`. Exported for tests.
+ */
+export async function deleteAnnouncementInner(
+  session: SessionWithUser,
   id: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!canManageAnnouncements(session)) {
     return { ok: false, error: "Only admins and staff can delete announcements." };
   }
@@ -194,7 +226,9 @@ export const deleteAnnouncement = withSession(async (
   revalidatePath("/dashboard/announcements");
   revalidatePath("/dashboard");
   return { ok: true };
-});
+}
+
+export const deleteAnnouncement = withSession(deleteAnnouncementInner);
 
 // ─── Dismiss (per-user) ────────────────────────────────────────────
 
@@ -203,10 +237,13 @@ export const deleteAnnouncement = withSession(async (
  * may call this. Idempotent — calling twice returns the existing row.
  * The announcement itself is untouched; other users still see it.
  */
-export const dismissAnnouncement = withSession(async (
-  session,
+/**
+ * Session-accepting body of `dismissAnnouncement`. Exported for tests.
+ */
+export async function dismissAnnouncementInner(
+  session: SessionWithUser,
   id: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const announcement = await prisma.announcement.findUnique({
     where: { id },
     select: { id: true, isDismissible: true },
@@ -231,4 +268,6 @@ export const dismissAnnouncement = withSession(async (
 
   revalidatePath("/dashboard");
   return { ok: true };
-});
+}
+
+export const dismissAnnouncement = withSession(dismissAnnouncementInner);
