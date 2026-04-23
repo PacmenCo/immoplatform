@@ -18,6 +18,15 @@ export default defineConfig({
       // server actions directly, outside any request context — so stub it
       // to a no-op. DB assertions don't need cache invalidation anyway.
       "next/cache": resolve(__dirname, "src/__tests__/_helpers/next-cache-stub.ts"),
+      // `next/headers`: in-memory cookie jar + Headers. Lets actions that
+      // read the IP via `headers()` or write the session cookie via
+      // `cookies()` run to completion. Tests import the __reset* helpers
+      // to isolate state between runs.
+      "next/headers": resolve(__dirname, "src/__tests__/_helpers/next-headers-stub.ts"),
+      // `next/navigation`: redirect() throws a NextRedirectError that tests
+      // catch to assert target URL. Without this, the raw framework redirect
+      // error escapes as an ordinary Error.
+      "next/navigation": resolve(__dirname, "src/__tests__/_helpers/next-navigation-stub.ts"),
     },
   },
   test: {

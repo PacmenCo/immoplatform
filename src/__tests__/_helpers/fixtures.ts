@@ -94,14 +94,24 @@ type AssignmentSeed = {
   propertyType?: string | null;
   services?: Array<{ serviceKey: string; unitPriceCents: number }>;
   preferredDate?: Date | null;
+  /** Stamp an explicit completedAt — useful for revenue/commission tests
+   *  that need deterministic quarter placement without a second update. */
+  completedAt?: Date | null;
+  discountType?: "percentage" | "fixed" | null;
+  discountValue?: number | null;
+  areaM2?: number | null;
 };
 
 export async function seedAssignment(opts: AssignmentSeed = {}) {
   const id = opts.id ?? `a_${Math.random().toString(36).slice(2, 10)}`;
+  // Reference must be unique (DB constraint). Using `Math.random` keeps us
+  // collision-free when tests stamp deterministic ids that happen to share
+  // the last-N-chars slice.
+  const rand = Math.random().toString(36).slice(2, 10).toUpperCase();
   return prisma.assignment.create({
     data: {
       id,
-      reference: opts.reference ?? `ASG-TEST-${id.slice(-4)}`,
+      reference: opts.reference ?? `ASG-TEST-${rand}`,
       status: opts.status ?? "scheduled",
       address: "1 Teststraat",
       city: "Antwerpen",
@@ -112,6 +122,10 @@ export async function seedAssignment(opts: AssignmentSeed = {}) {
       freelancerId: opts.freelancerId ?? null,
       createdById: opts.createdById ?? null,
       preferredDate: opts.preferredDate ?? null,
+      completedAt: opts.completedAt ?? null,
+      discountType: opts.discountType ?? null,
+      discountValue: opts.discountValue ?? null,
+      areaM2: opts.areaM2 ?? null,
       services: {
         create: opts.services ?? [
           { serviceKey: "asbestos", unitPriceCents: 25000 },
@@ -119,4 +133,42 @@ export async function seedAssignment(opts: AssignmentSeed = {}) {
       },
     },
   });
+}
+
+/**
+ * Seed a completed assignment + its commission row in one call. Used by
+ * payout and financial-overview tests that don't care about the commission
+ * compute path — they just need a deterministic (teamId, computedAt,
+ * amountCents) triple in the DB.
+ */
+export async function seedAssignmentWithCommission(opts: {
+  id: string;
+  teamId: string;
+  amountCents: number;
+  computedAt: Date;
+  completedAt?: Date;
+  services?: Array<{ serviceKey: string; unitPriceCents: number }>;
+}) {
+  const asg = await seedAssignment({
+    id: opts.id,
+    teamId: opts.teamId,
+    status: "completed",
+    completedAt: opts.completedAt ?? opts.computedAt,
+    propertyType: "apartment",
+    services: opts.services ?? [
+      { serviceKey: "asbestos", unitPriceCents: opts.amountCents * 10 },
+    ],
+  });
+  await prisma.assignmentCommission.create({
+    data: {
+      assignmentId: asg.id,
+      teamId: opts.teamId,
+      assignmentTotalCents: opts.amountCents * 10,
+      commissionType: "percentage",
+      commissionValue: 1000,
+      commissionAmountCents: opts.amountCents,
+      computedAt: opts.computedAt,
+    },
+  });
+  return asg;
 }

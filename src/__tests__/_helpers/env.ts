@@ -36,6 +36,14 @@ process.env.EMAIL_FROM ??= "noreply@immo.test";
 // Gate is implemented at the top of src/lib/calendar/sync.ts.
 process.env.SKIP_CALENDAR_SYNC ??= "1";
 
+// AES-256-GCM key for the calendar-token cipher (src/lib/calendar/crypto.ts)
+// AND the HMAC secret for OAuth state cookies (src/lib/calendar/oauth.ts).
+// requireEncryptionKey() decodes base64 → 32 bytes; this is
+// `Buffer.alloc(32, 0xab).toString("base64")` — a deterministic, obviously-
+// fake key that we'd never confuse for a production one.
+process.env.CALENDAR_ENCRYPTION_KEY ??=
+  "q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s=";
+
 // Cron Bearer — used by /api/cron/* routes. Tests sign their requests
 // with this value via the authorizeBearerToken helper.
 process.env.CRON_SECRET ??= "test-cron-secret";

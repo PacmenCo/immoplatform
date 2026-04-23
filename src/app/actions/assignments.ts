@@ -222,11 +222,18 @@ const createSchema = z.object({
   initialComment: z.string().max(2000).optional(),
 });
 
-export const createAssignment = withSession(async (
-  session,
-  _prev: ActionResult | undefined,
+/**
+ * Session-accepting body of `createAssignment`. Exported so Vitest
+ * integration tests can drive the action without a live cookie / request
+ * context. Returns an ActionResult carrying the new assignment id on
+ * success; the wrapped form below pairs it with a redirect. Consumers
+ * should use the wrapped form.
+ */
+export async function createAssignmentInner(
+  session: SessionWithUser,
+  _prev: ActionResult<{ id: string }> | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult<{ id: string }>> {
   const services = Array.from(
     new Set(
       Array.from(formData.entries())
@@ -462,7 +469,18 @@ export const createAssignment = withSession(async (
 
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
-  redirect(`/dashboard/assignments/${created.id}`);
+  return { ok: true, data: { id: created.id } };
+}
+
+export const createAssignment = withSession(async (
+  session: SessionWithUser,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  const result = await createAssignmentInner(session, undefined, formData);
+  if (result.ok && result.data) redirect(`/dashboard/assignments/${result.data.id}`);
+  if (result.ok) return { ok: true };
+  return result;
 });
 
 // ─── Mark delivered ────────────────────────────────────────────────
@@ -1097,11 +1115,16 @@ export const updateAssignment = withSession(async (
 
 // ─── Reassign freelancer ───────────────────────────────────────────
 
-export const reassignFreelancer = withSession(async (
-  session,
+/**
+ * Session-accepting body of `reassignFreelancer`. Exported so Vitest
+ * integration tests can drive the action without a live cookie / request
+ * context. Consumers should use the `withSession`-wrapped form below.
+ */
+export async function reassignFreelancerInner(
+  session: SessionWithUser,
   id: string,
   freelancerId: string | null,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const a = await prisma.assignment.findUnique({ where: { id } });
   if (!a) return { ok: false, error: "Assignment not found." };
   if (!canReassignFreelancer(session)) {
@@ -1176,7 +1199,9 @@ export const reassignFreelancer = withSession(async (
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   return { ok: true };
-});
+}
+
+export const reassignFreelancer = withSession(reassignFreelancerInner);
 
 // ─── Start (scheduled → in_progress) ───────────────────────────────
 
@@ -1230,12 +1255,17 @@ const completeSchema = z.object({
     ),
 });
 
-export const markAssignmentCompleted = withSession(async (
-  session,
+/**
+ * Session-accepting body of `markAssignmentCompleted`. Exported so Vitest
+ * integration tests can drive the action without a live cookie / request
+ * context. The wrapped form below pairs it with a post-success redirect.
+ */
+export async function markAssignmentCompletedInner(
+  session: SessionWithUser,
   id: string,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const a = await prisma.assignment.findUnique({ where: { id } });
   if (!a) return { ok: false, error: "Assignment not found." };
   if (!(await canCompleteAssignment(session, a))) {
@@ -1347,7 +1377,18 @@ export const markAssignmentCompleted = withSession(async (
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
-  redirect(`/dashboard/assignments/${id}`);
+  return { ok: true };
+}
+
+export const markAssignmentCompleted = withSession(async (
+  session: SessionWithUser,
+  id: string,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  const result = await markAssignmentCompletedInner(session, id, _prev, formData);
+  if (result.ok) redirect(`/dashboard/assignments/${id}`);
+  return result;
 });
 
 // ─── Cancel (non-terminal → cancelled) ─────────────────────────────

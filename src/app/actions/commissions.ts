@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { audit } from "@/lib/auth";
+import { audit, type SessionWithUser } from "@/lib/auth";
 import { canMarkCommissionPaid } from "@/lib/permissions";
 import { quarterRange } from "@/lib/commission";
 import { withSession, type ActionResult } from "./_types";
@@ -27,10 +27,15 @@ function validateQuarter(q: QuarterInput): string | null {
  *
  * Idempotent per (team, year, quarter) — upsert on the unique constraint.
  */
-export const markCommissionQuarterPaid = withSession(async (
-  session,
+/**
+ * Session-accepting body of `markCommissionQuarterPaid`. Exported so Vitest
+ * integration tests can drive the action without a live cookie / request
+ * context. Consumers should use the `withSession`-wrapped form below.
+ */
+export async function markCommissionQuarterPaidInner(
+  session: SessionWithUser,
   input: QuarterInput,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!canMarkCommissionPaid(session)) {
     return { ok: false, error: "Only admins and staff can mark commissions paid." };
   }
@@ -112,16 +117,18 @@ export const markCommissionQuarterPaid = withSession(async (
   revalidatePath("/dashboard/overview");
   revalidatePath(`/dashboard/teams/${input.teamId}`);
   return { ok: true };
-});
+}
+
+export const markCommissionQuarterPaid = withSession(markCommissionQuarterPaidInner);
 
 /**
- * Undo a quarter's paid status. Deletes the payout row — next write from
- * markCommissionQuarterPaid starts fresh with today's total.
+ * Session-accepting body of `undoCommissionQuarterPaid`. Exported for test
+ * symmetry with `markCommissionQuarterPaidInner`.
  */
-export const undoCommissionQuarterPaid = withSession(async (
-  session,
+export async function undoCommissionQuarterPaidInner(
+  session: SessionWithUser,
   input: QuarterInput,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!canMarkCommissionPaid(session)) {
     return { ok: false, error: "Only admins and staff can undo commission payouts." };
   }
@@ -154,4 +161,6 @@ export const undoCommissionQuarterPaid = withSession(async (
   revalidatePath("/dashboard/overview");
   revalidatePath(`/dashboard/teams/${input.teamId}`);
   return { ok: true };
-});
+}
+
+export const undoCommissionQuarterPaid = withSession(undoCommissionQuarterPaidInner);
