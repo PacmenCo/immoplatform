@@ -199,7 +199,9 @@ export type AuditVerb =
   | "assignment.pdf_generated"
   | "team.deleted"
   | "team.member_removed"
-  | "user.role_changed";
+  | "user.role_changed"
+  | "invoice_reminder.sent"
+  | "invoice_reminder.skipped";
 
 export async function audit(opts: {
   actorId?: string | null;

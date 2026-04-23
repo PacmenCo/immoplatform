@@ -41,3 +41,7 @@ export function emailVerificationUrl(token: string): string {
 export function addToGoogleCalendarUrl(assignmentId: string): string {
   return `${appBaseUrl()}/api/calendar/add-to-google?a=${assignmentId}`;
 }
+
+export function overviewUrl(): string {
+  return `${appBaseUrl()}/dashboard/overview`;
+}

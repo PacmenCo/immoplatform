@@ -177,6 +177,28 @@ If you didn't request this, you can safely ignore this email.`,
   };
 }
 
+/**
+ * Monthly admin reminder — fires ~3 days before month-end to prompt whoever
+ * generates invoices that the cycle is closing. Mirrors Platform's
+ * MonthlyInvoiceReminder mailable. No per-invoice data; it's a nudge, not
+ * a dunning notice.
+ */
+export function monthlyInvoiceReminderEmail(opts: {
+  monthLabel: string;   // e.g. "April 2026"
+  overviewUrl: string;
+}): { subject: string; text: string } {
+  return {
+    subject: `Invoices due — ${opts.monthLabel}`,
+    text: `Hi,
+
+Heads up: it's the end of ${opts.monthLabel}. Review the completed assignments for this month and generate invoices for any that are still open.
+
+${opts.overviewUrl}
+
+You're getting this as the platform's billing contact.`,
+  };
+}
+
 export function emailVerificationEmail(opts: {
   name: string;
   verifyUrl: string;
