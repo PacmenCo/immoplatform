@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import type { ActiveAnnouncement, AnnouncementType } from "@/lib/announcementTypes";
+import type { ActiveAnnouncement } from "@/lib/announcementTypes";
 
 /**
  * Load the active, in-window, not-yet-dismissed announcements for a user.
@@ -11,6 +11,10 @@ export async function loadActiveAnnouncements(
   userId: string,
 ): Promise<ActiveAnnouncement[]> {
   const now = new Date();
+  // The `type` column is String in the schema (SQLite has no enum); the
+  // write-side zod validator enforces ANNOUNCEMENT_TYPES membership, so
+  // asserting the narrower type at the boundary is safe. A row-by-row map
+  // would just re-allocate objects to re-label a runtime-identical field.
   const rows = await prisma.announcement.findMany({
     where: {
       isActive: true,
@@ -27,5 +31,5 @@ export async function loadActiveAnnouncements(
       isDismissible: true,
     },
   });
-  return rows.map((r) => ({ ...r, type: r.type as AnnouncementType }));
+  return rows as ActiveAnnouncement[];
 }
