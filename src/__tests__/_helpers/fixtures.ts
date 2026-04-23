@@ -1,3 +1,4 @@
+import type { Status } from "@/lib/mockData";
 import { prisma } from "./db";
 import { makeSession } from "./session";
 
@@ -44,33 +45,33 @@ export async function seedServices() {
     { key: "electrical", label: "Electrical Inspection", short: "EK", color: "var(--color-electrical)", description: "EK", unitPrice: 20000, active: true },
     { key: "fuel", label: "Fuel Tank Check", short: "TK", color: "var(--color-fuel)", description: "TK", unitPrice: 12000, active: true },
   ];
-  for (const s of svcs) {
-    await prisma.service.create({ data: s });
-  }
+  await prisma.service.createMany({ data: svcs });
 }
 
 // ─── The full baseline ──────────────────────────────────────────
 
 export async function seedBaseline() {
-  await seedServices();
-  const t1 = await seedTeam("t_test_1", "Test Realtor Team", {
-    commissionType: "percentage",
-    commissionValue: 1500, // 15% in bps
-  });
-  const t2 = await seedTeam("t_test_2", "Spare Team");
-
-  const admin = await makeSession({ role: "admin", userId: "u_admin" });
-  const staff = await makeSession({ role: "staff", userId: "u_staff" });
-  const realtor = await makeSession({
-    role: "realtor",
-    userId: "u_realtor",
-    activeTeamId: t1.id,
-    membershipTeams: [{ teamId: t1.id, teamRole: "owner" }],
-  });
-  const freelancer = await makeSession({
-    role: "freelancer",
-    userId: "u_freelancer",
-  });
+  // Services + teams have no cross-dependency at seed time → parallelize.
+  const [, t1, t2] = await Promise.all([
+    seedServices(),
+    seedTeam("t_test_1", "Test Realtor Team", {
+      commissionType: "percentage",
+      commissionValue: 1500, // 15% in bps
+    }),
+    seedTeam("t_test_2", "Spare Team"),
+  ]);
+  // Sessions reference teams by id only — each insert is independent.
+  const [admin, staff, realtor, freelancer] = await Promise.all([
+    makeSession({ role: "admin", userId: "u_admin" }),
+    makeSession({ role: "staff", userId: "u_staff" }),
+    makeSession({
+      role: "realtor",
+      userId: "u_realtor",
+      activeTeamId: t1.id,
+      membershipTeams: [{ teamId: t1.id, teamRole: "owner" }],
+    }),
+    makeSession({ role: "freelancer", userId: "u_freelancer" }),
+  ]);
 
   return {
     admin,
@@ -86,7 +87,7 @@ export async function seedBaseline() {
 type AssignmentSeed = {
   id?: string;
   reference?: string;
-  status?: string;
+  status?: Status;
   teamId?: string | null;
   freelancerId?: string | null;
   createdById?: string | null;

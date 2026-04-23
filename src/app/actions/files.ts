@@ -49,13 +49,18 @@ const LANE_UPLOAD_POLICY: Record<FileLane, LaneUploadPolicy> = {
 
 // ─── Upload ────────────────────────────────────────────────────────
 
-export const uploadAssignmentFiles = withSession(async (
-  session,
+/**
+ * Session-accepting body of `uploadAssignmentFiles`. Exported so Vitest
+ * integration tests can drive the action without a live cookie / request
+ * context. Consumers should use the `withSession`-wrapped form below.
+ */
+export async function uploadAssignmentFilesInner(
+  session: SessionWithUser,
   assignmentId: string,
   lane: FileLane,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!isLane(lane)) return { ok: false, error: "Invalid file lane." };
 
   const assignment = await prisma.assignment.findUnique({
@@ -282,7 +287,9 @@ export const uploadAssignmentFiles = withSession(async (
   revalidatePath(`/dashboard/assignments/${assignmentId}/files`);
   revalidatePath(`/dashboard/assignments/${assignmentId}`);
   return { ok: true };
-});
+}
+
+export const uploadAssignmentFiles = withSession(uploadAssignmentFilesInner);
 
 // ─── Delete ────────────────────────────────────────────────────────
 

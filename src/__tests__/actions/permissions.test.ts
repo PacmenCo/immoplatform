@@ -1,0 +1,422 @@
+import { describe, expect, it } from "vitest";
+import {
+  canViewAssignment,
+  canEditAssignment,
+  canUpdateAssignmentFields,
+  canCompleteAssignment,
+  canCancelAssignment,
+  canDeleteAssignment,
+  canReassignFreelancer,
+  canViewAssignmentPricing,
+  canViewCommission,
+  assignmentScope,
+  hasRole,
+} from "@/lib/permissions";
+import { setupTestDb } from "../_helpers/db";
+import { makeSession } from "../_helpers/session";
+import { seedBaseline, seedTeam } from "../_helpers/fixtures";
+
+// Integration-tier permission coverage — exercises the helpers against a
+// seeded DB (team memberships, session rows, etc) rather than mocking the
+// lookups. Platform parity:
+//   - AssignmentPolicy.php (view, edit, delete, cancel, complete)
+//   - RolePermission rules in the blade templates + controller gates
+//
+// Scoped by role:
+//   admin  → all rows
+//   staff  → all rows (but can't delete — Platform deviation kept)
+//   realtor → creator OR team-owner; can't complete a foreign team's row
+//   freelancer → only rows they're assigned to, only field subset
+
+setupTestDb();
+
+const POLICY_INPUT = (overrides: Partial<{
+  teamId: string | null;
+  freelancerId: string | null;
+  createdById: string | null;
+}> = {}) => ({
+  teamId: null,
+  freelancerId: null,
+  createdById: null,
+  ...overrides,
+});
+
+describe("canViewAssignment", () => {
+  it("admin sees every row regardless of scope", async () => {
+    const { admin } = await seedBaseline();
+    expect(
+      await canViewAssignment(admin, POLICY_INPUT({ teamId: "stranger-team" })),
+    ).toBe(true);
+  });
+
+  it("staff sees every row too", async () => {
+    const { staff } = await seedBaseline();
+    expect(
+      await canViewAssignment(staff, POLICY_INPUT({ teamId: "stranger-team" })),
+    ).toBe(true);
+  });
+
+  it("realtor sees their own team's rows", async () => {
+    const { realtor, teams } = await seedBaseline();
+    expect(
+      await canViewAssignment(realtor, POLICY_INPUT({ teamId: teams.t1.id })),
+    ).toBe(true);
+  });
+
+  it("realtor sees rows they created, even if team membership changed", async () => {
+    const { realtor } = await seedBaseline();
+    expect(
+      await canViewAssignment(
+        realtor,
+        POLICY_INPUT({ teamId: "foreign-team", createdById: realtor.user.id }),
+      ),
+    ).toBe(true);
+  });
+
+  it("realtor does NOT see a foreign team's unrelated row", async () => {
+    const { realtor } = await seedBaseline();
+    expect(
+      await canViewAssignment(realtor, POLICY_INPUT({ teamId: "foreign-team" })),
+    ).toBe(false);
+  });
+
+  it("freelancer sees rows they're assigned to", async () => {
+    const { freelancer } = await seedBaseline();
+    expect(
+      await canViewAssignment(
+        freelancer,
+        POLICY_INPUT({ freelancerId: freelancer.user.id }),
+      ),
+    ).toBe(true);
+  });
+
+  it("freelancer sees rows for teams they are members of", async () => {
+    await seedBaseline();
+    const teamedFreelancer = await makeSession({
+      role: "freelancer",
+      userId: "u_teamed_freelancer",
+      membershipTeams: [{ teamId: "t_test_1", teamRole: "member" }],
+    });
+    expect(
+      await canViewAssignment(
+        teamedFreelancer,
+        POLICY_INPUT({ teamId: "t_test_1" }),
+      ),
+    ).toBe(true);
+  });
+
+  it("freelancer does NOT see unrelated rows", async () => {
+    const { freelancer } = await seedBaseline();
+    expect(
+      await canViewAssignment(
+        freelancer,
+        POLICY_INPUT({ teamId: "foreign-team", freelancerId: "u_someone_else" }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("canEditAssignment", () => {
+  it("admin + staff always can edit", async () => {
+    const { admin, staff } = await seedBaseline();
+    expect(await canEditAssignment(admin, POLICY_INPUT())).toBe(true);
+    expect(await canEditAssignment(staff, POLICY_INPUT())).toBe(true);
+  });
+
+  it("freelancer can edit their own assigned row", async () => {
+    const { freelancer } = await seedBaseline();
+    expect(
+      await canEditAssignment(
+        freelancer,
+        POLICY_INPUT({ freelancerId: freelancer.user.id }),
+      ),
+    ).toBe(true);
+  });
+
+  it("freelancer CANNOT edit rows they're not assigned to", async () => {
+    const { freelancer } = await seedBaseline();
+    expect(
+      await canEditAssignment(
+        freelancer,
+        POLICY_INPUT({ freelancerId: "u_other_freelancer" }),
+      ),
+    ).toBe(false);
+  });
+
+  it("realtor edits rows they own (creator or team-owner)", async () => {
+    const { realtor, teams } = await seedBaseline();
+    expect(
+      await canEditAssignment(realtor, POLICY_INPUT({ teamId: teams.t1.id })),
+    ).toBe(true);
+  });
+
+  it("realtor with only `member` membership can't edit (owner-only)", async () => {
+    await seedBaseline();
+    await seedTeam("t_member_only", "Member Only Team");
+    const memberRealtor = await makeSession({
+      role: "realtor",
+      userId: "u_member_realtor",
+      membershipTeams: [{ teamId: "t_member_only", teamRole: "member" }],
+    });
+    expect(
+      await canEditAssignment(
+        memberRealtor,
+        POLICY_INPUT({ teamId: "t_member_only" }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("canUpdateAssignmentFields (narrow edit)", () => {
+  it("freelancer NEVER has field-edit permission (even on their own row)", async () => {
+    const { freelancer } = await seedBaseline();
+    expect(
+      await canUpdateAssignmentFields(
+        freelancer,
+        POLICY_INPUT({ freelancerId: freelancer.user.id }),
+      ),
+    ).toBe(false);
+  });
+
+  it("admin has field-edit permission (delegates to canEditAssignment)", async () => {
+    const { admin } = await seedBaseline();
+    expect(await canUpdateAssignmentFields(admin, POLICY_INPUT())).toBe(true);
+  });
+
+  it("realtor-owner has field-edit permission", async () => {
+    const { realtor, teams } = await seedBaseline();
+    expect(
+      await canUpdateAssignmentFields(
+        realtor,
+        POLICY_INPUT({ teamId: teams.t1.id }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("canCompleteAssignment", () => {
+  it("admin + staff can always complete", async () => {
+    const { admin, staff } = await seedBaseline();
+    expect(await canCompleteAssignment(admin, POLICY_INPUT())).toBe(true);
+    expect(await canCompleteAssignment(staff, POLICY_INPUT())).toBe(true);
+  });
+
+  it("freelancer can self-complete on assigned rows (Platform markFinished parity)", async () => {
+    const { freelancer } = await seedBaseline();
+    expect(
+      await canCompleteAssignment(
+        freelancer,
+        POLICY_INPUT({ freelancerId: freelancer.user.id }),
+      ),
+    ).toBe(true);
+  });
+
+  it("realtor-owner can complete their team's rows", async () => {
+    const { realtor, teams } = await seedBaseline();
+    expect(
+      await canCompleteAssignment(
+        realtor,
+        POLICY_INPUT({ teamId: teams.t1.id }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("canCancelAssignment", () => {
+  it("admin + staff can always cancel", async () => {
+    const { admin, staff } = await seedBaseline();
+    expect(await canCancelAssignment(admin, POLICY_INPUT())).toBe(true);
+    expect(await canCancelAssignment(staff, POLICY_INPUT())).toBe(true);
+  });
+
+  it("freelancer CANNOT cancel, even on their own row", async () => {
+    const { freelancer } = await seedBaseline();
+    expect(
+      await canCancelAssignment(
+        freelancer,
+        POLICY_INPUT({ freelancerId: freelancer.user.id }),
+      ),
+    ).toBe(false);
+  });
+
+  it("realtor-owner can cancel (matches cancel-policy action test)", async () => {
+    const { realtor, teams } = await seedBaseline();
+    expect(
+      await canCancelAssignment(
+        realtor,
+        POLICY_INPUT({ teamId: teams.t1.id }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("canDeleteAssignment", () => {
+  it("admin can delete any status", async () => {
+    const { admin } = await seedBaseline();
+    expect(
+      await canDeleteAssignment(admin, {
+        ...POLICY_INPUT(),
+        status: "completed",
+      }),
+    ).toBe(true);
+  });
+
+  it("staff CANNOT delete (explicit Platform exclusion)", async () => {
+    const { staff } = await seedBaseline();
+    expect(
+      await canDeleteAssignment(staff, { ...POLICY_INPUT(), status: "draft" }),
+    ).toBe(false);
+  });
+
+  it("freelancer CANNOT delete", async () => {
+    const { freelancer } = await seedBaseline();
+    expect(
+      await canDeleteAssignment(freelancer, {
+        ...POLICY_INPUT({ freelancerId: freelancer.user.id }),
+        status: "draft",
+      }),
+    ).toBe(false);
+  });
+
+  it("realtor can delete their own row in deletable statuses", async () => {
+    const { realtor, teams } = await seedBaseline();
+    for (const status of ["draft", "scheduled", "in_progress", "cancelled"]) {
+      expect(
+        await canDeleteAssignment(realtor, {
+          ...POLICY_INPUT({ teamId: teams.t1.id }),
+          status,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  it("realtor CANNOT delete completed / delivered rows (keep the audit trail)", async () => {
+    const { realtor, teams } = await seedBaseline();
+    for (const status of ["completed", "delivered"]) {
+      expect(
+        await canDeleteAssignment(realtor, {
+          ...POLICY_INPUT({ teamId: teams.t1.id }),
+          status,
+        }),
+      ).toBe(false);
+    }
+  });
+});
+
+describe("canReassignFreelancer", () => {
+  it("admin + staff only — realtor + freelancer denied", async () => {
+    const { admin, staff, realtor, freelancer } = await seedBaseline();
+    expect(canReassignFreelancer(admin)).toBe(true);
+    expect(canReassignFreelancer(staff)).toBe(true);
+    expect(canReassignFreelancer(realtor)).toBe(false);
+    expect(canReassignFreelancer(freelancer)).toBe(false);
+  });
+});
+
+describe("canViewAssignmentPricing (invoice visibility)", () => {
+  it("admin + staff always see pricing", async () => {
+    const { admin, staff } = await seedBaseline();
+    expect(await canViewAssignmentPricing(admin, POLICY_INPUT())).toBe(true);
+    expect(await canViewAssignmentPricing(staff, POLICY_INPUT())).toBe(true);
+  });
+
+  it("freelancer NEVER sees pricing (paid via commission, not invoice)", async () => {
+    const { freelancer } = await seedBaseline();
+    expect(
+      await canViewAssignmentPricing(
+        freelancer,
+        POLICY_INPUT({ freelancerId: freelancer.user.id }),
+      ),
+    ).toBe(false);
+  });
+
+  it("realtor-member (not creator, not owner) can still view via team-scope", async () => {
+    // canViewAssignmentPricing uses `all` team ids (any membership),
+    // not just `owned` — a realtor who's a member of the team sees prices.
+    await seedBaseline();
+    await seedTeam("t_member_pricing", "Pricing View Team");
+    const realtor = await makeSession({
+      role: "realtor",
+      userId: "u_member_pricing",
+      membershipTeams: [{ teamId: "t_member_pricing", teamRole: "member" }],
+    });
+    expect(
+      await canViewAssignmentPricing(
+        realtor,
+        POLICY_INPUT({ teamId: "t_member_pricing" }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("canViewCommission", () => {
+  it("admin + staff see any team's commission page", async () => {
+    const { admin, staff, teams } = await seedBaseline();
+    expect(await canViewCommission(admin, teams.t1.id)).toBe(true);
+    expect(await canViewCommission(staff, teams.t2.id)).toBe(true);
+  });
+
+  it("realtor OWNER sees their own team's commission", async () => {
+    const { realtor, teams } = await seedBaseline();
+    expect(await canViewCommission(realtor, teams.t1.id)).toBe(true);
+  });
+
+  it("realtor owner does NOT see a foreign team's commission", async () => {
+    const { realtor, teams } = await seedBaseline();
+    expect(await canViewCommission(realtor, teams.t2.id)).toBe(false);
+  });
+
+  it("freelancer NEVER sees commission", async () => {
+    const { freelancer, teams } = await seedBaseline();
+    expect(await canViewCommission(freelancer, teams.t1.id)).toBe(false);
+  });
+});
+
+describe("assignmentScope (query filter)", () => {
+  it("admin → undefined (unfiltered)", async () => {
+    const { admin } = await seedBaseline();
+    expect(await assignmentScope(admin)).toBeUndefined();
+  });
+
+  it("staff → undefined (unfiltered, same as admin)", async () => {
+    const { staff } = await seedBaseline();
+    expect(await assignmentScope(staff)).toBeUndefined();
+  });
+
+  it("realtor → OR(createdById | teamId in memberships)", async () => {
+    const { realtor, teams } = await seedBaseline();
+    const scope = await assignmentScope(realtor);
+    expect(scope).toEqual({
+      OR: [
+        { createdById: realtor.user.id },
+        { teamId: { in: [teams.t1.id] } },
+      ],
+    });
+  });
+
+  it("freelancer → OR(freelancerId | teamId in memberships)", async () => {
+    const { freelancer } = await seedBaseline();
+    const scope = await assignmentScope(freelancer);
+    expect(scope).toEqual({
+      OR: [
+        { freelancerId: freelancer.user.id },
+        { teamId: { in: [] } },
+      ],
+    });
+  });
+});
+
+describe("hasRole", () => {
+  it("matches the session role exactly", async () => {
+    const { admin, freelancer } = await seedBaseline();
+    expect(hasRole(admin, "admin")).toBe(true);
+    expect(hasRole(admin, "staff")).toBe(false);
+    expect(hasRole(freelancer, "freelancer")).toBe(true);
+  });
+
+  it("accepts multiple roles (OR semantics)", async () => {
+    const { staff } = await seedBaseline();
+    expect(hasRole(staff, "admin", "staff")).toBe(true);
+    expect(hasRole(staff, "realtor", "freelancer")).toBe(false);
+  });
+});

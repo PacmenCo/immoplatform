@@ -13,6 +13,11 @@ export default defineConfig({
       // accidental client imports of server modules. In Vitest it's just
       // a no-op — stub to an empty module so server-only files load.
       "server-only": resolve(__dirname, "src/__tests__/_helpers/server-only-stub.ts"),
+      // `next/cache`'s revalidatePath reads Next's async storage (only set
+      // up by the framework's request dispatcher). Integration tests call
+      // server actions directly, outside any request context — so stub it
+      // to a no-op. DB assertions don't need cache invalidation anyway.
+      "next/cache": resolve(__dirname, "src/__tests__/_helpers/next-cache-stub.ts"),
     },
   },
   test: {

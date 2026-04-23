@@ -15,6 +15,18 @@ import { join } from "node:path";
 const testDbDir = mkdtempSync(join(tmpdir(), "immo-test-"));
 process.env.DATABASE_URL ??= `file:${join(testDbDir, "test.db")}`;
 
+// Local storage provider: tests exercise the real upload path (bytes land on
+// disk, storage keys get signed). A separate tmp dir per fork mirrors the DB
+// isolation strategy. The signing secret only needs to clear the 32-char
+// OWASP HMAC minimum enforced in src/lib/storage/index.ts — the actual value
+// is irrelevant since we never verify signatures in-process.
+const testStorageDir = mkdtempSync(join(tmpdir(), "immo-test-storage-"));
+process.env.STORAGE_PROVIDER ??= "local";
+process.env.STORAGE_LOCAL_ROOT ??= testStorageDir;
+process.env.STORAGE_SIGNING_SECRET ??=
+  "test-signing-secret-not-for-production-use-0123456789";
+process.env.APP_URL ??= "http://localhost:3000";
+
 // Email dispatcher logs to console instead of sending. Matches the default
 // behavior of src/lib/email.tsx when EMAIL_PROVIDER is unset or "dev".
 process.env.EMAIL_PROVIDER ??= "dev";

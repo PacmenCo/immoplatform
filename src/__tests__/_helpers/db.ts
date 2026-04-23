@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import { dirname } from "node:path";
 import { PrismaClient } from "@prisma/client";
+import { afterAll, beforeEach } from "vitest";
 
 /**
  * Test Prisma client for the parity suite.
@@ -68,6 +69,29 @@ export async function resetDb(opts?: { force?: boolean }): Promise<void> {
   );
   await prisma.$connect();
   schemaApplied = true;
+}
+
+/**
+ * Wire the standard DB lifecycle into a test file:
+ *   - `resetDb` before every test (fresh baseline for isolation)
+ *   - `disconnectDb` once after the last test (tmp cleanup)
+ *
+ * Placing the hooks at file scope (not inside a `describe`) avoids a
+ * sibling-describe ordering bug where `disconnectDb` fires between
+ * describe blocks and the next `resetDb` hits a closed DB. Call once
+ * per test file:
+ *
+ *   import { setupTestDb } from "../_helpers/db";
+ *   setupTestDb();
+ *
+ */
+export function setupTestDb(): void {
+  beforeEach(async () => {
+    await resetDb();
+  });
+  afterAll(async () => {
+    await disconnectDb();
+  });
 }
 
 /**

@@ -13,7 +13,7 @@ import {
   sourcesOf,
 } from "@/lib/assignmentStatus";
 import type { Status } from "@/lib/mockData";
-import { audit } from "@/lib/auth";
+import { audit, type SessionWithUser } from "@/lib/auth";
 import {
   canCancelAssignment,
   canCompleteAssignment,
@@ -727,12 +727,18 @@ async function applyFreelancerUpdate(
   return { ok: true };
 }
 
-export const updateAssignment = withSession(async (
-  session,
+/**
+ * Session-accepting body of `updateAssignment`. Exported so Vitest
+ * integration tests can drive the action without a live cookie / request
+ * context. Returns the ActionResult that the wrapped form then pairs with
+ * a `redirect` on success — consumers should use the wrapped form below.
+ */
+export async function updateAssignmentInner(
+  session: SessionWithUser,
   id: string,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const existing = await prisma.assignment.findUnique({ where: { id } });
   if (!existing) return { ok: false, error: "Assignment not found." };
   if (existing.status === "completed" || existing.status === "cancelled") {
@@ -1075,7 +1081,18 @@ export const updateAssignment = withSession(async (
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
-  redirect(`/dashboard/assignments/${id}`);
+  return { ok: true };
+}
+
+export const updateAssignment = withSession(async (
+  session: SessionWithUser,
+  id: string,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  const result = await updateAssignmentInner(session, id, _prev, formData);
+  if (result.ok) redirect(`/dashboard/assignments/${id}`);
+  return result;
 });
 
 // ─── Reassign freelancer ───────────────────────────────────────────
@@ -1343,11 +1360,16 @@ const cancelSchema = z.object({
     .optional(),
 });
 
-export const cancelAssignment = withSession(async (
-  session,
+/**
+ * Session-accepting body of `cancelAssignment`. Exported so Vitest
+ * integration tests can drive the action without a live cookie / request
+ * context. Consumers should use the `withSession`-wrapped form below.
+ */
+export async function cancelAssignmentInner(
+  session: SessionWithUser,
   id: string,
   reason?: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const a = await prisma.assignment.findUnique({ where: { id } });
   if (!a) return { ok: false, error: "Assignment not found." };
   if (!(await canCancelAssignment(session, a))) {
@@ -1430,7 +1452,9 @@ export const cancelAssignment = withSession(async (
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
   return { ok: true };
-});
+}
+
+export const cancelAssignment = withSession(cancelAssignmentInner);
 
 // ─── Post comment ──────────────────────────────────────────────────
 
@@ -1532,11 +1556,16 @@ const AUDIT_BY_TARGET = {
   draft: "assignment.updated",
 } as const;
 
-export const changeAssignmentStatus = withSession(async (
-  session,
+/**
+ * Session-accepting body of `changeAssignmentStatus`. Exported so Vitest
+ * integration tests can drive the action without a live cookie / request
+ * context. Consumers should use the `withSession`-wrapped form below.
+ */
+export async function changeAssignmentStatusInner(
+  session: SessionWithUser,
   id: string,
   input: { to: Status },
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const parsed = changeStatusSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid status." };
   const target = parsed.data.to;
@@ -1692,7 +1721,9 @@ export const changeAssignmentStatus = withSession(async (
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard");
   return { ok: true };
-});
+}
+
+export const changeAssignmentStatus = withSession(changeAssignmentStatusInner);
 
 // ─── Delete ────────────────────────────────────────────────────────
 
