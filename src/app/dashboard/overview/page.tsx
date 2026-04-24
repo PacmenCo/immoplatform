@@ -73,7 +73,7 @@ export default async function OverviewPage({
 }) {
   const session = await requireSession();
   if (!hasRole(session, "admin", "staff")) {
-    redirect("/no-access?section=overview");
+    redirect("/no-access?section=revenue");
   }
 
   const params = await searchParams;
