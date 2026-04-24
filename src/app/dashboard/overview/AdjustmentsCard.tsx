@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Field, Input, Select } from "@/components/ui/Input";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { IconPlus, IconTrash } from "@/components/ui/Icons";
@@ -90,6 +91,12 @@ export function AdjustmentsCard({
     });
   }
 
+  // Two-step delete: first click opens ConfirmDialog, user confirms, then we
+  // hit the action. CLAUDE.md mandates ConfirmDialog over window.confirm for
+  // destructive actions; v1's OverviewList.php:474 deletes directly without
+  // a prompt (parity-wise we're stricter here — intentional).
+  const [pendingDelete, setPendingDelete] = useState<Adjustment | null>(null);
+
   function remove(id: string) {
     setDeletingId(id);
     setError(null);
@@ -97,6 +104,7 @@ export function AdjustmentsCard({
       const res = await deleteRevenueAdjustment(id);
       if (!res.ok) setError(res.error);
       setDeletingId(null);
+      setPendingDelete(null);
     });
   }
 
@@ -243,7 +251,7 @@ export function AdjustmentsCard({
                           variant="ghost"
                           size="sm"
                           loading={deletePending && deletingId === a.id}
-                          onClick={() => remove(a.id)}
+                          onClick={() => setPendingDelete(a)}
                         >
                           <IconTrash size={14} />
                         </Button>
@@ -272,6 +280,20 @@ export function AdjustmentsCard({
           </div>
         )}
       </CardBody>
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="Delete this adjustment?"
+        description={
+          pendingDelete
+            ? `${formatEuros(pendingDelete.amountCents)} · ${pendingDelete.teamName} · ${pendingDelete.description || "No description"}. This can't be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        tone="danger"
+        onConfirm={() => pendingDelete && remove(pendingDelete.id)}
+        onCancel={() => setPendingDelete(null)}
+      />
     </Card>
   );
 }

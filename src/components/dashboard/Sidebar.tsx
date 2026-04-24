@@ -45,7 +45,7 @@ const nav: Array<{
     href: "/dashboard/overview",
     label: "Revenue",
     icon: IconChart,
-    visibleFor: ["admin", "staff"],
+    visibleFor: ["admin"],
   },
   {
     href: "/dashboard/commissions",
