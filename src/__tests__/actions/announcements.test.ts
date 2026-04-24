@@ -10,7 +10,8 @@ import { seedBaseline } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 
 // Covers:
-//   1. createAnnouncement — admin/staff gate, zod, YYYY-MM-DD date normalization
+//   1. createAnnouncement — admin-only gate (v1 routes/web.php:103 role:admin),
+//      zod, YYYY-MM-DD date normalization
 //   2. updateAnnouncement — permission + zod re-validation
 //   3. deleteAnnouncement — permission + not-found
 //   4. dismissAnnouncement — any logged-in user, idempotent, refuses

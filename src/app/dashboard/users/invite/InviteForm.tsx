@@ -11,8 +11,7 @@ import { createInvite } from "@/app/actions/invites";
 import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
 import { useFormDirty } from "@/lib/useFormDirty";
 import type { ActionResult } from "@/app/actions/_types";
-
-type Role = "admin" | "staff" | "realtor" | "freelancer";
+import type { Role } from "@/lib/permissions.types";
 
 type RoleOption = {
   value: Role;

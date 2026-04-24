@@ -8,7 +8,7 @@ import { seedBaseline } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 
 // Manual accounting adjustments on the financial overview. The critical bits:
-//   1. Admin/staff only.
+//   1. Admin only (v1 /overview route group is role:admin).
 //   2. Amount is a decimal string in euros — normalized to signed cents.
 //   3. Zero amounts and malformed numbers are rejected.
 //   4. Rows link to a real team; invalid teamId fails cleanly.

@@ -41,6 +41,9 @@ type Props = {
   initial?: TeamFormInitial;
   submitLabel?: string;
   cancelHref: string;
+  /** v1 parity: commission config is admin-only; realtor-owners shouldn't
+   * even see the inputs on the edit page. Defaults to false for safety. */
+  isAdmin?: boolean;
 };
 
 /** Preview swatch next to the color picker so users see what they're choosing. */
@@ -56,7 +59,7 @@ function LogoPreview({ logo, color }: { logo: string; color: string }) {
   );
 }
 
-export function TeamForm({ action, initial, submitLabel, cancelHref }: Props) {
+export function TeamForm({ action, initial, submitLabel, cancelHref, isAdmin = false }: Props) {
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
     FormData
@@ -238,51 +241,53 @@ export function TeamForm({ action, initial, submitLabel, cancelHref }: Props) {
         </div>
       </details>
 
-      <details
-        className="group rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]"
-        open={!!initial?.commissionType}
-      >
-        <summary className="flex cursor-pointer items-center justify-between p-6 [&::-webkit-details-marker]:hidden">
-          <div>
-            <h3 className="text-base font-semibold text-[var(--color-ink)]">Commission</h3>
-            <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-              How much the team keeps per delivered assignment. Set once, applies platform-wide.
-            </p>
-          </div>
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--color-border)] text-[var(--color-ink-muted)] transition-transform group-open:rotate-45">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </span>
-        </summary>
-        <div className="grid gap-5 border-t border-[var(--color-border)] p-6 sm:grid-cols-2">
-          <Field label="Model" id="commissionType">
-            <Select
-              id="commissionType"
-              name="commissionType"
-              defaultValue={initial?.commissionType ?? "none"}
-            >
-              <option value="none">No commission</option>
-              <option value="percentage">Percentage of order</option>
-              <option value="fixed">Fixed amount per order</option>
-            </Select>
-          </Field>
-          <Field
-            label="Value"
-            id="commissionValue"
-            hint="Percentage: basis points (1500 = 15%). Fixed: cents (2500 = €25.00)."
-          >
-            <Input
+      {isAdmin && (
+        <details
+          className="group rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]"
+          open={!!initial?.commissionType}
+        >
+          <summary className="flex cursor-pointer items-center justify-between p-6 [&::-webkit-details-marker]:hidden">
+            <div>
+              <h3 className="text-base font-semibold text-[var(--color-ink)]">Commission</h3>
+              <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                How much the team keeps per delivered assignment. Set once, applies platform-wide.
+              </p>
+            </div>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--color-border)] text-[var(--color-ink-muted)] transition-transform group-open:rotate-45">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </span>
+          </summary>
+          <div className="grid gap-5 border-t border-[var(--color-border)] p-6 sm:grid-cols-2">
+            <Field label="Model" id="commissionType">
+              <Select
+                id="commissionType"
+                name="commissionType"
+                defaultValue={initial?.commissionType ?? "none"}
+              >
+                <option value="none">No commission</option>
+                <option value="percentage">Percentage of order</option>
+                <option value="fixed">Fixed amount per order</option>
+              </Select>
+            </Field>
+            <Field
+              label="Value"
               id="commissionValue"
-              name="commissionValue"
-              type="number"
-              min={0}
-              placeholder="1500"
-              defaultValue={initial?.commissionValue ?? ""}
-            />
-          </Field>
-        </div>
-      </details>
+              hint="Percentage: basis points (1500 = 15%). Fixed: cents (2500 = €25.00)."
+            >
+              <Input
+                id="commissionValue"
+                name="commissionValue"
+                type="number"
+                min={0}
+                placeholder="1500"
+                defaultValue={initial?.commissionValue ?? ""}
+              />
+            </Field>
+          </div>
+        </details>
+      )}
 
       <div className="sticky bottom-0 z-30 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
         <div className="flex items-center justify-between gap-3 px-8 py-4">

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { TeamRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireRoleOrRedirect } from "@/lib/auth";
-import { hasRole } from "@/lib/permissions";
+import { hasRole, role } from "@/lib/permissions";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -102,7 +102,7 @@ export default async function InviteUserPage() {
   return (
     <>
       <Topbar title="Invite user" subtitle="Send an email invite to join your workspace" />
-      <InviteForm teams={teams} viewerRole={session.user.role as "admin" | "staff" | "realtor" | "freelancer"} />
+      <InviteForm teams={teams} viewerRole={role(session)} />
     </>
   );
 }

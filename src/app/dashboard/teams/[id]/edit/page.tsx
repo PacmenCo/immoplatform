@@ -5,7 +5,7 @@ import { TeamForm, type TeamFormInitial } from "@/components/dashboard/TeamForm"
 import { BrandingCard } from "@/components/dashboard/BrandingCard";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { canEditTeam } from "@/lib/permissions";
+import { canEditTeam, hasRole } from "@/lib/permissions";
 import { updateTeam } from "@/app/actions/teams";
 import { teamLogoImageUrl, teamSignatureImageUrl } from "@/lib/teamBranding";
 import { TeamPriceOverrides } from "./TeamPriceOverrides";
@@ -18,6 +18,11 @@ export default async function EditTeamPage({
   const { id } = await params;
   const session = await requireSession();
   if (!(await canEditTeam(session, id))) notFound();
+  // v1 parity: commission config + per-team price overrides are admin-only
+  // (Admin\TeamController is the only writer). Realtor-owners get the form
+  // but with those sections suppressed — both hidden on server-render, and
+  // server actions also drop/reject them.
+  const isAdmin = hasRole(session, "admin");
 
   const [team, services, overrides] = await Promise.all([
     prisma.team.findUnique({
@@ -80,6 +85,7 @@ export default async function EditTeamPage({
         action={boundUpdate}
         initial={initial}
         cancelHref={`/dashboard/teams/${id}`}
+        isAdmin={isAdmin}
       />
 
       <div className="px-8 max-w-[960px]">
@@ -91,21 +97,23 @@ export default async function EditTeamPage({
         />
       </div>
 
-      <div className="px-8 pb-28 max-w-[960px] space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Services &amp; pricing</CardTitle>
-            <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-              Set a per-team override to charge this agency a different price for
-              a service. Leave blank to use the base price. Existing assignments
-              keep their snapshotted price — changes here apply to new work only.
-            </p>
-          </CardHeader>
-          <CardBody className="p-0">
-            <TeamPriceOverrides teamId={id} rows={priceRows} />
-          </CardBody>
-        </Card>
-      </div>
+      {isAdmin && (
+        <div className="px-8 pb-28 max-w-[960px] space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Services &amp; pricing</CardTitle>
+              <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                Set a per-team override to charge this agency a different price for
+                a service. Leave blank to use the base price. Existing assignments
+                keep their snapshotted price — changes here apply to new work only.
+              </p>
+            </CardHeader>
+            <CardBody className="p-0">
+              <TeamPriceOverrides teamId={id} rows={priceRows} />
+            </CardBody>
+          </Card>
+        </div>
+      )}
     </>
   );
 }

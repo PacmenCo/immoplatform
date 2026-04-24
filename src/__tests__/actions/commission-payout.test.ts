@@ -7,7 +7,9 @@ import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedAssignmentWithCommission, seedBaseline } from "../_helpers/fixtures";
 
 // Platform parity — CommissionPayout semantics:
-//   - admin/staff only (canMarkCommissionPaid)
+//   - admin only (canMarkCommissionPaid) — Platform's /overview route
+//     group is role:admin (routes/web.php:126), so medewerker/staff
+//     cannot mark or undo payouts either.
 //   - idempotent per (teamId, year, quarter) via unique constraint
 //   - "paid zero" blocked when no commission exists AND no prior payout row
 //   - undo deletes the row; re-mark starts from today's total
@@ -33,7 +35,7 @@ describe("markCommissionQuarterPaidInner — role gate", () => {
     expect(res).toEqual({ ok: true });
   });
 
-  it("staff REJECTED — v1 parity (Platform /overview is role:admin)", async () => {
+  it("staff rejected — v1 parity (Platform /overview is role:admin)", async () => {
     const { staff, teams } = await seedBaseline();
     const res = await markCommissionQuarterPaidInner(staff, {
       teamId: teams.t1.id,
