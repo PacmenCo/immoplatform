@@ -52,6 +52,13 @@ type EmailEventDefinition = {
 };
 
 export const EMAIL_EVENTS = {
+  "assignment.created": {
+    label: "When a new assignment is created",
+    description:
+      "Sent to platform admins + staff when any new assignment lands. Platform parity: NewAssignmentMail — v1 fans every create out to all admins so triage doesn't rely on someone watching the dashboard.",
+    forRoles: ["admin", "staff"] as const,
+    category: "assignment",
+  },
   "assignment.scheduled": {
     label: "When one of my assignments is scheduled with a date",
     description:

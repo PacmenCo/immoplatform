@@ -442,6 +442,44 @@ export async function createAssignmentInner(
     metadata: { reference, services: d.services },
   });
 
+  // Platform parity (NewAssignmentMail): fan the new assignment out to
+  // every platform admin + staff so triage doesn't depend on someone
+  // watching the dashboard. Scoped to admin+staff per v1, excludes the
+  // actor so a staff member who created the assignment isn't self-mailed.
+  const admins = await prisma.user.findMany({
+    where: {
+      deletedAt: null,
+      role: { in: ["admin", "staff"] },
+      id: { not: session.user.id },
+    },
+    select: {
+      id: true,
+      email: true,
+      emailPrefs: true,
+      firstName: true,
+      lastName: true,
+    },
+  });
+  const createdByName = fullName(session.user);
+  const addressLine = `${created.address}, ${created.postal} ${created.city}`;
+  const servicesLine = d.services.join(", ");
+  await Promise.all(
+    admins.map((a) =>
+      notify({
+        to: a,
+        event: "assignment.created",
+        subject: `New assignment ${reference}: ${addressLine}`,
+        text:
+          `A new assignment has landed on the platform.\n\n` +
+          `Reference: ${reference}\n` +
+          `Address: ${addressLine}\n` +
+          `Services: ${servicesLine}\n` +
+          `Created by: ${createdByName}\n\n` +
+          `Open it: ${process.env.NEXT_PUBLIC_APP_URL ?? ""}/dashboard/assignments/${created.id}`,
+      }),
+    ),
+  );
+
   await syncAssignmentToCalendars(created.id, "create");
 
   // Platform parity (AssignmentScheduledMail): the assignment lands in the
