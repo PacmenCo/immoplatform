@@ -51,21 +51,26 @@ describe("createTeamInner — role gate", () => {
     expect(res.ok).toBe(true);
   });
 
-  it("realtor can create → they become the owner", async () => {
+  it("realtor rejected — v1 parity (Platform admin/teams is role:admin)", async () => {
     const { realtor } = await seedBaseline();
     const res = await createTeamInner(
       realtor,
       undefined,
       teamForm({ name: "Realtor's New Team" }),
     );
-    expect(res.ok).toBe(true);
-    if (!res.ok || !res.data) throw new Error("expected data");
-    const membership = await prisma.teamMember.findUniqueOrThrow({
-      where: {
-        teamId_userId: { teamId: res.data.id, userId: realtor.user.id },
-      },
+    expect(res).toEqual({
+      ok: false,
+      error: "You don't have permission to create teams.",
     });
-    expect(membership.teamRole).toBe("owner");
+  });
+
+  it("staff rejected — v1 parity (admin-only)", async () => {
+    const { staff } = await seedBaseline();
+    const res = await createTeamInner(staff, undefined, teamForm());
+    expect(res).toEqual({
+      ok: false,
+      error: "You don't have permission to create teams.",
+    });
   });
 
   it("freelancer rejected", async () => {
@@ -439,14 +444,17 @@ describe("transferTeamOwnershipInner", () => {
     expect(incomingMem.teamRole).toBe("owner");
   });
 
-  it("current owner-realtor CAN transfer to a member they trust", async () => {
+  it("current owner-realtor REJECTED — v1 parity (no transfer mechanism in v1, admin-only in v2)", async () => {
     const { teams, outgoing, incoming } = await seedOwnerPlusMember();
     const res = await transferTeamOwnershipInner(
       outgoing,
       teams.t1.id,
       incoming.user.id,
     );
-    expect(res).toEqual({ ok: true });
+    expect(res).toEqual({
+      ok: false,
+      error: "Only admins can transfer team ownership.",
+    });
   });
 
   it("target not a member → rejected with 'refresh' hint", async () => {
@@ -515,7 +523,7 @@ describe("transferTeamOwnershipInner", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to transfer ownership.",
+      error: "Only admins can transfer team ownership.",
     });
   });
 

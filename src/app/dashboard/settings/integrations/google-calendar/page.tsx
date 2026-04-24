@@ -3,7 +3,7 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { IconCheck } from "@/components/ui/Icons";
-import { requireSession } from "@/lib/auth";
+import { requireRoleOrRedirect } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   isGoogleAgencyConfigured,
@@ -18,7 +18,8 @@ export default async function GoogleCalendarSettings({
 }: {
   searchParams: SearchParams;
 }) {
-  const session = await requireSession();
+  // v1 parity: personal calendar OAuth is admin+medewerker only.
+  const session = await requireRoleOrRedirect(["admin", "staff"], "admin");
   const params = await searchParams;
 
   const agencyReady = isGoogleAgencyConfigured();

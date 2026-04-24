@@ -1,15 +1,23 @@
 import { redirect } from "next/navigation";
 import { google } from "googleapis";
 import { requireSession } from "@/lib/auth";
+import { hasRole } from "@/lib/permissions";
 import { isGooglePersonalConfigured } from "@/lib/calendar/config";
 import { buildState, redirectUriFor, setStateCookie } from "@/lib/calendar/oauth";
 
 /**
  * Kick off the personal Google OAuth "Add to my calendar" flow.
  * Agency Google (service account) does not go through here.
+ *
+ * v1 parity: gated to admin + staff (= Platform's admin + medewerker per
+ * routes/web.php:67-74). Realtors and freelancers do not get personal
+ * calendar OAuth in v1.
  */
 export async function GET(): Promise<Response> {
   const session = await requireSession();
+  if (!hasRole(session, "admin", "staff")) {
+    return new Response("Calendar connection is limited to admin and staff.", { status: 403 });
+  }
   if (!isGooglePersonalConfigured()) {
     return new Response("Personal Google OAuth is not configured.", { status: 501 });
   }

@@ -476,9 +476,11 @@ export async function transferTeamOwnershipInner(
   teamId: string,
   newOwnerUserId: string,
 ): Promise<ActionResult> {
-  const allowed = hasRole(session, "admin") || (await canEditTeam(session, teamId));
-  if (!allowed) {
-    return { ok: false, error: "You don't have permission to transfer ownership." };
+  // v1 parity: Platform has no transfer mechanism — Team.realtor_id is only
+  // set at create-time by an admin. Any post-creation ownership change has
+  // to come from admin. Team-owner realtors cannot transfer on their own.
+  if (!hasRole(session, "admin")) {
+    return { ok: false, error: "Only admins can transfer team ownership." };
   }
 
   // The target must currently be a member of the team, still active, and

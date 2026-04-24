@@ -298,11 +298,12 @@ export async function canEditTeam(
 }
 
 /**
- * Create a new team. Admin/staff + realtors can — they become the initial
- * owner. Freelancers cannot — they join existing agencies via invite.
+ * Create a new team. Admin only — Platform's /admin/teams resource is
+ * role:admin, and Team.realtor_id is set at create time by admin (the
+ * creator assigns a realtor as owner). Realtors cannot self-serve a team.
  */
 export function canCreateTeam(s: SessionWithUser): boolean {
-  return hasRole(s, "admin", "staff", "realtor");
+  return hasRole(s, "admin");
 }
 
 /**

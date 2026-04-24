@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/auth";
+import { hasRole } from "@/lib/permissions";
 import {
   createPersonalGoogleEvent,
   deletePersonalGoogleEvent,
@@ -19,19 +20,19 @@ import { withSession, type ActionResult } from "./_types";
  * - `removeAssignmentFromPersonalGoogle(id)` — remove the single user's copy
  * - `disconnectCalendarAccount(provider)` — revoke + drop the account row
  *
- * Platform-parity note: v1 gates Google Calendar OAuth to `admin,medewerker`
- * only (routes/web.php:67-74), per-assignment. v2 intentionally diverges:
- * any authenticated user can OAuth their own calendar once and all their
- * accessible assignments sync to it. The feature shapes are not comparable
- * — v1 has no "connect my account" concept — and the use case (a freelancer
- * seeing their own inspections in their own calendar) is a pure UX win with
- * no cross-tenant risk (each action is scoped to `session.user.id`).
+ * v1 parity: Platform gates Google Calendar OAuth to `admin,medewerker`
+ * (routes/web.php:67-74); realtors and freelancers cannot personally sync.
+ * v2 matches that narrow surface — every action below rejects anyone who
+ * isn't admin+staff, mirroring the OAuth initiate/callback route gates.
  */
 
 export const addAssignmentToPersonalGoogle = withSession(async (
   session,
   assignmentId: string,
 ): Promise<ActionResult<{ eventId: string }>> => {
+  if (!hasRole(session, "admin", "staff")) {
+    return { ok: false, error: "Calendar connection is limited to admin and staff." };
+  }
   const account = await prisma.calendarAccount.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: "google" } },
   });
@@ -87,6 +88,9 @@ export const removeAssignmentFromPersonalGoogle = withSession(async (
   session,
   assignmentId: string,
 ): Promise<ActionResult> => {
+  if (!hasRole(session, "admin", "staff")) {
+    return { ok: false, error: "Calendar connection is limited to admin and staff." };
+  }
   const account = await prisma.calendarAccount.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: "google" } },
   });
@@ -116,6 +120,9 @@ export const disconnectCalendarAccount = withSession(async (
   session,
   provider: CalendarProvider,
 ): Promise<ActionResult> => {
+  if (!hasRole(session, "admin", "staff")) {
+    return { ok: false, error: "Calendar connection is limited to admin and staff." };
+  }
   const account = await prisma.calendarAccount.findUnique({
     where: { userId_provider: { userId: session.user.id, provider } },
   });

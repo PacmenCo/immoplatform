@@ -2,6 +2,7 @@ import { google } from "googleapis";
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
+import { hasRole } from "@/lib/permissions";
 import { encryptToken } from "@/lib/calendar/crypto";
 import {
   readAndClearStateCookie,
@@ -13,6 +14,9 @@ import { isGooglePersonalConfigured } from "@/lib/calendar/config";
 
 export async function GET(req: NextRequest): Promise<Response> {
   const session = await requireSession();
+  if (!hasRole(session, "admin", "staff")) {
+    return new Response("Calendar connection is limited to admin and staff.", { status: 403 });
+  }
   if (!isGooglePersonalConfigured()) {
     return new Response("Personal Google OAuth is not configured.", { status: 501 });
   }

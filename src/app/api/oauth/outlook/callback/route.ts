@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
+import { hasRole } from "@/lib/permissions";
 import { isOutlookConfigured } from "@/lib/calendar/config";
 import { encryptToken } from "@/lib/calendar/crypto";
 import { redeemOutlookAuthCode, OUTLOOK_SCOPES } from "@/lib/calendar/outlook";
@@ -12,6 +13,9 @@ import {
 
 export async function GET(req: NextRequest): Promise<Response> {
   const session = await requireSession();
+  if (!hasRole(session, "admin", "staff")) {
+    return new Response("Calendar connection is limited to admin and staff.", { status: 403 });
+  }
   if (!isOutlookConfigured()) {
     return new Response("Outlook OAuth is not configured.", { status: 501 });
   }

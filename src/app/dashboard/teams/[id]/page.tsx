@@ -522,7 +522,7 @@ export default async function TeamDetailPage({
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {canTransfer && (
+                {isAdmin && (
                   <TransferOwnershipButton
                     teamId={id}
                     teamName={team.name}
