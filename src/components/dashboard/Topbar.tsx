@@ -1,10 +1,19 @@
 import { IconBell, IconPlus } from "@/components/ui/Icons";
 import { Button } from "@/components/ui/Button";
-import { TeamSwitcher } from "./TeamSwitcher";
+import { TeamSwitcher, type SwitcherTeam } from "./TeamSwitcher";
 import { TopbarSearch } from "./TopbarSearch";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { getSession } from "@/lib/auth";
-import { hasRole } from "@/lib/permissions";
+import {
+  canCreateAssignment,
+  canCreateTeam,
+  getUserTeamsForSwitcher,
+} from "@/lib/permissions";
+
+function teamInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return (parts[0]?.[0] ?? "?").toUpperCase() + (parts[1]?.[0] ?? "").toUpperCase();
+}
 
 export async function Topbar({
   title,
@@ -14,8 +23,21 @@ export async function Topbar({
   subtitle?: string;
 }) {
   const session = await getSession();
-  const canCreateAssignment =
-    !!session && hasRole(session, "admin", "staff", "realtor");
+  const canCreate = session ? canCreateAssignment(session) : false;
+  const canMakeTeam = session ? canCreateTeam(session) : false;
+
+  let teams: SwitcherTeam[] = [];
+  if (session) {
+    const memberships = await getUserTeamsForSwitcher(session.user.id);
+    teams = memberships.map((m) => ({
+      id: m.team.id,
+      name: m.team.name,
+      logo: m.team.logo || teamInitials(m.team.name),
+      color: m.team.logoColor || "var(--color-ink)",
+      city: m.team.city,
+      role: m.teamRole,
+    }));
+  }
 
   return (
     <header className="hidden lg:flex items-center justify-between gap-4 xl:gap-6 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-6 xl:px-8 h-16 sticky top-0 z-40">
@@ -24,8 +46,16 @@ export async function Topbar({
           <h1 className="text-lg font-semibold text-[var(--color-ink)] truncate">{title}</h1>
           {subtitle && <p className="text-xs text-[var(--color-ink-muted)] truncate">{subtitle}</p>}
         </div>
-        <span className="h-8 w-px bg-[var(--color-border)]" aria-hidden />
-        <TeamSwitcher />
+        {teams.length > 0 && (
+          <>
+            <span className="h-8 w-px bg-[var(--color-border)]" aria-hidden />
+            <TeamSwitcher
+              teams={teams}
+              activeId={session?.activeTeamId ?? null}
+              canCreateTeam={canMakeTeam}
+            />
+          </>
+        )}
       </div>
 
       <div className="flex flex-1 max-w-md items-center">
@@ -42,7 +72,7 @@ export async function Topbar({
           <IconBell size={18} />
           <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--color-asbestos)]" />
         </button>
-        {canCreateAssignment && (
+        {canCreate && (
           <Button href="/dashboard/assignments/new" size="sm" className="ml-1.5">
             <IconPlus size={16} />
             New assignment

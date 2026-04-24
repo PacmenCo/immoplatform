@@ -227,10 +227,12 @@ export default async function AssignmentsList({
             resetHref="/dashboard/assignments"
             showReset={anyFilterActive}
           />
-          <Button href="/dashboard/assignments/new" size="sm">
-            <IconPlus size={14} />
-            New
-          </Button>
+          {!isFreelancer && (
+            <Button href="/dashboard/assignments/new" size="sm">
+              <IconPlus size={14} />
+              New
+            </Button>
+          )}
         </div>
 
         {assignments.length === 0 ? (

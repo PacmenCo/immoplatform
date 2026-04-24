@@ -28,7 +28,7 @@ export function StatCard({
       <p className="mt-2 text-2xl font-semibold tracking-tight text-[var(--color-ink)] tabular-nums">
         {value}
       </p>
-      {hint && <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">{hint}</p>}
+      {hint && <p className="mt-1.5 text-xs text-[var(--color-ink-muted)]">{hint}</p>}
     </Card>
   );
 }

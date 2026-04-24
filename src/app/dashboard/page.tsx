@@ -12,7 +12,7 @@ import {
 import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { assignmentScope, composeWhere, role, userScope, type Role } from "@/lib/permissions";
+import { assignmentScope, canCreateAssignment, composeWhere, hasRole, role, userScope, type Role } from "@/lib/permissions";
 import { AnnouncementBanner } from "@/components/dashboard/AnnouncementBanner";
 import { loadActiveAnnouncements } from "@/lib/announcements";
 
@@ -37,8 +37,17 @@ export default async function DashboardHome() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const scope = await assignmentScope(session);
-  const uScope = await userScope(session);
   const r = role(session);
+  const canCreate = canCreateAssignment(session);
+  const isFreelancer = r === "freelancer";
+
+  // Privacy: admin/staff see the global feed; others see only their own
+  // actions so realtors + freelancers can't spy on each other's activity.
+  const auditWhere = hasRole(session, "admin", "staff")
+    ? undefined
+    : { actorId: session.user.id };
+
+  const uScope = isFreelancer ? undefined : await userScope(session);
 
   const [
     active,
@@ -81,13 +90,16 @@ export default async function DashboardHome() {
         },
       }),
       prisma.auditLog.findMany({
+        where: auditWhere,
         orderBy: { at: "desc" },
         take: 5,
         include: { actor: true },
       }),
-      prisma.user.count({
-        where: composeWhere({ deletedAt: null }, uScope),
-      }),
+      isFreelancer
+        ? Promise.resolve(0)
+        : prisma.user.count({
+            where: composeWhere({ deletedAt: null }, uScope),
+          }),
       loadActiveAnnouncements(session.user.id),
     ]);
 
@@ -104,11 +116,13 @@ export default async function DashboardHome() {
       value: deliveredMtd.toString(),
       delta: `Since ${monthStart.toISOString().slice(0, 10)}`,
     },
-    {
-      label: "Team members",
-      value: memberCount.toString(),
-      delta: r === "admin" || r === "staff" ? "People on the platform" : "People on your teams",
-    },
+    ...(isFreelancer
+      ? []
+      : [{
+          label: "Team members",
+          value: memberCount.toString(),
+          delta: r === "admin" || r === "staff" ? "People on the platform" : "People on your teams",
+        }]),
     {
       label: "Avg. turnaround",
       value: "4.2 d",
@@ -163,9 +177,11 @@ export default async function DashboardHome() {
             {upcoming.length === 0 ? (
               <Card className="mt-4 p-8 text-center text-sm text-[var(--color-ink-muted)]">
                 Nothing on the calendar yet.
-                <Button href="/dashboard/assignments/new" size="sm" className="ml-3">
-                  Create an assignment
-                </Button>
+                {canCreate && (
+                  <Button href="/dashboard/assignments/new" size="sm" className="ml-3">
+                    Create an assignment
+                  </Button>
+                )}
               </Card>
             ) : (
               <Card className="mt-4 overflow-hidden">
@@ -274,56 +290,58 @@ export default async function DashboardHome() {
           </section>
         </div>
 
-        <section>
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-[var(--color-ink)]">
-              Quick actions
-            </h2>
-          </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            <Card className="p-6">
-              <p className="font-medium text-[var(--color-ink)]">
-                Create an assignment
-              </p>
-              <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                Start a new property inspection in under 2 minutes.
-              </p>
-              <Button href="/dashboard/assignments/new" size="sm" className="mt-4">
-                Start now
-              </Button>
-            </Card>
-            <Card className="p-6">
-              <p className="font-medium text-[var(--color-ink)]">Invite a colleague</p>
-              <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                Add people to your team so they can manage assignments too.
-              </p>
-              <Button
-                href="/dashboard/users/invite"
-                size="sm"
-                variant="secondary"
-                className="mt-4"
-              >
-                Invite user
-              </Button>
-            </Card>
-            <Card className="p-6">
-              <p className="font-medium text-[var(--color-ink)]">
-                This month&apos;s overview
-              </p>
-              <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                Revenue, delivered inspections, commission breakdowns.
-              </p>
-              <Button
-                href="/dashboard/overview"
-                size="sm"
-                variant="secondary"
-                className="mt-4"
-              >
-                Open overview
-              </Button>
-            </Card>
-          </div>
-        </section>
+        {canCreate && (
+          <section>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-[var(--color-ink)]">
+                Quick actions
+              </h2>
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              <Card className="p-6">
+                <p className="font-medium text-[var(--color-ink)]">
+                  Create an assignment
+                </p>
+                <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                  Start a new property inspection in under 2 minutes.
+                </p>
+                <Button href="/dashboard/assignments/new" size="sm" className="mt-4">
+                  Start now
+                </Button>
+              </Card>
+              <Card className="p-6">
+                <p className="font-medium text-[var(--color-ink)]">Invite a colleague</p>
+                <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                  Add people to your team so they can manage assignments too.
+                </p>
+                <Button
+                  href="/dashboard/users/invite"
+                  size="sm"
+                  variant="secondary"
+                  className="mt-4"
+                >
+                  Invite user
+                </Button>
+              </Card>
+              <Card className="p-6">
+                <p className="font-medium text-[var(--color-ink)]">
+                  This month&apos;s overview
+                </p>
+                <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                  Revenue, delivered inspections, commission breakdowns.
+                </p>
+                <Button
+                  href="/dashboard/overview"
+                  size="sm"
+                  variant="secondary"
+                  className="mt-4"
+                >
+                  Open overview
+                </Button>
+              </Card>
+            </div>
+          </section>
+        )}
       </div>
     </>
   );

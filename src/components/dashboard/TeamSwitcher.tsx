@@ -3,21 +3,34 @@
 import Link from "next/link";
 import { useRef, useState, KeyboardEvent } from "react";
 import { IconCheck, IconBuilding, IconPlus } from "@/components/ui/Icons";
-import { TEAMS } from "@/lib/mockData";
 
-// In production the list comes from the signed-in user's memberships.
-// For the prototype, show 3 teams to illustrate the multi-team case.
-const userTeams = TEAMS.slice(0, 3).map((t, i) => ({
-  ...t,
-  role: i === 0 ? "owner" : ("member" as const),
-}));
+export type SwitcherTeam = {
+  id: string;
+  name: string;
+  logo: string;
+  color: string;
+  city: string | null;
+  role: "owner" | "member";
+};
 
-export function TeamSwitcher() {
-  const [activeId, setActiveId] = useState(userTeams[0].id);
+export function TeamSwitcher({
+  teams,
+  activeId: initialActiveId,
+  canCreateTeam,
+}: {
+  teams: SwitcherTeam[];
+  activeId: string | null;
+  canCreateTeam: boolean;
+}) {
+  // Guard against a stale activeTeamId pointing at a team the user no
+  // longer belongs to — fall back to the first membership.
+  const [activeId, setActiveId] = useState(
+    teams.find((t) => t.id === initialActiveId)?.id ?? teams[0]?.id ?? null,
+  );
   const detailsRef = useRef<HTMLDetailsElement>(null);
-  const active = userTeams.find((t) => t.id === activeId) ?? userTeams[0];
+  const active = teams.find((t) => t.id === activeId) ?? null;
 
-  if (userTeams.length === 0) {
+  if (teams.length === 0 || !active) {
     return null;
   }
 
@@ -28,7 +41,6 @@ export function TeamSwitcher() {
   function handleKeyDown(e: KeyboardEvent<HTMLDetailsElement>) {
     if (e.key === "Escape" && detailsRef.current?.open) {
       close();
-      // Return focus to the summary so the tab order stays sensible
       const summary = detailsRef.current.querySelector("summary") as HTMLElement | null;
       summary?.focus();
     }
@@ -71,7 +83,7 @@ export function TeamSwitcher() {
         </div>
 
         <ul className="max-h-80 overflow-y-auto">
-          {userTeams.map((t) => (
+          {teams.map((t) => (
             <li key={t.id}>
               <button
                 type="button"
@@ -95,7 +107,8 @@ export function TeamSwitcher() {
                     {t.name}
                   </p>
                   <p className="text-xs capitalize text-[var(--color-ink-muted)]">
-                    {t.role} · {t.city}
+                    {t.role}
+                    {t.city ? ` · ${t.city}` : ""}
                   </p>
                 </div>
                 {t.id === activeId && (
@@ -114,13 +127,15 @@ export function TeamSwitcher() {
             <IconBuilding size={14} />
             Manage all teams
           </Link>
-          <Link
-            href="/dashboard/teams/new"
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
-          >
-            <IconPlus size={14} />
-            Create a team
-          </Link>
+          {canCreateTeam && (
+            <Link
+              href="/dashboard/teams/new"
+              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+            >
+              <IconPlus size={14} />
+              Create a team
+            </Link>
+          )}
         </div>
       </div>
     </details>

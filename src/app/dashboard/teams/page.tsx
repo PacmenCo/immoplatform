@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -16,11 +17,14 @@ import {
 } from "@/components/ui/Icons";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { composeWhere, teamScope } from "@/lib/permissions";
+import { composeWhere, hasRole, teamScope } from "@/lib/permissions";
 import { initials } from "@/lib/format";
 
 export default async function TeamsPage() {
   const session = await requireSession();
+  if (hasRole(session, "freelancer")) {
+    redirect("/no-access?section=teams");
+  }
   const scope = await teamScope(session);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 

@@ -1,9 +1,11 @@
+import { redirect } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { prisma } from "@/lib/db";
 import { AssignmentForm } from "@/components/dashboard/AssignmentForm";
 import { createAssignment } from "@/app/actions/assignments";
 import { requireSession } from "@/lib/auth";
 import {
+  canCreateAssignment,
   canReassignFreelancer,
   canSetDiscount,
   eligibleFreelancerWhere,
@@ -11,6 +13,9 @@ import {
 
 export default async function NewAssignmentPage() {
   const session = await requireSession();
+  if (!canCreateAssignment(session)) {
+    redirect("/no-access?section=new-assignment");
+  }
   const canFreelancer = canReassignFreelancer(session);
 
   const [services, freelancers] = await Promise.all([

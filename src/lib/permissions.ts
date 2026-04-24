@@ -37,6 +37,19 @@ export const getUserTeamIds = cache(async (userId: string) => {
   };
 });
 
+// Memberships + team branding for the Topbar switcher — shares the
+// per-request cache() so navigating between dashboard pages reuses one
+// query instead of re-fetching on every Topbar render.
+export const getUserTeamsForSwitcher = cache(async (userId: string) => {
+  return prisma.teamMember.findMany({
+    where: { userId },
+    include: {
+      team: { select: { id: true, name: true, logo: true, logoColor: true, city: true } },
+    },
+    orderBy: { joinedAt: "asc" },
+  });
+});
+
 // ─── Compose helper ────────────────────────────────────────────────
 
 /**
@@ -291,6 +304,16 @@ export async function canEditTeam(
  * owner. Freelancers cannot — they join existing agencies via invite.
  */
 export function canCreateTeam(s: SessionWithUser): boolean {
+  return hasRole(s, "admin", "staff", "realtor");
+}
+
+/**
+ * Create an assignment. Admin/staff + realtors. Freelancers never —
+ * Platform's @can('create', Assignment) gate + createAssignmentInner's
+ * explicit freelancer rejection. Used to hide CTAs and gate the new-
+ * assignment page, not just the action.
+ */
+export function canCreateAssignment(s: SessionWithUser): boolean {
   return hasRole(s, "admin", "staff", "realtor");
 }
 
