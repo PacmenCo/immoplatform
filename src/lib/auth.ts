@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { randomBytes } from "node:crypto";
@@ -86,7 +87,12 @@ export async function clearSession(): Promise<void> {
 export type SessionUser = Omit<User, "passwordHash">;
 export type SessionWithUser = Session & { user: SessionUser };
 
-export async function getSession(): Promise<SessionWithUser | null> {
+// Cached via React.cache() so repeated calls within one Server-Component
+// render reuse the cookie read + session lookup + lastSeenAt touch. Layout,
+// Topbar, and page code each call getSession/requireSession independently;
+// without this, each call hits the DB. Outside a React render (server
+// actions, API routes) cache is a no-op — those paths only call once anyway.
+export const getSession = cache(async (): Promise<SessionWithUser | null> => {
   const jar = await cookies();
   const id = jar.get(SESSION_COOKIE)?.value;
   if (!id) return null;
@@ -112,7 +118,7 @@ export async function getSession(): Promise<SessionWithUser | null> {
   const { passwordHash: _ph, ...user } = session.user;
   void _ph;
   return { ...session, user };
-}
+});
 
 export async function requireSession(): Promise<SessionWithUser> {
   const s = await getSession();
