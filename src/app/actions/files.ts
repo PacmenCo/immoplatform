@@ -5,7 +5,7 @@ import { generateCuid } from "@/lib/cuid";
 import { prisma } from "@/lib/db";
 import { audit, type SessionWithUser } from "@/lib/auth";
 import { applyCommission } from "@/lib/commission";
-import { filesUploadedEmail } from "@/lib/email";
+import { assignmentCompletedEmail, filesUploadedEmail } from "@/lib/email";
 import { notify } from "@/lib/notify";
 import {
   collectAgencyRecipients,
@@ -278,6 +278,49 @@ export async function uploadAssignmentFilesInner(
             uploaderName,
             lane,
             fileCount: prepared.length,
+          })),
+        }),
+      ),
+    );
+  }
+
+  // Platform parity (AssignmentCompletedMail at AssignmentController.php:1082):
+  // v2's auto-complete path skips the "delivered" intermediate state, so the
+  // files_uploaded email above doesn't tell recipients "this is done" — fan
+  // out the completion event too when the freelancer-lane upload closed the
+  // assignment. Uploader is excluded (they're the one who triggered it).
+  if (autoCompleted && meta) {
+    const [freelancer, agency] = await Promise.all([
+      loadUser(meta.freelancerId),
+      collectAgencyRecipients({
+        teamId: meta.teamId,
+        createdById: meta.createdById,
+        exclude: [session.user.id],
+      }),
+    ]);
+    const completedRecipients: Recipient[] = [...agency];
+    if (freelancer && freelancer.id !== session.user.id) {
+      if (!completedRecipients.some((r) => r.id === freelancer.id)) {
+        completedRecipients.push(freelancer);
+      }
+    }
+    const completedByName = fullName(session.user);
+    const completedCtx = {
+      reference: meta.reference,
+      address: meta.address,
+      city: meta.city,
+      postal: meta.postal,
+      assignmentUrl: assignmentUrlFor(meta.id),
+    };
+    await Promise.all(
+      completedRecipients.map(async (r) =>
+        notify({
+          to: r,
+          event: "assignment.completed",
+          ...(await assignmentCompletedEmail({
+            ...completedCtx,
+            recipientName: r.firstName,
+            completedByName,
           })),
         }),
       ),
