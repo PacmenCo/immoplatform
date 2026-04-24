@@ -282,49 +282,40 @@ export async function uploadAssignmentFilesInner(
         }),
       ),
     );
-  }
 
-  // Platform parity (AssignmentCompletedMail at AssignmentController.php:1082):
-  // v2's auto-complete path skips the "delivered" intermediate state, so the
-  // files_uploaded email above doesn't tell recipients "this is done" — fan
-  // out the completion event too when the freelancer-lane upload closed the
-  // assignment. Uploader is excluded (they're the one who triggered it).
-  if (autoCompleted && meta) {
-    const [freelancer, agency] = await Promise.all([
-      loadUser(meta.freelancerId),
-      collectAgencyRecipients({
-        teamId: meta.teamId,
-        createdById: meta.createdById,
-        exclude: [session.user.id],
-      }),
-    ]);
-    const completedRecipients: Recipient[] = [...agency];
-    if (freelancer && freelancer.id !== session.user.id) {
-      if (!completedRecipients.some((r) => r.id === freelancer.id)) {
-        completedRecipients.push(freelancer);
+    // Platform parity (AssignmentCompletedMail at AssignmentController.php:1082):
+    // v2's auto-complete path skips "delivered" and lands directly on
+    // "completed", so the files_uploaded email above doesn't say "it's
+    // done" — fan out the completion event too. Auto-complete only fires
+    // on the freelancer lane, where `recipients` is already the agency,
+    // so reuse it instead of querying again. The assigned freelancer is
+    // added only when they're not the uploader (admin/staff uploading on
+    // behalf of the freelancer is possible via canUploadToFreelancerLane).
+    if (autoCompleted) {
+      const completedRecipients: Recipient[] = [...recipients];
+      if (meta.freelancerId && meta.freelancerId !== session.user.id) {
+        const assignedFreelancer = await loadUser(meta.freelancerId);
+        if (
+          assignedFreelancer &&
+          !completedRecipients.some((r) => r.id === assignedFreelancer.id)
+        ) {
+          completedRecipients.push(assignedFreelancer);
+        }
       }
+      await Promise.all(
+        completedRecipients.map(async (r) =>
+          notify({
+            to: r,
+            event: "assignment.completed",
+            ...(await assignmentCompletedEmail({
+              ...ctx,
+              recipientName: r.firstName,
+              completedByName: uploaderName,
+            })),
+          }),
+        ),
+      );
     }
-    const completedByName = fullName(session.user);
-    const completedCtx = {
-      reference: meta.reference,
-      address: meta.address,
-      city: meta.city,
-      postal: meta.postal,
-      assignmentUrl: assignmentUrlFor(meta.id),
-    };
-    await Promise.all(
-      completedRecipients.map(async (r) =>
-        notify({
-          to: r,
-          event: "assignment.completed",
-          ...(await assignmentCompletedEmail({
-            ...completedCtx,
-            recipientName: r.firstName,
-            completedByName,
-          })),
-        }),
-      ),
-    );
   }
 
   revalidatePath(`/dashboard/assignments/${assignmentId}/files`);

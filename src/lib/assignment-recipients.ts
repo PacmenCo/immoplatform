@@ -66,3 +66,22 @@ export async function loadUser(id: string | null): Promise<Recipient | null> {
     select: RECIPIENT_SELECT,
   });
 }
+
+/**
+ * Every platform admin + staff user, minus ids in `exclude`. Used for
+ * fan-out emails that target the operations team regardless of which
+ * agency owns the assignment (e.g. NewAssignmentMail).
+ */
+export async function collectPlatformAdmins(opts: {
+  exclude: string[];
+}): Promise<Recipient[]> {
+  const excludeSet = new Set(opts.exclude);
+  const users = await prisma.user.findMany({
+    where: {
+      deletedAt: null,
+      role: { in: ["admin", "staff"] },
+    },
+    select: RECIPIENT_SELECT,
+  });
+  return users.filter((u) => !excludeSet.has(u.id));
+}

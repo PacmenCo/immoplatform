@@ -58,6 +58,7 @@ import {
 import { notify } from "@/lib/notify";
 import {
   collectAgencyRecipients,
+  collectPlatformAdmins,
   loadUser,
   type Recipient,
 } from "@/lib/assignment-recipients";
@@ -446,23 +447,11 @@ export async function createAssignmentInner(
   // every platform admin + staff so triage doesn't depend on someone
   // watching the dashboard. Scoped to admin+staff per v1, excludes the
   // actor so a staff member who created the assignment isn't self-mailed.
-  const admins = await prisma.user.findMany({
-    where: {
-      deletedAt: null,
-      role: { in: ["admin", "staff"] },
-      id: { not: session.user.id },
-    },
-    select: {
-      id: true,
-      email: true,
-      emailPrefs: true,
-      firstName: true,
-      lastName: true,
-    },
-  });
+  const admins = await collectPlatformAdmins({ exclude: [session.user.id] });
   const createdByName = fullName(session.user);
   const addressLine = `${created.address}, ${created.postal} ${created.city}`;
   const servicesLine = d.services.join(", ");
+  const createdUrl = assignmentUrl(created.id);
   await Promise.all(
     admins.map((a) =>
       notify({
@@ -475,7 +464,7 @@ export async function createAssignmentInner(
           `Address: ${addressLine}\n` +
           `Services: ${servicesLine}\n` +
           `Created by: ${createdByName}\n\n` +
-          `Open it: ${process.env.NEXT_PUBLIC_APP_URL ?? ""}/dashboard/assignments/${created.id}`,
+          `Open it: ${createdUrl}`,
       }),
     ),
   );
