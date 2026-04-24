@@ -29,6 +29,7 @@ import {
   canViewAssignmentPricing,
   canViewCommission,
   eligibleFreelancerWhere,
+  hasRole,
   role,
 } from "@/lib/permissions";
 import { formatCommissionRate, formatEuros, initials } from "@/lib/format";
@@ -537,12 +538,18 @@ export default async function AssignmentDetail({
                   <CardTitle>Team</CardTitle>
                 </CardHeader>
                 <CardBody className="text-sm">
-                  <Link
-                    href={`/dashboard/teams/${assignment.team.id}`}
-                    className="font-medium text-[var(--color-ink)] hover:underline"
-                  >
-                    {assignment.team.name}
-                  </Link>
+                  {hasRole(session, "freelancer") ? (
+                    <span className="font-medium text-[var(--color-ink)]">
+                      {assignment.team.name}
+                    </span>
+                  ) : (
+                    <Link
+                      href={`/dashboard/teams/${assignment.team.id}`}
+                      className="font-medium text-[var(--color-ink)] hover:underline"
+                    >
+                      {assignment.team.name}
+                    </Link>
+                  )}
                   <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
                     Created {assignment.createdAt.toISOString().slice(0, 10)}
                   </p>
