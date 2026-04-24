@@ -18,6 +18,14 @@ import { withSession, type ActionResult } from "./_types";
  * - `addAssignmentToPersonalGoogle(id)` — opt-in "Add to my calendar"
  * - `removeAssignmentFromPersonalGoogle(id)` — remove the single user's copy
  * - `disconnectCalendarAccount(provider)` — revoke + drop the account row
+ *
+ * Platform-parity note: v1 gates Google Calendar OAuth to `admin,medewerker`
+ * only (routes/web.php:67-74), per-assignment. v2 intentionally diverges:
+ * any authenticated user can OAuth their own calendar once and all their
+ * accessible assignments sync to it. The feature shapes are not comparable
+ * — v1 has no "connect my account" concept — and the use case (a freelancer
+ * seeing their own inspections in their own calendar) is a pure UX win with
+ * no cross-tenant risk (each action is scoped to `session.user.id`).
  */
 
 export const addAssignmentToPersonalGoogle = withSession(async (

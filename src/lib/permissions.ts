@@ -406,8 +406,9 @@ export function canAdminUsers(s: SessionWithUser): boolean {
 
 /**
  * Role where-clause filter for the user list, matching canViewUser. Admin sees
- * all; staff sees realtors + freelancers. Pair with a separate "always me"
- * branch when you want the viewer's own row visible regardless of filter.
+ * all; staff sees realtors + freelancers. Returns `{ role: { notIn: [...] } }`
+ * — callers typically OR this with `{ id: session.user.id }` so the viewer's
+ * own row remains visible (see src/app/dashboard/users/page.tsx).
  */
 export function userListRoleFilter(
   s: SessionWithUser,

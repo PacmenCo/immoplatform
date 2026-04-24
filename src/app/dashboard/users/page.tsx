@@ -66,6 +66,12 @@ export default async function UsersPage({
   // Platform parity (UserController.php:42-46): staff cannot see admins or
   // other staff. Applied to both the user table and the pending-invites list.
   const roleFilter = userListRoleFilter(session);
+  // The role filter hides the viewer's own row if their role is in the
+  // excluded set (e.g. staff looking at the list won't see themselves).
+  // Add a self-exception so "me" is always visible in the user list.
+  const usersRoleFilter = roleFilter
+    ? { OR: [{ id: session.user.id }, roleFilter] }
+    : undefined;
   const activeRoleWhere = activeRole ? { role: activeRole } : {};
 
   // Platform parity (UsersList.php:122-127): whitespace-split AND, each word
@@ -90,7 +96,7 @@ export default async function UsersPage({
     prisma.user.findMany({
       where: {
         deletedAt: null,
-        ...(roleFilter ?? {}),
+        ...(usersRoleFilter ?? {}),
         ...activeRoleWhere,
         ...(searchWhere ?? {}),
       },
