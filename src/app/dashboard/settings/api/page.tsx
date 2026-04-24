@@ -3,6 +3,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { IconPlus, IconArrowRight } from "@/components/ui/Icons";
+import { requireRoleOrRedirect } from "@/lib/auth";
 import { SettingsNav } from "../_nav";
 import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
 
@@ -33,7 +34,9 @@ const KEYS = [
   },
 ];
 
-export default function ApiSettingsPage() {
+export default async function ApiSettingsPage() {
+  await requireRoleOrRedirect(["admin", "staff"], "admin");
+
   return (
     <>
       <Topbar title="API keys" subtitle="Programmatic access to your workspace" />

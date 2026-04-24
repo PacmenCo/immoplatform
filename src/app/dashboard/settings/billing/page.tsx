@@ -3,6 +3,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { IconArrowRight } from "@/components/ui/Icons";
+import { requireRoleOrRedirect } from "@/lib/auth";
 import { SettingsNav } from "../_nav";
 import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
 
@@ -14,7 +15,8 @@ const INVOICES = [
   { id: "INV-2025-12", date: "2025-12-01", amount: "€ 79.00", status: "paid" },
 ];
 
-export default function BillingSettingsPage() {
+export default async function BillingSettingsPage() {
+  await requireRoleOrRedirect(["admin", "staff"], "admin");
   return (
     <>
       <Topbar title="Billing" subtitle="Plan, payment method, invoices" />

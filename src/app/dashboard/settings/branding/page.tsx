@@ -2,6 +2,7 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Field, Input, Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { requireRoleOrRedirect } from "@/lib/auth";
 import { SettingsNav } from "../_nav";
 import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
 
@@ -18,7 +19,8 @@ const PRESET_COLORS = [
   "#64748b",
 ];
 
-export default function BrandingSettingsPage() {
+export default async function BrandingSettingsPage() {
+  await requireRoleOrRedirect(["admin", "staff", "realtor"], "teams");
   return (
     <>
       <Topbar title="Branding" subtitle="Logo, colors and legal identity for certificates" />

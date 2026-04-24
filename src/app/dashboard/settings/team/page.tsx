@@ -4,6 +4,7 @@ import { Field, Select, Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { TEAMS } from "@/lib/mockData";
+import { requireRoleOrRedirect } from "@/lib/auth";
 import { SettingsNav } from "../_nav";
 import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
 
@@ -34,7 +35,8 @@ const PREFS = [
   },
 ];
 
-export default function TeamSettingsPage() {
+export default async function TeamSettingsPage() {
+  await requireRoleOrRedirect(["admin", "staff", "realtor"], "teams");
   return (
     <>
       <Topbar title="Team preferences" subtitle="Defaults and scheduling behaviour for your current team" />
