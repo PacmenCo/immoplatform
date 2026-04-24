@@ -6,6 +6,13 @@ export function initials(first: string | null | undefined, last: string | null |
   return (f + l).toUpperCase() || "??";
 }
 
+// Two-letter initialism from a single name string (e.g. a team name).
+// Falls back to "?" on empty input. Used for logo placeholders.
+export function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return (parts[0]?.[0] ?? "?").toUpperCase() + (parts[1]?.[0] ?? "").toUpperCase();
+}
+
 /** Human-readable file size. 2 kB → "2.0 KB", 1048576 → "1.0 MB". */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

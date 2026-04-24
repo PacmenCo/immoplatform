@@ -85,7 +85,7 @@ export default async function AssignmentsList({
   const session = await requireSession();
   const scope = await assignmentScope(session);
   const r = role(session);
-  const isFreelancer = r === "freelancer";
+  const isFreelancer = hasRole(session, "freelancer");
 
   const params = await searchParams;
   const activeStatus: Status | null = (STATUS_ORDER as readonly Status[]).includes(params.status as Status)

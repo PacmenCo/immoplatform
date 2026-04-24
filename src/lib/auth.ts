@@ -6,6 +6,7 @@ import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import type { Prisma, Session, User } from "@prisma/client";
 import { prisma } from "./db";
+import type { NoAccessSection } from "@/app/no-access/page";
 
 export { generateToken, hashToken } from "./auth-crypto";
 
@@ -150,20 +151,18 @@ export async function requireRole(
   return s;
 }
 
-export function noAccessPath(section: string): string {
-  return `/no-access?section=${section}`;
-}
-
 // Page-level gate: require the viewer's role to be in `roles`, otherwise
 // redirect to /no-access. Prefer this over `requireRole` at the page layer
-// (requireRole throws, which leaks to the error boundary).
+// (requireRole throws, which leaks to the error boundary). `section` is
+// typed against the MESSAGES map in src/app/no-access/page.tsx, so a new
+// section entered here without a matching message is a compile error.
 export async function requireRoleOrRedirect(
   roles: Array<"admin" | "staff" | "realtor" | "freelancer">,
-  section: string,
+  section: NoAccessSection,
 ): Promise<SessionWithUser> {
   const s = await requireSession();
   if (!roles.includes(s.user.role as (typeof roles)[number])) {
-    redirect(noAccessPath(section));
+    redirect(`/no-access?section=${section}`);
   }
   return s;
 }

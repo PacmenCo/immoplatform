@@ -39,7 +39,7 @@ export default async function DashboardHome() {
   const scope = await assignmentScope(session);
   const r = role(session);
   const canCreate = canCreateAssignment(session);
-  const isFreelancer = r === "freelancer";
+  const isFreelancer = hasRole(session, "freelancer");
 
   // Privacy: admin/staff see the global feed; others see only their own
   // actions so realtors + freelancers can't spy on each other's activity.

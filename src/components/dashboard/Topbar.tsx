@@ -8,12 +8,9 @@ import {
   canCreateAssignment,
   canCreateTeam,
   getUserTeamsForSwitcher,
+  hasRole,
 } from "@/lib/permissions";
-
-function teamInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return (parts[0]?.[0] ?? "?").toUpperCase() + (parts[1]?.[0] ?? "").toUpperCase();
-}
+import { initialsFromName } from "@/lib/format";
 
 export async function Topbar({
   title,
@@ -26,13 +23,15 @@ export async function Topbar({
   const canCreate = session ? canCreateAssignment(session) : false;
   const canMakeTeam = session ? canCreateTeam(session) : false;
 
+  // Freelancers never see the team switcher (v1 parity), so skip the
+  // membership query for them — saves a round-trip per dashboard render.
   let teams: SwitcherTeam[] = [];
-  if (session) {
+  if (session && !hasRole(session, "freelancer")) {
     const memberships = await getUserTeamsForSwitcher(session.user.id);
     teams = memberships.map((m) => ({
       id: m.team.id,
       name: m.team.name,
-      logo: m.team.logo || teamInitials(m.team.name),
+      logo: m.team.logo || initialsFromName(m.team.name),
       color: m.team.logoColor || "var(--color-ink)",
       city: m.team.city,
       role: m.teamRole,

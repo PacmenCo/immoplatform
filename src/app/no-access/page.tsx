@@ -4,11 +4,26 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { IconShield, IconArrowRight } from "@/components/ui/Icons";
 
-const MESSAGES: Record<string, { title: string; body: string }> = {
+const MESSAGES = {
   users: {
     title: "Team administration is managed by Immo.",
     body:
       "The global users list is only available to platform admins and support staff. To add or remove teammates for your agency, use the Members tab on your team's detail page, or email us at support@immo.app.",
+  },
+  invite: {
+    title: "Inviting new users is restricted.",
+    body:
+      "Admins, staff, and realtor team-owners can invite people to the platform. If you think you should have access, ask your agency owner to transfer team ownership to you, or email us at support@immo.app.",
+  },
+  teams: {
+    title: "Team management is not available for your role.",
+    body:
+      "The teams directory is used by agencies to manage their rosters. Freelancers work independently and don't belong to this view. You can still coordinate on assignments from the Assignments page.",
+  },
+  "new-assignment": {
+    title: "Creating assignments is not available for your role.",
+    body:
+      "New assignments are created by the agency side — admin, staff, or realtor. Freelancers are assigned to inspections by the booking party, and those show up under Assignments once scheduled.",
   },
   commissions: {
     title: "Commission management is admin-only.",
@@ -30,7 +45,9 @@ const MESSAGES: Record<string, { title: string; body: string }> = {
     body:
       "The admin console is only available to platform admins and support staff.",
   },
-};
+} as const;
+
+export type NoAccessSection = keyof typeof MESSAGES;
 
 const DEFAULT = {
   title: "This section isn't available to your role.",

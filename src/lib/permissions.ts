@@ -26,20 +26,10 @@ export function hasRole(s: SessionWithUser, ...rs: Role[]): boolean {
 
 // ─── Membership lookup (memoised per request via React cache()) ───
 
-export const getUserTeamIds = cache(async (userId: string) => {
-  const rows = await prisma.teamMember.findMany({
-    where: { userId },
-    select: { teamId: true, teamRole: true },
-  });
-  return {
-    all: rows.map((r) => r.teamId),
-    owned: rows.filter((r) => r.teamRole === "owner").map((r) => r.teamId),
-  };
-});
-
-// Memberships + team branding for the Topbar switcher — shares the
-// per-request cache() so navigating between dashboard pages reuses one
-// query instead of re-fetching on every Topbar render.
+// Canonical per-request membership query — returns rows with team branding
+// (used by the Topbar switcher) and role (used by scope helpers). All
+// other membership accessors derive from this so the layout + scope helpers
+// + Topbar share one round-trip.
 export const getUserTeamsForSwitcher = cache(async (userId: string) => {
   return prisma.teamMember.findMany({
     where: { userId },
@@ -48,6 +38,14 @@ export const getUserTeamsForSwitcher = cache(async (userId: string) => {
     },
     orderBy: { joinedAt: "asc" },
   });
+});
+
+export const getUserTeamIds = cache(async (userId: string) => {
+  const rows = await getUserTeamsForSwitcher(userId);
+  return {
+    all: rows.map((r) => r.teamId),
+    owned: rows.filter((r) => r.teamRole === "owner").map((r) => r.teamId),
+  };
 });
 
 // ─── Compose helper ────────────────────────────────────────────────
