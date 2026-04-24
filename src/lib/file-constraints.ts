@@ -19,12 +19,12 @@ export const FILE_CONSTRAINTS: Record<FileLane, LaneConstraints> = {
   freelancer: {
     maxMB: 50,
     allowedMimes: ["application/pdf"],
-    acceptHint: "PDF only · up to 50 MB",
+    acceptHint: "PDF only · up to 50 MB · up to 20 files per upload",
   },
   realtor: {
     maxMB: 10,
     allowedMimes: ["application/pdf", "image/jpeg", "image/png", "image/webp"],
-    acceptHint: "PDF, JPG, PNG, WebP · up to 10 MB each",
+    acceptHint: "PDF, JPG, PNG, WebP · up to 10 MB each · up to 20 files per upload",
   },
 } as const;
 

@@ -87,9 +87,14 @@ export function Dropzone({
       errs.push(`At most ${maxFiles} files per upload.`);
       next = next.slice(0, maxFiles);
     }
-    if (errs.length && onError) onError(errs.join(" "));
+    // onChange FIRST so listeners that clear error state on change don't
+    // erase the error we're about to fire. This pairs with FileUploadForm,
+    // which clears its error banner on every onChange — if we fired
+    // onError first, the truncation message would be wiped by the onChange
+    // that follows.
     onChange(next);
     syncInput(next);
+    if (errs.length && onError) onError(errs.join(" "));
   }
 
   /**
