@@ -113,6 +113,12 @@ export default async function UsersPage({
         revokedAt: null,
         ...(roleFilter ?? {}),
         ...activeRoleWhere,
+        // Invites have only email to match against, but respecting `q` keeps
+        // the list and the invites card in lockstep — a search for a name
+        // won't match, but a search for a partial email will.
+        ...(words.length
+          ? { AND: words.map((w) => ({ email: { contains: w } })) }
+          : {}),
       },
       orderBy: { createdAt: "desc" },
       include: {
