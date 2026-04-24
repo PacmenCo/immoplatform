@@ -198,7 +198,17 @@ export async function createInvite(
     return { ok: false, error: "You don't have permission to invite users." };
   }
   const result = await createInviteInner(session, undefined, formData);
-  if (result.ok) redirect("/dashboard/users");
+  if (result.ok) {
+    // Realtors can't access /dashboard/users — route them back to the team
+    // they invited into (or their teams list) so they don't bounce into
+    // /no-access after a successful send. Admin/staff keep the existing
+    // flow to the platform user list.
+    if (session.user.role === "realtor") {
+      const teamId = (formData.get("teamId") as string | null)?.trim();
+      redirect(teamId ? `/dashboard/teams/${teamId}` : "/dashboard/teams");
+    }
+    redirect("/dashboard/users");
+  }
   return result;
 }
 

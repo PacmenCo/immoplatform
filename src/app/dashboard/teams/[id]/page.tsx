@@ -31,12 +31,20 @@ import { TransferOwnershipButton } from "./TransferOwnershipButton";
 import { DeleteTeamButton } from "./DeleteTeamButton";
 import { RemoveMemberButton } from "./RemoveMemberButton";
 
-const TABS = [
+type TabId = "overview" | "members" | "assignments" | "billing" | "branding" | "services" | "commission";
+
+const BASE_TABS: Array<{ id: TabId; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "members", label: "Members" },
   { id: "assignments", label: "Assignments" },
   { id: "billing", label: "Billing" },
   { id: "branding", label: "Branding" },
+];
+
+// Services & pricing + Commission sections are admin-only (sections
+// themselves are wrapped in `{isAdmin && …}`). Filter the tab nav so
+// non-admins don't get dead anchor links.
+const ADMIN_TABS: Array<{ id: TabId; label: string }> = [
   { id: "services", label: "Services & pricing" },
   { id: "commission", label: "Commission" },
 ];
@@ -343,7 +351,7 @@ export default async function TeamDetailPage({
 
         {/* Tabs */}
         <nav className="flex items-center gap-1 overflow-x-auto border-b border-[var(--color-border)]">
-          {TABS.map((t, i) => (
+          {[...BASE_TABS, ...(isAdmin ? ADMIN_TABS : [])].map((t, i) => (
             <a
               key={t.id}
               href={`#${t.id}`}
