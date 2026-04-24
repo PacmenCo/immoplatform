@@ -516,11 +516,13 @@ export default async function TeamDetailPage({
                   label="Invite member"
                 />
                 <QuickLink href="#billing" icon={<IconFileText size={14} />} label="Edit billing details" />
-                <QuickLink
-                  href="#commission"
-                  icon={<IconBuilding size={14} />}
-                  label="Adjust commission"
-                />
+                {isAdmin && (
+                  <QuickLink
+                    href="#commission"
+                    icon={<IconBuilding size={14} />}
+                    label="Adjust commission"
+                  />
+                )}
               </CardBody>
             </Card>
           </div>
@@ -929,6 +931,10 @@ export default async function TeamDetailPage({
         </section>
 
         {/* ───── Services & pricing ──────────────────────────────── */}
+        {/* v1 parity: per-team price overrides live under Admin\TeamController
+            (admin-only). Realtors see no pricing UI in v1 — hide the whole
+            section rather than render disabled inputs. */}
+        {isAdmin && (
         <section id="services" className="scroll-mt-20">
           <Card>
             <CardHeader>
@@ -997,8 +1003,15 @@ export default async function TeamDetailPage({
             </CardBody>
           </Card>
         </section>
+        )}
 
         {/* ───── Commission ───────────────────────────────────────── */}
+        {/* v1 parity: commission config + activity live on the admin team-edit
+            page (Livewire TeamEdit.php:83-85, 116-117, 351-352). Non-admin
+            users see no commission UI in v1 at all — no teams/*.blade.php
+            references commission. Hide the whole section rather than show
+            disabled. */}
+        {isAdmin && (
         <section id="commission" className="scroll-mt-20">
           <Card>
             <CardHeader>
@@ -1114,6 +1127,7 @@ export default async function TeamDetailPage({
             </CardBody>
           </Card>
         </section>
+        )}
 
         <div className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] pt-6">
           {isAdmin ? (
