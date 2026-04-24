@@ -15,6 +15,7 @@ import {
   IconFileText,
 } from "@/components/ui/Icons";
 import { STATUS_META, Status, isTerminalStatus } from "@/lib/mockData";
+import { canRoleTransitionTo } from "@/lib/assignmentStatus";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import {
@@ -28,6 +29,7 @@ import {
   canViewAssignmentPricing,
   canViewCommission,
   eligibleFreelancerWhere,
+  role,
 } from "@/lib/permissions";
 import { formatCommissionRate, formatEuros, initials } from "@/lib/format";
 import { isDiscountType, loadAssignmentPricing } from "@/lib/pricing";
@@ -184,7 +186,14 @@ export default async function AssignmentDetail({
             <AssignmentActions
               assignmentId={assignment.id}
               status={assignment.status}
-              canTransition={canTransition}
+              canStart={
+                canTransition &&
+                canRoleTransitionTo(role(session), assignment.status as Status, "in_progress")
+              }
+              canDeliver={
+                canTransition &&
+                canRoleTransitionTo(role(session), assignment.status as Status, "delivered")
+              }
               canUpdateFields={canUpdateFields}
               canComplete={canComplete}
               canCancel={canCancel}

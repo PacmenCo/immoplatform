@@ -17,7 +17,8 @@ import {
 type Props = {
   assignmentId: string;
   status: string;
-  canTransition: boolean;
+  canStart: boolean;
+  canDeliver: boolean;
   canUpdateFields: boolean;
   canComplete: boolean;
   canCancel: boolean;
@@ -26,7 +27,8 @@ type Props = {
 export function AssignmentActions({
   assignmentId,
   status,
-  canTransition,
+  canStart,
+  canDeliver,
   canUpdateFields,
   canComplete,
   canCancel,
@@ -66,9 +68,8 @@ export function AssignmentActions({
   }
 
   const isTerminal = isTerminalStatus(status);
-  const showStart =
-    canTransition && (status === "scheduled" || status === "draft");
-  const showDeliver = canTransition && status === "in_progress";
+  const showStart = canStart && (status === "scheduled" || status === "draft");
+  const showDeliver = canDeliver && status === "in_progress";
   const showComplete = canComplete && status === "delivered";
   const showCancel = canCancel && !isTerminal;
   const showEdit = canUpdateFields && !isTerminal;
