@@ -1,15 +1,19 @@
 import "server-only";
+import { TeamRole, type Prisma } from "@prisma/client";
 import { prisma } from "./db";
 
 /**
  * Minimum fields `notify()` needs for an assignment recipient. Keeping this
  * shape narrow (no `lastName` separately — wrap with `fullName()` when
  * needed) means every recipient query selects the same five columns.
+ *
+ * `emailPrefs` is the JSONB column — `Prisma.JsonValue` covers object /
+ * string / null shapes. `shouldSendEmail()` normalizes at read time.
  */
 export type Recipient = {
   id: string;
   email: string;
-  emailPrefs: string | null;
+  emailPrefs: Prisma.JsonValue | null;
   firstName: string;
   lastName: string;
 };
@@ -44,7 +48,7 @@ export async function collectAgencyRecipients(opts: {
         opts.teamId
           ? {
               memberships: {
-                some: { teamId: opts.teamId, teamRole: "owner" },
+                some: { teamId: opts.teamId, teamRole: TeamRole.owner },
               },
             }
           : {},

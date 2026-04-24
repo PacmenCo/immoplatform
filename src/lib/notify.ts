@@ -12,7 +12,10 @@ import { shouldSendEmail, type EmailEventKey } from "./email-events";
  * where staff need to see delivery failures surface to the caller.
  */
 export async function notify(opts: {
-  to: { email: string; emailPrefs: string | null };
+  // `emailPrefs` is a JSONB-backed value on Postgres — accept the broad
+  // `unknown` so the caller's `Recipient` type (JsonValue) flows in without
+  // a cast. `shouldSendEmail` normalizes at read time.
+  to: { email: string; emailPrefs: unknown };
   event: EmailEventKey;
   subject: string;
   text: string;

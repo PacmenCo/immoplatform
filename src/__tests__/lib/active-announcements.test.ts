@@ -21,7 +21,7 @@ async function seedAnn(opts: {
   startsAt: Date;
   endsAt: Date;
   isActive?: boolean;
-  type?: string;
+  type?: "info" | "success" | "warning" | "danger";
   isDismissible?: boolean;
   title?: string;
 }) {

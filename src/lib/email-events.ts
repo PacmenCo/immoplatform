@@ -160,14 +160,24 @@ export function eventsForRole(role: Role): EmailEventKey[] {
  * this key — opt-out model, not opt-in.
  */
 export function shouldSendEmail(
-  user: { emailPrefs: string | null },
+  user: { emailPrefs: unknown },
   event: EmailEventKey,
 ): boolean {
-  if (!user.emailPrefs) return true;
-  try {
-    const prefs = JSON.parse(user.emailPrefs) as Record<string, unknown>;
-    return prefs[event] !== false;
-  } catch {
-    return true;
+  const raw = user.emailPrefs;
+  if (!raw) return true;
+  // Platform parity — the column is stored as JSONB on Postgres and comes
+  // back already-parsed. For test DBs / legacy rows that seeded a string,
+  // we still try `JSON.parse` as a fallback. Fail open.
+  let prefs: Record<string, unknown> | null = null;
+  if (typeof raw === "string") {
+    try {
+      prefs = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return true;
+    }
+  } else if (typeof raw === "object" && !Array.isArray(raw)) {
+    prefs = raw as Record<string, unknown>;
   }
+  if (!prefs) return true;
+  return prefs[event] !== false;
 }

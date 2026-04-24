@@ -8,7 +8,7 @@ import {
 } from "@/app/actions/profile";
 import { generateToken, hashToken } from "@/lib/auth";
 import { AVATAR_MAX_BYTES } from "@/lib/avatar";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedBaseline } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 
@@ -128,7 +128,7 @@ describe("updateProfileInner — basic path", () => {
       select: { metadata: true },
     });
     expect(audits).toHaveLength(1);
-    expect(JSON.parse(audits[0].metadata ?? "{}").emailChanged).toBe(false);
+    expect(auditMeta(audits[0].metadata).emailChanged).toBe(false);
   });
 });
 
@@ -353,7 +353,7 @@ describe("uploadAvatarInner", () => {
       where: { actorId: realtor.user.id, verb: "user.avatar_uploaded" },
       select: { metadata: true },
     });
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta.mime).toBe("image/png");
     expect(meta.sizeBytes).toBe(10_000);
   });

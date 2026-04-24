@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { Prisma } from "@prisma/client";
 import { updateNotificationPrefsInner } from "@/app/actions/preferences";
 import { eventsForRole } from "@/lib/email-events";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedBaseline } from "../_helpers/fixtures";
 
 // Covers:
@@ -47,7 +48,7 @@ describe("updateNotificationPrefsInner — role-gated merge", () => {
       where: { id: freelancer.user.id },
       select: { emailPrefs: true },
     });
-    const stored = JSON.parse(user.emailPrefs ?? "{}");
+    const stored = auditMeta(user.emailPrefs);
     // Realtor-only key preserved as-is.
     expect(stored[realtorOnlyKey]).toBe(false);
     // Freelancer-visible key flipped to true (was false, is now checked).
@@ -64,7 +65,7 @@ describe("updateNotificationPrefsInner — role-gated merge", () => {
       where: { id: freelancer.user.id },
       select: { emailPrefs: true },
     });
-    const stored = JSON.parse(user.emailPrefs ?? "{}");
+    const stored = auditMeta(user.emailPrefs);
     for (const key of visible) {
       expect(stored[key]).toBe(false);
     }
@@ -80,7 +81,7 @@ describe("updateNotificationPrefsInner — role-gated merge", () => {
       where: { id: freelancer.user.id },
       select: { emailPrefs: true },
     });
-    const stored = JSON.parse(user.emailPrefs ?? "{}");
+    const stored = auditMeta(user.emailPrefs);
     for (const key of visible) {
       expect(stored[key]).toBe(true);
     }
@@ -106,7 +107,7 @@ describe("updateNotificationPrefsInner — edge cases", () => {
       where: { id: realtor.user.id },
       select: { emailPrefs: true },
     });
-    const stored = JSON.parse(user.emailPrefs ?? "{}");
+    const stored = auditMeta(user.emailPrefs);
     expect(stored[visible[0]]).toBe(true);
   });
 
@@ -114,7 +115,8 @@ describe("updateNotificationPrefsInner — edge cases", () => {
     const { realtor } = await seedBaseline();
     await prisma.user.update({
       where: { id: realtor.user.id },
-      data: { emailPrefs: null },
+      // `emailPrefs` is `Json?` — `Prisma.JsonNull` sentinel for explicit null.
+      data: { emailPrefs: Prisma.JsonNull },
     });
     const visible = eventsForRole("realtor");
     const res = await updateNotificationPrefsInner(
@@ -128,7 +130,7 @@ describe("updateNotificationPrefsInner — edge cases", () => {
       select: { emailPrefs: true },
     });
     expect(user.emailPrefs).not.toBeNull();
-    const stored = JSON.parse(user.emailPrefs!);
+    const stored = auditMeta(user.emailPrefs);
     expect(stored[visible[0]]).toBe(true);
   });
 
@@ -148,7 +150,7 @@ describe("updateNotificationPrefsInner — edge cases", () => {
       where: { id: freelancer.user.id },
       select: { emailPrefs: true },
     });
-    const stored = JSON.parse(user.emailPrefs ?? "{}");
+    const stored = auditMeta(user.emailPrefs);
     // Legacy keys survive regardless of type.
     expect(stored["some.legacy_key"]).toBe("maybe");
     expect(stored["another.stray"]).toBe(42);
@@ -170,7 +172,7 @@ describe("updateNotificationPrefsInner — edge cases", () => {
       where: { id: freelancer.user.id },
       select: { emailPrefs: true },
     });
-    const stored = JSON.parse(user.emailPrefs ?? "{}");
+    const stored = auditMeta(user.emailPrefs);
     expect(stored).not.toHaveProperty(realtorOnly);
   });
 });

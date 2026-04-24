@@ -3,7 +3,7 @@ import {
   markCommissionQuarterPaidInner,
   undoCommissionQuarterPaidInner,
 } from "@/app/actions/commissions";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedAssignmentWithCommission, seedBaseline } from "../_helpers/fixtures";
 
 // Platform parity — CommissionPayout semantics:
@@ -334,7 +334,7 @@ describe("markCommissionQuarterPaidInner — audit", () => {
       },
       select: { metadata: true },
     });
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta).toEqual({
       year: 2026,
       quarter: 1,

@@ -3,7 +3,7 @@ import {
   createRevenueAdjustmentInner,
   deleteRevenueAdjustmentInner,
 } from "@/app/actions/revenueAdjustments";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedBaseline } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 
@@ -260,7 +260,7 @@ describe("createRevenueAdjustmentInner — audit", () => {
       },
       select: { metadata: true },
     });
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta).toMatchObject({
       teamId: teams.t1.id,
       teamName: "Test Realtor Team",

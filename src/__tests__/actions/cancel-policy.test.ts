@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cancelAssignmentInner } from "@/app/actions/assignments";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { makeSession } from "../_helpers/session";
 import { seedAssignment, seedBaseline, seedTeam } from "../_helpers/fixtures";
 
@@ -206,7 +206,7 @@ describe("cancelAssignmentInner — side effects", () => {
       select: { verb: true, metadata: true },
     });
     expect(audit).not.toBeNull();
-    const meta = JSON.parse(audit?.metadata ?? "{}");
+    const meta = auditMeta(audit?.metadata);
     expect(meta.fromStatus).toBe("in_progress");
     expect(meta.reason).toBe("cleanup");
   });

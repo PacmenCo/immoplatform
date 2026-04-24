@@ -2,8 +2,8 @@ import "server-only";
 import { cookies } from "next/headers";
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
+import type { Prisma, Session, User } from "@prisma/client";
 import { prisma } from "./db";
-import type { User, Session } from "@prisma/client";
 
 export { generateToken, hashToken } from "./auth-crypto";
 
@@ -217,7 +217,12 @@ export async function audit(opts: {
         verb: opts.verb,
         objectType: opts.objectType,
         objectId: opts.objectId,
-        metadata: opts.metadata ? JSON.stringify(opts.metadata) : null,
+        // Postgres JSONB column — pass the object directly. Prisma serializes.
+        // `undefined` (omit column) is used instead of null so Prisma doesn't
+        // require the explicit `Prisma.JsonNull` sentinel. Cast through
+        // `InputJsonValue` — `Record<string, unknown>` isn't structurally
+        // assignable but `unknown` inputs are the documented shape.
+        metadata: (opts.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
       },
     });
   } catch (err) {

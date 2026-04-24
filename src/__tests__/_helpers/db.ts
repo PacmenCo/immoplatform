@@ -1,19 +1,17 @@
 import { execFileSync } from "node:child_process";
-import { rmSync } from "node:fs";
-import { dirname } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeEach } from "vitest";
 
 /**
- * Test Prisma client for the parity suite.
+ * Test Prisma client for the parity suite. Targets the `immo_test`
+ * Postgres database from `env.ts`.
  *
- * Uses a real SQLite file in the OS tmp dir (see `env.ts`) — needed so
- * `prisma db push`, which runs in a subprocess, shares the same database
- * as the in-process test client. `file::memory:` is per-process and
- * cannot be shared with a CLI spawn.
- *
- * `resetDb()` applies the Prisma schema on first call via `db push`,
- * then `DELETE FROM *`-truncates on subsequent calls for speed.
+ * Lifecycle:
+ *   - `resetDb()` first call: applies pending migrations via
+ *     `prisma migrate deploy` so a fresh DB (dev box or CI container)
+ *     auto-bootstraps. Subsequent calls: `TRUNCATE ... RESTART IDENTITY
+ *     CASCADE` — millisecond-fast, handles FK fan-out automatically.
+ *   - `setupTestDb()` wires the hooks into every test file.
  */
 
 export const prisma = new PrismaClient({
@@ -22,59 +20,59 @@ export const prisma = new PrismaClient({
 });
 
 let schemaApplied = false;
+let cachedTables: string[] | null = null;
 
-/**
- * Drop the in-memory DB and re-apply the Prisma schema. Fast (~100ms)
- * because SQLite's in-memory engine has no disk IO. Safe to call from
- * multiple suites — internally guards against reapplying within a fork
- * unless `force` is passed.
- */
+async function fetchTableNames(): Promise<string[]> {
+  // pg_catalog query — skip Prisma's own `_prisma_migrations` table.
+  // Returns ordinary user tables in the `public` schema.
+  const rows = await prisma.$queryRawUnsafe<Array<{ tablename: string }>>(
+    `SELECT tablename FROM pg_tables
+     WHERE schemaname = 'public' AND tablename NOT LIKE '_prisma_%'`,
+  );
+  return rows.map((r) => r.tablename);
+}
+
 export async function resetDb(opts?: { force?: boolean }): Promise<void> {
-  // Second-and-beyond call inside the same fork: truncate tables via
-  // DELETE FROM — much faster than re-running `db push`.
+  // Second-and-beyond calls within this fork: cheap TRUNCATE.
+  // Postgres's `TRUNCATE ... CASCADE` handles FK dependencies in one shot
+  // (unlike SQLite's need for `PRAGMA foreign_keys = OFF`).
   if (schemaApplied && !opts?.force) {
-    const tables: Array<{ name: string }> = await prisma.$queryRawUnsafe(
-      `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma_%'`,
+    if (!cachedTables) cachedTables = await fetchTableNames();
+    if (cachedTables.length === 0) return;
+    const quoted = cachedTables.map((t) => `"${t}"`).join(", ");
+    await prisma.$executeRawUnsafe(
+      `TRUNCATE TABLE ${quoted} RESTART IDENTITY CASCADE`,
     );
-    // SQLite enforces FKs eagerly; because sqlite_master's table order is
-    // not dependency-sorted, a plain DELETE-from-each loop hits FK errors
-    // on tables whose children haven't been emptied yet (e.g. `services`
-    // before `assignment_services`). Dropping the check for the scope of
-    // the reset is the standard SQLite truncation idiom — safe inside
-    // tests because we're wiping everything to a known-empty state.
-    await prisma.$executeRawUnsafe(`PRAGMA foreign_keys = OFF`);
-    try {
-      for (const { name } of tables) {
-        await prisma.$executeRawUnsafe(`DELETE FROM "${name}"`);
-      }
-    } finally {
-      await prisma.$executeRawUnsafe(`PRAGMA foreign_keys = ON`);
-    }
     return;
   }
 
-  // First call: push the schema via the Prisma CLI. `execFileSync`
-  // (not `exec`) passes argv directly — no shell, no injection surface.
-  //
-  // `--force-reset` would be ideal but Prisma 6 treats it as a destructive
-  // AI-action that requires explicit per-message user consent. Our
-  // `file::memory:` DB is fresh-empty on first call (nothing to reset),
-  // and subsequent suite resets go through the DELETE-FROM truncate path
-  // above, so plain `db push --accept-data-loss` is enough.
+  // First call this fork: apply pending migrations. The CI workflow also
+  // runs `prisma migrate deploy` before test — redundant but idempotent.
+  // On a dev box with an already-migrated `immo_test` DB, this is a no-op
+  // that takes ~200ms (Prisma checks + prints "No pending migrations").
   await prisma.$disconnect();
   execFileSync(
     "npx",
-    ["prisma", "db", "push", "--accept-data-loss", "--skip-generate"],
+    ["prisma", "migrate", "deploy"],
     { env: process.env, stdio: "pipe" },
   );
   await prisma.$connect();
+  cachedTables = await fetchTableNames();
+  // Make sure the DB is empty before the first test (leftovers from a
+  // prior run shouldn't leak into assertions).
+  if (cachedTables.length > 0) {
+    const quoted = cachedTables.map((t) => `"${t}"`).join(", ");
+    await prisma.$executeRawUnsafe(
+      `TRUNCATE TABLE ${quoted} RESTART IDENTITY CASCADE`,
+    );
+  }
   schemaApplied = true;
 }
 
 /**
  * Wire the standard DB lifecycle into a test file:
  *   - `resetDb` before every test (fresh baseline for isolation)
- *   - `disconnectDb` once after the last test (tmp cleanup)
+ *   - `disconnectDb` once after the last test
  *
  * Placing the hooks at file scope (not inside a `describe`) avoids a
  * sibling-describe ordering bug where `disconnectDb` fires between
@@ -83,7 +81,6 @@ export async function resetDb(opts?: { force?: boolean }): Promise<void> {
  *
  *   import { setupTestDb } from "../_helpers/db";
  *   setupTestDb();
- *
  */
 export function setupTestDb(): void {
   beforeEach(async () => {
@@ -95,20 +92,25 @@ export function setupTestDb(): void {
 }
 
 /**
- * Close the test client cleanly + remove the tmp SQLite file.
- * Call from an `afterAll` in long-lived suites; Vitest will also tear
- * down the fork when the run ends.
+ * Close the test client cleanly. No tmp dir to remove — the test DB is a
+ * long-lived Postgres database reused across runs.
  */
 export async function disconnectDb(): Promise<void> {
   await prisma.$disconnect();
-  const url = process.env.DATABASE_URL;
-  const match = url?.match(/^file:(.+)$/);
-  if (match) {
-    const dir = dirname(match[1]);
-    try {
-      rmSync(dir, { recursive: true, force: true });
-    } catch {
-      // swallow — tmp cleanup is best-effort
-    }
+}
+
+/**
+ * Extract a strongly-typed-enough view of an `AuditLog.metadata` JsonValue.
+ * The column holds JSONB and comes back as `Prisma.JsonValue`; our writers
+ * always pass object shapes, so the runtime shape is an object. Collapses
+ * null to `{}` so `.someKey` access on a non-existent metadata behaves
+ * like a missing key rather than a TypeError.
+ */
+export function auditMeta(
+  meta: unknown,
+): Record<string, unknown> {
+  if (meta === null || typeof meta !== "object" || Array.isArray(meta)) {
+    return {};
   }
+  return meta as Record<string, unknown>;
 }

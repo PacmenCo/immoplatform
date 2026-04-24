@@ -7,7 +7,7 @@ import {
   switchActiveTeam,
 } from "@/app/actions/auth";
 import { hashPassword, hashToken, generateToken } from "@/lib/auth";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import {
   __resetRequestContext,
   __setHeader,
@@ -109,7 +109,7 @@ describe("login", () => {
       select: { metadata: true },
     });
     expect(audits).toHaveLength(1);
-    expect(JSON.parse(audits[0].metadata ?? "{}").email).toBe("alice@test.local");
+    expect(auditMeta(audits[0].metadata).email).toBe("alice@test.local");
   });
 
   it("unknown email → same error shape (no user-enumeration leak)", async () => {
@@ -194,7 +194,7 @@ describe("forgotPassword", () => {
       select: { metadata: true, actorId: true },
     });
     expect(audit.actorId).toBeNull();
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta.found).toBe(false);
     expect(meta.email).toBe("ghost@test.local");
   });
@@ -284,7 +284,7 @@ describe("resetPassword", () => {
       where: { actorId: user.id, verb: "user.password_changed" },
       select: { metadata: true },
     });
-    expect(JSON.parse(audit.metadata ?? "{}").via).toBe("reset");
+    expect(auditMeta(audit.metadata).via).toBe("reset");
   });
 
   it("password and confirm mismatch → rejects with friendly error", async () => {

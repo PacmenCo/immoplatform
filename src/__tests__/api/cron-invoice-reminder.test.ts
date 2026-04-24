@@ -8,7 +8,7 @@ import {
   vi,
 } from "vitest";
 import { GET } from "@/app/api/cron/invoice-reminder/route";
-import { prisma, resetDb, disconnectDb } from "../_helpers/db";
+import { prisma, resetDb, disconnectDb, auditMeta } from "../_helpers/db";
 
 // Integration tier: exercises the Bearer gate, env configuration failure,
 // date gating, force-override, idempotency guard (already-sent-today),
@@ -94,7 +94,7 @@ describe("GET /api/cron/invoice-reminder", () => {
       where: { verb: "invoice_reminder.skipped" },
     });
     expect(skipped).toHaveLength(1);
-    const meta = JSON.parse(skipped[0].metadata ?? "{}");
+    const meta = auditMeta(skipped[0].metadata);
     expect(meta.reason).toBe("not-due");
   });
 
@@ -115,7 +115,7 @@ describe("GET /api/cron/invoice-reminder", () => {
       where: { verb: "invoice_reminder.sent" },
     });
     expect(sent).toHaveLength(1);
-    const meta = JSON.parse(sent[0].metadata ?? "{}");
+    const meta = auditMeta(sent[0].metadata);
     expect(meta.recipient).toBe("admin@immo.test");
     expect(meta.forced).toBe(true);
     expect(typeof meta.monthLabel).toBe("string");
@@ -162,7 +162,7 @@ describe("GET /api/cron/invoice-reminder", () => {
       where: { verb: "invoice_reminder.skipped" },
     });
     const already = skipped.filter((r) => {
-      const m = JSON.parse(r.metadata ?? "{}");
+      const m = auditMeta(r.metadata);
       return m.reason === "already-sent-today";
     });
     expect(already).toHaveLength(1);
@@ -181,7 +181,7 @@ describe("GET /api/cron/invoice-reminder", () => {
       where: { verb: "invoice_reminder.sent" },
     });
     expect(sent).toHaveLength(1);
-    const meta = JSON.parse(sent[0].metadata ?? "{}");
+    const meta = auditMeta(sent[0].metadata);
     // Natural fire → forced: false; recipient + monthLabel present.
     expect(meta.forced).toBe(false);
     expect(meta.recipient).toBe("admin@immo.test");

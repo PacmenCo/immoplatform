@@ -7,7 +7,7 @@ import {
   TEAM_LOGO_MAX_BYTES,
   TEAM_SIGNATURE_MAX_BYTES,
 } from "@/lib/teamBranding";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedBaseline } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 
@@ -47,7 +47,7 @@ describe("uploadTeamBrandingInner — logo path", () => {
       where: { actorId: admin.user.id, verb: "team.updated", objectId: teams.t1.id },
       select: { metadata: true },
     });
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta.kind).toBe("logo");
     expect(meta.action).toBe("uploaded");
   });
@@ -254,7 +254,7 @@ describe("removeTeamBrandingInner", () => {
       select: { metadata: true },
     });
     const removalAudit = audits.find(
-      (a) => JSON.parse(a.metadata ?? "{}").action === "removed",
+      (a) => auditMeta(a.metadata).action === "removed",
     );
     expect(removalAudit).toBeTruthy();
   });

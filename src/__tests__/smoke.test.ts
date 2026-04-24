@@ -11,7 +11,7 @@ describe("smoke", () => {
     expect(process.env.EMAIL_PROVIDER).toBe("dev");
     expect(process.env.SKIP_CALENDAR_SYNC).toBe("1");
     expect(process.env.CRON_SECRET).toBe("test-cron-secret");
-    expect(process.env.DATABASE_URL).toMatch(/immo-test-/);
+    expect(process.env.DATABASE_URL).toMatch(/immo_test/);
   });
 
   it("resolves @/ path aliases", async () => {

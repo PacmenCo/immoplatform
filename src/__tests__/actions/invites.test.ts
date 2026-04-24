@@ -7,7 +7,7 @@ import {
   revokeInviteInner,
 } from "@/app/actions/invites";
 import { generateToken, hashToken } from "@/lib/auth";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedBaseline, seedTeam } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 import { __resetRequestContext } from "../_helpers/next-headers-stub";
@@ -281,7 +281,7 @@ describe("createInviteInner — invite creation + shape", () => {
       where: { actorId: admin.user.id, verb: "invite.sent" },
       select: { metadata: true },
     });
-    expect(JSON.parse(audit.metadata ?? "{}")).toEqual({
+    expect(auditMeta(audit.metadata)).toEqual({
       email: "audit@test.local",
       role: "realtor",
       teamId: teams.t2.id,
@@ -424,7 +424,7 @@ describe("acceptInviteInner", () => {
       where: { actorId: user.id, verb: "user.created" },
       select: { metadata: true },
     });
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta.via).toBe("invite");
     expect(meta.inviteId).toBe(inviteId);
   });

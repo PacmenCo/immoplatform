@@ -6,7 +6,7 @@ import {
   signOutEverywhereInner,
 } from "@/app/actions/security";
 import { hashPassword, verifyPassword } from "@/lib/auth";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedBaseline } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 
@@ -263,7 +263,7 @@ describe("deleteOwnAccountInner", () => {
       select: { metadata: true },
     });
     expect(audits).toHaveLength(1);
-    expect(JSON.parse(audits[0].metadata ?? "{}").via).toBe("self_service");
+    expect(auditMeta(audits[0].metadata).via).toBe("self_service");
   });
 
   it("wrong password → rejected, user NOT soft-deleted", async () => {
@@ -383,7 +383,7 @@ describe("revokeSessionInner", () => {
       where: { actorId: session.user.id, verb: "user.sessions_revoked" },
       select: { metadata: true },
     });
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta.via).toBe("revoke_one");
     expect(meta.count).toBe(1);
   });

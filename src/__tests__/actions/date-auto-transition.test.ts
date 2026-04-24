@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { updateAssignmentInner } from "@/app/actions/assignments";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedAssignment, seedBaseline } from "../_helpers/fixtures";
 
 // Platform parity — ports:
@@ -220,7 +220,7 @@ describe("updateAssignmentInner — audit trail", () => {
     });
     expect(audits.map((a) => a.verb)).toContain("assignment.updated");
     const updated = audits.find((a) => a.verb === "assignment.updated");
-    const meta = JSON.parse(updated?.metadata ?? "{}");
+    const meta = auditMeta(updated?.metadata);
     expect(meta.autoStatusTransition).toEqual({
       from: "draft",
       to: "scheduled",
@@ -244,7 +244,7 @@ describe("updateAssignmentInner — audit trail", () => {
         verb: "assignment.updated",
       },
     });
-    const meta = JSON.parse(updated?.metadata ?? "{}");
+    const meta = auditMeta(updated?.metadata);
     expect(meta.autoStatusTransition).toEqual({
       from: "scheduled",
       to: "awaiting",

@@ -5,7 +5,7 @@ import {
   updateUserByAdminInner,
 } from "@/app/actions/users";
 import { verifyPassword } from "@/lib/auth";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedBaseline } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 
@@ -262,7 +262,7 @@ describe("updateUserByAdminInner — validation + persistence", () => {
       where: { actorId: admin.user.id, verb: "user.role_changed", objectId: realtor.user.id },
       select: { metadata: true },
     });
-    expect(JSON.parse(audit.metadata ?? "{}")).toEqual({ from: "realtor", to: "staff" });
+    expect(auditMeta(audit.metadata)).toEqual({ from: "realtor", to: "staff" });
   });
 });
 
@@ -386,7 +386,7 @@ describe("deleteUserByAdminInner", () => {
       where: { actorId: admin.user.id, verb: "user.deleted", objectId: victim.user.id },
       select: { metadata: true },
     });
-    expect(JSON.parse(audit.metadata ?? "{}").via).toBe("admin");
+    expect(auditMeta(audit.metadata).via).toBe("admin");
   });
 
   it("non-admin rejected", async () => {

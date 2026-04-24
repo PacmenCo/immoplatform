@@ -5,7 +5,7 @@ import {
   dismissAnnouncementInner,
   updateAnnouncementInner,
 } from "@/app/actions/announcements";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedBaseline } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 
@@ -144,7 +144,7 @@ describe("createAnnouncementInner — validation + persistence", () => {
       },
       select: { metadata: true },
     });
-    expect(JSON.parse(audit.metadata ?? "{}").title).toBe("New feature: dark mode");
+    expect(auditMeta(audit.metadata).title).toBe("New feature: dark mode");
   });
 });
 
@@ -204,7 +204,7 @@ describe("updateAnnouncementInner", () => {
       },
       select: { metadata: true },
     });
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta).toEqual({ title: "Patch 1", type: "warning" });
   });
 });

@@ -5,7 +5,7 @@ import {
   listAssignmentFilesInner,
   uploadAssignmentFilesInner,
 } from "@/app/actions/files";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedAssignment, seedBaseline } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 import { makeUploadFile, uploadForm } from "../_helpers/upload";
@@ -162,7 +162,7 @@ describe("deleteAssignmentFileInner — state guards", () => {
       select: { metadata: true, objectId: true },
     });
     expect(audit.objectId).toBe(fileId);
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta).toEqual({ assignmentId, originalName: "gonzo.pdf" });
   });
 });

@@ -27,10 +27,16 @@ export async function updateNotificationPrefsInner(
     where: { id: session.user.id },
     select: { emailPrefs: true },
   });
+  // Postgres JSONB column: Prisma returns the already-parsed value as
+  // `Prisma.JsonValue`. Object → use as-is; string (legacy/seeded) → try
+  // parse; anything else (including corrupt JSON) → start fresh with {}.
   let merged: Record<string, boolean> = {};
-  if (user?.emailPrefs) {
+  const raw = user?.emailPrefs;
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    merged = raw as Record<string, boolean>;
+  } else if (typeof raw === "string") {
     try {
-      merged = JSON.parse(user.emailPrefs) as Record<string, boolean>;
+      merged = JSON.parse(raw) as Record<string, boolean>;
     } catch {
       merged = {};
     }
@@ -44,7 +50,7 @@ export async function updateNotificationPrefsInner(
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { emailPrefs: JSON.stringify(merged) },
+    data: { emailPrefs: merged },
   });
 
   revalidatePath("/dashboard/settings/notifications");

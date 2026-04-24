@@ -9,6 +9,28 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
+
+    # Postgres 16 service — matches local dev (docker-compose or brew).
+    # The test harness in src/__tests__/_helpers/db.ts reads DATABASE_URL
+    # below and runs `prisma migrate deploy` before the first test.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: immo
+          POSTGRES_PASSWORD: immo
+          POSTGRES_DB: immo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U immo -d immo_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://immo:immo@localhost:5432/immo_test?schema=public
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,14 +47,8 @@ jobs:
       - name: Prisma generate
         run: npx prisma generate
 
-      - name: Prisma db push (SQLite)
-        # Scoped DATABASE_URL: setting it job-wide would override the
-        # auto-generated tmp path in src/__tests__/_helpers/env.ts (which
-        # uses `??=`), and the smoke test asserts the path matches
-        # /immo-test-/. Prisma only needs the URL for this one CLI call.
-        env:
-          DATABASE_URL: file:/tmp/test.db
-        run: npx prisma db push --accept-data-loss --skip-generate
+      - name: Apply migrations
+        run: npx prisma migrate deploy
 
       - name: Build
         run: npm run build

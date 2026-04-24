@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { GET } from "@/app/api/cron/update-assignment-statuses/route";
-import { prisma, resetDb, disconnectDb } from "../_helpers/db";
+import { prisma, resetDb, disconnectDb, auditMeta } from "../_helpers/db";
 import { seedBaseline, seedAssignment } from "../_helpers/fixtures";
 
 // Integration tier: hits the real Next route handler with real Prisma against
@@ -165,7 +165,7 @@ describe("GET /api/cron/update-assignment-statuses", () => {
       where: { verb: "assignment.started", objectId: a.id },
     });
     expect(audits).toHaveLength(1);
-    const meta = JSON.parse(audits[0].metadata ?? "{}");
+    const meta = auditMeta(audits[0].metadata);
     expect(meta.from).toBe("scheduled");
     expect(meta.to).toBe("in_progress");
     expect(meta.trigger).toBe("cron");

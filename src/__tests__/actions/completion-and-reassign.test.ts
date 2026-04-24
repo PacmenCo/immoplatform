@@ -3,7 +3,7 @@ import {
   markAssignmentCompletedInner,
   reassignFreelancerInner,
 } from "@/app/actions/assignments";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedAssignment, seedBaseline } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 
@@ -386,7 +386,7 @@ describe("reassignFreelancerInner — audit trail", () => {
       },
       select: { metadata: true },
     });
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta.freelancerId).toBe(freelancer.user.id);
     expect(meta.previousFreelancerId).toBe(prior.id);
   });

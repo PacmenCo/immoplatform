@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge, ServicePill } from "@/components/ui/Badge";
@@ -28,7 +29,7 @@ type AuditRow = {
   verb: string;
   objectType: string | null;
   objectId: string | null;
-  metadata: string | null;
+  metadata: Prisma.JsonValue;
 };
 
 export default async function UserDetail({
@@ -563,16 +564,24 @@ function verbLabel(verb: string): string {
 function ActivityItem({ row }: { row: AuditRow }) {
   // Surface the reference / target when the metadata has one — turns
   // "Created an assignment" into "Created assignment ASG-2026-1004".
+  // `metadata` is JSONB (already-parsed Prisma.JsonValue); accept either
+  // an object (Postgres standard) or a JSON-encoded string (legacy rows).
   let suffix = "";
-  if (row.metadata) {
+  const raw = row.metadata;
+  let meta: { reference?: string; title?: string; name?: string } | null = null;
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    meta = raw as { reference?: string; title?: string; name?: string };
+  } else if (typeof raw === "string") {
     try {
-      const meta = JSON.parse(row.metadata) as { reference?: string; title?: string; name?: string };
-      if (meta.reference) suffix = ` ${meta.reference}`;
-      else if (meta.title) suffix = `: ${meta.title}`;
-      else if (meta.name) suffix = `: ${meta.name}`;
+      meta = JSON.parse(raw);
     } catch {
-      // Ignore malformed metadata; rare + non-critical.
+      meta = null;
     }
+  }
+  if (meta) {
+    if (meta.reference) suffix = ` ${meta.reference}`;
+    else if (meta.title) suffix = `: ${meta.title}`;
+    else if (meta.name) suffix = `: ${meta.name}`;
   }
   return (
     <div className="flex gap-3">

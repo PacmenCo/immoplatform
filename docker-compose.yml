@@ -1,0 +1,32 @@
+# Local Postgres for dev + tests. Alternative to `brew install postgresql@16`.
+#
+#   docker compose up -d           # start
+#   docker compose down -v         # stop + wipe the volume
+#
+# Creates two databases via POSTGRES_MULTIPLE_DATABASES:
+#   - immo_dev   → used by `npm run dev`
+#   - immo_test  → used by `npm test`
+#
+# If you already have a native Postgres on :5432, either skip this file and
+# use that directly, or change the host port (left of the colon) below.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: immo
+      POSTGRES_PASSWORD: immo
+      POSTGRES_DB: immo_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - immo-pg-data:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "immo", "-d", "immo_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  immo-pg-data:

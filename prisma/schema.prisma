@@ -1,12 +1,14 @@
 // Auth + invite + team schema for Immo
-// Using SQLite for dev ergonomics — swap to PostgreSQL via DATABASE_URL in production.
+// Postgres (16+) for dev / test / prod. See docker-compose.yml or run
+// `brew install postgresql@16`. DATABASE_URL format:
+//   postgresql://USER[:PASSWORD]@localhost:5432/immo_dev?schema=public
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -22,6 +24,60 @@ enum TeamRole {
   member
 }
 
+enum AssignmentStatus {
+  draft
+  awaiting
+  scheduled
+  in_progress
+  delivered
+  completed
+  cancelled
+  on_hold
+}
+
+enum ClientType {
+  owner
+  firm
+}
+
+enum DiscountType {
+  percentage
+  fixed
+}
+
+enum CommissionType {
+  percentage
+  fixed
+}
+
+enum KeyPickupLocation {
+  office
+  other
+}
+
+enum PhotographerContactPerson {
+  realtor
+  owner
+  tenant
+}
+
+enum FileLane {
+  freelancer
+  realtor
+}
+
+enum CalendarProvider {
+  google
+  outlook
+}
+
+enum AnnouncementType {
+  info
+  success
+  warning
+  danger
+}
+
 model User {
   id              String    @id @default(cuid())
   email           String    @unique
@@ -29,7 +85,7 @@ model User {
   passwordHash    String?
   firstName       String
   lastName        String
-  role            String    // Role enum — SQLite doesn't have real enums; validated in app
+  role            Role
   phone           String?
   region          String?
   avatarUrl       String?
@@ -38,7 +94,7 @@ model User {
   lastSeenAt      DateTime?
   lastLoginAt     DateTime?
   deletedAt       DateTime?
-  emailPrefs      String?   // JSON: { eventKey: boolean } — absent key or absent column = default-enabled
+  emailPrefs      Json?     // { eventKey: boolean } — absent key or absent column = default-enabled
 
   sessions            Session[]
   memberships         TeamMember[]
@@ -68,7 +124,7 @@ model AssignmentCommission {
   // Snapshots captured at compute time so later Team.commissionValue
   // edits don't rewrite historical lines.
   assignmentTotalCents  Int
-  commissionType        String   // "percentage" | "fixed"
+  commissionType        CommissionType
   commissionValue       Int      // bps for percentage, cents for fixed
   commissionAmountCents Int
   computedAt            DateTime @default(now())
@@ -128,11 +184,11 @@ model Team {
   prefersLogoOnPhotos  Boolean @default(false)
 
   // Invoicing defaults
-  defaultClientType String?   // 'owner' | 'firm' — invoice recipient default
+  defaultClientType ClientType?      // invoice recipient default
 
   // Commission config
-  commissionType    String?   // 'percentage' | 'fixed' | null (no commission)
-  commissionValue   Int?      // For percentage: basis points (1500 = 15%); for fixed: cents
+  commissionType    CommissionType?  // null = no commission
+  commissionValue   Int?             // For percentage: basis points (1500 = 15%); for fixed: cents
 
   members             TeamMember[]
   invites             Invite[]
@@ -182,7 +238,7 @@ model TeamServiceOverride {
 model TeamMember {
   teamId    String
   userId    String
-  teamRole  String  // TeamRole enum — owner | member
+  teamRole  TeamRole
   joinedAt  DateTime @default(now())
 
   team      Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -196,9 +252,9 @@ model TeamMember {
 model Invite {
   id            String    @id @default(cuid())
   email         String
-  role          String    // Role enum
+  role          Role
   teamId        String?
-  teamRole      String?   // TeamRole enum, required if teamId set
+  teamRole      TeamRole? // required if teamId set
   tokenHash     String    @unique
   invitedById   String
   note          String?
@@ -277,7 +333,7 @@ model AuditLog {
   verb        String    // created | updated | signed_in | invite.sent | etc.
   objectType  String?
   objectId    String?
-  metadata    String?   // JSON blob (SQLite has no JSONB)
+  metadata    Json?     // structured event payload — JSONB on Postgres
 
   actor       User?     @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
 
@@ -321,7 +377,7 @@ model UserSpecialty {
 model Assignment {
   id               String    @id @default(cuid())
   reference        String    @unique           // 'ASG-2026-1001'
-  status           String    // 'draft' | 'scheduled' | 'in_progress' | 'delivered' | 'completed'
+  status           AssignmentStatus
 
   // Property
   address          String
@@ -344,7 +400,7 @@ model Assignment {
   // `keyPickupAddress`). Calendar event renders "Sleutel ophalen" when
   // `requiresKeyPickup` is true (GoogleCalendarService.php:344-353).
   requiresKeyPickup      Boolean @default(false)
-  keyPickupLocationType  String?                // 'office' | 'other'
+  keyPickupLocationType  KeyPickupLocation?
   keyPickupAddress       String?
   notes            String?
 
@@ -362,7 +418,7 @@ model Assignment {
   ownerVatNumber   String?
   // Invoice recipient: 'owner' (particulier) vs 'firm' (bedrijf). Decides which
   // contact + VAT block prints on the invoice. Null = use team default.
-  clientType       String?
+  clientType       ClientType?
   tenantName       String?
   tenantEmail      String?
   tenantPhone      String?
@@ -370,9 +426,9 @@ model Assignment {
   // "Makelaar" block and referenced by photographerContactPerson.
   contactEmail     String?
   contactPhone     String?
-  // 'realtor' | 'owner' | 'tenant' — used to tag one of the contact
-  // blocks as "(Jouw contactpersoon)" in the calendar event description.
-  photographerContactPerson String?
+  // Tags one of the contact blocks as "(Jouw contactpersoon)" in the
+  // calendar event description.
+  photographerContactPerson PhotographerContactPerson?
   // Large-property flag — drives the Oppervlakte line in the calendar
   // event ("Groot pand (> 300m²)" vs "Standaard (~ XXX m²)"). Area itself
   // stays in `areaM2`.
@@ -385,7 +441,7 @@ model Assignment {
 
   // Discount — admin/staff only. Percentage stored as basis points
   // (1500 = 15%); fixed stored as cents.
-  discountType        String?   // 'percentage' | 'fixed' | null
+  discountType        DiscountType?
   discountValue       Int?
   discountReason      String?
 
@@ -439,7 +495,7 @@ model Assignment {
 model CalendarAccount {
   id                   String   @id @default(cuid())
   userId               String
-  provider             String                          // 'google' | 'outlook'
+  provider             CalendarProvider
   providerAccountEmail String
   accessTokenCipher    String?
   refreshTokenCipher   String?
@@ -512,9 +568,9 @@ model AssignmentComment {
 model AssignmentFile {
   id           String    @id @default(cuid())
   assignmentId String
-  uploaderId   String?                // SetNull on user delete — preserve history
-  lane         String                 // 'freelancer' | 'realtor'
-  storageKey   String                 // opaque, owned by Storage impl
+  uploaderId   String?   // SetNull on user delete — preserve history
+  lane         FileLane
+  storageKey   String    // opaque, owned by Storage impl
   originalName String
   mimeType     String
   sizeBytes    Int
@@ -539,7 +595,7 @@ model Announcement {
   id             String   @id @default(cuid())
   title          String
   body           String
-  type           String   @default("info")   // 'info' | 'success' | 'warning' | 'danger'
+  type           AnnouncementType @default(info)
   isActive       Boolean  @default(true)
   isDismissible  Boolean  @default(true)
   startsAt       DateTime

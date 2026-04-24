@@ -3,23 +3,23 @@
 // ahead of any user `import`. Adjust via `vi.stubEnv(...)` inside a test
 // if you need to exercise a specific env code path.
 
-// Per-test-run SQLite file in the OS tmp dir. We use a real file (not
-// `file::memory:`) so `prisma db push`, which runs in a subprocess, sees
-// the same database as the in-process test client — `file::memory:` is
-// scoped to a single process and can't be shared with a spawned CLI.
-// Path includes a random suffix so parallel `npm test` invocations don't
-// collide. The file is cleaned up by `disconnectDb()` in db.ts.
+// Postgres target for tests. Assumes an `immo_test` database exists on
+// localhost:5432 (see README: `brew install postgresql@16` or
+// `docker compose up -d`). The harness in db.ts runs `prisma migrate
+// deploy` on first use, then TRUNCATE between tests — no per-run
+// schema push, so the connection string is stable across runs.
+// CI overrides this via its own env in .github/workflows/test.yml.
+process.env.DATABASE_URL ??=
+  "postgresql://rl@localhost:5432/immo_test?schema=public";
+
+// Local storage provider: tests exercise the real upload path (bytes land on
+// disk, storage keys get signed). A separate tmp dir per fork gives each
+// run a clean slate. The signing secret only needs to clear the 32-char
+// OWASP HMAC minimum enforced in src/lib/storage/index.ts — the actual value
+// is irrelevant since we never verify signatures in-process.
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-const testDbDir = mkdtempSync(join(tmpdir(), "immo-test-"));
-process.env.DATABASE_URL ??= `file:${join(testDbDir, "test.db")}`;
-
-// Local storage provider: tests exercise the real upload path (bytes land on
-// disk, storage keys get signed). A separate tmp dir per fork mirrors the DB
-// isolation strategy. The signing secret only needs to clear the 32-char
-// OWASP HMAC minimum enforced in src/lib/storage/index.ts — the actual value
-// is irrelevant since we never verify signatures in-process.
 const testStorageDir = mkdtempSync(join(tmpdir(), "immo-test-storage-"));
 process.env.STORAGE_PROVIDER ??= "local";
 process.env.STORAGE_LOCAL_ROOT ??= testStorageDir;

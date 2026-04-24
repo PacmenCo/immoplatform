@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import {
+  Prisma,
+  ClientType,
+  DiscountType,
+  KeyPickupLocation,
+  PhotographerContactPerson,
+} from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { SERVICE_KEYS, STATUS_ORDER, TERMINAL_STATUSES } from "@/lib/mockData";
 import {
@@ -96,7 +102,7 @@ function ctxFromAssignment(a: {
 }
 
 type DiscountPatch = {
-  discountType: string | null;
+  discountType: DiscountType | null;
   discountValue: number | null;
   discountReason: string | null;
 };
@@ -132,7 +138,7 @@ function parseDiscountFromForm(formData: FormData): DiscountPatch | null {
 
   const reason = ((formData.get("discountReason") as string) || "").trim();
   return {
-    discountType: rawType,
+    discountType: rawType as DiscountType,
     discountValue: clamped,
     discountReason: reason || null,
   };
@@ -338,7 +344,8 @@ export async function createAssignmentInner(
   // don't default — respect what the user explicitly sets.
   const resolvedContactEmail = d.contactEmail || session.user.email;
   const resolvedContactPhone = d.contactPhone || session.user.phone || null;
-  let resolvedClientType: string | null = d.clientType || null;
+  let resolvedClientType: ClientType | null =
+    d.clientType ? (d.clientType as ClientType) : null;
   if (!resolvedClientType && teamId) {
     const team = await prisma.team.findUnique({
       where: { id: teamId },
@@ -377,8 +384,8 @@ export async function createAssignmentInner(
           // Key-pickup triple — address only kept for locationType='other'
           // (Platform edit.blade.php:813 renders the textarea only then).
           requiresKeyPickup: !!d.requiresKeyPickup,
-          keyPickupLocationType: d.requiresKeyPickup
-            ? d.keyPickupLocationType || null
+          keyPickupLocationType: d.requiresKeyPickup && d.keyPickupLocationType
+            ? (d.keyPickupLocationType as KeyPickupLocation)
             : null,
           keyPickupAddress:
             d.requiresKeyPickup && d.keyPickupLocationType === "other"
@@ -398,7 +405,9 @@ export async function createAssignmentInner(
           tenantPhone: d.tenantPhone || null,
           contactEmail: resolvedContactEmail,
           contactPhone: resolvedContactPhone,
-          photographerContactPerson: d.photographerContactPerson || null,
+          photographerContactPerson: d.photographerContactPerson
+            ? (d.photographerContactPerson as PhotographerContactPerson)
+            : null,
           teamId,
           freelancerId,
           createdById: session.user.id,
@@ -910,8 +919,8 @@ export async function updateAssignmentInner(
         isLargeProperty: !!d.isLargeProperty,
         preferredDate: d.preferredDate ? new Date(d.preferredDate) : null,
         requiresKeyPickup: !!d.requiresKeyPickup,
-        keyPickupLocationType: d.requiresKeyPickup
-          ? d.keyPickupLocationType || null
+        keyPickupLocationType: d.requiresKeyPickup && d.keyPickupLocationType
+          ? (d.keyPickupLocationType as KeyPickupLocation)
           : null,
         keyPickupAddress:
           d.requiresKeyPickup && d.keyPickupLocationType === "other"
@@ -925,13 +934,15 @@ export async function updateAssignmentInner(
         ownerPostal: d.ownerPostal || null,
         ownerCity: d.ownerCity || null,
         ownerVatNumber: d.ownerVatNumber || null,
-        clientType: d.clientType || null,
+        clientType: d.clientType ? (d.clientType as ClientType) : null,
         tenantName: d.tenantName || null,
         tenantEmail: d.tenantEmail || null,
         tenantPhone: d.tenantPhone || null,
         contactEmail: d.contactEmail || null,
         contactPhone: d.contactPhone || null,
-        photographerContactPerson: d.photographerContactPerson || null,
+        photographerContactPerson: d.photographerContactPerson
+          ? (d.photographerContactPerson as PhotographerContactPerson)
+          : null,
         ...(canSetCalendarOverrides
           ? {
               calendarDate: d.calendarDate ? new Date(d.calendarDate) : null,

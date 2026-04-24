@@ -7,7 +7,16 @@
  * Or:  npm run seed
  */
 
-import { PrismaClient } from "@prisma/client";
+import {
+  PrismaClient,
+  AnnouncementType,
+  AssignmentStatus,
+  ClientType,
+  CommissionType,
+  KeyPickupLocation,
+  Role,
+  TeamRole,
+} from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -34,8 +43,8 @@ async function main() {
       billingCity: "Antwerpen",
       billingCountry: "Belgium",
       prefersLogoOnPhotos: true,
-      defaultClientType: "owner",
-      commissionType: "percentage",
+      defaultClientType: ClientType.owner,
+      commissionType: CommissionType.percentage,
       commissionValue: 1500, // 15%
     },
     {
@@ -52,8 +61,8 @@ async function main() {
       billingPostal: "1050",
       billingCity: "Bruxelles",
       billingCountry: "Belgium",
-      defaultClientType: "firm",
-      commissionType: "percentage",
+      defaultClientType: ClientType.firm,
+      commissionType: CommissionType.percentage,
       commissionValue: 1500,
     },
     {
@@ -65,8 +74,8 @@ async function main() {
       billingPostal: "9000",
       billingCity: "Gent",
       billingCountry: "Belgium",
-      defaultClientType: "owner",
-      commissionType: "percentage",
+      defaultClientType: ClientType.owner,
+      commissionType: CommissionType.percentage,
       commissionValue: 1500,
     },
     {
@@ -78,8 +87,8 @@ async function main() {
       billingPostal: "2800",
       billingCity: "Mechelen",
       billingCountry: "Belgium",
-      defaultClientType: "owner",
-      commissionType: "fixed",
+      defaultClientType: ClientType.owner,
+      commissionType: CommissionType.fixed,
       commissionValue: 2500, // €25.00 flat
     },
     {
@@ -91,8 +100,8 @@ async function main() {
       billingPostal: "4000",
       billingCity: "Liège",
       billingCountry: "Belgium",
-      defaultClientType: "firm",
-      commissionType: "percentage",
+      defaultClientType: ClientType.firm,
+      commissionType: CommissionType.percentage,
       commissionValue: 1200,
     },
     {
@@ -103,8 +112,8 @@ async function main() {
       billingPostal: "8000",
       billingCity: "Brugge",
       billingCountry: "Belgium",
-      defaultClientType: "owner",
-      commissionType: "percentage",
+      defaultClientType: ClientType.owner,
+      commissionType: CommissionType.percentage,
       commissionValue: 1500,
     },
   ];
@@ -122,42 +131,42 @@ async function main() {
   const users = [
     {
       id: "u_1", email: "jordan@asbestexperts.be", firstName: "Jordan", lastName: "Remy",
-      role: "admin", phone: "+32 474 00 11 22", region: "Belgium (all regions)",
+      role: Role.admin, phone: "+32 474 00 11 22", region: "Belgium (all regions)",
       bio: "Platform admin.",
     },
     {
       id: "u_2", email: "els@vastgoedantwerp.be", firstName: "Els", lastName: "Vermeulen",
-      role: "realtor", phone: "+32 476 12 34 56", region: "Antwerp",
+      role: Role.realtor, phone: "+32 476 12 34 56", region: "Antwerp",
       bio: "Managing broker at Vastgoed Antwerp.",
     },
     {
       id: "u_3", email: "tim@immo.be", firstName: "Tim", lastName: "De Vos",
-      role: "freelancer", phone: "+32 478 98 12 33", region: "Antwerp · Mechelen",
+      role: Role.freelancer, phone: "+32 478 98 12 33", region: "Antwerp · Mechelen",
       bio: "Certified asbestos inspector (OVAM). 12 years experience.",
     },
     {
       id: "u_4", email: "sofie@immo.be", firstName: "Sofie", lastName: "Janssens",
-      role: "freelancer", phone: "+32 479 44 55 66", region: "Brussels",
+      role: Role.freelancer, phone: "+32 479 44 55 66", region: "Brussels",
       bio: "Multi-service inspector.",
     },
     {
       id: "u_5", email: "dieter@immo.be", firstName: "Dieter", lastName: "Claes",
-      role: "freelancer", phone: "+32 475 11 22 33", region: "Gent · East Flanders",
+      role: Role.freelancer, phone: "+32 475 11 22 33", region: "Gent · East Flanders",
       bio: "EPC specialist.",
     },
     {
       id: "u_6", email: "pierre@immobruxelles.be", firstName: "Pierre", lastName: "Dubois",
-      role: "realtor", phone: "+32 472 33 44 55", region: "Brussels",
+      role: Role.realtor, phone: "+32 472 33 44 55", region: "Brussels",
       bio: "Lead broker at Immo Bruxelles.",
     },
     {
       id: "u_7", email: "nele@immo.be", firstName: "Nele", lastName: "Willems",
-      role: "freelancer", phone: "+32 477 22 33 44", region: "Mechelen · Leuven",
+      role: Role.freelancer, phone: "+32 477 22 33 44", region: "Mechelen · Leuven",
       bio: "Fuel-tank and electrical specialist.",
     },
     {
       id: "u_8", email: "marie@immo.be", firstName: "Marie", lastName: "Lefevre",
-      role: "staff", phone: "+32 471 99 88 77", region: "Belgium",
+      role: Role.staff, phone: "+32 471 99 88 77", region: "Belgium",
       bio: "Customer success.",
     },
   ];
@@ -178,12 +187,12 @@ async function main() {
   }
 
   // Team memberships
-  const memberships: Array<{ teamId: string; userId: string; teamRole: string }> = [
-    { teamId: "t_01", userId: "u_2", teamRole: "owner" },      // Els — Vastgoed Antwerp owner
-    { teamId: "t_02", userId: "u_6", teamRole: "owner" },      // Pierre — Immo Bruxelles owner
-    { teamId: "t_01", userId: "u_1", teamRole: "member" },     // Jordan (admin) in Antwerp for testing switcher
-    { teamId: "t_02", userId: "u_1", teamRole: "owner" },      // Jordan also in Bruxelles
-    { teamId: "t_03", userId: "u_1", teamRole: "member" },     // Jordan in Gent too
+  const memberships: Array<{ teamId: string; userId: string; teamRole: TeamRole }> = [
+    { teamId: "t_01", userId: "u_2", teamRole: TeamRole.owner },      // Els — Vastgoed Antwerp owner
+    { teamId: "t_02", userId: "u_6", teamRole: TeamRole.owner },      // Pierre — Immo Bruxelles owner
+    { teamId: "t_01", userId: "u_1", teamRole: TeamRole.member },     // Jordan (admin) in Antwerp for testing switcher
+    { teamId: "t_02", userId: "u_1", teamRole: TeamRole.owner },      // Jordan also in Bruxelles
+    { teamId: "t_03", userId: "u_1", teamRole: TeamRole.member },     // Jordan in Gent too
   ];
   for (const m of memberships) {
     await prisma.teamMember.upsert({
@@ -266,7 +275,7 @@ async function main() {
   // Assignments
   const assignments = [
     {
-      id: "a_1001", reference: "ASG-2026-1001", status: "scheduled",
+      id: "a_1001", reference: "ASG-2026-1001", status: AssignmentStatus.scheduled,
       address: "Meir 34", city: "Antwerpen", postal: "2000",
       propertyType: "apartment", constructionYear: 1985, areaM2: 120,
       preferredDate: new Date("2026-04-25"),
@@ -277,7 +286,7 @@ async function main() {
       services: ["epc", "asbestos"],
     },
     {
-      id: "a_1002", reference: "ASG-2026-1002", status: "in_progress",
+      id: "a_1002", reference: "ASG-2026-1002", status: AssignmentStatus.in_progress,
       address: "Place Sainte-Gudule 12", city: "Brussels", postal: "1000",
       propertyType: "house", constructionYear: 1962, areaM2: 180,
       preferredDate: new Date("2026-04-20"),
@@ -287,18 +296,18 @@ async function main() {
       services: ["asbestos", "electrical", "fuel"],
     },
     {
-      id: "a_1003", reference: "ASG-2026-1003", status: "delivered",
+      id: "a_1003", reference: "ASG-2026-1003", status: AssignmentStatus.delivered,
       address: "Sint-Pietersnieuwstraat 45", city: "Gent", postal: "9000",
       propertyType: "apartment", constructionYear: 1998, areaM2: 85,
       preferredDate: new Date("2026-04-10"),
-      requiresKeyPickup: true, keyPickupLocationType: "office",
+      requiresKeyPickup: true, keyPickupLocationType: KeyPickupLocation.office,
       ownerName: "Hannah Peeters", ownerEmail: "hannah@example.com", ownerPhone: "+32 478 55 44 33",
       teamId: "t_03", freelancerId: "u_5", createdById: "u_1",
       services: ["epc"],
       deliveredAt: new Date("2026-04-12"),
     },
     {
-      id: "a_1004", reference: "ASG-2026-1004", status: "completed",
+      id: "a_1004", reference: "ASG-2026-1004", status: AssignmentStatus.completed,
       address: "Grote Markt 7", city: "Mechelen", postal: "2800",
       propertyType: "house", constructionYear: 1920, areaM2: 220,
       preferredDate: new Date("2026-03-28"),
@@ -311,22 +320,22 @@ async function main() {
       completedAt: new Date("2026-03-30"),
     },
     {
-      id: "a_1005", reference: "ASG-2026-1005", status: "draft",
+      id: "a_1005", reference: "ASG-2026-1005", status: AssignmentStatus.draft,
       address: "Rue Neuve 88", city: "Liège", postal: "4000",
       propertyType: "apartment", constructionYear: 1975, areaM2: 95,
       preferredDate: new Date("2026-05-02"),
-      requiresKeyPickup: true, keyPickupLocationType: "other",
+      requiresKeyPickup: true, keyPickupLocationType: KeyPickupLocation.other,
       keyPickupAddress: "Lockbox at the front door — code in the confirmation email.",
       ownerName: "Julien Lambert", ownerEmail: "julien@example.com", ownerPhone: "+32 497 44 55 66",
       teamId: "t_05", createdById: "u_1",
       services: ["asbestos"],
     },
     {
-      id: "a_1006", reference: "ASG-2026-1006", status: "scheduled",
+      id: "a_1006", reference: "ASG-2026-1006", status: AssignmentStatus.scheduled,
       address: "Vrijdagmarkt 12", city: "Brugge", postal: "8000",
       propertyType: "house", constructionYear: 1965, areaM2: 155,
       preferredDate: new Date("2026-04-28"),
-      requiresKeyPickup: true, keyPickupLocationType: "office",
+      requiresKeyPickup: true, keyPickupLocationType: KeyPickupLocation.office,
       ownerName: "Annelies Martens", ownerEmail: "annelies@example.com", ownerPhone: "+32 478 77 88 99",
       teamId: "t_06", freelancerId: "u_3", createdById: "u_1",
       services: ["epc", "fuel"],
@@ -382,14 +391,14 @@ async function main() {
   const pending = [
     {
       email: "lucas.mertens@vastgoedantwerp.be",
-      role: "realtor",
+      role: Role.realtor,
       teamId: "t_01",
-      teamRole: "member",
+      teamRole: TeamRole.member,
       note: "Hi Lucas — welcome to our Immo workspace.",
     },
     {
       email: "sarah.dewitte@gmail.com",
-      role: "freelancer",
+      role: Role.freelancer,
       teamId: null,
       teamRole: null,
       note: null,
@@ -424,7 +433,7 @@ async function main() {
       id: "an_01",
       title: "Easter maintenance window — April 20",
       body: "The platform will be offline between 02:00 and 04:00 for routine database maintenance.",
-      type: "info",
+      type: AnnouncementType.info,
       isActive: true,
       isDismissible: true,
       startsAt: new Date(now.getTime() - 4 * msDay),
@@ -435,7 +444,7 @@ async function main() {
       id: "an_02",
       title: "New electrical inspection service now live",
       body: "You can now request AREI-compliant electrical inspections on any assignment. Pricing starts at €195.",
-      type: "success",
+      type: AnnouncementType.success,
       isActive: true,
       isDismissible: true,
       startsAt: new Date(now.getTime() - 12 * msDay),
@@ -446,7 +455,7 @@ async function main() {
       id: "an_03",
       title: "Commission payout delayed — March 2026",
       body: "Payouts for March will be processed April 22 due to the Easter bank holiday.",
-      type: "warning",
+      type: AnnouncementType.warning,
       isActive: false,
       isDismissible: true,
       startsAt: new Date(now.getTime() - 17 * msDay),

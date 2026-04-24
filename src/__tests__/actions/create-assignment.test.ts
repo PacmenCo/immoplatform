@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createAssignmentInner } from "@/app/actions/assignments";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedBaseline, seedTeam } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 
@@ -297,7 +297,7 @@ describe("createAssignmentInner — audit + calendar parity", () => {
       },
       select: { metadata: true },
     });
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta.reference).toBeTruthy();
     expect(meta.services).toEqual(expect.arrayContaining(["asbestos", "epc"]));
   });

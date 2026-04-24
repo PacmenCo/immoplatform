@@ -7,7 +7,7 @@ import {
   setTeamServiceOverrideInner,
   transferTeamOwnershipInner,
 } from "@/app/actions/teams";
-import { prisma, setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedAssignment, seedBaseline, seedTeam } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
 
@@ -375,7 +375,7 @@ describe("setTeamServiceOverrideInner — money path", () => {
       select: { metadata: true, objectId: true },
     });
     expect(audit.objectId).toBe(teams.t1.id);
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta).toEqual({ serviceKey: "epc", priceCents: 19_999 });
   });
 });
@@ -503,7 +503,7 @@ describe("transferTeamOwnershipInner", () => {
       where: { actorId: admin.user.id, verb: "team.ownership_transferred" },
       select: { metadata: true },
     });
-    const meta = JSON.parse(audit.metadata ?? "{}");
+    const meta = auditMeta(audit.metadata);
     expect(meta.newOwnerUserId).toBe(incoming.user.id);
     expect(meta.newOwnerName).toBeTruthy();
   });

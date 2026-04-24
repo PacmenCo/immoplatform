@@ -395,7 +395,7 @@ export function canAdminUsers(s: SessionWithUser): boolean {
  */
 export function userListRoleFilter(
   s: SessionWithUser,
-): { role: { notIn: string[] } } | undefined {
+): { role: { notIn: Role[] } } | undefined {
   if (hasRole(s, "admin")) return undefined;
   if (hasRole(s, "staff")) return { role: { notIn: ["admin", "staff"] } };
   return { role: { notIn: ["admin", "staff", "realtor", "freelancer"] } }; // nobody

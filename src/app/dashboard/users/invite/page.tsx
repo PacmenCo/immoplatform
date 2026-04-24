@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TeamRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { hasRole } from "@/lib/permissions";
@@ -16,7 +17,7 @@ export default async function InviteUserPage() {
   const where = isRealtor
     ? {
         members: {
-          some: { userId: session.user.id, teamRole: "owner" },
+          some: { userId: session.user.id, teamRole: TeamRole.owner },
         },
       }
     : undefined;
@@ -29,7 +30,7 @@ export default async function InviteUserPage() {
       name: true,
       city: true,
       members: {
-        where: { teamRole: "owner" },
+        where: { teamRole: TeamRole.owner },
         select: {
           user: { select: { firstName: true, lastName: true } },
         },
