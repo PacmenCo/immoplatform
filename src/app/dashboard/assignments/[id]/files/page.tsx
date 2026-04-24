@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import {
   canDeleteAssignmentFile,
+  canUpdateAssignmentFields,
   canUploadToFreelancerLane,
   canUploadToRealtorLane,
   canViewAssignmentFiles,
@@ -39,9 +40,10 @@ export default async function AssignmentFilesPage({
   if (!assignment) notFound();
   if (!(await canViewAssignmentFiles(session, assignment))) notFound();
 
-  const [canUploadFreelancer, canUploadRealtor, files] = await Promise.all([
+  const [canUploadFreelancer, canUploadRealtor, canEdit, files] = await Promise.all([
     canUploadToFreelancerLane(session, assignment),
     canUploadToRealtorLane(session, assignment),
+    canUpdateAssignmentFields(session, assignment),
     prisma.assignmentFile.findMany({
       where: { assignmentId: id, deletedAt: null },
       orderBy: { createdAt: "desc" },
@@ -85,7 +87,9 @@ export default async function AssignmentFilesPage({
         <Tabs
           tabs={[
             { label: "Details", href: `/dashboard/assignments/${id}` },
-            { label: "Edit", href: `/dashboard/assignments/${id}/edit` },
+            ...(canEdit
+              ? [{ label: "Edit", href: `/dashboard/assignments/${id}/edit` }]
+              : []),
             { label: "Files", href: `/dashboard/assignments/${id}/files`, active: true },
           ]}
         />
