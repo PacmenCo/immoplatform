@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import type { Prisma, Session, User } from "@prisma/client";
@@ -139,6 +140,24 @@ export async function requireRole(
   const s = await requireSession();
   if (!roles.includes(s.user.role as (typeof roles)[number])) {
     throw new Error("FORBIDDEN");
+  }
+  return s;
+}
+
+export function noAccessPath(section: string): string {
+  return `/no-access?section=${section}`;
+}
+
+// Page-level gate: require the viewer's role to be in `roles`, otherwise
+// redirect to /no-access. Prefer this over `requireRole` at the page layer
+// (requireRole throws, which leaks to the error boundary).
+export async function requireRoleOrRedirect(
+  roles: Array<"admin" | "staff" | "realtor" | "freelancer">,
+  section: string,
+): Promise<SessionWithUser> {
+  const s = await requireSession();
+  if (!roles.includes(s.user.role as (typeof roles)[number])) {
+    redirect(noAccessPath(section));
   }
   return s;
 }

@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { TeamRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/auth";
+import { requireRoleOrRedirect } from "@/lib/auth";
 import { hasRole } from "@/lib/permissions";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -11,10 +10,10 @@ import { IconBuilding, IconPlus } from "@/components/ui/Icons";
 import { InviteForm } from "./InviteForm";
 
 export default async function InviteUserPage() {
-  const session = await requireSession();
-  if (!hasRole(session, "admin", "staff", "realtor")) {
-    redirect("/no-access?section=invite");
-  }
+  const session = await requireRoleOrRedirect(
+    ["admin", "staff", "realtor"],
+    "invite",
+  );
 
   // Realtors can only invite to teams they OWN. Admins + staff see all teams.
   const isRealtor = hasRole(session, "realtor");
