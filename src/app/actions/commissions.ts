@@ -37,7 +37,7 @@ export async function markCommissionQuarterPaidInner(
   input: QuarterInput,
 ): Promise<ActionResult> {
   if (!canMarkCommissionPaid(session)) {
-    return { ok: false, error: "Only admins and staff can mark commissions paid." };
+    return { ok: false, error: "Only admins can mark commissions paid." };
   }
   const invalid = validateQuarter(input);
   if (invalid) return { ok: false, error: invalid };
@@ -130,7 +130,7 @@ export async function undoCommissionQuarterPaidInner(
   input: QuarterInput,
 ): Promise<ActionResult> {
   if (!canMarkCommissionPaid(session)) {
-    return { ok: false, error: "Only admins and staff can undo commission payouts." };
+    return { ok: false, error: "Only admins can undo commission payouts." };
   }
   const invalid = validateQuarter(input);
   if (invalid) return { ok: false, error: invalid };

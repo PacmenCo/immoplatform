@@ -83,7 +83,7 @@ export async function createAnnouncementInner(
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
   if (!canManageAnnouncements(session)) {
-    return { ok: false, error: "Only admins and staff can publish announcements." };
+    return { ok: false, error: "Only admins can publish announcements." };
   }
   const parsed = announcementSchema.safeParse(readAnnouncementFormData(formData));
   if (!parsed.success) {
@@ -142,7 +142,7 @@ export async function updateAnnouncementInner(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!canManageAnnouncements(session)) {
-    return { ok: false, error: "Only admins and staff can edit announcements." };
+    return { ok: false, error: "Only admins can edit announcements." };
   }
   const existing = await prisma.announcement.findUnique({
     where: { id },
@@ -205,7 +205,7 @@ export async function deleteAnnouncementInner(
   id: string,
 ): Promise<ActionResult> {
   if (!canManageAnnouncements(session)) {
-    return { ok: false, error: "Only admins and staff can delete announcements." };
+    return { ok: false, error: "Only admins can delete announcements." };
   }
   const existing = await prisma.announcement.findUnique({
     where: { id },

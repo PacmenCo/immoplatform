@@ -316,12 +316,12 @@ export function canCreateAssignment(s: SessionWithUser): boolean {
 }
 
 /**
- * Set or clear the discount on an assignment. Admin/staff only — matches
- * Platform, where discounts are administratively applied and not a realtor
- * self-serve feature.
+ * Set or clear the discount on an assignment. Admin only — Platform gates
+ * discount fields in AssignmentController to `$user->hasRole('admin')`
+ * explicitly, so staff cannot apply them either.
  */
 export function canSetDiscount(s: SessionWithUser): boolean {
-  return hasRole(s, "admin", "staff");
+  return hasRole(s, "admin");
 }
 
 /**
@@ -354,33 +354,28 @@ export async function canViewCommission(
   return owned.includes(teamId);
 }
 
-/** Mark a team's quarterly commission as paid. Admin/staff only. */
+/** Mark a team's quarterly commission as paid. Admin only — Platform's
+ * /overview route group is gated to role:admin (routes/web.php:126). */
 export function canMarkCommissionPaid(s: SessionWithUser): boolean {
-  return hasRole(s, "admin", "staff");
+  return hasRole(s, "admin");
 }
 
 /**
  * Create / delete manual revenue adjustments on the overview dashboard.
- * Admin/staff only — these rewrite the booked-revenue number, so team
- * owners don't get to edit them.
+ * Admin only — Platform's /overview route group is role:admin and these
+ * adjustments rewrite the booked-revenue number.
  */
 export function canManageRevenueAdjustments(s: SessionWithUser): boolean {
-  return hasRole(s, "admin", "staff");
+  return hasRole(s, "admin");
 }
 
 /**
- * Publish / edit / delete platform-wide announcements. Admin + staff only —
- * these banners reach every logged-in user. Matches the sidebar's
- * visibleFor gate on /dashboard/announcements.
- *
- * Deliberate deviation from Platform: Platform's routes gate announcements
- * to admin only (role:admin on the announcement routes). We include staff
- * because immo's sidebar lists the page for ["admin","staff"] and staff
- * routinely manage banner copy operationally. Tighten to admin-only here
- * AND in components/dashboard/Sidebar.tsx:60 if you want strict parity.
+ * Publish / edit / delete platform-wide announcements. Admin only — matches
+ * Platform's `role:admin` gate on the announcement routes. Sidebar is
+ * tightened in lockstep.
  */
 export function canManageAnnouncements(s: SessionWithUser): boolean {
-  return hasRole(s, "admin", "staff");
+  return hasRole(s, "admin");
 }
 
 /**

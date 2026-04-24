@@ -51,13 +51,13 @@ const nav: Array<{
     href: "/dashboard/commissions",
     label: "Commissions",
     icon: IconWallet,
-    visibleFor: ["admin", "staff"],
+    visibleFor: ["admin"],
   },
   {
     href: "/dashboard/announcements",
     label: "Announcements",
     icon: IconMegaphone,
-    visibleFor: ["admin", "staff"],
+    visibleFor: ["admin"],
   },
   { href: "/dashboard/settings", label: "Settings", icon: IconSettings },
 ];

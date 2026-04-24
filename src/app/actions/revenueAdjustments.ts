@@ -40,7 +40,7 @@ export async function createRevenueAdjustmentInner(
   input: CreateRevenueAdjustmentInput,
 ): Promise<ActionResult<{ id: string }>> {
   if (!canManageRevenueAdjustments(session)) {
-    return { ok: false, error: "Only admins and staff can add revenue adjustments." };
+    return { ok: false, error: "Only admins can add revenue adjustments." };
   }
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) {
@@ -98,7 +98,7 @@ export async function deleteRevenueAdjustmentInner(
   id: string,
 ): Promise<ActionResult> {
   if (!canManageRevenueAdjustments(session)) {
-    return { ok: false, error: "Only admins and staff can remove revenue adjustments." };
+    return { ok: false, error: "Only admins can remove revenue adjustments." };
   }
   const existing = await prisma.revenueAdjustment.findUnique({
     where: { id },

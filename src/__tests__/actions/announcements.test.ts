@@ -42,10 +42,13 @@ describe("createAnnouncementInner — role gate", () => {
     expect(res.ok).toBe(true);
   });
 
-  it("staff allowed", async () => {
+  it("staff rejected", async () => {
     const { staff } = await seedBaseline();
     const res = await createAnnouncementInner(staff, undefined, form());
-    expect(res.ok).toBe(true);
+    expect(res).toEqual({
+      ok: false,
+      error: "Only admins can publish announcements.",
+    });
   });
 
   it("realtor rejected", async () => {
@@ -53,7 +56,7 @@ describe("createAnnouncementInner — role gate", () => {
     const res = await createAnnouncementInner(realtor, undefined, form());
     expect(res).toEqual({
       ok: false,
-      error: "Only admins and staff can publish announcements.",
+      error: "Only admins can publish announcements.",
     });
   });
 
@@ -178,7 +181,7 @@ describe("updateAnnouncementInner", () => {
     const res = await updateAnnouncementInner(realtor, id, undefined, form());
     expect(res).toEqual({
       ok: false,
-      error: "Only admins and staff can edit announcements.",
+      error: "Only admins can edit announcements.",
     });
   });
 
@@ -237,7 +240,7 @@ describe("deleteAnnouncementInner", () => {
     const res = await deleteAnnouncementInner(realtor, created.data.id);
     expect(res).toEqual({
       ok: false,
-      error: "Only admins and staff can delete announcements.",
+      error: "Only admins can delete announcements.",
     });
   });
 

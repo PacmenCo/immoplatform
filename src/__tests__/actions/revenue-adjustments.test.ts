@@ -28,7 +28,7 @@ describe("createRevenueAdjustmentInner — role gate", () => {
     expect(res.ok).toBe(true);
   });
 
-  it("staff allowed", async () => {
+  it("staff rejected — v1 parity (Platform /overview is role:admin)", async () => {
     const { staff, teams } = await seedBaseline();
     const res = await createRevenueAdjustmentInner(staff, {
       teamId: teams.t1.id,
@@ -37,7 +37,10 @@ describe("createRevenueAdjustmentInner — role gate", () => {
       description: "Late invoice credit",
       amountEuros: "125",
     });
-    expect(res.ok).toBe(true);
+    expect(res).toEqual({
+      ok: false,
+      error: "Only admins can add revenue adjustments.",
+    });
   });
 
   it("realtor rejected", async () => {
@@ -51,7 +54,7 @@ describe("createRevenueAdjustmentInner — role gate", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Only admins and staff can add revenue adjustments.",
+      error: "Only admins can add revenue adjustments.",
     });
   });
 
@@ -310,7 +313,7 @@ describe("deleteRevenueAdjustmentInner", () => {
     const res = await deleteRevenueAdjustmentInner(realtor, id);
     expect(res).toEqual({
       ok: false,
-      error: "Only admins and staff can remove revenue adjustments.",
+      error: "Only admins can remove revenue adjustments.",
     });
     const row = await prisma.revenueAdjustment.findUnique({ where: { id } });
     expect(row).not.toBeNull();

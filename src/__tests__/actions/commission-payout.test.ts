@@ -33,20 +33,17 @@ describe("markCommissionQuarterPaidInner — role gate", () => {
     expect(res).toEqual({ ok: true });
   });
 
-  it("staff is allowed", async () => {
+  it("staff REJECTED — v1 parity (Platform /overview is role:admin)", async () => {
     const { staff, teams } = await seedBaseline();
-    await seedCommissionInQuarter({
-      id: "a_q1_2026_staff",
-      teamId: teams.t1.id,
-      amountCents: 3_000,
-      computedAt: new Date("2026-02-10T12:00:00Z"),
-    });
     const res = await markCommissionQuarterPaidInner(staff, {
       teamId: teams.t1.id,
       year: 2026,
       quarter: 1,
     });
-    expect(res).toEqual({ ok: true });
+    expect(res).toEqual({
+      ok: false,
+      error: "Only admins can mark commissions paid.",
+    });
   });
 
   it("realtor REJECTED (not allowed to rewrite the ledger)", async () => {
@@ -58,7 +55,7 @@ describe("markCommissionQuarterPaidInner — role gate", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Only admins and staff can mark commissions paid.",
+      error: "Only admins can mark commissions paid.",
     });
   });
 
@@ -405,7 +402,7 @@ describe("undoCommissionQuarterPaidInner", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Only admins and staff can undo commission payouts.",
+      error: "Only admins can undo commission payouts.",
     });
   });
 });

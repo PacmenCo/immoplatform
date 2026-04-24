@@ -24,8 +24,9 @@ export default async function CommissionsPage({
   searchParams: SearchParams;
 }) {
   const session = await requireSession();
-  // Admin/staff only. Team owners see their team's accrual on the team detail page.
-  if (!hasRole(session, "admin", "staff")) {
+  // Admin only — Platform's /overview route group is role:admin. Team
+  // owners see their own team's accrual on the team detail page.
+  if (!hasRole(session, "admin")) {
     redirect("/no-access?section=commissions");
   }
 

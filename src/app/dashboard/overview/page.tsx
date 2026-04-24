@@ -72,7 +72,8 @@ export default async function OverviewPage({
   searchParams: SearchParams;
 }) {
   const session = await requireSession();
-  if (!hasRole(session, "admin", "staff")) {
+  // Admin only — Platform's /overview route group is role:admin.
+  if (!hasRole(session, "admin")) {
     redirect("/no-access?section=revenue");
   }
 
