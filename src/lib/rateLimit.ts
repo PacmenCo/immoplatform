@@ -11,7 +11,21 @@ import "server-only";
 
 type Hit = { count: number; resetAt: number };
 
-const store = new Map<string, Hit>();
+// Singleton across Turbopack HMR + Next 16 server-action module reloads.
+// Without this, the Map is re-initialized per-call in dev, so the counter
+// never increments across requests and the limiter effectively never fires.
+// Same pattern the Prisma client uses in src/lib/db.ts.
+declare global {
+  // eslint-disable-next-line no-var
+  var __rateLimitStore: Map<string, Hit> | undefined;
+}
+
+const store: Map<string, Hit> =
+  globalThis.__rateLimitStore ?? new Map<string, Hit>();
+
+if (process.env.NODE_ENV !== "production") {
+  globalThis.__rateLimitStore = store;
+}
 
 export type RateLimitResult =
   | { ok: true; remaining: number }
