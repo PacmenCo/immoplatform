@@ -77,7 +77,11 @@ const CONFIG: Record<
   },
 };
 
-async function uploadTeamBranding(
+/**
+ * Exported for Vitest tests — the four public wrappers (upload/remove ×
+ * logo/signature) all delegate here; testing this once covers all four paths.
+ */
+export async function uploadTeamBrandingInner(
   session: SessionWithUser,
   teamId: string,
   kind: BrandingKind,
@@ -152,7 +156,8 @@ async function uploadTeamBranding(
   return { ok: true };
 }
 
-async function removeTeamBranding(
+/** Exported for Vitest tests alongside `uploadTeamBrandingInner`. */
+export async function removeTeamBrandingInner(
   session: SessionWithUser,
   teamId: string,
   kind: BrandingKind,
@@ -202,14 +207,14 @@ export const uploadTeamLogo = withSession(async (
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> => {
-  return uploadTeamBranding(session, teamId, "logo", formData);
+  return uploadTeamBrandingInner(session, teamId, "logo", formData);
 });
 
 export const removeTeamLogo = withSession(async (
   session,
   teamId: string,
 ): Promise<ActionResult> => {
-  return removeTeamBranding(session, teamId, "logo");
+  return removeTeamBrandingInner(session, teamId, "logo");
 });
 
 export const uploadTeamSignature = withSession(async (
@@ -218,12 +223,12 @@ export const uploadTeamSignature = withSession(async (
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> => {
-  return uploadTeamBranding(session, teamId, "signature", formData);
+  return uploadTeamBrandingInner(session, teamId, "signature", formData);
 });
 
 export const removeTeamSignature = withSession(async (
   session,
   teamId: string,
 ): Promise<ActionResult> => {
-  return removeTeamBranding(session, teamId, "signature");
+  return removeTeamBrandingInner(session, teamId, "signature");
 });

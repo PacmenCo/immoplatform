@@ -293,10 +293,13 @@ export const uploadAssignmentFiles = withSession(uploadAssignmentFilesInner);
 
 // ─── Delete ────────────────────────────────────────────────────────
 
-export const deleteAssignmentFile = withSession(async (
-  session,
+/**
+ * Session-accepting body of `deleteAssignmentFile`. Exported for Vitest tests.
+ */
+export async function deleteAssignmentFileInner(
+  session: SessionWithUser,
   fileId: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   const file = await prisma.assignmentFile.findUnique({
     where: { id: fileId },
     select: {
@@ -364,18 +367,19 @@ export const deleteAssignmentFile = withSession(async (
   revalidatePath(`/dashboard/assignments/${file.assignmentId}/files`);
   revalidatePath(`/dashboard/assignments/${file.assignmentId}`);
   return { ok: true };
-});
+}
+
+export const deleteAssignmentFile = withSession(deleteAssignmentFileInner);
 
 // ─── Get download URL ──────────────────────────────────────────────
 
 /**
- * List the non-deleted files on an assignment, for rendering in the
- * download modal on the assignments list. Uses `canViewAssignmentFiles` —
- * visible to admin/staff, the team's members, the creator, and the
- * assigned freelancer.
+ * Session-accepting body of `listAssignmentFiles`. Exported for Vitest tests.
+ * Visible to admin/staff, the team's members, the creator, and the assigned
+ * freelancer (via `canViewAssignmentFiles`).
  */
-export const listAssignmentFiles = withSession(async (
-  session,
+export async function listAssignmentFilesInner(
+  session: SessionWithUser,
   assignmentId: string,
 ): Promise<
   ActionResult<{
@@ -388,7 +392,7 @@ export const listAssignmentFiles = withSession(async (
       createdAt: Date;
     }>;
   }>
-> => {
+> {
   const assignment = await prisma.assignment.findUnique({
     where: { id: assignmentId },
     select: { teamId: true, freelancerId: true, createdById: true },
@@ -411,12 +415,17 @@ export const listAssignmentFiles = withSession(async (
     },
   });
   return { ok: true, data: { files } };
-});
+}
 
-export const getAssignmentFileDownloadUrl = withSession(async (
-  session,
+export const listAssignmentFiles = withSession(listAssignmentFilesInner);
+
+/**
+ * Session-accepting body of `getAssignmentFileDownloadUrl`. Exported for tests.
+ */
+export async function getAssignmentFileDownloadUrlInner(
+  session: SessionWithUser,
   fileId: string,
-): Promise<ActionResult<{ url: string; originalName: string }>> => {
+): Promise<ActionResult<{ url: string; originalName: string }>> {
   const file = await prisma.assignmentFile.findFirst({
     where: { id: fileId, deletedAt: null },
     select: {
@@ -444,4 +453,6 @@ export const getAssignmentFileDownloadUrl = withSession(async (
     downloadName: file.originalName,
   });
   return { ok: true, data: { url, originalName: file.originalName } };
-});
+}
+
+export const getAssignmentFileDownloadUrl = withSession(getAssignmentFileDownloadUrlInner);

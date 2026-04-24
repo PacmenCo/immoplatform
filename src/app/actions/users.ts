@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { audit, hashPassword } from "@/lib/auth";
+import { audit, hashPassword, type SessionWithUser } from "@/lib/auth";
 import { canAdminUsers } from "@/lib/permissions";
 import { withSession, type ActionResult } from "./_types";
 
@@ -33,12 +33,16 @@ const editSchema = z.object({
  * self-service profile action, this does NOT clear `emailVerifiedAt` on
  * email change — admins are trusted to know what they're doing.
  */
-export const updateUserByAdmin = withSession(async (
-  session,
+/**
+ * Session-accepting body of `updateUserByAdmin`. Exported for Vitest tests;
+ * the wrapped form redirects to the user page on success.
+ */
+export async function updateUserByAdminInner(
+  session: SessionWithUser,
   userId: string,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!canAdminUsers(session)) {
     return { ok: false, error: "Only admins can edit other users." };
   }
@@ -115,7 +119,18 @@ export const updateUserByAdmin = withSession(async (
 
   revalidatePath("/dashboard/users");
   revalidatePath(`/dashboard/users/${userId}`);
-  redirect(`/dashboard/users/${userId}`);
+  return { ok: true };
+}
+
+export const updateUserByAdmin = withSession(async (
+  session: SessionWithUser,
+  userId: string,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  const result = await updateUserByAdminInner(session, userId, _prev, formData);
+  if (result.ok) redirect(`/dashboard/users/${userId}`);
+  return result;
 });
 
 const passwordSchema = z
@@ -138,12 +153,15 @@ const passwordSchema = z
  * session for that user so the old password can't be reused from existing
  * browsers — matches the self-service change-password flow.
  */
-export const resetUserPassword = withSession(async (
-  session,
+/**
+ * Session-accepting body of `resetUserPassword`. Exported for Vitest tests.
+ */
+export async function resetUserPasswordInner(
+  session: SessionWithUser,
   userId: string,
   _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!canAdminUsers(session)) {
     return { ok: false, error: "Only admins can reset another user's password." };
   }
@@ -193,17 +211,20 @@ export const resetUserPassword = withSession(async (
 
   revalidatePath(`/dashboard/users/${userId}`);
   return { ok: true };
-});
+}
+
+export const resetUserPassword = withSession(resetUserPasswordInner);
 
 /**
- * Soft-delete another user. Admin-only. Refuses to delete self (use the
- * account-deletion flow in settings instead) and refuses to delete the
- * last admin. Revokes all sessions so the deleted account can't be used.
+ * Session-accepting body of `deleteUserByAdmin`. Soft-delete another user.
+ * Admin-only. Refuses to delete self (use the account-deletion flow in
+ * settings instead) and refuses to delete the last admin. Revokes all
+ * sessions so the deleted account can't be used.
  */
-export const deleteUserByAdmin = withSession(async (
-  session,
+export async function deleteUserByAdminInner(
+  session: SessionWithUser,
   userId: string,
-): Promise<ActionResult> => {
+): Promise<ActionResult> {
   if (!canAdminUsers(session)) {
     return { ok: false, error: "Only admins can delete other users." };
   }
@@ -258,4 +279,6 @@ export const deleteUserByAdmin = withSession(async (
   revalidatePath("/dashboard/users");
   revalidatePath(`/dashboard/users/${userId}`);
   return { ok: true };
-});
+}
+
+export const deleteUserByAdmin = withSession(deleteUserByAdminInner);
