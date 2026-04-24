@@ -20,7 +20,7 @@ type RoleOption = {
   description: string;
 };
 
-const roleOptions: RoleOption[] = [
+const ALL_ROLE_OPTIONS: RoleOption[] = [
   {
     value: "realtor",
     label: "Realtor",
@@ -45,9 +45,19 @@ const roleOptions: RoleOption[] = [
 
 export function InviteForm({
   teams,
+  viewerRole,
 }: {
   teams: Array<{ id: string; name: string; city: string | null; ownerName: string | null }>;
+  viewerRole: Role;
 }) {
+  // v1 parity: realtors can only invite realtor/freelancer (they can't
+  // escalate someone to admin/staff via their own-team invite flow).
+  // Server-side gate in src/app/actions/invites.ts catches escalation too.
+  const roleOptions =
+    viewerRole === "realtor"
+      ? ALL_ROLE_OPTIONS.filter((r) => r.value === "realtor" || r.value === "freelancer")
+      : ALL_ROLE_OPTIONS;
+
   const [state, formAction, pending] = useActionState<ActionResult | undefined, FormData>(
     createInvite,
     undefined,

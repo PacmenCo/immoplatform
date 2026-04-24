@@ -175,8 +175,12 @@ export default async function TeamDetailPage({
       : `${formatCommissionRate(team.commissionType, team.commissionValue)} flat fee`
     : "Not configured";
 
-  // Transfer-ownership eligibility
+  // Transfer-ownership eligibility (admin OR team-owner per canEditTeam).
   const canTransfer = await canEditTeam(session, id);
+  // v1 parity: delete + commission config + per-team price overrides are
+  // admin-only — realtor-owners can edit the team's branding, contact info,
+  // and member roster, but not these three.
+  const isAdmin = hasRole(session, "admin");
   const eligibleOwners = team.members
     .filter(
       (m) =>
@@ -909,6 +913,7 @@ export default async function TeamDetailPage({
                               defaultValue={override ? (override / 100).toFixed(2) : ""}
                               placeholder="—"
                               className="h-9 max-w-[140px]"
+                              disabled={!isAdmin}
                             />
                           </div>
                         </td>
@@ -954,18 +959,21 @@ export default async function TeamDetailPage({
                   label="None"
                   description="This team doesn't earn commission."
                   checked={!team.commissionType}
+                  disabled={!isAdmin}
                 />
                 <CommissionTypeOption
                   value="percentage"
                   label="Percentage"
                   description="A share of the assignment price."
                   checked={team.commissionType === "percentage"}
+                  disabled={!isAdmin}
                 />
                 <CommissionTypeOption
                   value="fixed"
                   label="Fixed amount"
                   description="A flat fee per delivered assignment."
                   checked={team.commissionType === "fixed"}
+                  disabled={!isAdmin}
                 />
               </fieldset>
 
@@ -991,6 +999,7 @@ export default async function TeamDetailPage({
                             : ((team.commissionValue ?? 0) / 100).toFixed(2)
                         }
                         className="max-w-[180px]"
+                        disabled={!isAdmin}
                       />
                       <span className="text-sm text-[var(--color-ink-muted)]">
                         {team.commissionType === "percentage" ? "%" : "€"}
@@ -998,7 +1007,7 @@ export default async function TeamDetailPage({
                     </div>
                   </Field>
                   <Field label="Payout cadence" id="cadence">
-                    <Select id="cadence" defaultValue="monthly">
+                    <Select id="cadence" defaultValue="monthly" disabled={!isAdmin}>
                       <option value="weekly">Weekly</option>
                       <option value="biweekly">Bi-weekly</option>
                       <option value="monthly">Monthly</option>
@@ -1044,11 +1053,11 @@ export default async function TeamDetailPage({
         </section>
 
         <div className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] pt-6">
-          {canTransfer ? (
+          {isAdmin ? (
             <DeleteTeamButton teamId={id} teamName={team.name} />
           ) : (
             <span className="text-xs text-[var(--color-ink-muted)]">
-              Only team owners or admins can delete this team.
+              Only admins can delete this team.
             </span>
           )}
           <Button href={`/dashboard/teams/${id}/edit`} size="md">
@@ -1116,16 +1125,19 @@ function CommissionTypeOption({
   label,
   description,
   checked,
+  disabled,
 }: {
   value: string;
   label: string;
   description: string;
   checked: boolean;
+  disabled?: boolean;
 }) {
   return (
     <label
       className={
-        "flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors " +
+        "flex items-start gap-3 rounded-md border p-4 transition-colors " +
+        (disabled ? "cursor-not-allowed opacity-60 " : "cursor-pointer ") +
         (checked
           ? "border-[var(--color-brand)] ring-2 ring-[var(--color-brand)]/10 bg-[color-mix(in_srgb,var(--color-brand)_3%,var(--color-bg))]"
           : "border-[var(--color-border-strong)] hover:border-[var(--color-brand)]")
@@ -1136,6 +1148,7 @@ function CommissionTypeOption({
         name="commission-type"
         value={value}
         defaultChecked={checked}
+        disabled={disabled}
         className="mt-0.5 h-4 w-4 accent-[var(--color-brand)]"
       />
       <div>

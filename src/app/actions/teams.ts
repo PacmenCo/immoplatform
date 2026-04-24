@@ -215,6 +215,12 @@ export async function updateTeamInner(
   }
   const d = parsed.data;
 
+  // v1 parity: commission config lives under Admin\TeamController — realtor
+  // owners can edit everything else, but only admins set commissionType /
+  // commissionValue. Silently drop those fields for non-admins so a crafted
+  // form submission can't overwrite them.
+  const isAdmin = hasRole(session, "admin");
+
   await prisma.team.update({
     where: { id: teamId },
     data: {
@@ -236,8 +242,12 @@ export async function updateTeamInner(
       billingCountry: d.billingCountry ?? null,
       defaultClientType: d.defaultClientType ?? null,
       prefersLogoOnPhotos: d.prefersLogoOnPhotos,
-      commissionType: d.commissionType ?? null,
-      commissionValue: d.commissionValue ?? null,
+      ...(isAdmin
+        ? {
+            commissionType: d.commissionType ?? null,
+            commissionValue: d.commissionValue ?? null,
+          }
+        : {}),
     },
   });
 
@@ -281,8 +291,10 @@ export async function deleteTeamInner(
   session: SessionWithUser,
   teamId: string,
 ): Promise<ActionResult> {
-  if (!(await canEditTeam(session, teamId))) {
-    return { ok: false, error: "You don't have permission to delete this team." };
+  // v1 parity: only admins can delete teams (Platform routes admin/teams
+  // under role:admin; realtor-owners can edit but not destroy).
+  if (!hasRole(session, "admin")) {
+    return { ok: false, error: "Only admins can delete teams." };
   }
 
   const [team, assignmentCount] = await Promise.all([
@@ -393,8 +405,10 @@ export async function setTeamServiceOverrideInner(
   serviceKey: string,
   priceCents: number | null,
 ): Promise<ActionResult> {
-  if (!(await canEditTeam(session, teamId))) {
-    return { ok: false, error: "You don't have permission to edit this team's prices." };
+  // v1 parity: per-team price overrides live under Admin\TeamController —
+  // route admin-only. Realtor-owners cannot change their team's prices.
+  if (!hasRole(session, "admin")) {
+    return { ok: false, error: "Only admins can change team price overrides." };
   }
 
   // Guard the service key + price value at the edge.

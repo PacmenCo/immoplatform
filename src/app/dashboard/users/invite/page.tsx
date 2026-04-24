@@ -102,7 +102,7 @@ export default async function InviteUserPage() {
   return (
     <>
       <Topbar title="Invite user" subtitle="Send an email invite to join your workspace" />
-      <InviteForm teams={teams} />
+      <InviteForm teams={teams} viewerRole={session.user.role as "admin" | "staff" | "realtor" | "freelancer"} />
     </>
   );
 }

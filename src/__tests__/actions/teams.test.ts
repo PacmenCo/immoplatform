@@ -215,6 +215,15 @@ describe("deleteTeamInner", () => {
     expect(res).toEqual({ ok: false, error: "Team not found." });
   });
 
+  it("realtor rejected even when they own the team (admin-only per v1)", async () => {
+    const { realtor, teams } = await seedBaseline();
+    const res = await deleteTeamInner(realtor, teams.t1.id);
+    expect(res).toEqual({
+      ok: false,
+      error: "Only admins can delete teams.",
+    });
+  });
+
   it("realtor (non-admin) rejected when they don't own the team", async () => {
     await seedBaseline();
     const outsider = await makeSession({
@@ -224,7 +233,7 @@ describe("deleteTeamInner", () => {
     const res = await deleteTeamInner(outsider, "t_test_1");
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to delete this team.",
+      error: "Only admins can delete teams.",
     });
   });
 });
@@ -349,6 +358,20 @@ describe("setTeamServiceOverrideInner — money path", () => {
     expect(res).toEqual({ ok: false, error: "Unknown service." });
   });
 
+  it("permissions — realtor rejected even when they own the team (admin-only per v1)", async () => {
+    const { realtor, teams } = await seedBaseline();
+    const res = await setTeamServiceOverrideInner(
+      realtor,
+      teams.t1.id,
+      "asbestos",
+      10_000,
+    );
+    expect(res).toEqual({
+      ok: false,
+      error: "Only admins can change team price overrides.",
+    });
+  });
+
   it("permissions — realtor NOT on the team rejected", async () => {
     await seedBaseline();
     const outsider = await makeSession({
@@ -363,7 +386,7 @@ describe("setTeamServiceOverrideInner — money path", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to edit this team's prices.",
+      error: "Only admins can change team price overrides.",
     });
   });
 
