@@ -61,54 +61,70 @@ export default async function TeamDetailPage({
   const current = quarterOf(now);
   const currentRange = quarterRange(current.year, current.quarter);
 
-  const [team, services, recentPayouts, currentAccrual] = await Promise.all([
-    prisma.team.findUnique({
-      where: { id },
-      include: {
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                role: true,
+  const [team, services, recentPayouts, currentAccrual, pendingInvites] =
+    await Promise.all([
+      prisma.team.findUnique({
+        where: { id },
+        include: {
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  role: true,
+                },
               },
             },
+            orderBy: { joinedAt: "asc" },
           },
-          orderBy: { joinedAt: "asc" },
-        },
-        assignments: {
-          orderBy: { preferredDate: "desc" },
-          take: 20,
-          include: {
-            services: true,
-            freelancer: { select: { id: true, firstName: true, lastName: true } },
+          assignments: {
+            orderBy: { preferredDate: "desc" },
+            take: 20,
+            include: {
+              services: true,
+              freelancer: { select: { id: true, firstName: true, lastName: true } },
+            },
           },
+          serviceOverrides: true,
         },
-        serviceOverrides: true,
-      },
-    }),
-    prisma.service.findMany({ orderBy: { key: "asc" } }),
-    prisma.commissionPayout.findMany({
-      where: { teamId: id },
-      orderBy: [{ year: "desc" }, { quarter: "desc" }],
-      take: 4,
-      select: {
-        id: true,
-        year: true,
-        quarter: true,
-        amountCents: true,
-        paidAt: true,
-      },
-    }),
-    prisma.assignmentCommission.aggregate({
-      where: { teamId: id, computedAt: { gte: currentRange.gte, lt: currentRange.lt } },
-      _sum: { commissionAmountCents: true },
-      _count: { _all: true },
-    }),
-  ]);
+      }),
+      prisma.service.findMany({ orderBy: { key: "asc" } }),
+      prisma.commissionPayout.findMany({
+        where: { teamId: id },
+        orderBy: [{ year: "desc" }, { quarter: "desc" }],
+        take: 4,
+        select: {
+          id: true,
+          year: true,
+          quarter: true,
+          amountCents: true,
+          paidAt: true,
+        },
+      }),
+      prisma.assignmentCommission.aggregate({
+        where: { teamId: id, computedAt: { gte: currentRange.gte, lt: currentRange.lt } },
+        _sum: { commissionAmountCents: true },
+        _count: { _all: true },
+      }),
+      // Outstanding invites for this team — so admins/owners can see who
+      // they've invited but who hasn't accepted yet. Without this, the
+      // members panel silently omits pending invites until they land.
+      prisma.invite.findMany({
+        where: { teamId: id, acceptedAt: null, revokedAt: null },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          teamRole: true,
+          createdAt: true,
+          expiresAt: true,
+        },
+      }),
+    ]);
 
   if (!team) notFound();
 
@@ -608,6 +624,53 @@ export default async function TeamDetailPage({
                     })}
                   </tbody>
                 </table>
+                </div>
+              )}
+              {pendingInvites.length > 0 && (
+                <div className="border-t border-[var(--color-border)]">
+                  <div className="flex items-center justify-between px-6 pt-5 pb-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                      Pending invites
+                    </p>
+                    <p className="text-xs text-[var(--color-ink-muted)]">
+                      {pendingInvites.length}{" "}
+                      {pendingInvites.length === 1 ? "invite" : "invites"} awaiting acceptance
+                    </p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
+                        <tr>
+                          <th className="px-6 py-3 text-left font-semibold">Email</th>
+                          <th className="px-6 py-3 text-left font-semibold">Role</th>
+                          <th className="px-6 py-3 text-left font-semibold">Team role</th>
+                          <th className="px-6 py-3 text-left font-semibold">Invited</th>
+                          <th className="px-6 py-3 text-left font-semibold">Expires</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--color-border)]">
+                        {pendingInvites.map((inv) => (
+                          <tr key={inv.id}>
+                            <td className="px-6 py-3 font-mono text-xs text-[var(--color-ink)]">
+                              {inv.email}
+                            </td>
+                            <td className="px-6 py-3 capitalize text-[var(--color-ink-soft)]">
+                              {inv.role}
+                            </td>
+                            <td className="px-6 py-3 capitalize text-[var(--color-ink-soft)]">
+                              {inv.teamRole}
+                            </td>
+                            <td className="px-6 py-3 tabular-nums text-[var(--color-ink-soft)]">
+                              {inv.createdAt.toISOString().slice(0, 10)}
+                            </td>
+                            <td className="px-6 py-3 tabular-nums text-[var(--color-ink-soft)]">
+                              {inv.expiresAt?.toISOString().slice(0, 10) ?? "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </CardBody>

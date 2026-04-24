@@ -45,9 +45,12 @@ const ALL_ROLE_OPTIONS: RoleOption[] = [
 export function InviteForm({
   teams,
   viewerRole,
+  initialTeamId,
 }: {
   teams: Array<{ id: string; name: string; city: string | null; ownerName: string | null }>;
   viewerRole: Role;
+  /** Pre-selected team from ?teamId= on the invite page — click-from-team-detail carries over. */
+  initialTeamId?: string | null;
 }) {
   // v1 parity: realtors can only invite realtor/freelancer (they can't
   // escalate someone to admin/staff via their own-team invite flow).
@@ -62,7 +65,11 @@ export function InviteForm({
     undefined,
   );
   const [role, setRole] = useState<Role>("realtor");
-  const [teamId, setTeamId] = useState<string>("");
+  // Only honor the query-param seed if that team is in the viewer's allowed
+  // list (realtors can't be handed a teamId they don't own via URL).
+  const seedTeamId =
+    initialTeamId && teams.some((t) => t.id === initialTeamId) ? initialTeamId : "";
+  const [teamId, setTeamId] = useState<string>(seedTeamId);
   const [teamRole, setTeamRole] = useState<"owner" | "member">("member");
   const [email, setEmail] = useState<string>("");
   const [note, setNote] = useState<string>("");

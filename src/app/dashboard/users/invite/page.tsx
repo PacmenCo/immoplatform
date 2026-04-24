@@ -9,11 +9,16 @@ import { Button } from "@/components/ui/Button";
 import { IconBuilding, IconPlus } from "@/components/ui/Icons";
 import { InviteForm } from "./InviteForm";
 
-export default async function InviteUserPage() {
+export default async function InviteUserPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ teamId?: string }>;
+}) {
   const session = await requireRoleOrRedirect(
     ["admin", "staff", "realtor"],
     "invite",
   );
+  const { teamId: queryTeamId } = await searchParams;
 
   // Realtors can only invite to teams they OWN. Admins + staff see all teams.
   const isRealtor = hasRole(session, "realtor");
@@ -102,7 +107,11 @@ export default async function InviteUserPage() {
   return (
     <>
       <Topbar title="Invite user" subtitle="Send an email invite to join your workspace" />
-      <InviteForm teams={teams} viewerRole={role(session)} />
+      <InviteForm
+        teams={teams}
+        viewerRole={role(session)}
+        initialTeamId={queryTeamId ?? null}
+      />
     </>
   );
 }

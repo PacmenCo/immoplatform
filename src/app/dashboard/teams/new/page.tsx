@@ -17,7 +17,9 @@ export default async function NewTeamPage() {
         title="Create team"
         subtitle="Start a new agency office. You'll become its owner."
       />
-      <TeamForm action={createTeam} cancelHref="/dashboard/teams" />
+      {/* canCreateTeam is admin-only (commit d17c030), so anyone on this
+          page is admin — pass isAdmin to unlock the Commission accordion. */}
+      <TeamForm action={createTeam} cancelHref="/dashboard/teams" isAdmin />
     </>
   );
 }
