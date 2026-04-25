@@ -5,9 +5,19 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Dropzone } from "@/components/ui/Dropzone";
 import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
 import { useFormDirty } from "@/lib/useFormDirty";
+import { FILE_CONSTRAINTS } from "@/lib/file-constraints";
 import type { ActionResult } from "@/app/actions/_types";
+
+/**
+ * Cap on supporting-files at create time — Platform parity (Filepond's
+ * `maxFiles: 10` in assignments/create.blade.php). Mirrors the server-side
+ * `MAX_REALTOR_FILES_AT_CREATE` in `src/app/actions/assignments.ts`; keep
+ * both in sync if you change one.
+ */
+const MAX_CREATE_FILES = 10;
 
 type ServiceRow = {
   key: string;
@@ -90,6 +100,22 @@ type Props = {
   /** Render the freelancer picker — admin/staff only (Platform parity). */
   canSetFreelancer?: boolean;
   freelancers?: FreelancerOption[];
+  /**
+   * Render the create-time supporting-files dropzone. Only shown when the
+   * caller is an admin/staff or a realtor creating their own row — matches
+   * Platform's `makelaar_files[]` Filepond input on the create blade. The
+   * dropzone is hidden on edit (initial != null); files are managed via
+   * the Files tab there.
+   */
+  canUploadFiles?: boolean;
+  /**
+   * Assignment.updatedAt at the moment the edit page rendered, ISO-stringified.
+   * Carried as a hidden `loaded-at` input — the server action uses it as an
+   * optimistic-lock predicate so a concurrent edit (another tab / admin) is
+   * surfaced as a stale-snapshot error instead of silently clobbered. Edit
+   * form only — omit on the create form, where there's no row yet to lock.
+   */
+  loadedAt?: string;
 };
 
 export function AssignmentForm({
@@ -101,6 +127,8 @@ export function AssignmentForm({
   canSetDiscount,
   canSetFreelancer,
   freelancers,
+  canUploadFiles,
+  loadedAt,
 }: Props) {
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
@@ -120,11 +148,31 @@ export function AssignmentForm({
     "office" | "other"
   >(initial?.keyPickupLocationType ?? "office");
 
+  // Create-time supporting files. Only ever populated when the form is in
+  // create mode and the caller can upload (canUploadFiles true). Reusing
+  // FileUploadForm's style: a controlled file array kept in sync with the
+  // Dropzone's hidden <input>, posted under name=`makelaar-file` so the
+  // create action can fan it out to uploadAssignmentFilesInner.
+  const [createFiles, setCreateFiles] = useState<File[]>([]);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const showCreateUpload = !initial && !!canUploadFiles;
+  const realtorConstraints = FILE_CONSTRAINTS.realtor;
+
   const submitCopy =
     submitLabel ?? (initial ? "Save changes" : "Create assignment");
 
   return (
     <form ref={formRef} action={formAction} className="max-w-[960px] p-8 pb-28 space-y-8">
+      {/*
+        Optimistic-lock witness — the server action reads this back as the
+        `where: { updatedAt }` predicate so a concurrent save (another tab /
+        admin) gets rejected with a "Someone else just edited" error instead
+        of silently overwriting the other side's fields. Only rendered when
+        the parent passes a value (edit page); the create form omits it.
+      */}
+      {loadedAt && (
+        <input type="hidden" name="loaded-at" value={loadedAt} />
+      )}
       {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
 
       <Card>
@@ -648,6 +696,42 @@ export function AssignmentForm({
           )}
         </CardBody>
       </Card>
+
+      {showCreateUpload && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Supporting files (optional)</CardTitle>
+            <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+              Attach floor plans, photos, or notes the inspector should see.
+              You can also add files later from the Files tab.
+            </p>
+          </CardHeader>
+          <CardBody className="space-y-3">
+            {fileError && <ErrorAlert>{fileError}</ErrorAlert>}
+            <Dropzone
+              name="makelaar-file"
+              files={createFiles}
+              onChange={(next) => {
+                setCreateFiles(next);
+                setFileError(null);
+              }}
+              accept={realtorConstraints.allowedMimes.join(",")}
+              hint={`PDF, JPG, PNG, WebP · up to ${realtorConstraints.maxMB} MB each · up to ${MAX_CREATE_FILES} files`}
+              label="Drop floor plans, photos or notes"
+              maxFiles={MAX_CREATE_FILES}
+              maxMB={realtorConstraints.maxMB}
+              onError={(msg) => setFileError(msg)}
+              disabled={pending}
+              uploading={pending}
+            />
+            <p className="text-xs text-[var(--color-ink-muted)]">
+              {createFiles.length === 0
+                ? "No files picked yet."
+                : `${createFiles.length} file${createFiles.length === 1 ? "" : "s"} ready to upload.`}
+            </p>
+          </CardBody>
+        </Card>
+      )}
 
       {canSetDiscount && (
         <details

@@ -88,14 +88,14 @@ export default async function DashboardHome() {
         orderBy: { preferredDate: "asc" },
         take: 4,
         include: {
-          services: true,
+          services: { select: { serviceKey: true } },
         },
       }),
       prisma.auditLog.findMany({
         where: auditWhere,
         orderBy: { at: "desc" },
         take: 5,
-        include: { actor: true },
+        include: { actor: { select: { firstName: true, lastName: true, avatarUrl: true } } },
       }),
       isFreelancer
         ? Promise.resolve(0)

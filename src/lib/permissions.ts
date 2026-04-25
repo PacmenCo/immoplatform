@@ -195,6 +195,7 @@ export const FREELANCER_UPDATE_FIELDS = [
   "preferred-date", // appointment date
   "status",         // status flip (further gated by ROLE_ALLOWED_STATUSES)
   "new-comment",    // appended to the thread; not a row field
+  "loaded-at",      // optimistic-lock token; passed through to applyFreelancerUpdate
 ] as const;
 export type FreelancerUpdateField = (typeof FREELANCER_UPDATE_FIELDS)[number];
 

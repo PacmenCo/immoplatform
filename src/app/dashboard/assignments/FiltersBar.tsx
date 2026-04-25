@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Select } from "@/components/ui/Input";
 import { SearchInput } from "@/components/dashboard/SearchInput";
+import { SearchSelect } from "@/components/ui/SearchSelect";
 import { STATUS_META, STATUS_ORDER, type Status } from "@/lib/mockData";
 
 type Team = { id: string; name: string };
@@ -62,6 +63,9 @@ export function FiltersBar({
       if (patch.freelancer) sp.set("freelancer", patch.freelancer);
       else sp.delete("freelancer");
     }
+    // Filter change → bounce to page 1, matching Livewire's `resetPage()` on
+    // `updatingSelectedStatus` / `updatingTeamId` (Platform/AssignmentsList.php:87-94).
+    sp.delete("page");
     const qs = sp.toString();
     start(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
   }
@@ -113,19 +117,20 @@ export function FiltersBar({
 
         {canPickFreelancer && (
           <div className="w-full sm:w-[200px] sm:shrink-0">
-            <Select
+            <SearchSelect
               value={initialFreelancer}
-              onChange={(e) => push({ freelancer: e.target.value })}
-              aria-label="Filter by freelancer"
-            >
-              <option value="">All freelancers</option>
-              <option value="none">— Unassigned —</option>
-              {freelancers.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.firstName} {f.lastName}
-                </option>
-              ))}
-            </Select>
+              onChange={(v) => push({ freelancer: v })}
+              placeholder="All freelancers"
+              searchPlaceholder="Type a name…"
+              clearOptionLabel="All freelancers"
+              options={[
+                { value: "none", label: "— Unassigned —" },
+                ...freelancers.map((f) => ({
+                  value: f.id,
+                  label: `${f.firstName} ${f.lastName}`,
+                })),
+              ]}
+            />
           </div>
         )}
 

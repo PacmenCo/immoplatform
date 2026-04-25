@@ -3,6 +3,7 @@ import { createAssignmentInner } from "@/app/actions/assignments";
 import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedBaseline, seedTeam } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
+import { makeUploadFile } from "../_helpers/upload";
 
 // Platform parity — ports behavioral contract from:
 //   Platform/app/Http/Controllers/AssignmentController.php::store
@@ -394,5 +395,119 @@ describe("createAssignmentInner — clientType defaults", () => {
       select: { clientType: true },
     });
     expect(asg.clientType).toBe("firm");
+  });
+});
+
+// ─── Realtor-lane file attach at create time ────────────────────────
+//
+// Platform parity (AssignmentController::store @ 256-258 +
+// processMakelaarFiles @ 852-907): the create form's `makelaar_files[]`
+// input is processed AFTER `Assignment::create` returns. We mirror that
+// two-step contract via `uploadAssignmentFilesInner` keyed by the new id;
+// failures here must NOT roll back the assignment, since the user has no
+// way to recover the typed form data.
+describe("createAssignmentInner — realtor-lane file attach", () => {
+  it("realtor creates assignment WITH 2 PDF files → both attached, lane=realtor", async () => {
+    const { realtor, teams } = await seedBaseline();
+    const fd = buildCreateForm();
+    fd.append("makelaar-file", makeUploadFile("plan.pdf"));
+    fd.append("makelaar-file", makeUploadFile("notes.pdf"));
+
+    const res = await createAssignmentInner(realtor, undefined, fd);
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.data) throw new Error("expected data");
+    expect(res.warning).toBeUndefined();
+
+    const asg = await prisma.assignment.findUniqueOrThrow({
+      where: { id: res.data.id },
+      select: { teamId: true, createdById: true },
+    });
+    expect(asg.teamId).toBe(teams.t1.id);
+    expect(asg.createdById).toBe(realtor.user.id);
+
+    const files = await prisma.assignmentFile.findMany({
+      where: { assignmentId: res.data.id },
+      orderBy: { originalName: "asc" },
+      select: {
+        lane: true,
+        originalName: true,
+        mimeType: true,
+        uploaderId: true,
+      },
+    });
+    expect(files).toEqual([
+      {
+        lane: "realtor",
+        originalName: "notes.pdf",
+        mimeType: "application/pdf",
+        uploaderId: realtor.user.id,
+      },
+      {
+        lane: "realtor",
+        originalName: "plan.pdf",
+        mimeType: "application/pdf",
+        uploaderId: realtor.user.id,
+      },
+    ]);
+  });
+
+  it("11 attached files → rejected before create, no row written", async () => {
+    const { realtor } = await seedBaseline();
+    const fd = buildCreateForm();
+    for (let i = 0; i < 11; i++) {
+      fd.append("makelaar-file", makeUploadFile(`f${i}.pdf`));
+    }
+
+    const before = await prisma.assignment.count();
+    const res = await createAssignmentInner(realtor, undefined, fd);
+    expect(res).toEqual({
+      ok: false,
+      error: "Up to 10 files at a time.",
+    });
+    // No row created — pre-create gate stopped us before prisma.create.
+    const after = await prisma.assignment.count();
+    expect(after).toBe(before);
+  });
+
+  it("no files → behaves exactly as before (no warning, no file rows)", async () => {
+    const { realtor } = await seedBaseline();
+    const res = await createAssignmentInner(realtor, undefined, buildCreateForm());
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.data) throw new Error("expected data");
+    expect(res.warning).toBeUndefined();
+
+    const fileCount = await prisma.assignmentFile.count({
+      where: { assignmentId: res.data.id },
+    });
+    expect(fileCount).toBe(0);
+  });
+
+  it("file upload step fails (bad MIME) → assignment still created, ok with warning", async () => {
+    const { realtor } = await seedBaseline();
+    const fd = buildCreateForm();
+    // Forge a TXT file. Upload action's MIME allowlist rejects it inside
+    // uploadAssignmentFilesInner, but only AFTER the assignment row is
+    // committed — so the row should still exist with a warning surfaced.
+    fd.append(
+      "makelaar-file",
+      new File(["plain text content"], "readme.txt", { type: "text/plain" }),
+    );
+
+    const res = await createAssignmentInner(realtor, undefined, fd);
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.data) throw new Error("expected data");
+    expect(res.warning).toMatch(/Some files failed to upload/);
+
+    // Row exists — best-effort failure should not roll back the assignment.
+    const asg = await prisma.assignment.findUnique({
+      where: { id: res.data.id },
+      select: { id: true, createdById: true },
+    });
+    expect(asg).toMatchObject({ id: res.data.id, createdById: realtor.user.id });
+    // No file rows because the upload bailed before the createMany.
+    const fileCount = await prisma.assignmentFile.count({
+      where: { assignmentId: res.data.id },
+    });
+    expect(fileCount).toBe(0);
   });
 });

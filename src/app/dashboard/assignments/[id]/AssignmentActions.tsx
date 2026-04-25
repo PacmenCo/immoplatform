@@ -37,21 +37,24 @@ export function AssignmentActions({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Guard the typed cancellation reason — losing it would force the user
   // to write it again. Only active while the modal is open.
   useUnsavedChanges(cancelOpen && cancelReason.trim().length > 0);
 
   function runStart() {
+    setActionError(null);
     startTransition(async () => {
       const r = await markAssignmentInProgress(assignmentId);
-      if (!r.ok) alert(r.error);
+      if (!r.ok) setActionError(r.error);
     });
   }
   function runDeliver() {
+    setActionError(null);
     startTransition(async () => {
       const r = await markAssignmentDelivered(assignmentId);
-      if (!r.ok) alert(r.error);
+      if (!r.ok) setActionError(r.error);
     });
   }
   function runCancel() {
@@ -76,6 +79,9 @@ export function AssignmentActions({
 
   return (
     <>
+      {actionError && (
+        <ErrorAlert className="mb-3">{actionError}</ErrorAlert>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         {showEdit && (
           <Button

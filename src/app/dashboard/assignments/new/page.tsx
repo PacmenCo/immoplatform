@@ -7,6 +7,7 @@ import {
   canReassignFreelancer,
   canSetDiscount,
   eligibleFreelancerWhere,
+  hasRole,
 } from "@/lib/permissions";
 
 export default async function NewAssignmentPage() {
@@ -15,6 +16,12 @@ export default async function NewAssignmentPage() {
     "new-assignment",
   );
   const canFreelancer = canReassignFreelancer(session);
+  // Admin/staff/realtor can attach supporting files at create time —
+  // mirrors `canUploadToRealtorLane` for a brand-new (own) assignment.
+  // Freelancers can't reach this page (requireRoleOrRedirect blocks them);
+  // belt-and-braces guard so future role additions don't accidentally
+  // expose the dropzone.
+  const canUploadFiles = hasRole(session, "admin", "staff", "realtor");
 
   const [services, freelancers] = await Promise.all([
     prisma.service.findMany({ where: { active: true }, orderBy: { key: "asc" } }),
@@ -37,6 +44,7 @@ export default async function NewAssignmentPage() {
         cancelHref="/dashboard/assignments"
         canSetDiscount={canSetDiscount(session)}
         canSetFreelancer={canFreelancer}
+        canUploadFiles={canUploadFiles}
         freelancers={freelancers}
       />
     </>

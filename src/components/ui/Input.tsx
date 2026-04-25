@@ -33,22 +33,31 @@ export function Label({
   hintId?: string;
   required?: boolean;
 }) {
+  // The hint must sit OUTSIDE <label> so it does not pollute the label's
+  // accessible name (a11y audit flagged "Invoice recipientParticulier = …"
+  // run-on labels). Visual layout is preserved by wrapping in a flex column;
+  // <p>/<span aria-hidden> on the asterisk keeps SR output to just `children`.
+  // Required indication is conveyed via the input's `required` attribute (set
+  // by the caller on the <Input>/<Select>), which screen readers announce.
   return (
-    <label htmlFor={htmlFor} className="flex flex-col gap-1.5 text-sm">
-      <span className="font-medium text-[var(--color-ink)]">
+    <div className="flex flex-col gap-1.5 text-sm">
+      <label htmlFor={htmlFor} className="font-medium text-[var(--color-ink)]">
         {children}
         {required && (
-          <span aria-hidden className="ml-0.5 text-[var(--color-asbestos)]">
-            *
-          </span>
+          <>
+            <span aria-hidden="true" className="ml-0.5 text-[var(--color-asbestos)]">
+              *
+            </span>
+            <span className="sr-only"> (required)</span>
+          </>
         )}
-      </span>
+      </label>
       {hint && (
-        <span id={hintId} className="text-xs text-[var(--color-ink-muted)]">
+        <p id={hintId} className="text-xs text-[var(--color-ink-muted)]">
           {hint}
-        </span>
+        </p>
       )}
-    </label>
+    </div>
   );
 }
 

@@ -28,6 +28,7 @@ import {
   canReassignFreelancer,
   canSetDiscount,
   canUpdateAssignmentFields,
+  canUploadToRealtorLane,
   canViewAssignment,
   eligibleFreelancerWhere,
   filterUpdateForFreelancer,
@@ -65,7 +66,18 @@ import {
 import { fullName } from "@/lib/format";
 import { storage } from "@/lib/storage";
 import { addToGoogleCalendarUrl, assignmentUrl } from "@/lib/urls";
+import { uploadAssignmentFilesInner } from "./files";
 import { withSession, type ActionResult } from "./_types";
+
+/**
+ * Cap on supporting-files uploaded at create time. Platform parity —
+ * `assignments/create.blade.php`'s Filepond input declares `maxFiles: 10`
+ * for `makelaar_files[]`. Stricter than the global `MAX_FILES_PER_UPLOAD`
+ * (20) used by the standalone Files-tab uploader: the create form has a
+ * narrower scope (initial supporting docs, not bulk migration), and v1
+ * already gated this at 10 so users have muscle memory for the limit.
+ */
+const MAX_REALTOR_FILES_AT_CREATE = 10;
 
 // ─── Helpers ───────────────────────────────────────────────────────
 
@@ -153,6 +165,46 @@ function isUniqueReferenceConflict(err: unknown): boolean {
     (err.meta.target as string[]).includes("reference")
   );
 }
+
+/**
+ * Optimistic-lock predicate parsed from the edit form's `loaded-at` hidden
+ * field — the value is the assignment's `updatedAt` ISO string at the moment
+ * the user opened the page. We hand it back to `updateMany` as part of the
+ * `where` filter; if the row's `updatedAt` has moved on (someone else saved
+ * in the meantime), `count` comes back 0 and we surface the stale-snapshot
+ * error.
+ *
+ * Returns null when the form doesn't carry a `loaded-at` (older callers, or
+ * forms that haven't been updated yet) — in that mode the caller falls back
+ * to the previous last-write-wins behavior, so threading the lock through
+ * a new client doesn't have to be all-or-nothing.
+ *
+ * Invalid date strings are also returned as null so a corrupted hidden
+ * field never poisons every save with "stale snapshot." Loud-but-harmless
+ * parse failures over silent permanent breakage.
+ */
+function parseLoadedAt(formData: FormData): Date | null {
+  const raw = (formData.get("loaded-at") as string | null)?.trim();
+  if (!raw) return null;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+/**
+ * Sentinel returned from the wide-edit transaction when the claim predicate
+ * failed. Distinguishes "row went terminal between read and write" (the
+ * existing best-effort guard) from "row's updatedAt moved past the form's
+ * loaded-at snapshot" (new — concurrent edit).
+ *
+ * Mirrors the `ASSIGNMENT_TERMINAL` string-throw pattern in
+ * `src/app/actions/files.ts:167` but stays in-process instead of crossing
+ * the `$transaction` boundary as a thrown Error — `updateMany` doesn't
+ * raise on `count === 0`, so we have a clean return-channel.
+ *
+ * Internal — never leaves this module.
+ */
+type UpdateClaimFailure = "terminal" | "stale";
 
 /**
  * Reject preferredDate values before today (local-time start-of-day). v1
@@ -330,6 +382,23 @@ export async function createAssignmentInner(
 
   const d = parsed.data;
 
+  // Realtor-lane supporting files (Platform parity:
+  // assignments/create.blade.php:624-628 — `makelaar_files[]`). Counted +
+  // capped here so the row never gets created when the user submits
+  // beyond the per-create cap; the actual upload happens after the row is
+  // committed (uploadAssignmentFilesInner needs the assignment id). Files
+  // smaller than the 10-cap pass through to that helper, which re-runs
+  // MIME + magic-byte + lane-permission validation.
+  const makelaarFiles = formData
+    .getAll("makelaar-file")
+    .filter((f): f is File => f instanceof File && f.size > 0);
+  if (makelaarFiles.length > MAX_REALTOR_FILES_AT_CREATE) {
+    return {
+      ok: false,
+      error: `Up to ${MAX_REALTOR_FILES_AT_CREATE} files at a time.`,
+    };
+  }
+
   let teamId: string | null = session.activeTeamId ?? null;
   if (hasRole(session, "freelancer")) {
     return {
@@ -463,6 +532,39 @@ export async function createAssignmentInner(
     metadata: { reference, services: d.services },
   });
 
+  // Realtor-lane supporting files — Platform parity
+  // (AssignmentController::store @ 256-258 + processMakelaarFiles @ 852-907):
+  // v1 creates the row first, then attaches files keyed by the new id. We
+  // do the same by handing off to uploadAssignmentFilesInner, which already
+  // owns lane-permission, MIME, magic-byte, and per-file size checks.
+  //
+  // Best-effort: if the upload step throws or returns ok:false, the
+  // assignment row stays in place and we surface a warning so the UI can
+  // tell the user to retry from the Files tab. Rolling back the row would
+  // be a worse UX than asking for a re-upload — the form data is gone by
+  // the time the user notices anyway.
+  let fileWarning: string | undefined;
+  if (makelaarFiles.length > 0) {
+    const uploadFd = new FormData();
+    for (const f of makelaarFiles) uploadFd.append("file", f);
+    try {
+      const uploadRes = await uploadAssignmentFilesInner(
+        session,
+        created.id,
+        "realtor",
+        undefined,
+        uploadFd,
+      );
+      if (!uploadRes.ok) {
+        fileWarning =
+          "Assignment created. Some files failed to upload — try again from the Files tab.";
+      }
+    } catch {
+      fileWarning =
+        "Assignment created. Some files failed to upload — try again from the Files tab.";
+    }
+  }
+
   // Platform parity (NewAssignmentMail): fan the new assignment out to
   // every platform admin + staff so triage doesn't depend on someone
   // watching the dashboard. Scoped to admin+staff per v1, excludes the
@@ -525,7 +627,11 @@ export async function createAssignmentInner(
 
   revalidatePath("/dashboard/assignments");
   revalidatePath("/dashboard");
-  return { ok: true, data: { id: created.id } };
+  return {
+    ok: true,
+    data: { id: created.id },
+    ...(fileWarning ? { warning: fileWarning } : {}),
+  };
 }
 
 export const createAssignment = withSession(async (
@@ -534,7 +640,14 @@ export const createAssignment = withSession(async (
   formData: FormData,
 ): Promise<ActionResult> => {
   const result = await createAssignmentInner(session, undefined, formData);
-  if (result.ok && result.data) redirect(`/dashboard/assignments/${result.data.id}`);
+  if (result.ok && result.data) {
+    // Forward partial-success (assignment created but file uploads failed)
+    // through a query param so the detail page can flash a toast on land —
+    // the form's `useActionState` value is wiped by `redirect()`, so we
+    // can't rely on returning the warning from here.
+    const qs = result.warning ? "?notice=files_failed" : "";
+    redirect(`/dashboard/assignments/${result.data.id}${qs}`);
+  }
   if (result.ok) return { ok: true };
   return result;
 });
@@ -729,14 +842,41 @@ async function applyFreelancerUpdate(
     autoStatus = "awaiting";
   }
 
+  // Optimistic-lock window: same shape as the wide-edit path. When the
+  // form posts a `loaded-at`, narrow the claim predicate to that snapshot
+  // so a concurrent edit (admin saved while the freelancer was still in
+  // the form) surfaces a stale-snapshot error instead of clobbering.
+  const loadedAt = parseLoadedAt(formData);
   const claim = await prisma.assignment.updateMany({
-    where: { id, status: { notIn: [...TERMINAL_STATUSES] } },
+    where: {
+      id,
+      status: { notIn: [...TERMINAL_STATUSES] },
+      ...(loadedAt ? { updatedAt: loadedAt } : {}),
+    },
     data: {
       preferredDate: newDate,
       ...(autoStatus ? { status: autoStatus } : {}),
     },
   });
   if (claim.count === 0) {
+    // Mirror the wide-path discrimination: with `loaded-at` and a still-
+    // editable row, this is a concurrent-edit collision. Otherwise the
+    // status went terminal and the existing copy still applies.
+    const fresh = await prisma.assignment.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    const isTerminal =
+      !fresh || fresh.status === "completed" || fresh.status === "cancelled";
+    const failure: UpdateClaimFailure =
+      !loadedAt || isTerminal ? "terminal" : "stale";
+    if (failure === "stale") {
+      return {
+        ok: false,
+        error:
+          "Someone else just edited this assignment. Reload to see their changes.",
+      };
+    }
     return {
       ok: false,
       error: "Status changed while you were editing. Reload and try again.",
@@ -942,10 +1082,26 @@ export async function updateAssignmentInner(
     autoStatus = "awaiting";
   }
 
-  const claimed = await prisma.$transaction(async (tx) => {
-    // Optimistic guard: refuse to update if status went terminal in the meantime.
+  // Optimistic-lock window: when the form posted a `loaded-at`, narrow the
+  // claim predicate so a concurrent edit (another tab / admin saved between
+  // page-load and submit) is surfaced instead of silently clobbered. When
+  // the form omits `loaded-at`, the predicate falls back to terminal-only
+  // (existing v1 parity behavior) — keeps callers we haven't migrated yet
+  // from accidentally getting the new error path.
+  const loadedAt = parseLoadedAt(formData);
+
+  const claimed: true | UpdateClaimFailure = await prisma.$transaction(async (tx) => {
+    // Optimistic guard: refuse the update if status went terminal in the
+    // meantime (always) or if the row's updatedAt moved past the snapshot
+    // the form was rendered from (when `loaded-at` is present). The two
+    // failure modes are distinguished by a follow-up read so the caller
+    // can pick the right error copy — terminal-state vs. concurrent-edit.
     const claim = await tx.assignment.updateMany({
-      where: { id, status: { notIn: [...TERMINAL_STATUSES] } },
+      where: {
+        id,
+        status: { notIn: [...TERMINAL_STATUSES] },
+        ...(loadedAt ? { updatedAt: loadedAt } : {}),
+      },
       data: {
         address: d.address,
         city: d.city,
@@ -992,7 +1148,21 @@ export async function updateAssignmentInner(
         ...(autoStatus ? { status: autoStatus } : {}),
       },
     });
-    if (claim.count === 0) return false;
+    if (claim.count === 0) {
+      // Re-read inside the same tx so the two callers we discriminate on
+      // (`terminal` vs `stale`) reflect the row's actual state at this
+      // moment, not whatever the outer findUnique cached at function entry.
+      const fresh = await tx.assignment.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+      const isTerminal =
+        !fresh || fresh.status === "completed" || fresh.status === "cancelled";
+      // Without `loaded-at`, the only thing the predicate could have
+      // rejected on is the terminal-status filter — preserve old behavior.
+      if (!loadedAt || isTerminal) return "terminal" as const;
+      return "stale" as const;
+    }
     // Wipe + re-create (carries the resolved price snapshot forward).
     await tx.assignmentService.deleteMany({ where: { assignmentId: id } });
     await tx.assignmentService.createMany({
@@ -1002,10 +1172,17 @@ export async function updateAssignmentInner(
         unitPriceCents: l.unitPriceCents,
       })),
     });
-    return true;
+    return true as const;
   });
 
-  if (!claimed) {
+  if (claimed !== true) {
+    if (claimed === "stale") {
+      return {
+        ok: false,
+        error:
+          "Someone else just edited this assignment. Reload to see their changes.",
+      };
+    }
     return {
       ok: false,
       error: "Status changed while you were editing. Reload and try again.",

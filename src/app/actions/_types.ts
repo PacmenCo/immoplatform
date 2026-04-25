@@ -1,7 +1,18 @@
 import { requireSession, type SessionWithUser } from "@/lib/auth";
 
 export type ActionResult<T = undefined> =
-  | { ok: true; data?: T }
+  | {
+      ok: true;
+      data?: T;
+      /**
+       * Human-readable note for partial-success outcomes — the action did
+       * the primary thing, but a best-effort secondary step failed (e.g. the
+       * row was created but a follow-on file upload didn't make it through).
+       * Surfaced as a toast / banner so the caller can recover from the UI
+       * without rolling back the primary write.
+       */
+      warning?: string;
+    }
   | { ok: false; error: string; formValues?: Record<string, string> };
 
 /**

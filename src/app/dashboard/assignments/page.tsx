@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card } from "@/components/ui/Card";
 import { ServicePill } from "@/components/ui/Badge";
@@ -22,7 +23,14 @@ import { initials } from "@/lib/format";
 import { StatusPicker } from "./StatusPicker";
 import { FiltersBar } from "./FiltersBar";
 import { AssignmentFilesButton } from "./AssignmentFilesButton";
+import { Pagination } from "./Pagination";
 import type { Prisma } from "@prisma/client";
+
+/**
+ * Page size matches v1 Livewire (Platform/app/Livewire/AssignmentsList.php:294
+ * `->paginate(20)`). Hardcoded — no UI to change it, like v1.
+ */
+const PAGE_SIZE = 20;
 
 const SORTS = [
   { id: "created", label: "Created", column: "createdAt" as const },
@@ -58,12 +66,27 @@ type SearchParams = Promise<{
   freelancer?: string;
   sort?: string;
   dir?: string;
+  page?: string;
 }>;
 
-/** Build a URL preserving active filters while overriding one field. */
+type FilterState = {
+  status: Status | null;
+  q: string;
+  team: string;
+  freelancer: string;
+  sort: SortId;
+  dir: "asc" | "desc";
+  page: number;
+};
+
+/**
+ * Build a URL preserving active filters while overriding one field. `page` is
+ * 1-indexed (Laravel-style); page 1 is the implicit default and never
+ * serialized to the URL — keeps the unfiltered list URL clean.
+ */
 function buildUrl(
-  current: { status: Status | null; q: string; team: string; freelancer: string; sort: SortId; dir: "asc" | "desc" },
-  patch: Partial<{ status: Status | null; q: string; team: string; freelancer: string; sort: SortId; dir: "asc" | "desc" }>,
+  current: FilterState,
+  patch: Partial<FilterState>,
 ): string {
   const next = { ...current, ...patch };
   const sp = new URLSearchParams();
@@ -73,6 +96,7 @@ function buildUrl(
   if (next.freelancer) sp.set("freelancer", next.freelancer);
   if (next.sort !== "created") sp.set("sort", next.sort);
   if (next.dir !== "desc") sp.set("dir", next.dir);
+  if (next.page > 1) sp.set("page", String(next.page));
   const qs = sp.toString();
   return qs ? `/dashboard/assignments?${qs}` : "/dashboard/assignments";
 }
@@ -101,6 +125,10 @@ export default async function AssignmentsList({
     : "created";
   const dir: "asc" | "desc" = params.dir === "asc" ? "asc" : "desc";
   const sortColumn = SORTS.find((s) => s.id === sort)!.column;
+  // 1-indexed; clamp to ≥ 1. Anything non-numeric / ≤ 0 falls back to 1, just
+  // like Laravel's `Paginator::resolveCurrentPage()`.
+  const requestedPage = Number.parseInt(params.page ?? "1", 10);
+  const page = Number.isFinite(requestedPage) && requestedPage >= 1 ? requestedPage : 1;
 
   // Split on whitespace; every word must substring-match at least one
   // field (AND across words, OR across fields). So "brugge vastgoed" hits
@@ -178,21 +206,46 @@ export default async function AssignmentsList({
       })
     : Promise.resolve<Array<{ id: string; firstName: string; lastName: string }>>([]);
 
-  const [assignments, services, totalCount, visibleTeams, visibleFreelancers] = await Promise.all([
-    prisma.assignment.findMany({
-      where: listWhere,
-      orderBy: { [sortColumn]: dir },
-      include: {
-        team: { select: { id: true, name: true } },
-        freelancer: { select: { id: true, firstName: true, lastName: true } },
-        services: true,
-      },
-    }),
+  // Count rows matching the active filters (`listWhere`) to drive pagination,
+  // separately from the always-unfiltered scope count (`scopedWhere`) used in
+  // the subtitle "X total" line.
+  const [filteredCount, services, totalCount, visibleTeams, visibleFreelancers] = await Promise.all([
+    prisma.assignment.count({ where: listWhere }),
     prisma.service.findMany(),
     prisma.assignment.count({ where: scopedWhere }),
     visibleTeamsPromise,
     visibleFreelancersPromise,
   ]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
+  // Out-of-range page on a non-empty list → bounce to the last page so users
+  // who linger on a deep page after filters narrow the result still land
+  // somewhere sensible. Empty result sets stay on page 1 (renders the empty
+  // state) instead of redirecting to itself.
+  if (page > totalPages && filteredCount > 0) {
+    const sp = new URLSearchParams();
+    if (activeStatus) sp.set("status", activeStatus);
+    if (q) sp.set("q", q);
+    if (activeTeam) sp.set("team", activeTeam);
+    if (activeFreelancer) sp.set("freelancer", activeFreelancer);
+    if (sort !== "created") sp.set("sort", sort);
+    if (dir !== "desc") sp.set("dir", dir);
+    if (totalPages > 1) sp.set("page", String(totalPages));
+    const qs = sp.toString();
+    redirect(qs ? `/dashboard/assignments?${qs}` : "/dashboard/assignments");
+  }
+
+  const assignments = await prisma.assignment.findMany({
+    where: listWhere,
+    orderBy: { [sortColumn]: dir },
+    include: {
+      team: { select: { id: true, name: true } },
+      freelancer: { select: { id: true, firstName: true, lastName: true } },
+      services: { select: { serviceKey: true } },
+    },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
+  });
 
   const servicesByKey = Object.fromEntries(services.map((s) => [s.key, s]));
   const anyFilterActive =
@@ -201,18 +254,21 @@ export default async function AssignmentsList({
     activeTeam !== "" ||
     activeFreelancer !== "";
 
-  const currentState = {
+  const currentState: FilterState = {
     status: activeStatus,
     q,
     team: activeTeam,
     freelancer: activeFreelancer,
     sort,
     dir,
+    page,
   };
 
+  // Subtitle uses the filtered count (across all pages), not `assignments.length`
+  // — that's now capped at PAGE_SIZE and would mis-report after pagination.
   const subtitle = activeStatus
-    ? `${assignments.length} ${STATUS_META[activeStatus].label.toLowerCase()} · ${totalCount} total`
-    : `${assignments.length} total`;
+    ? `${filteredCount} ${STATUS_META[activeStatus].label.toLowerCase()} · ${totalCount} total`
+    : `${totalCount} total`;
 
   return (
     <>
@@ -370,6 +426,15 @@ export default async function AssignmentsList({
             </div>
           </Card>
         )}
+
+        {filteredCount > PAGE_SIZE && (
+          <Pagination
+            current={page}
+            total={filteredCount}
+            pageSize={PAGE_SIZE}
+            buildUrl={(p) => buildUrl(currentState, { page: p })}
+          />
+        )}
       </div>
     </>
   );
@@ -380,13 +445,16 @@ function SortHeader({
   id,
   label,
 }: {
-  current: { status: Status | null; q: string; team: string; freelancer: string; sort: SortId; dir: "asc" | "desc" };
+  current: FilterState;
   id: SortId;
   label: string;
 }) {
   const isActive = current.sort === id;
   const nextDir: "asc" | "desc" = isActive && current.dir === "desc" ? "asc" : "desc";
-  const href = buildUrl(current, { sort: id, dir: nextDir });
+  // Re-sorting resets to page 1, mirroring v1's `updatingSortField` →
+  // `resetPage()` (Platform/AssignmentsList.php:97-100). Otherwise a user
+  // sitting on page 4 would land on a different slice of the new sort order.
+  const href = buildUrl(current, { sort: id, dir: nextDir, page: 1 });
   return (
     <th
       scope="col"

@@ -132,6 +132,7 @@ export default async function EditAssignment({
         canSetDiscount={discountEditor}
         canSetFreelancer={canFreelancer}
         freelancers={freelancers}
+        loadedAt={assignment.updatedAt.toISOString()}
       />
     </>
   );

@@ -41,6 +41,7 @@ import { CommentForm } from "./CommentForm";
 import { AssignmentActions } from "./AssignmentActions";
 import { DeleteAssignmentButton } from "./DeleteAssignmentButton";
 import { DownloadAssignmentPdfButton } from "./DownloadAssignmentPdfButton";
+import { Notice } from "./Notice";
 import { ReassignFreelancerButton } from "./ReassignFreelancerButton";
 
 function timeAgo(date: Date): string {
@@ -57,10 +58,14 @@ function timeAgo(date: Date): string {
 
 export default async function AssignmentDetail({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ notice?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const notice = typeof sp.notice === "string" ? sp.notice : null;
   const session = await requireSession();
 
   const [assignment, services] = await Promise.all([
@@ -148,6 +153,7 @@ export default async function AssignmentDetail({
 
   return (
     <>
+      <Notice notice={notice} />
       <Topbar
         title={assignment.reference}
         subtitle={`${assignment.address}, ${assignment.postal} ${assignment.city}`}

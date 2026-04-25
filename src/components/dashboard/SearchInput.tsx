@@ -61,6 +61,10 @@ export function SearchInput({
     const sp = new URLSearchParams(searchParams.toString());
     if (value) sp.set(paramKey, value);
     else sp.delete(paramKey);
+    // New search → page 1, mirroring Livewire `WithPagination`'s `resetPage()`
+    // on `updatingSearch` (Platform/AssignmentsList.php:82-85). Harmless on
+    // lists that don't paginate (users page) — there's no `page` to delete.
+    sp.delete("page");
     const qs = sp.toString();
     start(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
   }
