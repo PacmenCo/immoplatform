@@ -179,7 +179,7 @@ export function MobileTopbar() {
           aria-label="Your profile"
           className="grid h-11 w-11 place-items-center rounded-md hover:bg-[var(--color-bg-muted)]"
         >
-          <Avatar initials="JR" size="sm" color="#0f172a" online />
+          <Avatar initials="JR" size="sm" color="#334155" online />
         </Link>
       </div>
     </header>

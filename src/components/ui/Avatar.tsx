@@ -8,8 +8,12 @@ const sizeMap = {
   xl: "h-20 w-20 text-xl ring-4 ring-white",
 };
 
+// All palette colors are mid-saturation so white text (the avatar's font
+// color) clears WCAG AA in both light and dark modes. The previous slot-0
+// `#0f172a` (slate-900) was invisible on the `#0b1120` dark page bg —
+// swapped for slate-700 to keep contrast in both themes.
 const palette = [
-  "#0f172a",
+  "#334155",
   "#1e40af",
   "#0d9488",
   "#9f1239",

@@ -23,6 +23,7 @@ import {
   Text,
 } from "@react-email/components";
 import * as React from "react";
+import { appBaseUrl } from "@/lib/urls";
 
 // Inlined from globals.css `--color-brand`. When the brand hex changes,
 // update here too — email clients do not see CSS variables.
@@ -60,7 +61,7 @@ export function EmailLayout({ preview, title, children }: Props) {
             <Text style={footerText}>
               You&rsquo;re receiving this email from {BRAND_NAME}. Manage
               notification preferences in your{" "}
-              <Link href="#" style={footerLink}>
+              <Link href={`${appBaseUrl()}/dashboard/settings/notifications`} style={footerLink}>
                 account settings
               </Link>
               .

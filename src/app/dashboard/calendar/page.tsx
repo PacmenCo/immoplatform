@@ -298,7 +298,7 @@ function MonthGrid({
                 <div
                   className={
                     isToday
-                      ? "inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand)] text-xs font-semibold text-white"
+                      ? "inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand)] text-xs font-semibold text-[var(--color-on-brand)]"
                       : "text-xs font-semibold text-[var(--color-ink-muted)]"
                   }
                 >

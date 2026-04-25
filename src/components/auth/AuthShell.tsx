@@ -16,7 +16,7 @@ export function AuthShell({
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="flex flex-col justify-between px-8 py-10 sm:px-16">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-white text-sm font-bold">
+          <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-[var(--color-on-brand)] text-sm font-bold">
             I
           </span>
           <span className="text-lg">Immo</span>
@@ -50,7 +50,7 @@ export function AuthShell({
         className="relative hidden lg:block overflow-hidden bg-[var(--color-brand)]"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(245,158,11,0.15),transparent_50%),radial-gradient(circle_at_70%_80%,rgba(16,185,129,0.15),transparent_50%)]" />
-        <div className="relative flex h-full flex-col justify-between p-12 text-white">
+        <div className="relative flex h-full flex-col justify-between p-12 text-[var(--color-on-brand)]">
           <div className="flex items-center gap-2 text-sm opacity-80">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-epc)]" />
             Trusted by 400+ agencies in Belgium

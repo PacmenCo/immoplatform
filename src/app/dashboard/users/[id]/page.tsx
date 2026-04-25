@@ -190,7 +190,7 @@ export default async function UserDetail({
                 imageUrl={avatarSrc}
                 alt={fullName}
                 size="xl"
-                color="#0f172a"
+                color="#334155"
               />
               <div className="mt-14 flex items-center gap-2">
                 <Button href={`mailto:${user.email}`} variant="secondary" size="sm">

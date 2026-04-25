@@ -150,7 +150,7 @@ export function Sidebar({ user }: { user?: SidebarUser }) {
             initials={user?.avatarInitials ?? "JR"}
             imageUrl={user?.avatarUrl ?? null}
             size="sm"
-            color="#0f172a"
+            color="#334155"
             online
           />
           <div className="flex flex-col min-w-0">

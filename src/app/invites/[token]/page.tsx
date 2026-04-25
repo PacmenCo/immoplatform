@@ -55,7 +55,7 @@ export default async function InvitePage({
       <div className="space-y-6">
         {/* Inviter */}
         <div className="flex items-start gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-4">
-          <Avatar initials={inviterInitials.toUpperCase()} size="md" color="#0f172a" />
+          <Avatar initials={inviterInitials.toUpperCase()} size="md" color="#334155" />
           <div className="min-w-0 flex-1">
             <p className="text-sm text-[var(--color-ink-soft)]">
               <span className="font-semibold text-[var(--color-ink)]">

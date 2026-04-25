@@ -82,42 +82,50 @@ export async function markCommissionQuarterPaidInner(
   // the audit on no-op so a rapid double-click doesn't write two
   // commission.quarter_paid rows for one effective change. The unique
   // constraint on (teamId, year, quarter) makes the upsert itself
-  // idempotent for data state — only the audit log was leaking.
-  const existing = await prisma.commissionPayout.findUnique({
-    where: {
-      teamId_year_quarter: {
+  // idempotent for data state.
+  //
+  // Read + upsert run inside a transaction so two concurrent re-clicks
+  // from the same admin can't BOTH read `existing === null` (or the same
+  // pre-write snapshot) and BOTH decide they're the fresh write — a
+  // serialization gap that would write two audit rows for one effective
+  // change.
+  const isNoOpReclick = await prisma.$transaction(async (tx) => {
+    const existing = await tx.commissionPayout.findUnique({
+      where: {
+        teamId_year_quarter: {
+          teamId: input.teamId,
+          year: input.year,
+          quarter: input.quarter,
+        },
+      },
+      select: { amountCents: true, paidById: true },
+    });
+    const noOp =
+      existing !== null &&
+      existing.amountCents === amountCents &&
+      existing.paidById === session.user.id;
+    await tx.commissionPayout.upsert({
+      where: {
+        teamId_year_quarter: {
+          teamId: input.teamId,
+          year: input.year,
+          quarter: input.quarter,
+        },
+      },
+      create: {
         teamId: input.teamId,
         year: input.year,
         quarter: input.quarter,
+        amountCents,
+        paidById: session.user.id,
       },
-    },
-    select: { amountCents: true, paidById: true },
-  });
-  const isNoOpReclick =
-    existing !== null &&
-    existing.amountCents === amountCents &&
-    existing.paidById === session.user.id;
-
-  await prisma.commissionPayout.upsert({
-    where: {
-      teamId_year_quarter: {
-        teamId: input.teamId,
-        year: input.year,
-        quarter: input.quarter,
+      update: {
+        amountCents,
+        paidById: session.user.id,
+        paidAt: new Date(),
       },
-    },
-    create: {
-      teamId: input.teamId,
-      year: input.year,
-      quarter: input.quarter,
-      amountCents,
-      paidById: session.user.id,
-    },
-    update: {
-      amountCents,
-      paidById: session.user.id,
-      paidAt: new Date(),
-    },
+    });
+    return noOp;
   });
 
   if (!isNoOpReclick) {

@@ -235,7 +235,7 @@ function AvatarCard({ initial }: { initial: ProfileFormInitial }) {
             imageUrl={initial.avatarUrl}
             alt={initial.avatarAlt}
             size="lg"
-            color="#0f172a"
+            color="#334155"
           />
           <form action={uploadAction} className="flex-1">
             <input
