@@ -206,16 +206,18 @@ export default async function AssignmentsList({
       })
     : Promise.resolve<Array<{ id: string; firstName: string; lastName: string }>>([]);
 
-  // Count rows matching the active filters (`listWhere`) to drive pagination,
-  // separately from the always-unfiltered scope count (`scopedWhere`) used in
-  // the subtitle "X total" line.
-  const [filteredCount, services, totalCount, visibleTeams, visibleFreelancers] = await Promise.all([
+  // Skip the second count when no filter is active — `listWhere` and
+  // `scopedWhere` resolve identically there, so the unfiltered query was
+  // running twice in parallel for nothing.
+  const anyFilterActive = !!(activeStatus || q || activeTeam || activeFreelancer);
+  const [filteredCount, services, scopedTotal, visibleTeams, visibleFreelancers] = await Promise.all([
     prisma.assignment.count({ where: listWhere }),
     prisma.service.findMany(),
-    prisma.assignment.count({ where: scopedWhere }),
+    anyFilterActive ? prisma.assignment.count({ where: scopedWhere }) : Promise.resolve(0),
     visibleTeamsPromise,
     visibleFreelancersPromise,
   ]);
+  const totalCount = anyFilterActive ? scopedTotal : filteredCount;
 
   const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
   // Out-of-range page on a non-empty list → bounce to the last page so users
@@ -223,16 +225,10 @@ export default async function AssignmentsList({
   // somewhere sensible. Empty result sets stay on page 1 (renders the empty
   // state) instead of redirecting to itself.
   if (page > totalPages && filteredCount > 0) {
-    const sp = new URLSearchParams();
-    if (activeStatus) sp.set("status", activeStatus);
-    if (q) sp.set("q", q);
-    if (activeTeam) sp.set("team", activeTeam);
-    if (activeFreelancer) sp.set("freelancer", activeFreelancer);
-    if (sort !== "created") sp.set("sort", sort);
-    if (dir !== "desc") sp.set("dir", dir);
-    if (totalPages > 1) sp.set("page", String(totalPages));
-    const qs = sp.toString();
-    redirect(qs ? `/dashboard/assignments?${qs}` : "/dashboard/assignments");
+    redirect(buildUrl(
+      { status: activeStatus, q, team: activeTeam, freelancer: activeFreelancer, sort, dir, page },
+      { page: totalPages },
+    ));
   }
 
   const assignments = await prisma.assignment.findMany({
@@ -248,11 +244,6 @@ export default async function AssignmentsList({
   });
 
   const servicesByKey = Object.fromEntries(services.map((s) => [s.key, s]));
-  const anyFilterActive =
-    activeStatus !== null ||
-    q.length > 0 ||
-    activeTeam !== "" ||
-    activeFreelancer !== "";
 
   const currentState: FilterState = {
     status: activeStatus,

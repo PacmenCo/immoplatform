@@ -11,7 +11,7 @@ import {
   PhotographerContactPerson,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { SERVICE_KEYS, STATUS_ORDER, TERMINAL_STATUSES } from "@/lib/mockData";
+import { SERVICE_KEYS, STATUS_ORDER, TERMINAL_STATUSES, isTerminalStatus } from "@/lib/mockData";
 import {
   canRoleTransitionTo,
   canTransition,
@@ -67,6 +67,7 @@ import { fullName } from "@/lib/format";
 import { storage } from "@/lib/storage";
 import { addToGoogleCalendarUrl, assignmentUrl } from "@/lib/urls";
 import { uploadAssignmentFilesInner } from "./files";
+import { NOTICE_PARAM, noticeMessage } from "@/app/dashboard/assignments/[id]/notices";
 import { withSession, type ActionResult } from "./_types";
 
 /**
@@ -555,13 +556,9 @@ export async function createAssignmentInner(
         undefined,
         uploadFd,
       );
-      if (!uploadRes.ok) {
-        fileWarning =
-          "Assignment created. Some files failed to upload — try again from the Files tab.";
-      }
+      if (!uploadRes.ok) fileWarning = noticeMessage("files_failed");
     } catch {
-      fileWarning =
-        "Assignment created. Some files failed to upload — try again from the Files tab.";
+      fileWarning = noticeMessage("files_failed");
     }
   }
 
@@ -645,7 +642,7 @@ export const createAssignment = withSession(async (
     // through a query param so the detail page can flash a toast on land —
     // the form's `useActionState` value is wiped by `redirect()`, so we
     // can't rely on returning the warning from here.
-    const qs = result.warning ? "?notice=files_failed" : "";
+    const qs = result.warning ? `?${NOTICE_PARAM}=files_failed` : "";
     redirect(`/dashboard/assignments/${result.data.id}${qs}`);
   }
   if (result.ok) return { ok: true };
@@ -866,8 +863,7 @@ async function applyFreelancerUpdate(
       where: { id },
       select: { status: true },
     });
-    const isTerminal =
-      !fresh || fresh.status === "completed" || fresh.status === "cancelled";
+    const isTerminal = !fresh || isTerminalStatus(fresh.status);
     const failure: UpdateClaimFailure =
       !loadedAt || isTerminal ? "terminal" : "stale";
     if (failure === "stale") {
@@ -1156,12 +1152,11 @@ export async function updateAssignmentInner(
         where: { id },
         select: { status: true },
       });
-      const isTerminal =
-        !fresh || fresh.status === "completed" || fresh.status === "cancelled";
+      const isTerminal = !fresh || isTerminalStatus(fresh.status);
       // Without `loaded-at`, the only thing the predicate could have
       // rejected on is the terminal-status filter — preserve old behavior.
-      if (!loadedAt || isTerminal) return "terminal" as const;
-      return "stale" as const;
+      if (!loadedAt || isTerminal) return "terminal" satisfies UpdateClaimFailure;
+      return "stale" satisfies UpdateClaimFailure;
     }
     // Wipe + re-create (carries the resolved price snapshot forward).
     await tx.assignmentService.deleteMany({ where: { assignmentId: id } });

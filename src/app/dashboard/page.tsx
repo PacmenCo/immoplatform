@@ -95,7 +95,7 @@ export default async function DashboardHome() {
         where: auditWhere,
         orderBy: { at: "desc" },
         take: 5,
-        include: { actor: { select: { firstName: true, lastName: true, avatarUrl: true } } },
+        include: { actor: { select: { firstName: true, lastName: true } } },
       }),
       isFreelancer
         ? Promise.resolve(0)
