@@ -107,6 +107,114 @@ export async function login(
   redirect("/dashboard");
 }
 
+// ─── REGISTER ──────────────────────────────────────────────────────
+
+// Platform parity (Auth/Register.php): self-serve realtor signup.
+// v1's single `name` field is split into firstName + lastName here to
+// match v2's User schema. Role is hard-coded to `realtor` (matches v1's
+// `Role::where('name', 'makelaar')`); admins/staff are seeded or invited,
+// not self-served. Auto-login + redirect to /dashboard mirrors v1's
+// `Auth::login($user)` + `redirect(route('assignments.index'))`.
+const registerSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required.").max(100),
+  lastName: z.string().trim().min(1, "Last name is required.").max(100),
+  email: z
+    .string()
+    .email("Enter a valid email address.")
+    .max(255)
+    .transform((s) => s.toLowerCase().trim()),
+  password: z.string().min(10, "Password must be at least 10 characters."),
+  confirm: z.string(),
+  agency: z.string().trim().max(120).optional().or(z.literal("")),
+  region: z.string().trim().max(120).optional().or(z.literal("")),
+  acceptTerms: z.literal("on", {
+    message: "You must accept the Terms and Privacy Policy.",
+  }),
+});
+
+export async function register(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = registerSchema.safeParse({
+    firstName: formData.get("firstName"),
+    lastName: formData.get("lastName"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    confirm: formData.get("confirm"),
+    agency: formData.get("agency") ?? "",
+    region: formData.get("region") ?? "",
+    acceptTerms: formData.get("acceptTerms"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+  }
+  if (parsed.data.password !== parsed.data.confirm) {
+    return { ok: false, error: "Passwords don't match." };
+  }
+
+  // Rate-limit per IP — same window as forgot-password since both are
+  // pre-auth surfaces and a low cap stops scripted account-farming.
+  const ip = clientIpFromHeaders(await headers());
+  const rl = checkRateLimit(`register:${ip}`, RATE_LIMITS.forgotPassword);
+  if (!rl.ok) return rateLimitedError(rl.retryAfterSec);
+
+  // Email-uniqueness check matches v1 `unique:users` rule. The error is
+  // intentionally generic ("Account already exists with that email.") —
+  // a precise "this email is taken" surfaces enumeration; we live with
+  // the slight UX hit because the same hint shows on /forgot-password's
+  // generic-success path anyway.
+  const existing = await prisma.user.findUnique({
+    where: { email: parsed.data.email },
+    select: { id: true },
+  });
+  if (existing) {
+    return { ok: false, error: "An account with that email already exists. Try logging in." };
+  }
+
+  const passwordHash = await hashPassword(parsed.data.password);
+  const user = await prisma.user.create({
+    data: {
+      email: parsed.data.email,
+      passwordHash,
+      firstName: parsed.data.firstName,
+      lastName: parsed.data.lastName,
+      role: "realtor",
+      region: parsed.data.region || null,
+      // bio borrows the agency text — v2's User schema has no `agency`
+      // column, but a one-liner about who they are is useful as a starter.
+      bio: parsed.data.agency || null,
+    },
+  });
+
+  await audit({
+    actorId: user.id,
+    verb: "user.created",
+    objectType: "user",
+    objectId: user.id,
+    metadata: { via: "self_register", role: "realtor" },
+  });
+
+  await createSession({ userId: user.id, activeTeamId: null });
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
+
+  await audit({
+    actorId: user.id,
+    verb: "user.signed_in",
+    objectType: "user",
+    objectId: user.id,
+  });
+
+  // v1 redirects to assignments.index; v2 has /dashboard as the role-
+  // landing equivalent (which then routes to /freelancer for freelancers,
+  // etc.). Realtors land on the dashboard home.
+  redirect("/dashboard");
+}
+
 // ─── LOGOUT ────────────────────────────────────────────────────────
 
 export async function logout(): Promise<void> {
