@@ -212,7 +212,7 @@ const createSchema = z.object({
 
   ownerName: z.string().trim().min(1, "Owner name is required.").max(200),
   ownerEmail: z.string().email().optional().or(z.literal("")),
-  ownerPhone: z.string().optional(),
+  ownerPhone: z.string().trim().max(20, "Phone number is too long.").optional().or(z.literal("")),
   // Owner invoicing address + VAT + recipient type — Platform parity
   // (AssignmentController.php:162-164, 148, 151).
   ownerAddress: z.string().trim().max(255).optional().or(z.literal("")),
@@ -223,10 +223,10 @@ const createSchema = z.object({
 
   tenantName: z.string().optional(),
   tenantEmail: z.string().email().optional().or(z.literal("")),
-  tenantPhone: z.string().optional(),
+  tenantPhone: z.string().trim().max(50, "Phone number is too long.").optional().or(z.literal("")),
 
   contactEmail: z.string().email().optional().or(z.literal("")),
-  contactPhone: z.string().optional(),
+  contactPhone: z.string().trim().max(20, "Phone number is too long.").optional().or(z.literal("")),
   photographerContactPerson: z
     .enum(["realtor", "owner", "tenant"])
     .optional()
@@ -657,7 +657,7 @@ const updateSchema = z.object({
 
   ownerName: z.string().trim().min(1, "Owner name is required.").max(200),
   ownerEmail: z.string().email().optional().or(z.literal("")),
-  ownerPhone: z.string().optional(),
+  ownerPhone: z.string().trim().max(20, "Phone number is too long.").optional().or(z.literal("")),
   // Owner invoicing address + VAT + recipient type — Platform parity
   // (AssignmentController.php:162-164, 148, 151).
   ownerAddress: z.string().trim().max(255).optional().or(z.literal("")),
@@ -668,10 +668,10 @@ const updateSchema = z.object({
 
   tenantName: z.string().optional(),
   tenantEmail: z.string().email().optional().or(z.literal("")),
-  tenantPhone: z.string().optional(),
+  tenantPhone: z.string().trim().max(50, "Phone number is too long.").optional().or(z.literal("")),
 
   contactEmail: z.string().email().optional().or(z.literal("")),
-  contactPhone: z.string().optional(),
+  contactPhone: z.string().trim().max(20, "Phone number is too long.").optional().or(z.literal("")),
   photographerContactPerson: z
     .enum(["realtor", "owner", "tenant"])
     .optional()

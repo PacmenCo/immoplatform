@@ -125,6 +125,21 @@ describe("createAssignmentInner — field validation", () => {
     const res = await createAssignmentInner(admin, undefined, fd);
     expect(res.ok).toBe(true);
   });
+
+  it("owner-phone over 20 chars → rejected (Platform parity max:20)", async () => {
+    const { admin } = await seedBaseline();
+    const fd = buildCreateForm({ "owner-phone": "+32 470 12 34 56 ext 12345" });
+    const res = await createAssignmentInner(admin, undefined, fd);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/Phone number is too long/);
+  });
+
+  it("owner-phone within 20 chars accepted (Belgian formats)", async () => {
+    const { admin } = await seedBaseline();
+    const fd = buildCreateForm({ "owner-phone": "+32 470 12 34 56" });
+    const res = await createAssignmentInner(admin, undefined, fd);
+    expect(res.ok).toBe(true);
+  });
 });
 
 describe("createAssignmentInner — service price snapshot", () => {

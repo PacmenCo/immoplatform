@@ -541,19 +541,36 @@ export default async function AssignmentDetail({
                   <CardTitle>Team</CardTitle>
                 </CardHeader>
                 <CardBody className="text-sm">
-                  {hasRole(session, "freelancer") ? (
-                    <span className="font-medium text-[var(--color-ink)]">
-                      {assignment.team.name}
-                    </span>
-                  ) : (
-                    <Link
-                      href={`/dashboard/teams/${assignment.team.id}`}
-                      className="font-medium text-[var(--color-ink)] hover:underline"
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-xs font-bold text-white"
+                      style={{ backgroundColor: assignment.team.logoColor ?? "#0f172a" }}
+                      aria-hidden
                     >
-                      {assignment.team.name}
-                    </Link>
-                  )}
-                  <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
+                      {assignment.team.logo ?? assignment.team.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      {hasRole(session, "freelancer") ? (
+                        <span className="block truncate font-medium text-[var(--color-ink)]">
+                          {assignment.team.name}
+                        </span>
+                      ) : (
+                        <Link
+                          href={`/dashboard/teams/${assignment.team.id}`}
+                          className="block truncate font-medium text-[var(--color-ink)] hover:underline"
+                        >
+                          {assignment.team.name}
+                        </Link>
+                      )}
+                      {assignment.team.legalName &&
+                        assignment.team.legalName !== assignment.team.name && (
+                          <span className="block truncate text-xs text-[var(--color-ink-muted)]">
+                            {assignment.team.legalName}
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-[var(--color-ink-muted)]">
                     Created {assignment.createdAt.toISOString().slice(0, 10)}
                   </p>
                 </CardBody>
