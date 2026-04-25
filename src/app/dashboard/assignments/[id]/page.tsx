@@ -358,7 +358,10 @@ export default async function AssignmentDetail({
                 )}
 
                 <div className="pt-4 border-t border-[var(--color-border)]">
-                  <CommentForm assignmentId={assignment.id} />
+                  <CommentForm
+                    assignmentId={assignment.id}
+                    authorInitials={initials(session.user.firstName, session.user.lastName)}
+                  />
                 </div>
               </CardBody>
             </Card>

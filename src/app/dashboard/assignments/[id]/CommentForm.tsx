@@ -8,7 +8,15 @@ import { useFormDirty } from "@/lib/useFormDirty";
 import { postComment } from "@/app/actions/assignments";
 import type { ActionResult } from "@/app/actions/_types";
 
-export function CommentForm({ assignmentId }: { assignmentId: string }) {
+export function CommentForm({
+  assignmentId,
+  authorInitials,
+  authorColor,
+}: {
+  assignmentId: string;
+  authorInitials: string;
+  authorColor?: string | null;
+}) {
   const [state, formAction, pending] = useActionState<ActionResult | undefined, FormData>(
     postComment,
     undefined,
@@ -23,7 +31,7 @@ export function CommentForm({ assignmentId }: { assignmentId: string }) {
   return (
     <form ref={formRef} action={formAction} className="flex gap-3">
       <input type="hidden" name="assignmentId" value={assignmentId} />
-      <Avatar initials="JR" size="sm" color="#0f172a" />
+      <Avatar initials={authorInitials} size="sm" color={authorColor ?? "#0f172a"} />
       <div className="flex-1">
         {state && !state.ok && (
           <p role="alert" className="mb-2 text-xs text-[var(--color-asbestos)]">
