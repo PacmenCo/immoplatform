@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, KeyboardEvent } from "react";
+import { useRef, useState, useTransition, KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import { IconCheck, IconBuilding, IconPlus } from "@/components/ui/Icons";
+import { switchActiveTeam } from "@/app/actions/auth";
 
 export type SwitcherTeam = {
   id: string;
@@ -24,10 +26,12 @@ export function TeamSwitcher({
 }) {
   // Guard against a stale activeTeamId pointing at a team the user no
   // longer belongs to — fall back to the first membership.
-  const [activeId, setActiveId] = useState(
+  const [activeId, setActiveId] = useState<string | null>(
     teams.find((t) => t.id === initialActiveId)?.id ?? teams[0]?.id ?? null,
   );
   const detailsRef = useRef<HTMLDetailsElement>(null);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const active = teams.find((t) => t.id === activeId) ?? null;
 
   if (teams.length === 0 || !active) {
@@ -36,6 +40,28 @@ export function TeamSwitcher({
 
   function close() {
     if (detailsRef.current) detailsRef.current.open = false;
+  }
+
+  function pickTeam(teamId: string) {
+    if (teamId === activeId) {
+      close();
+      return;
+    }
+    // Optimistic: flip the UI immediately, persist server-side. router.refresh
+    // re-runs the layout + page server components so the assignment scope +
+    // sidebar reflect the new active team. Without this, the choice was
+    // visual-only and reverted on next nav.
+    setActiveId(teamId);
+    close();
+    startTransition(async () => {
+      const res = await switchActiveTeam(teamId);
+      if (!res.ok) {
+        // Revert on server reject (e.g. membership stale).
+        setActiveId(initialActiveId);
+        return;
+      }
+      router.refresh();
+    });
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLDetailsElement>) {
@@ -87,12 +113,10 @@ export function TeamSwitcher({
             <li key={t.id}>
               <button
                 type="button"
-                onClick={() => {
-                  setActiveId(t.id);
-                  close();
-                }}
+                onClick={() => pickTeam(t.id)}
+                disabled={pending}
                 className={
-                  "group/item flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--color-bg-muted)] " +
+                  "group/item flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--color-bg-muted)] disabled:opacity-60 " +
                   (t.id === activeId ? "bg-[var(--color-bg-muted)]" : "")
                 }
               >
