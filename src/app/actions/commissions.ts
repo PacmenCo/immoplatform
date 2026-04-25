@@ -78,6 +78,26 @@ export async function markCommissionQuarterPaidInner(
     }
   }
 
+  // Detect whether this is a fresh mark-paid or a no-op re-click. Skip
+  // the audit on no-op so a rapid double-click doesn't write two
+  // commission.quarter_paid rows for one effective change. The unique
+  // constraint on (teamId, year, quarter) makes the upsert itself
+  // idempotent for data state — only the audit log was leaking.
+  const existing = await prisma.commissionPayout.findUnique({
+    where: {
+      teamId_year_quarter: {
+        teamId: input.teamId,
+        year: input.year,
+        quarter: input.quarter,
+      },
+    },
+    select: { amountCents: true, paidById: true },
+  });
+  const isNoOpReclick =
+    existing !== null &&
+    existing.amountCents === amountCents &&
+    existing.paidById === session.user.id;
+
   await prisma.commissionPayout.upsert({
     where: {
       teamId_year_quarter: {
@@ -100,18 +120,20 @@ export async function markCommissionQuarterPaidInner(
     },
   });
 
-  await audit({
-    actorId: session.user.id,
-    verb: "commission.quarter_paid",
-    objectType: "team",
-    objectId: input.teamId,
-    metadata: {
-      year: input.year,
-      quarter: input.quarter,
-      amountCents,
-      teamName: team.name,
-    },
-  });
+  if (!isNoOpReclick) {
+    await audit({
+      actorId: session.user.id,
+      verb: "commission.quarter_paid",
+      objectType: "team",
+      objectId: input.teamId,
+      metadata: {
+        year: input.year,
+        quarter: input.quarter,
+        amountCents,
+        teamName: team.name,
+      },
+    });
+  }
 
   revalidatePath("/dashboard/commissions");
   revalidatePath("/dashboard/overview");
