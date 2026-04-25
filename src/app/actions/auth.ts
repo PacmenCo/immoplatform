@@ -179,6 +179,8 @@ const resetSchema = z.object({
   confirm: z.string(),
 });
 
+const INVALID_TOKEN_ERROR = "This reset link is invalid or has expired.";
+
 export async function resetPassword(
   _prev: ActionResult | undefined,
   formData: FormData,
@@ -189,6 +191,17 @@ export async function resetPassword(
     confirm: formData.get("confirm"),
   });
   if (!parsed.success) {
+    // Token validation issues should look identical to "expired/invalid"
+    // — surfacing "Too small: expected …" otherwise leaks the schema
+    // and gives an attacker a way to distinguish "token is shaped wrong"
+    // from "token is correctly shaped but unknown". Other validation
+    // errors (password length, missing confirm) keep their specific text.
+    const tokenIssue = parsed.error.issues.find(
+      (i) => i.path[0] === "token",
+    );
+    if (tokenIssue) {
+      return { ok: false, error: INVALID_TOKEN_ERROR };
+    }
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
   if (parsed.data.password !== parsed.data.confirm) {
@@ -206,7 +219,7 @@ export async function resetPassword(
     include: { user: true },
   });
   if (!reset || reset.usedAt || reset.expiresAt < new Date()) {
-    return { ok: false, error: "This reset link is invalid or has expired." };
+    return { ok: false, error: INVALID_TOKEN_ERROR };
   }
   if (reset.user.deletedAt) {
     return { ok: false, error: "This account is no longer active." };
