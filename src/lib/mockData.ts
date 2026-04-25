@@ -43,15 +43,27 @@ export type Status =
   | "on_hold"
   | "cancelled";
 
+// Status pill tints. We mix a status-specific hue with the theme's bg/ink
+// CSS vars, so the same `bg`/`fg` strings render correctly in both light
+// and dark mode without forking the consumer API. v1 parity (Platform's
+// Flux Badge resolves to dark-mode-aware tokens via DB-stored `color`); v2
+// reaches the same outcome via color-mix + CSS vars.
+function statusTint(hue: string) {
+  return {
+    bg: `color-mix(in srgb, ${hue} 14%, var(--color-bg))`,
+    fg: `color-mix(in srgb, ${hue} 60%, var(--color-ink))`,
+  };
+}
+
 export const STATUS_META: Record<Status, { label: string; bg: string; fg: string }> = {
-  draft: { label: "Draft", bg: "#f1f5f9", fg: "#475569" },
-  awaiting: { label: "Awaiting", bg: "#e2e8f0", fg: "#334155" },
-  scheduled: { label: "Scheduled", bg: "#dbeafe", fg: "#1d4ed8" },
-  in_progress: { label: "In progress", bg: "#fef3c7", fg: "#b45309" },
-  delivered: { label: "Delivered", bg: "#dcfce7", fg: "#15803d" },
-  completed: { label: "Completed", bg: "#ecfccb", fg: "#365314" },
-  on_hold: { label: "On hold", bg: "#e4e4e7", fg: "#52525b" },
-  cancelled: { label: "Cancelled", bg: "#fee2e2", fg: "#991b1b" },
+  draft: { label: "Draft", ...statusTint("#64748b") },        // slate
+  awaiting: { label: "Awaiting", ...statusTint("#475569") },  // slate-darker
+  scheduled: { label: "Scheduled", ...statusTint("#3b82f6") }, // blue
+  in_progress: { label: "In progress", ...statusTint("#f59e0b") }, // amber
+  delivered: { label: "Delivered", ...statusTint("#22c55e") }, // green
+  completed: { label: "Completed", ...statusTint("#84cc16") }, // lime
+  on_hold: { label: "On hold", ...statusTint("#71717a") },    // zinc
+  cancelled: { label: "Cancelled", ...statusTint("#ef4444") }, // red
 };
 
 /**

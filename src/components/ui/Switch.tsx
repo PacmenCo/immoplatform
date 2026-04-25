@@ -38,7 +38,7 @@ export function Switch({
         />
         <span
           aria-hidden
-          className="absolute top-[2px] left-[2px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"
+          className="absolute top-[2px] left-[2px] h-5 w-5 rounded-full bg-[var(--color-bg)] shadow-sm transition-transform peer-checked:translate-x-5"
         />
       </label>
       <label htmlFor={id} className="flex flex-col gap-0.5 text-sm cursor-pointer select-none">

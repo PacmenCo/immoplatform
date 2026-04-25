@@ -86,7 +86,7 @@ export default function Services() {
 function ServiceCard({ service }: { service: Service }) {
   return (
     <article
-      className="group relative flex flex-col rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-6 transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
+      className="group relative flex flex-col rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-6 transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
       style={{ borderTopWidth: "3px", borderTopColor: service.colorVar }}
     >
       <div

@@ -3,10 +3,10 @@ import { MobileNav } from "@/components/MobileNav";
 
 export default function Nav() {
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-[var(--color-border)]">
+    <header className="sticky top-0 z-50 bg-[color-mix(in_srgb,var(--color-bg)_80%,transparent)] backdrop-blur border-b border-[var(--color-border)]">
       <div className="mx-auto flex h-16 max-w-[var(--container)] items-center justify-between gap-3 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-white text-sm font-bold">
+          <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-[var(--color-on-brand)] text-sm font-bold">
             I
           </span>
           <span className="text-lg">Immo</span>

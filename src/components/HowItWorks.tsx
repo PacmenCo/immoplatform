@@ -36,7 +36,7 @@ export default function HowItWorks() {
           {steps.map((step, i) => (
             <li
               key={step.n}
-              className="relative rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-8"
+              className="relative rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-8"
             >
               <div className="flex items-baseline gap-3">
                 <span className="text-5xl font-bold tracking-tight text-[var(--color-accent)]">

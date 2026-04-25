@@ -20,7 +20,7 @@ export function Checkbox({
         id={id}
         type="checkbox"
         aria-describedby={descId}
-        className="mt-0.5 h-4 w-4 shrink-0 rounded border border-[var(--color-border-strong)] bg-white accent-[var(--color-brand)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="mt-0.5 h-4 w-4 shrink-0 rounded border border-[var(--color-border-strong)] bg-[var(--color-bg)] accent-[var(--color-brand)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
         {...props}
       />
       <label htmlFor={id} className="flex flex-col gap-0.5 text-sm cursor-pointer select-none">

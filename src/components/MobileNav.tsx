@@ -45,7 +45,7 @@ export function MobileNav() {
         </svg>
       </summary>
 
-      <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-2 shadow-[var(--shadow-lg)]">
+      <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-2 shadow-[var(--shadow-lg)]">
         <ul className="flex flex-col">
           {LINKS.map((l) => (
             <li key={l.href}>

@@ -8,7 +8,7 @@ export default function Hero() {
       <div className="relative mx-auto max-w-[var(--container)] px-6 py-24 md:py-32">
         <div className="grid gap-12 lg:grid-cols-[1.2fr_1fr] lg:items-center">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-epc)]" />
               4 companies. 1 platform.
             </span>
@@ -40,7 +40,7 @@ export default function Hero() {
               </a>
               <a
                 href="#services"
-                className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-white px-6 py-3 text-sm font-semibold text-[var(--color-ink)] transition-all hover:border-[var(--color-ink)]"
+                className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-bg)] px-6 py-3 text-sm font-semibold text-[var(--color-ink)] transition-all hover:border-[var(--color-ink)]"
               >
                 See services
               </a>
@@ -71,7 +71,7 @@ function HeroPreview() {
       <div
         className="absolute -inset-8 -z-10 rounded-[2rem] bg-[radial-gradient(circle_at_70%_30%,rgba(245,158,11,0.08),transparent_60%)]"
       />
-      <div className="relative rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-lg)]">
+      <div className="relative rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-bg)] p-6 shadow-[var(--shadow-lg)]">
         <div className="flex items-center justify-between">
           <span className="font-mono text-[11px] font-medium tracking-wider text-[var(--color-ink-muted)]">
             ASG-2041
@@ -114,7 +114,7 @@ function HeroPreview() {
         </div>
       </div>
 
-      <div className="absolute -bottom-6 -left-6 rounded-xl border border-[var(--color-border)] bg-white p-3 shadow-[var(--shadow-md)]">
+      <div className="absolute -bottom-6 -left-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-3 shadow-[var(--shadow-md)]">
         <div className="flex items-center gap-2.5">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--color-epc)_14%,white)]">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-epc)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

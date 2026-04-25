@@ -26,7 +26,7 @@ export function PageSkeleton() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-5"
+            className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-5"
           >
             <SkeletonBlock className="mb-3 h-3 w-24 bg-[var(--color-bg-alt)]" />
             <SkeletonBlock className="h-8 w-20" />
@@ -35,7 +35,7 @@ export function PageSkeleton() {
         ))}
       </div>
 
-      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]">
         <div className="flex items-center justify-between border-b border-[var(--color-border)] p-5">
           <SkeletonBlock className="h-5 w-48" />
           <SkeletonBlock className="h-8 w-28" />

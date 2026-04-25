@@ -2,7 +2,7 @@ export default function CTA() {
   return (
     <section className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)]">
       <div className="mx-auto max-w-[var(--container)] px-6 py-24">
-        <div className="relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-white p-12 md:p-16 text-center shadow-[var(--shadow-md)]">
+        <div className="relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-bg)] p-12 md:p-16 text-center shadow-[var(--shadow-md)]">
           <div
             aria-hidden
             className="absolute -right-32 -top-32 h-80 w-80 rounded-full bg-[radial-gradient(circle,var(--color-accent)_0%,transparent_65%)] opacity-10 blur-2xl"
