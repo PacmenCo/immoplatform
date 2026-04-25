@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -11,7 +11,11 @@ import { cn } from "@/lib/cn";
  *   - `overlay`: floating dialog with backdrop, body-scroll lock, click-out
  *     and Escape-to-close. Used by triggered confirms (cancel, reassign,
  *     transfer ownership, delete account). Without the lock, on touch the
- *     page behind scrolls under the dialog — fixed in this commit.
+ *     page behind scrolls under the dialog.
+ *
+ * Overlay mode is a true ARIA dialog — `role="dialog"`, `aria-modal="true"`,
+ * `aria-labelledby` referencing the title. Focus moves into the panel on
+ * open and returns to whichever element triggered the dialog on close.
  */
 export function Modal({
   title,
@@ -33,11 +37,30 @@ export function Modal({
   overlay?: boolean;
 }) {
   const showClose = !!closeHref || !!onClose;
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!overlay) return;
+    // Remember the trigger so we can return focus when the dialog closes —
+    // without this the keyboard user lands on <body> after Escape and loses
+    // their place on the page.
+    const trigger =
+      typeof document !== "undefined" ? (document.activeElement as HTMLElement | null) : null;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    // Focus the first interactive element inside the panel (or the panel
+    // itself if there isn't one). Without this, screen readers won't shift
+    // focus into the dialog and Tab starts in <body>, escaping it
+    // immediately on first press.
+    const id = window.requestAnimationFrame(() => {
+      const focusable = panelRef.current?.querySelector<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      (focusable ?? panelRef.current)?.focus();
+    });
+
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape" && onClose) {
         e.preventDefault();
@@ -46,8 +69,11 @@ export function Modal({
     }
     document.addEventListener("keydown", onKey);
     return () => {
+      cancelAnimationFrame(id);
       document.body.style.overflow = prevOverflow;
       document.removeEventListener("keydown", onKey);
+      // Return focus to the opener once the dialog is gone.
+      trigger?.focus?.();
     };
   }, [overlay, onClose]);
 
@@ -67,7 +93,14 @@ export function Modal({
         className,
       )}
     >
-      <div className="relative mx-auto max-w-xl overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] shadow-[var(--shadow-lg)]">
+      <div
+        ref={panelRef}
+        role={overlay ? "dialog" : undefined}
+        aria-modal={overlay ? true : undefined}
+        aria-labelledby={overlay ? titleId : undefined}
+        tabIndex={overlay ? -1 : undefined}
+        className="relative mx-auto max-w-xl overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] shadow-[var(--shadow-lg)] focus:outline-none"
+      >
         {showClose && (
           closeHref ? (
             <Link href={closeHref} aria-label="Close" className={closeBtnClass}>
@@ -85,7 +118,7 @@ export function Modal({
           )
         )}
         <div className="border-b border-[var(--color-border)] px-6 py-5 pr-14">
-          <h2 className="text-base font-semibold text-[var(--color-ink)]">
+          <h2 id={titleId} className="text-base font-semibold text-[var(--color-ink)]">
             {title}
           </h2>
           {description && (

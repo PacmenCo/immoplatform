@@ -18,6 +18,8 @@ const QUARTERS = [1, 2, 3, 4] as const;
 
 type SearchParams = Promise<{ year?: string; quarter?: string; team?: string }>;
 
+export const metadata = { title: "Commissions" };
+
 export default async function CommissionsPage({
   searchParams,
 }: {

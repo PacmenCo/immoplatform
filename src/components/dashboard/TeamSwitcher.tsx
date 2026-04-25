@@ -29,6 +29,11 @@ export function TeamSwitcher({
   const [activeId, setActiveId] = useState<string | null>(
     teams.find((t) => t.id === initialActiveId)?.id ?? teams[0]?.id ?? null,
   );
+  // Track open state so we can mirror it onto aria-expanded — native
+  // <details>/<summary> conveys this to most screen readers via the open
+  // attribute, but cross-SR support for menu-button semantics is patchier
+  // than an explicit aria-expanded.
+  const [open, setOpen] = useState(false);
   const detailsRef = useRef<HTMLDetailsElement>(null);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -40,6 +45,7 @@ export function TeamSwitcher({
 
   function close() {
     if (detailsRef.current) detailsRef.current.open = false;
+    setOpen(false);
   }
 
   function pickTeam(teamId: string) {
@@ -73,9 +79,16 @@ export function TeamSwitcher({
   }
 
   return (
-    <details ref={detailsRef} onKeyDown={handleKeyDown} className="group relative">
+    <details
+      ref={detailsRef}
+      onKeyDown={handleKeyDown}
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
+      className="group relative"
+    >
       <summary
         aria-label="Switch team"
+        aria-haspopup="menu"
+        aria-expanded={open}
         className="inline-flex cursor-pointer list-none items-center gap-2 rounded-md border border-transparent px-2 py-1 text-sm text-[var(--color-ink)] hover:border-[var(--color-border)] hover:bg-[var(--color-bg-alt)] [&::-webkit-details-marker]:hidden"
       >
         <span

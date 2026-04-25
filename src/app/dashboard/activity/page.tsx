@@ -101,6 +101,8 @@ function targetLabel(row: {
   return row.objectType ?? row.objectId ?? "—";
 }
 
+export const metadata = { title: "Activity log" };
+
 export default async function ActivityLogPage() {
   const session = await requireSession();
   // Admin-only parity with the earlier "staff + admin see global activity"

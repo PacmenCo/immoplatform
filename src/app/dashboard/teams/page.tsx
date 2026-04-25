@@ -19,6 +19,8 @@ import { requireRoleOrRedirect } from "@/lib/auth";
 import { composeWhere, teamScope } from "@/lib/permissions";
 import { initials } from "@/lib/format";
 
+export const metadata = { title: "Teams" };
+
 export default async function TeamsPage() {
   const session = await requireRoleOrRedirect(
     ["admin", "staff", "realtor"],

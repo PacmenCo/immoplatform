@@ -11,6 +11,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       type="button"
       onClick={() => setPref(next)}
       aria-label={`Switch to ${next} theme`}
+      aria-pressed={effective === "dark"}
       title={`Switch to ${next} theme`}
       className={
         "relative grid h-9 w-9 place-items-center rounded-md text-[var(--color-ink-soft)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] " +

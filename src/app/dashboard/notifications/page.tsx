@@ -72,6 +72,8 @@ function Item({ n, unread }: { n: Notif; unread?: boolean }) {
   );
 }
 
+export const metadata = { title: "Notifications" };
+
 export default function NotificationsPage() {
   return (
     <>

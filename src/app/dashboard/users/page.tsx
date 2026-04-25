@@ -49,6 +49,8 @@ function relativeTime(from: Date | null, now: Date): string {
   return `${Math.floor(mon / 12)}y ago`;
 }
 
+export const metadata = { title: "Users" };
+
 export default async function UsersPage({
   searchParams,
 }: {
@@ -226,12 +228,12 @@ export default async function UsersPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
-                  <th className="text-left font-semibold px-6 py-3">User</th>
-                  <th className="text-left font-semibold px-6 py-3">Role</th>
-                  <th className="text-left font-semibold px-6 py-3">Team</th>
-                  <th className="text-left font-semibold px-6 py-3">Joined</th>
-                  <th className="text-left font-semibold px-6 py-3">Last seen</th>
-                  <th className="text-right font-semibold px-6 py-3" />
+                  <th scope="col" className="text-left font-semibold px-6 py-3">User</th>
+                  <th scope="col" className="text-left font-semibold px-6 py-3">Role</th>
+                  <th scope="col" className="text-left font-semibold px-6 py-3">Team</th>
+                  <th scope="col" className="text-left font-semibold px-6 py-3">Joined</th>
+                  <th scope="col" className="text-left font-semibold px-6 py-3">Last seen</th>
+                  <th scope="col" className="text-right font-semibold px-6 py-3"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">

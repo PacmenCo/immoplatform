@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { IconBell, IconPlus } from "@/components/ui/Icons";
 import { Button } from "@/components/ui/Button";
 import { TeamSwitcher, type SwitcherTeam } from "./TeamSwitcher";
@@ -63,14 +64,14 @@ export async function Topbar({
 
       <div className="flex items-center gap-1.5">
         <ThemeToggle />
-        <button
-          type="button"
+        <Link
+          href="/dashboard/notifications"
           className="relative grid h-9 w-9 place-items-center rounded-md text-[var(--color-ink-soft)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
           aria-label="Notifications"
         >
           <IconBell size={18} />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--color-asbestos)]" />
-        </button>
+          <span aria-hidden className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--color-asbestos)]" />
+        </Link>
         {canCreate && (
           <Button href="/dashboard/assignments/new" size="sm" className="ml-1.5">
             <IconPlus size={16} />

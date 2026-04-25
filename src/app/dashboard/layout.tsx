@@ -1,10 +1,18 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileTopbar } from "@/components/dashboard/MobileTopbar";
 import { getSession } from "@/lib/auth";
 import { avatarImageUrl } from "@/lib/avatar";
 import { initials } from "@/lib/format";
 import { getUserTeamIds, hasRole } from "@/lib/permissions";
+
+// Per-page titles. Pages set their own `export const metadata` and Next slots
+// the value into `%s`. Without the template every dashboard route inherited
+// the marketing default — bad for tab-switcher orientation + screen readers.
+export const metadata: Metadata = {
+  title: { template: "%s · Immo", default: "Dashboard · Immo" },
+};
 
 export default async function DashboardLayout({
   children,
@@ -39,7 +47,10 @@ export default async function DashboardLayout({
       />
       <div className="flex-1 min-w-0">
         <MobileTopbar />
-        {children}
+        {/* SkipLink in src/components/layout targets `#main`. Wrapping
+            children (not the mobile topbar) in <main> skips both the
+            sidebar AND the mobile burger nav. */}
+        <main id="main">{children}</main>
       </div>
     </div>
   );

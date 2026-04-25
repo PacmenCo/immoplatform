@@ -77,6 +77,8 @@ function buildUrl(
   return qs ? `/dashboard/assignments?${qs}` : "/dashboard/assignments";
 }
 
+export const metadata = { title: "Assignments" };
+
 export default async function AssignmentsList({
   searchParams,
 }: {
@@ -273,12 +275,12 @@ export default async function AssignmentsList({
                   <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
                     <SortHeader current={currentState} id="created" label="Reference" />
                     <SortHeader current={currentState} id="address" label="Property" />
-                    <th className="text-left font-semibold px-6 py-3">Services</th>
-                    <th className="text-left font-semibold px-6 py-3">Team</th>
-                    <th className="text-left font-semibold px-6 py-3">Freelancer</th>
+                    <th scope="col" className="text-left font-semibold px-6 py-3">Services</th>
+                    <th scope="col" className="text-left font-semibold px-6 py-3">Team</th>
+                    <th scope="col" className="text-left font-semibold px-6 py-3">Freelancer</th>
                     <SortHeader current={currentState} id="date" label="Preferred date" />
                     <SortHeader current={currentState} id="status" label="Status" />
-                    <th className="text-left font-semibold px-6 py-3" aria-label="Files" />
+                    <th scope="col" className="text-left font-semibold px-6 py-3"><span className="sr-only">Files</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
@@ -386,7 +388,11 @@ function SortHeader({
   const nextDir: "asc" | "desc" = isActive && current.dir === "desc" ? "asc" : "desc";
   const href = buildUrl(current, { sort: id, dir: nextDir });
   return (
-    <th className="text-left font-semibold px-6 py-3">
+    <th
+      scope="col"
+      aria-sort={isActive ? (current.dir === "asc" ? "ascending" : "descending") : "none"}
+      className="text-left font-semibold px-6 py-3"
+    >
       <Link
         href={href}
         className={

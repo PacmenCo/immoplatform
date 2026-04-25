@@ -9,6 +9,8 @@ import { ProfileForm, type ProfileFormInitial } from "./ProfileForm";
 import { DeleteAccountButton } from "./DeleteAccountButton";
 import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
 
+export const metadata = { title: "Settings" };
+
 export default async function SettingsPage() {
   const session = await requireSession();
   const u = session.user;

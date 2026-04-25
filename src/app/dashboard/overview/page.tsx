@@ -66,6 +66,8 @@ function monthFrom(p: Period, fallback: Period): number {
   return 1;
 }
 
+export const metadata = { title: "Overview" };
+
 export default async function OverviewPage({
   searchParams,
 }: {

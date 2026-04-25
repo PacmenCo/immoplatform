@@ -81,6 +81,8 @@ function sameDay(a: Date, b: Date): boolean {
 
 // ─── Page ──────────────────────────────────────────────────────────
 
+export const metadata = { title: "Calendar" };
+
 export default async function CalendarPage({ searchParams }: { searchParams: SearchParams }) {
   const session = await requireSession();
   const params = await searchParams;

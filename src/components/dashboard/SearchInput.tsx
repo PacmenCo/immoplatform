@@ -90,6 +90,7 @@ export function SearchInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="pl-9"
+        aria-label={placeholder}
         aria-busy={pending}
       />
     </label>

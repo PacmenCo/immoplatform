@@ -29,6 +29,8 @@ const UPCOMING_HEADING: Record<Role, string> = {
   freelancer: "My upcoming inspections",
 };
 
+export const metadata = { title: "Dashboard" };
+
 export default async function DashboardHome() {
   const session = await requireSession();
 
