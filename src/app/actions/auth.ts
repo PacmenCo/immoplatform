@@ -54,9 +54,13 @@ export async function login(
 
   // Platform parity: 5 attempts per (email, ip) per 60s. IP-awareness stops
   // one attacker from locking a victim out by guessing their email + wrong
-  // password from a different machine.
+  // password from a different machine. The per-email cap is defense-in-depth
+  // against IP rotation (XFF spoofing on direct-exposed deploys, residential
+  // proxy farms in general).
   const ip = clientIpFromHeaders(await headers());
   const rlKey = `login:${parsed.data.email}:${ip}`;
+  const rlPerEmail = checkRateLimit(`login:${parsed.data.email}`, RATE_LIMITS.loginPerEmail);
+  if (!rlPerEmail.ok) return rateLimitedError(rlPerEmail.retryAfterSec);
   const rl = checkRateLimit(rlKey, RATE_LIMITS.login);
   if (!rl.ok) return rateLimitedError(rl.retryAfterSec);
 
@@ -77,6 +81,7 @@ export async function login(
   }
 
   resetRateLimit(rlKey);
+  resetRateLimit(`login:${parsed.data.email}`);
 
   // Pick an active team if the user has memberships.
   const firstMembership = await prisma.teamMember.findFirst({
@@ -246,11 +251,14 @@ export async function forgotPassword(
     return { ok: false, error: "Enter a valid email address." };
   }
 
-  // Per-email throttle avoids email-flooding an account. Per-IP would be
-  // stricter but would block NAT'd offices; per-email is the closer match
-  // to Laravel's Password broker default.
+  // Per-email throttle avoids email-flooding a single account. Per-IP runs
+  // alongside it to bound wordlist abuse — without it, an attacker with N
+  // emails could fire 3N reset emails per window.
   const rl = checkRateLimit(`forgot:${parsed.data.email}`, RATE_LIMITS.forgotPassword);
   if (!rl.ok) return rateLimitedError(rl.retryAfterSec);
+  const ip = clientIpFromHeaders(await headers());
+  const rlIp = checkRateLimit(`forgot-ip:${ip}`, RATE_LIMITS.forgotPasswordPerIp);
+  if (!rlIp.ok) return rateLimitedError(rlIp.retryAfterSec);
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (user && !user.deletedAt) {
@@ -267,6 +275,13 @@ export async function forgotPassword(
       resetUrl: passwordResetUrl(token),
     });
     await sendEmail({ to: user.email, ...tpl });
+  } else {
+    // Equalize timing: when the user is unknown the function would otherwise
+    // return ~10× faster than the existing-user branch (Prisma + token write
+    // + email build). That gap leaks email enumeration even though the
+    // response body is uniform. hashToken is the cheapest match for the
+    // existing branch's dominant cost.
+    hashToken(generateToken());
   }
 
   await audit({

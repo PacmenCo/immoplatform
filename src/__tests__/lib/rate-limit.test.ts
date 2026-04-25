@@ -106,8 +106,16 @@ describe("RATE_LIMITS shared policies", () => {
     expect(RATE_LIMITS.login).toEqual({ max: 5, windowSec: 60 });
   });
 
+  it("loginPerEmail defense-in-depth: 30 per hour", () => {
+    expect(RATE_LIMITS.loginPerEmail).toEqual({ max: 30, windowSec: 3600 });
+  });
+
   it("forgotPassword policy: 3 per 5 minutes (less aggressive than Platform)", () => {
     expect(RATE_LIMITS.forgotPassword).toEqual({ max: 3, windowSec: 300 });
+  });
+
+  it("forgotPasswordPerIp defense-in-depth: 10 per hour", () => {
+    expect(RATE_LIMITS.forgotPasswordPerIp).toEqual({ max: 10, windowSec: 3600 });
   });
 
   it("resetPassword policy: 5 per 15 minutes", () => {
@@ -170,5 +178,21 @@ describe("clientIpFromHeaders", () => {
     expect(
       clientIpFromHeaders(hdrs([["x-forwarded-for", "2001:db8::1"]])),
     ).toBe("2001:db8::1");
+  });
+
+  it("ignores forwarded headers entirely when TRUST_PROXY is unset", () => {
+    vi.stubEnv("TRUST_PROXY", "");
+    try {
+      expect(
+        clientIpFromHeaders(
+          hdrs([
+            ["x-forwarded-for", "203.0.113.42"],
+            ["x-real-ip", "198.51.100.9"],
+          ]),
+        ),
+      ).toBe("unknown");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

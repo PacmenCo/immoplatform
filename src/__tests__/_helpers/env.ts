@@ -48,6 +48,11 @@ process.env.CALENDAR_ENCRYPTION_KEY ??=
 // with this value via the authorizeBearerToken helper.
 process.env.CRON_SECRET ??= "test-cron-secret";
 
+// Tests treat themselves as "behind a trusted proxy" — the rate-limit suite
+// asserts XFF is parsed, and integration tests pass a forwarded header to
+// drive per-IP buckets. Production opts in via the same env var.
+process.env.TRUST_PROXY ??= "1";
+
 // Base URL for absolute-URL helpers (email templates, calendar links).
 process.env.NEXT_PUBLIC_APP_URL ??= "http://localhost:3000";
 

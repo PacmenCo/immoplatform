@@ -59,12 +59,20 @@ export function resetRateLimit(key: string): void {
 /**
  * Best-effort IP from Next's forwarded headers. `x-forwarded-for` can be a
  * comma-separated list when a proxy chain is in front; the leftmost entry is
- * the original client. Falls back to `unknown` so the key is still unique
- * per (email, no-ip) rather than colliding globally.
+ * the original client. Only honored when `TRUST_PROXY=1` — otherwise an
+ * attacker on a setup without an upstream proxy can rotate XFF freely to
+ * bypass per-IP rate limits. Production deployments behind a known proxy
+ * (Vercel, Cloudflare, nginx) opt in via the env var; dev / direct-exposed
+ * deploys collapse to a single "unknown" bucket so the per-email defense
+ * still bounds total attempts.
  */
 export function clientIpFromHeaders(h: Headers): string {
+  if (process.env.TRUST_PROXY !== "1") return "unknown";
   const fwd = h.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0]!.trim();
+  if (fwd) {
+    const first = fwd.split(",")[0]!.trim();
+    if (first) return first;
+  }
   return h.get("x-real-ip") ?? "unknown";
 }
 
@@ -73,10 +81,17 @@ export function clientIpFromHeaders(h: Headers): string {
 export const RATE_LIMITS = {
   /** Matches Platform: 5 attempts per 60s per (email, IP). */
   login: { max: 5, windowSec: 60 },
+  /** Defense-in-depth across IP rotation: hard cap per email regardless of
+   *  source IP. An attacker who spoofs/rotates XFF still can't exceed this.
+   *  Generous enough that a user with a flaky password manager won't trip. */
+  loginPerEmail: { max: 30, windowSec: 3600 },
   /** Platform relies on Laravel's Password broker default (1/60s per email).
    *  We pick a slightly less aggressive limit that matches common real-world
    *  flows (user mistypes once). */
   forgotPassword: { max: 3, windowSec: 300 },
+  /** Per-IP cap on forgot-password to bound wordlist abuse — without this an
+   *  attacker with N emails could trigger 3N reset emails per window. */
+  forgotPasswordPerIp: { max: 10, windowSec: 3600 },
   /** Guards the token-consume step. High enough that a user with a slow
    *  password manager isn't blocked. */
   resetPassword: { max: 5, windowSec: 900 },

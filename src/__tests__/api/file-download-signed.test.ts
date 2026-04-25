@@ -76,6 +76,11 @@ function pathSegmentsFromUrl(url: string): string[] {
   return u.pathname.slice(prefix.length).split("/");
 }
 
+// Stored body from makeUploadFile("secret.pdf", "application/pdf", "actual-bytes"):
+// the upload helper prepends a %PDF-1.4 magic-byte prefix so server-side
+// magicBytesValid accepts the file. Tests below assert the full stored bytes.
+const STORED_BODY = "%PDF-1.4\nactual-bytes";
+
 describe("GET /api/files/[...path] — happy path", () => {
   it("valid signed URL → 200 + original MIME + filename in Content-Disposition", async () => {
     const { url } = await seedSignedUrl();
@@ -85,14 +90,14 @@ describe("GET /api/files/[...path] — happy path", () => {
     expect(res.headers.get("Content-Type")).toBe("application/pdf");
     expect(res.headers.get("Content-Disposition")).toContain('filename="secret.pdf"');
     const buf = Buffer.from(await res.arrayBuffer());
-    expect(buf.toString()).toBe("actual-bytes");
+    expect(buf.toString()).toBe(STORED_BODY);
   });
 
   it("Content-Length matches the byte size", async () => {
     const { url } = await seedSignedUrl();
     const [req, params] = routeReq(url, pathSegmentsFromUrl(url));
     const res = await GET(req, params);
-    expect(res.headers.get("Content-Length")).toBe(String("actual-bytes".length));
+    expect(res.headers.get("Content-Length")).toBe(String(Buffer.byteLength(STORED_BODY)));
   });
 });
 

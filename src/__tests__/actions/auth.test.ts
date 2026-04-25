@@ -17,7 +17,7 @@ import {
 import { captureRedirect } from "../_helpers/next-navigation-stub";
 import { seedBaseline, seedTeam } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
-import { resetRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
+import { checkRateLimit, resetRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 
 // Platform parity — ports behavioral contract from:
 //   Platform/app/Http/Controllers/Auth/LoginController.php
@@ -39,8 +39,11 @@ beforeEach(() => {
   // rate-limit store is module-global; reset per-test keys we'll hit.
   resetRateLimit("login:alice@test.local:10.0.0.1");
   resetRateLimit("login:ghost@test.local:10.0.0.1");
+  resetRateLimit("login:alice@test.local");
+  resetRateLimit("login:ghost@test.local");
   resetRateLimit("forgot:alice@test.local");
   resetRateLimit("forgot:ghost@test.local");
+  resetRateLimit("forgot-ip:10.0.0.1");
 });
 
 // Small helper — creates a User row with a real bcrypt hash of `password`.
@@ -140,6 +143,25 @@ describe("login", () => {
     if (!res.ok) expect(res.error).toMatch(/Too many attempts/);
   });
 
+  it("per-email defense fires when the per-email bucket is exhausted (regardless of source IP)", async () => {
+    // Direct-fill the per-email bucket — exercising 30 bcrypt-bound login
+    // calls would be slow and bcrypt isn't what we're testing here. The
+    // contract: `login` consults `RATE_LIMITS.loginPerEmail` BEFORE the
+    // per-(email, IP) bucket, so an exhausted per-email bucket blocks
+    // even a fresh IP that has its own (email, IP) budget intact.
+    await seedUserWithPassword("alice@test.local", "correct-password");
+    for (let i = 0; i < RATE_LIMITS.loginPerEmail.max; i++) {
+      checkRateLimit("login:alice@test.local", RATE_LIMITS.loginPerEmail);
+    }
+    __setHeader("x-forwarded-for", "10.99.99.99");
+    const res = await login(
+      undefined,
+      form({ email: "alice@test.local", password: "correct-password" }),
+    );
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/Too many attempts/);
+  });
+
   it("successful login RESETS the rate limit counter (so later failures count fresh)", async () => {
     await seedUserWithPassword("alice@test.local", "correct-password");
     // 4 failures, then a success
@@ -217,6 +239,27 @@ describe("forgotPassword", () => {
     const blocked = await forgotPassword(undefined, form({ email: "alice@test.local" }));
     expect(blocked.ok).toBe(false);
     if (!blocked.ok) expect(blocked.error).toMatch(/Too many attempts/);
+  });
+
+  it("per-IP cap blocks wordlist abuse across email rotation", async () => {
+    // 10 different emails from the same IP — per-email caps would each allow
+    // 3, but the per-IP cap is 10 across all of them. The 11th email (or any
+    // further attempt from the same IP) should be rate-limited.
+    for (let i = 0; i < RATE_LIMITS.forgotPasswordPerIp.max; i++) {
+      const r = await forgotPassword(
+        undefined,
+        form({ email: `target${i}@example.test` }),
+      );
+      expect(r.ok).toBe(true);
+      resetRateLimit(`forgot:target${i}@example.test`);
+    }
+    const blocked = await forgotPassword(
+      undefined,
+      form({ email: "target-overflow@example.test" }),
+    );
+    expect(blocked.ok).toBe(false);
+    if (!blocked.ok) expect(blocked.error).toMatch(/Too many attempts/);
+    resetRateLimit("forgot:target-overflow@example.test");
   });
 });
 

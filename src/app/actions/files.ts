@@ -26,6 +26,7 @@ import {
   FILE_CONSTRAINTS,
   MAX_FILES_PER_UPLOAD,
   isLane,
+  magicBytesValid,
   type FileLane,
 } from "@/lib/file-constraints";
 import { makeAssignmentFileKey, storage } from "@/lib/storage";
@@ -110,6 +111,17 @@ export async function uploadAssignmentFilesInner(
       return {
         ok: false,
         error: `"${file.name}" is larger than the ${maxMB} MB limit.`,
+      };
+    }
+    // Magic-byte sniff against the declared MIME — `file.type` is browser-
+    // supplied and trivially spoofable. Without this an attacker can upload
+    // an HTML/script polyglot under `application/pdf` that becomes XSS if
+    // any future viewer renders it inline.
+    const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
+    if (!magicBytesValid(head, mime)) {
+      return {
+        ok: false,
+        error: `"${file.name}" doesn't match its declared file type.`,
       };
     }
   }
