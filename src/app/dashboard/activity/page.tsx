@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -109,7 +109,7 @@ export default async function ActivityLogPage() {
   // Admin-only parity with the earlier "staff + admin see global activity"
   // convention used by canViewUser / canEditAnnouncement. Freelancers +
   // realtors see their own per-object audit via assignment detail pages.
-  if (!hasRole(session, "admin", "staff")) notFound();
+  if (!hasRole(session, "admin", "staff")) redirect("/no-access?section=admin");
 
   const rows = await prisma.auditLog.findMany({
     orderBy: { at: "desc" },
