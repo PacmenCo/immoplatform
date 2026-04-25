@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Tabs } from "@/components/ui/Tabs";
 import { AssignmentForm } from "@/components/dashboard/AssignmentForm";
@@ -41,9 +41,12 @@ export default async function EditAssignment({
 
   if (!assignment) notFound();
   if (!(await canUpdateAssignmentFields(session, assignment))) notFound();
-  if (assignment.status === "completed" || assignment.status === "cancelled") {
-    redirect(`/dashboard/assignments/${id}`);
-  }
+  // v1 parity: AssignmentPolicy::update (Platform/app/Policies/
+  // AssignmentPolicy.php:85-94) does NOT gate on status — admin/realtor-
+  // owner can edit fields on terminal (completed/cancelled) assignments
+  // too. Commission snapshots are already frozen, so address/contact-info
+  // edits are non-destructive. Earlier v2 redirected here, which made the
+  // Edit tab in /[id]/page.tsx render a dead link. Drop the redirect.
 
   const initial: AssignmentFormInitial = {
     address: assignment.address,

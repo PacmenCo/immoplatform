@@ -75,18 +75,17 @@ export default async function UsersPage({
   const activeRoleWhere = activeRole ? { role: activeRole } : {};
 
   // Platform parity (UsersList.php:122-127): whitespace-split AND, each word
-  // substring-matches firstName, lastName or email. SQLite's default LIKE is
-  // case-insensitive for ASCII, which matches Platform's MySQL default
-  // collation — no `mode: "insensitive"` needed (and it's unsupported on
-  // SQLite anyway). Same pattern as assignments/page.tsx.
+  // substring-matches firstName, lastName or email. `mode: "insensitive"`
+  // matches v1 MySQL LIKE collation on Postgres (without it, "tim" wouldn't
+  // match "Tim").
   const words = q.split(/\s+/).filter(Boolean);
   const searchWhere: Prisma.UserWhereInput | undefined = words.length
     ? {
         AND: words.map((w) => ({
           OR: [
-            { firstName: { contains: w } },
-            { lastName: { contains: w } },
-            { email: { contains: w } },
+            { firstName: { contains: w, mode: "insensitive" } },
+            { lastName: { contains: w, mode: "insensitive" } },
+            { email: { contains: w, mode: "insensitive" } },
           ],
         })),
       }
@@ -117,7 +116,7 @@ export default async function UsersPage({
         // the list and the invites card in lockstep — a search for a name
         // won't match, but a search for a partial email will.
         ...(words.length
-          ? { AND: words.map((w) => ({ email: { contains: w } })) }
+          ? { AND: words.map((w) => ({ email: { contains: w, mode: "insensitive" as const } })) }
           : {}),
       },
       orderBy: { createdAt: "desc" },

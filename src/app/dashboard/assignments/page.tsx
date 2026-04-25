@@ -104,31 +104,34 @@ export default async function AssignmentsList({
   // field (AND across words, OR across fields). So "brugge vastgoed" hits
   // any row where one field contains "brugge" AND some field (same or
   // different) contains "vastgoed".
+  // `mode: "insensitive"` matches v1 MySQL `LIKE` collation behavior
+  // (Platform/app/Livewire/AssignmentsList.php:252-254) on Postgres.
+  // Without it, "vrijdagmarkt" wouldn't match "Vrijdagmarkt".
   const words = q.split(/\s+/).filter(Boolean);
   const searchWhere: Prisma.AssignmentWhereInput | undefined = words.length
     ? {
         AND: words.map((w) => ({
           OR: [
-            { reference: { contains: w } },
-            { address: { contains: w } },
-            { city: { contains: w } },
-            { postal: { contains: w } },
-            { team: { name: { contains: w } } },
+            { reference: { contains: w, mode: "insensitive" } },
+            { address: { contains: w, mode: "insensitive" } },
+            { city: { contains: w, mode: "insensitive" } },
+            { postal: { contains: w, mode: "insensitive" } },
+            { team: { name: { contains: w, mode: "insensitive" } } },
             {
               freelancer: {
                 OR: [
-                  { firstName: { contains: w } },
-                  { lastName: { contains: w } },
-                  { email: { contains: w } },
+                  { firstName: { contains: w, mode: "insensitive" } },
+                  { lastName: { contains: w, mode: "insensitive" } },
+                  { email: { contains: w, mode: "insensitive" } },
                 ],
               },
             },
             {
               createdBy: {
                 OR: [
-                  { firstName: { contains: w } },
-                  { lastName: { contains: w } },
-                  { email: { contains: w } },
+                  { firstName: { contains: w, mode: "insensitive" } },
+                  { lastName: { contains: w, mode: "insensitive" } },
+                  { email: { contains: w, mode: "insensitive" } },
                 ],
               },
             },
