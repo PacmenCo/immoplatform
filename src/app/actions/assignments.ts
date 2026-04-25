@@ -1364,21 +1364,30 @@ export async function reassignFreelancerInner(
   // admins both reassigning at the same moment can't both "win." The first
   // write flips the column; the second's predicate (`freelancerId: <old>`)
   // no longer matches, count=0, surface a stale-snapshot error so the UI
-  // can reload and the admin sees who landed first.
-  const claim = await prisma.assignment.updateMany({
-    where: {
-      id,
-      status: { notIn: [...TERMINAL_STATUSES] },
-      freelancerId: a.freelancerId,
-    },
-    data: { freelancerId },
-  });
-  if (claim.count === 0) {
-    const fresh = await prisma.assignment.findUnique({
-      where: { id },
-      select: { status: true, freelancerId: true },
+  // can reload and the admin sees who landed first. Wrapped in a tx so
+  // the discriminator read sees the same DB snapshot as the failed claim
+  // (matches the wide-edit path).
+  const claimResult = await prisma.$transaction(async (tx) => {
+    const claim = await tx.assignment.updateMany({
+      where: {
+        id,
+        status: { notIn: [...TERMINAL_STATUSES] },
+        freelancerId: a.freelancerId,
+      },
+      data: { freelancerId },
     });
-    if (!fresh || isTerminalStatus(fresh.status)) {
+    if (claim.count > 0) return { ok: true as const };
+    const fresh = await tx.assignment.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    return {
+      ok: false as const,
+      kind: !fresh || isTerminalStatus(fresh.status) ? "terminal" : "stale",
+    };
+  });
+  if (!claimResult.ok) {
+    if (claimResult.kind === "terminal") {
       return {
         ok: false,
         error: "Status changed while you were away. Reload and try again.",
