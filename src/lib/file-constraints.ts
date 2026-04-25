@@ -30,6 +30,14 @@ export const FILE_CONSTRAINTS: Record<FileLane, LaneConstraints> = {
 
 export const MAX_FILES_PER_UPLOAD = 20;
 
+/**
+ * Cap on realtor-lane supporting files attached at assignment-create time.
+ * Tighter than the per-upload cap because the create form is a one-shot
+ * "starter set" — additional files go through the Files tab afterwards.
+ * Single source of truth for both the client form and the server action.
+ */
+export const MAX_REALTOR_FILES_AT_CREATE = 10;
+
 export function isLane(value: string): value is FileLane {
   return value === "freelancer" || value === "realtor";
 }

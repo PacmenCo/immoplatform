@@ -8,16 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Dropzone } from "@/components/ui/Dropzone";
 import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
 import { useFormDirty } from "@/lib/useFormDirty";
-import { FILE_CONSTRAINTS } from "@/lib/file-constraints";
+import { FILE_CONSTRAINTS, MAX_REALTOR_FILES_AT_CREATE } from "@/lib/file-constraints";
 import type { ActionResult } from "@/app/actions/_types";
-
-/**
- * Cap on supporting-files at create time — Platform parity (Filepond's
- * `maxFiles: 10` in assignments/create.blade.php). Mirrors the server-side
- * `MAX_REALTOR_FILES_AT_CREATE` in `src/app/actions/assignments.ts`; keep
- * both in sync if you change one.
- */
-const MAX_CREATE_FILES = 10;
 
 type ServiceRow = {
   key: string;
@@ -716,9 +708,9 @@ export function AssignmentForm({
                 setFileError(null);
               }}
               accept={realtorConstraints.allowedMimes.join(",")}
-              hint={`PDF, JPG, PNG, WebP · up to ${realtorConstraints.maxMB} MB each · up to ${MAX_CREATE_FILES} files`}
+              hint={`PDF, JPG, PNG, WebP · up to ${realtorConstraints.maxMB} MB each · up to ${MAX_REALTOR_FILES_AT_CREATE} files`}
               label="Drop floor plans, photos or notes"
-              maxFiles={MAX_CREATE_FILES}
+              maxFiles={MAX_REALTOR_FILES_AT_CREATE}
               maxMB={realtorConstraints.maxMB}
               onError={(msg) => setFileError(msg)}
               disabled={pending}

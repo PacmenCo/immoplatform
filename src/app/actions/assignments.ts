@@ -67,18 +67,10 @@ import { fullName } from "@/lib/format";
 import { storage } from "@/lib/storage";
 import { addToGoogleCalendarUrl, assignmentUrl } from "@/lib/urls";
 import { uploadAssignmentFilesInner } from "./files";
+import { MAX_REALTOR_FILES_AT_CREATE } from "@/lib/file-constraints";
 import { NOTICE_PARAM, noticeMessage } from "@/app/dashboard/assignments/[id]/notices";
 import { withSession, type ActionResult } from "./_types";
 
-/**
- * Cap on supporting-files uploaded at create time. Platform parity —
- * `assignments/create.blade.php`'s Filepond input declares `maxFiles: 10`
- * for `makelaar_files[]`. Stricter than the global `MAX_FILES_PER_UPLOAD`
- * (20) used by the standalone Files-tab uploader: the create form has a
- * narrower scope (initial supporting docs, not bulk migration), and v1
- * already gated this at 10 so users have muscle memory for the limit.
- */
-const MAX_REALTOR_FILES_AT_CREATE = 10;
 
 // ─── Helpers ───────────────────────────────────────────────────────
 
@@ -1368,14 +1360,34 @@ export async function reassignFreelancerInner(
     }
   }
 
+  // Optimistic: predicate the update on the freelancerId we read so two
+  // admins both reassigning at the same moment can't both "win." The first
+  // write flips the column; the second's predicate (`freelancerId: <old>`)
+  // no longer matches, count=0, surface a stale-snapshot error so the UI
+  // can reload and the admin sees who landed first.
   const claim = await prisma.assignment.updateMany({
-    where: { id, status: { notIn: [...TERMINAL_STATUSES] } },
+    where: {
+      id,
+      status: { notIn: [...TERMINAL_STATUSES] },
+      freelancerId: a.freelancerId,
+    },
     data: { freelancerId },
   });
   if (claim.count === 0) {
+    const fresh = await prisma.assignment.findUnique({
+      where: { id },
+      select: { status: true, freelancerId: true },
+    });
+    if (!fresh || isTerminalStatus(fresh.status)) {
+      return {
+        ok: false,
+        error: "Status changed while you were away. Reload and try again.",
+      };
+    }
     return {
       ok: false,
-      error: "Status changed while you were away. Reload and try again.",
+      error:
+        "Someone else just reassigned this freelancer. Reload to see who's on it.",
     };
   }
 

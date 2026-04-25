@@ -483,6 +483,7 @@ model Assignment {
   @@index([freelancerId])
   @@index([createdById])
   @@index([preferredDate])
+  @@index([calendarDate])
   @@index([outlookCalendarAccountId])
   @@map("assignments")
 }
