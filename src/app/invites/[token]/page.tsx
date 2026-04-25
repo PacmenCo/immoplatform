@@ -5,6 +5,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { IconBuilding, IconMapPin, IconShield, IconCheck } from "@/components/ui/Icons";
 import { getInviteByToken } from "@/app/actions/invites";
+import { getSession } from "@/lib/auth";
+import { AlreadySignedIn } from "./AlreadySignedIn";
 
 const roleColor: Record<string, { bg: string; fg: string; label: string }> = {
   admin: { bg: "#fef2f2", fg: "#b91c1c", label: "Admin" },
@@ -19,13 +21,23 @@ export default async function InvitePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const result = await getInviteByToken(token);
+  const [result, session] = await Promise.all([getInviteByToken(token), getSession()]);
 
   if (result.status !== "ok") {
     return <InviteProblem status={result.status} />;
   }
 
   const invite = result.invite;
+
+  if (session) {
+    return (
+      <AlreadySignedIn
+        currentEmail={session.user.email}
+        inviteEmail={invite.email}
+        continueHref={`/invites/${token}`}
+      />
+    );
+  }
   const rc = roleColor[invite.role] ?? roleColor.realtor;
   const daysLeft = Math.max(
     1,
