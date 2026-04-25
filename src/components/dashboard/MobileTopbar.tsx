@@ -67,7 +67,7 @@ export function MobileTopbar() {
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-3 sm:px-4 h-14 lg:hidden">
+    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-3 sm:px-4 h-14 md:hidden">
       <div ref={wrapperRef} className="relative">
         <button
           type="button"

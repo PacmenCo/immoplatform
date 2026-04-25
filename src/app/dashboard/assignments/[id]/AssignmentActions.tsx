@@ -116,13 +116,13 @@ export function AssignmentActions({
       </div>
 
       {cancelOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,0.5)] p-4 sm:p-8">
-          <Modal
-            title="Cancel this assignment?"
-            description="Cancelled assignments can no longer be edited. This will be visible in the team's activity log."
-            onClose={() => setCancelOpen(false)}
-            className="w-full"
-            footer={
+        <Modal
+          overlay
+          title="Cancel this assignment?"
+          description="Cancelled assignments can no longer be edited. This will be visible in the team's activity log."
+          onClose={() => setCancelOpen(false)}
+          className="w-full"
+          footer={
               <>
                 <Button
                   variant="ghost"
@@ -143,24 +143,23 @@ export function AssignmentActions({
               </>
             }
           >
-            <div className="space-y-4">
-              {cancelError && <ErrorAlert>{cancelError}</ErrorAlert>}
-              <Field
-                label="Reason (optional)"
+          <div className="space-y-4">
+            {cancelError && <ErrorAlert>{cancelError}</ErrorAlert>}
+            <Field
+              label="Reason (optional)"
+              id="cancel-reason"
+              hint="Posts as a comment on the assignment so the team has context."
+            >
+              <Textarea
                 id="cancel-reason"
-                hint="Posts as a comment on the assignment so the team has context."
-              >
-                <Textarea
-                  id="cancel-reason"
-                  rows={3}
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Owner changed their mind, duplicate order, etc."
-                />
-              </Field>
-            </div>
-          </Modal>
-        </div>
+                rows={3}
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Owner changed their mind, duplicate order, etc."
+              />
+            </Field>
+          </div>
+        </Modal>
       )}
     </>
   );

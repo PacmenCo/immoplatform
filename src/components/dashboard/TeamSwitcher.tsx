@@ -84,7 +84,7 @@ export function TeamSwitcher({
         >
           {active.logo}
         </span>
-        <span className="max-w-[160px] truncate font-medium">{active.name}</span>
+        <span className="max-w-[100px] truncate font-medium xl:max-w-[160px]">{active.name}</span>
         <svg
           width="12"
           height="12"

@@ -39,7 +39,7 @@ export async function Topbar({
   }
 
   return (
-    <header className="hidden lg:flex items-center justify-between gap-4 xl:gap-6 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-6 xl:px-8 h-16 sticky top-0 z-40">
+    <header className="hidden md:flex items-center justify-between gap-4 xl:gap-6 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-6 xl:px-8 h-16 sticky top-0 z-40">
       <div className="flex min-w-0 items-center gap-4">
         <div className="min-w-0">
           <h1 className="text-lg font-semibold text-[var(--color-ink)] truncate">{title}</h1>
@@ -57,7 +57,7 @@ export async function Topbar({
         )}
       </div>
 
-      <div className="flex flex-1 max-w-md items-center">
+      <div className="hidden xl:flex flex-1 max-w-md items-center">
         <TopbarSearch />
       </div>
 

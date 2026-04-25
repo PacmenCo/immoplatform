@@ -216,7 +216,7 @@ export default async function AssignmentsList({
     <>
       <Topbar title="Assignments" subtitle={subtitle} />
 
-      <div className="p-8 space-y-4 max-w-[1400px]">
+      <div className="p-4 md:p-8 space-y-4 max-w-[1400px]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <FiltersBar
             initialQuery={q}

@@ -71,61 +71,60 @@ export function ReassignFreelancerButton({
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,0.5)] p-4 sm:p-8">
-          <Modal
-            title={currentFreelancerId ? "Reassign freelancer" : "Assign a freelancer"}
-            description="They'll see this assignment appear in their inspections list."
-            onClose={() => setOpen(false)}
-            className="w-full"
-            footer={
-              <>
-                <Button variant="ghost" size="md" onClick={() => setOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  size="md"
-                  onClick={runSave}
-                  loading={pending}
-                  disabled={target === (currentFreelancerId ?? "")}
-                >
-                  Save
-                </Button>
-              </>
-            }
-          >
-            <div className="space-y-4">
-              {error && <ErrorAlert>{error}</ErrorAlert>}
+        <Modal
+          overlay
+          title={currentFreelancerId ? "Reassign freelancer" : "Assign a freelancer"}
+          description="They'll see this assignment appear in their inspections list."
+          onClose={() => setOpen(false)}
+          className="w-full"
+          footer={
+            <>
+              <Button variant="ghost" size="md" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="md"
+                onClick={runSave}
+                loading={pending}
+                disabled={target === (currentFreelancerId ?? "")}
+              >
+                Save
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            {error && <ErrorAlert>{error}</ErrorAlert>}
 
-              {currentOutOfScope && (
-                <p className="rounded-md border border-[var(--color-electrical)]/30 bg-[color-mix(in_srgb,var(--color-electrical)_6%,var(--color-bg))] px-3 py-2 text-sm text-[var(--color-ink-soft)]">
-                  The current freelancer is no longer in your team&apos;s
-                  roster. Saving will reassign to whoever you pick below.
-                </p>
-              )}
+            {currentOutOfScope && (
+              <p className="rounded-md border border-[var(--color-electrical)]/30 bg-[color-mix(in_srgb,var(--color-electrical)_6%,var(--color-bg))] px-3 py-2 text-sm text-[var(--color-ink-soft)]">
+                The current freelancer is no longer in your team&apos;s
+                roster. Saving will reassign to whoever you pick below.
+              </p>
+            )}
 
-              {freelancers.length === 0 ? (
-                <p className="text-sm text-[var(--color-ink-soft)]">
-                  No freelancers are in your team&apos;s roster yet. Invite one
-                  from the Users page first.
-                </p>
-              ) : (
-                <SearchSelect
-                  label="Freelancer"
-                  value={target}
-                  onChange={setTarget}
-                  placeholder="Pick a freelancer…"
-                  searchPlaceholder="Type a name or region…"
-                  clearOptionLabel="— Unassigned —"
-                  options={freelancers.map((f) => ({
-                    value: f.id,
-                    label: `${f.firstName} ${f.lastName}`,
-                    sublabel: f.region ?? f.email,
-                  }))}
-                />
-              )}
-            </div>
-          </Modal>
-        </div>
+            {freelancers.length === 0 ? (
+              <p className="text-sm text-[var(--color-ink-soft)]">
+                No freelancers are in your team&apos;s roster yet. Invite one
+                from the Users page first.
+              </p>
+            ) : (
+              <SearchSelect
+                label="Freelancer"
+                value={target}
+                onChange={setTarget}
+                placeholder="Pick a freelancer…"
+                searchPlaceholder="Type a name or region…"
+                clearOptionLabel="— Unassigned —"
+                options={freelancers.map((f) => ({
+                  value: f.id,
+                  label: `${f.firstName} ${f.lastName}`,
+                  sublabel: f.region ?? f.email,
+                }))}
+              />
+            )}
+          </div>
+        </Modal>
       )}
     </>
   );

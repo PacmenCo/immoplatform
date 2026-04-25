@@ -78,7 +78,7 @@ export function FiltersBar({
           Fixed-width wrappers because our Select base is `w-full`, which
           flex-basis-wise blows the row out without an explicit width. */}
       <div className="ml-auto flex items-center gap-2">
-        <div className="w-[200px] shrink-0">
+        <div className="w-full sm:w-[200px] sm:shrink-0">
           <Select
             value={initialStatus ?? ""}
             onChange={(e) => push({ status: (e.target.value as Status | "") || "" })}
@@ -94,7 +94,7 @@ export function FiltersBar({
         </div>
 
         {canPickTeam && teams.length > 0 && (
-          <div className="w-[200px] shrink-0">
+          <div className="w-full sm:w-[200px] sm:shrink-0">
             <Select
               value={initialTeam}
               onChange={(e) => push({ team: e.target.value })}
@@ -112,7 +112,7 @@ export function FiltersBar({
         )}
 
         {canPickFreelancer && (
-          <div className="w-[200px] shrink-0">
+          <div className="w-full sm:w-[200px] sm:shrink-0">
             <Select
               value={initialFreelancer}
               onChange={(e) => push({ freelancer: e.target.value })}

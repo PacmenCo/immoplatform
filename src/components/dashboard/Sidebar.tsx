@@ -80,7 +80,7 @@ export function Sidebar({ user }: { user?: SidebarUser }) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex h-screen w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-bg)] sticky top-0">
+    <aside className="hidden md:flex h-screen w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-bg)] sticky top-0">
       <div className="flex items-center gap-2 px-6 h-16 border-b border-[var(--color-border)]">
         <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-white text-sm font-bold">
           I

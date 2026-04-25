@@ -35,54 +35,53 @@ export function DeleteAccountButton() {
       </Button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,0.5)] p-4 sm:p-8">
-          <Modal
-            title="Delete your account"
-            description="This removes your profile and signs you out of every device. Assignments you created stay on the platform; your name is kept on them for history."
-            onClose={() => !pending && setOpen(false)}
-            className="w-full"
-            footer={
-              <>
-                <Button
-                  variant="ghost"
-                  size="md"
-                  onClick={() => setOpen(false)}
-                  disabled={pending}
-                >
-                  Keep my account
-                </Button>
-                <Button
-                  variant="danger"
-                  size="md"
-                  loading={pending}
-                  onClick={() => formRef.current?.requestSubmit()}
-                >
-                  Delete account
-                </Button>
-              </>
-            }
-          >
-            <form ref={formRef} action={handleSubmit} className="space-y-4">
-              {error && <ErrorAlert>{error}</ErrorAlert>}
-              <Field
-                label="Confirm with your password"
-                id="delete-password"
-                hint="We ask for your password so a stolen session can't delete your account."
-                required
+        <Modal
+          overlay
+          title="Delete your account"
+          description="This removes your profile and signs you out of every device. Assignments you created stay on the platform; your name is kept on them for history."
+          onClose={() => !pending && setOpen(false)}
+          className="w-full"
+          footer={
+            <>
+              <Button
+                variant="ghost"
+                size="md"
+                onClick={() => setOpen(false)}
+                disabled={pending}
               >
-                <PasswordInput
-                  id="delete-password"
-                  name="password"
-                  autoComplete="current-password"
-                  required
-                  disabled={pending}
-                />
-              </Field>
-              {/* Submit-via-Enter target; the visible submit lives in the footer. */}
-              <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
-            </form>
-          </Modal>
-        </div>
+                Keep my account
+              </Button>
+              <Button
+                variant="danger"
+                size="md"
+                loading={pending}
+                onClick={() => formRef.current?.requestSubmit()}
+              >
+                Delete account
+              </Button>
+            </>
+          }
+        >
+          <form ref={formRef} action={handleSubmit} className="space-y-4">
+            {error && <ErrorAlert>{error}</ErrorAlert>}
+            <Field
+              label="Confirm with your password"
+              id="delete-password"
+              hint="We ask for your password so a stolen session can't delete your account."
+              required
+            >
+              <PasswordInput
+                id="delete-password"
+                name="password"
+                autoComplete="current-password"
+                required
+                disabled={pending}
+              />
+            </Field>
+            {/* Submit-via-Enter target; the visible submit lives in the footer. */}
+            <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
+          </form>
+        </Modal>
       )}
     </>
   );
