@@ -392,6 +392,27 @@ function WeekGrid({
 
 // ─── Event renderers ───────────────────────────────────────────────
 
+/**
+ * Resolves the service-color list for an event. Multi-service assignments
+ * (EPC + asbestos, etc.) get one entry per service so the chip can render
+ * a colored stripe per service — a single-color chip silently hid the
+ * second service in the prior implementation.
+ */
+function eventColors(
+  event: CalendarAssignment,
+  servicesByKey: Record<string, { key: string; color: string; short: string }>,
+): Array<{ color: string; short: string }> {
+  const seen: Array<{ color: string; short: string }> = [];
+  for (const s of event.services) {
+    const svc = servicesByKey[s.serviceKey];
+    if (svc && !seen.some((e) => e.color === svc.color)) {
+      seen.push({ color: svc.color, short: svc.short });
+    }
+  }
+  if (seen.length === 0) seen.push({ color: "var(--color-ink-muted)", short: "—" });
+  return seen;
+}
+
 function EventChip({
   event,
   servicesByKey,
@@ -399,19 +420,20 @@ function EventChip({
   event: CalendarAssignment;
   servicesByKey: Record<string, { key: string; color: string; short: string }>;
 }) {
-  const firstKey = event.services[0]?.serviceKey;
-  const svc = firstKey ? servicesByKey[firstKey] : undefined;
-  const color = svc?.color ?? "var(--color-ink-muted)";
+  const colors = eventColors(event, servicesByKey);
+  const primaryColor = colors[0].color;
+  const tooltip = `${event.reference} — ${event.address}, ${event.city} (${colors.map((c) => c.short).join(" + ")})`;
   return (
     <Link
       href={`/dashboard/assignments/${event.id}`}
-      className="block truncate rounded px-1.5 py-0.5 text-[11px] font-medium hover:underline"
+      className="relative block truncate rounded px-1.5 py-0.5 pl-2 text-[11px] font-medium hover:underline"
       style={{
-        color,
-        backgroundColor: `color-mix(in srgb, ${color} 12%, var(--color-bg))`,
+        color: primaryColor,
+        backgroundColor: `color-mix(in srgb, ${primaryColor} 12%, var(--color-bg))`,
       }}
-      title={`${event.reference} — ${event.address}, ${event.city}`}
+      title={tooltip}
     >
+      <ServiceStripe colors={colors} />
       {event.address}
     </Link>
   );
@@ -424,24 +446,25 @@ function WeekEventCard({
   event: CalendarAssignment;
   servicesByKey: Record<string, { key: string; color: string; short: string }>;
 }) {
-  const firstKey = event.services[0]?.serviceKey;
-  const svc = firstKey ? servicesByKey[firstKey] : undefined;
-  const color = svc?.color ?? "var(--color-ink-muted)";
+  const colors = eventColors(event, servicesByKey);
+  const primaryColor = colors[0].color;
   const timeAnchor = event.calendarDate ?? event.preferredDate;
   const time = timeAnchor ? formatTime(timeAnchor) : null;
   const meta = STATUS_META[event.status as Status];
+  const allShorts = colors.map((c) => c.short).join(" + ");
   return (
     <Link
       href={`/dashboard/assignments/${event.id}`}
-      className="block rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-bg-alt)]"
-      title={`${event.reference} — ${event.address}, ${event.postal} ${event.city}`}
+      className="relative block rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 pl-3 py-1.5 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-bg-alt)]"
+      title={`${event.reference} — ${event.address}, ${event.postal} ${event.city} (${allShorts})`}
     >
+      <ServiceStripe colors={colors} />
       <div className="flex items-center justify-between gap-2">
         <span
           className="truncate text-[11px] font-semibold"
-          style={{ color }}
+          style={{ color: primaryColor }}
         >
-          {svc?.short ?? "—"}
+          {allShorts}
           {time ? ` · ${time}` : ""}
         </span>
         {meta && (
@@ -460,6 +483,24 @@ function WeekEventCard({
         {event.postal} {event.city}
       </p>
     </Link>
+  );
+}
+
+/**
+ * Left-edge color bar for multi-service events. One contiguous strip with
+ * each service taking an equal vertical share. Aria hidden because the
+ * tooltip already names every service.
+ */
+function ServiceStripe({ colors }: { colors: Array<{ color: string; short: string }> }) {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-y-0 left-0 flex w-1 flex-col overflow-hidden rounded-l"
+    >
+      {colors.map((c, i) => (
+        <span key={i} className="flex-1" style={{ backgroundColor: c.color }} />
+      ))}
+    </span>
   );
 }
 

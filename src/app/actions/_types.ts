@@ -2,7 +2,7 @@ import { requireSession, type SessionWithUser } from "@/lib/auth";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
-  | { ok: false; error: string };
+  | { ok: false; error: string; formValues?: Record<string, string> };
 
 /**
  * Wraps a server action with session-required plumbing.

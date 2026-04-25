@@ -48,8 +48,12 @@ export async function login(
     email: formData.get("email"),
     password: formData.get("password"),
   });
+  // Echo email back on every error path so the form doesn't blank it. Never
+  // echo password — secrets must not round-trip through server-action state.
+  const formValues = { email: String(formData.get("email") ?? "") };
+
   if (!parsed.success) {
-    return { ok: false, error: "Enter your email and password." };
+    return { ok: false, error: "Enter your email and password.", formValues };
   }
 
   // Platform parity: 5 attempts per (email, ip) per 60s. IP-awareness stops
@@ -60,9 +64,9 @@ export async function login(
   const ip = clientIpFromHeaders(await headers());
   const rlKey = `login:${parsed.data.email}:${ip}`;
   const rlPerEmail = checkRateLimit(`login:${parsed.data.email}`, RATE_LIMITS.loginPerEmail);
-  if (!rlPerEmail.ok) return rateLimitedError(rlPerEmail.retryAfterSec);
+  if (!rlPerEmail.ok) return { ...rateLimitedError(rlPerEmail.retryAfterSec), formValues } as ActionResult;
   const rl = checkRateLimit(rlKey, RATE_LIMITS.login);
-  if (!rl.ok) return rateLimitedError(rl.retryAfterSec);
+  if (!rl.ok) return { ...rateLimitedError(rl.retryAfterSec), formValues } as ActionResult;
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
 
@@ -77,7 +81,7 @@ export async function login(
       verb: "auth.login_failed",
       metadata: { email: parsed.data.email },
     });
-    return { ok: false, error: "Invalid email or password." };
+    return { ok: false, error: "Invalid email or password.", formValues };
   }
 
   resetRateLimit(rlKey);
@@ -141,28 +145,40 @@ export async function register(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
+  // Preserve user-typed values across server-action errors so the form
+  // doesn't blank out everything they typed. Password / confirm are
+  // intentionally NOT echoed back — never round-trip secrets through
+  // server-action state.
+  const formValues = {
+    firstName: String(formData.get("firstName") ?? ""),
+    lastName: String(formData.get("lastName") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    agency: String(formData.get("agency") ?? ""),
+    region: String(formData.get("region") ?? ""),
+  };
+
   const parsed = registerSchema.safeParse({
-    firstName: formData.get("firstName"),
-    lastName: formData.get("lastName"),
-    email: formData.get("email"),
+    ...formValues,
     password: formData.get("password"),
     confirm: formData.get("confirm"),
-    agency: formData.get("agency") ?? "",
-    region: formData.get("region") ?? "",
     acceptTerms: formData.get("acceptTerms"),
   });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Check the form and try again.",
+      formValues,
+    };
   }
   if (parsed.data.password !== parsed.data.confirm) {
-    return { ok: false, error: "Passwords don't match." };
+    return { ok: false, error: "Passwords don't match.", formValues };
   }
 
   // Rate-limit per IP — same window as forgot-password since both are
   // pre-auth surfaces and a low cap stops scripted account-farming.
   const ip = clientIpFromHeaders(await headers());
   const rl = checkRateLimit(`register:${ip}`, RATE_LIMITS.forgotPassword);
-  if (!rl.ok) return rateLimitedError(rl.retryAfterSec);
+  if (!rl.ok) return { ...rateLimitedError(rl.retryAfterSec), formValues } as ActionResult;
 
   // Email-uniqueness check matches v1 `unique:users` rule. The error is
   // intentionally generic ("Account already exists with that email.") —
@@ -174,7 +190,11 @@ export async function register(
     select: { id: true },
   });
   if (existing) {
-    return { ok: false, error: "An account with that email already exists. Try logging in." };
+    return {
+      ok: false,
+      error: "An account with that email already exists. Try logging in.",
+      formValues,
+    };
   }
 
   const passwordHash = await hashPassword(parsed.data.password);

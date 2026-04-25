@@ -14,6 +14,7 @@ export default function LoginPage() {
     login,
     undefined,
   );
+  const v = state && !state.ok ? state.formValues ?? {} : {};
 
   return (
     <AuthShell
@@ -45,6 +46,7 @@ export default function LoginPage() {
             autoComplete="email"
             placeholder="you@agency.be"
             required
+            defaultValue={v.email ?? ""}
           />
         </Field>
         <Field label="Password" id="password" required>

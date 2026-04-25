@@ -3,9 +3,6 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
-import { Button } from "@/components/ui/Button";
-import { Input, Select } from "@/components/ui/Input";
-import { IconFilter, IconSearch } from "@/components/ui/Icons";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { hasRole } from "@/lib/permissions";
@@ -13,9 +10,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { initials } from "@/lib/format";
 
 // Max rows shown without paginator — 200 is enough to see "recent" activity
-// without triggering a big row read on every page visit. Filter UI (below)
-// is intentionally unwired in this pass; a follow-up wires ?from / ?to /
-// ?kind / ?q into the prisma query.
+// without triggering a big row read on every page visit. Wiring filter +
+// pagination is a follow-up task (CC todo); the disabled placeholder UI was
+// removed because it looked broken to admins.
 const ROW_LIMIT = 200;
 
 type Kind = "auth" | "create" | "update" | "status" | "delete" | "system";
@@ -133,37 +130,7 @@ export default async function ActivityLogPage() {
       <div className="p-8 max-w-[1400px] space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Filter events</CardTitle>
-          </CardHeader>
-          <CardBody className="grid gap-4 md:grid-cols-4">
-            <div className="relative md:col-span-2">
-              <IconSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-muted)]" />
-              <Input placeholder="Search by user or target…" className="pl-9" disabled />
-            </div>
-            <Select defaultValue="all" disabled>
-              <option value="all">All event types</option>
-              <option value="auth">Auth</option>
-              <option value="create">Create</option>
-              <option value="update">Update</option>
-              <option value="status">Status</option>
-              <option value="delete">Delete</option>
-              <option value="system">System</option>
-            </Select>
-            <div className="flex items-center gap-2">
-              <Input type="date" disabled />
-              <span className="text-sm text-[var(--color-ink-muted)]">→</span>
-              <Input type="date" disabled />
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex items-center justify-between">
             <CardTitle>Events</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="secondary" size="sm" disabled><IconFilter size={14} />Saved views</Button>
-              <Button variant="secondary" size="sm" disabled>Export CSV</Button>
-            </div>
           </CardHeader>
           <CardBody className="p-0">
             {rows.length === 0 ? (

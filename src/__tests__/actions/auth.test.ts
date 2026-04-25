@@ -3,6 +3,7 @@ import {
   forgotPassword,
   login,
   logout,
+  register,
   resetPassword,
   switchActiveTeam,
 } from "@/app/actions/auth";
@@ -103,7 +104,7 @@ describe("login", () => {
   it("wrong password → {ok:false}, no session, audit.login_failed emitted", async () => {
     await seedUserWithPassword("alice@test.local", "correct-password");
     const res = await login(undefined, form({ email: "alice@test.local", password: "wrong" }));
-    expect(res).toEqual({ ok: false, error: "Invalid email or password." });
+    expect(res).toMatchObject({ ok: false, error: "Invalid email or password." });
 
     const sessions = await prisma.session.count({ where: { revokedAt: null } });
     expect(sessions).toBe(0);
@@ -115,21 +116,28 @@ describe("login", () => {
     expect(auditMeta(audits[0].metadata).email).toBe("alice@test.local");
   });
 
+  it("login error response echoes back the typed email (form preservation)", async () => {
+    await seedUserWithPassword("alice@test.local", "correct-password");
+    const res = await login(undefined, form({ email: "alice@test.local", password: "wrong" }));
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.formValues).toEqual({ email: "alice@test.local" });
+  });
+
   it("unknown email → same error shape (no user-enumeration leak)", async () => {
     const res = await login(undefined, form({ email: "ghost@test.local", password: "whatever" }));
-    expect(res).toEqual({ ok: false, error: "Invalid email or password." });
+    expect(res).toMatchObject({ ok: false, error: "Invalid email or password." });
   });
 
   it("soft-deleted user → login rejected", async () => {
     const u = await seedUserWithPassword("alice@test.local", "correct-password");
     await prisma.user.update({ where: { id: u.id }, data: { deletedAt: new Date() } });
     const res = await login(undefined, form({ email: "alice@test.local", password: "correct-password" }));
-    expect(res).toEqual({ ok: false, error: "Invalid email or password." });
+    expect(res).toMatchObject({ ok: false, error: "Invalid email or password." });
   });
 
   it("invalid email format → friendly validation error (no rate-limit hit, no DB query)", async () => {
     const res = await login(undefined, form({ email: "not-an-email", password: "whatever" }));
-    expect(res).toEqual({ ok: false, error: "Enter your email and password." });
+    expect(res).toMatchObject({ ok: false, error: "Enter your email and password." });
   });
 
   it("rate limit fires after 5 failures for the same (email, ip) in 60s window", async () => {
@@ -173,7 +181,7 @@ describe("login", () => {
     );
     // The fresh counter allows another 5 failures before locking out.
     const res = await login(undefined, form({ email: "alice@test.local", password: "wrong" }));
-    expect(res).toEqual({ ok: false, error: "Invalid email or password." });
+    expect(res).toMatchObject({ ok: false, error: "Invalid email or password." });
   });
 
   it("picks the user's first team membership as activeTeamId", async () => {
@@ -498,5 +506,59 @@ describe("switchActiveTeam", () => {
   it("not signed in (no cookie) → 'Not signed in.' error", async () => {
     const res = await switchActiveTeam("t_test_1");
     expect(res).toEqual({ ok: false, error: "Not signed in." });
+  });
+});
+
+describe("register — form value preservation", () => {
+  function regForm(o: Record<string, string> = {}): FormData {
+    const fd = new FormData();
+    const defaults: Record<string, string> = {
+      firstName: "Riley",
+      lastName: "Parker",
+      email: "riley@example.test",
+      password: "long-enough-pw",
+      confirm: "long-enough-pw",
+      agency: "Parker Properties",
+      region: "Brussels",
+      acceptTerms: "on",
+    };
+    for (const [k, v] of Object.entries({ ...defaults, ...o })) fd.set(k, v);
+    return fd;
+  }
+
+  it("validation error echoes the user's typed values back (sans password)", async () => {
+    const res = await register(undefined, regForm({ email: "not-an-email" }));
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.formValues).toEqual({
+        firstName: "Riley",
+        lastName: "Parker",
+        email: "not-an-email",
+        agency: "Parker Properties",
+        region: "Brussels",
+      });
+      // Critical: never echo the password back through server-action state.
+      expect(res.formValues).not.toHaveProperty("password");
+      expect(res.formValues).not.toHaveProperty("confirm");
+    }
+  });
+
+  it("duplicate email error also echoes values (so the user can edit + retry)", async () => {
+    await prisma.user.create({
+      data: {
+        email: "taken@example.test",
+        passwordHash: "x",
+        firstName: "Existing",
+        lastName: "User",
+        role: "realtor",
+      },
+    });
+    const res = await register(undefined, regForm({ email: "taken@example.test" }));
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toMatch(/already exists/);
+      expect(res.formValues?.firstName).toBe("Riley");
+      expect(res.formValues?.email).toBe("taken@example.test");
+    }
   });
 });

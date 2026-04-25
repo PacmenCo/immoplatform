@@ -109,6 +109,22 @@ describe("createAssignmentInner — field validation", () => {
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toMatch(/Construction year must be 1800/);
   });
+
+  it("preferred-date in the past → rejected (Platform parity: before:today rule)", async () => {
+    const { admin } = await seedBaseline();
+    const fd = buildCreateForm({ "preferred-date": "1990-01-01" });
+    const res = await createAssignmentInner(admin, undefined, fd);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/Preferred date can't be in the past/);
+  });
+
+  it("preferred-date today is allowed (boundary)", async () => {
+    const { admin } = await seedBaseline();
+    const today = new Date().toISOString().slice(0, 10);
+    const fd = buildCreateForm({ "preferred-date": today });
+    const res = await createAssignmentInner(admin, undefined, fd);
+    expect(res.ok).toBe(true);
+  });
 });
 
 describe("createAssignmentInner — service price snapshot", () => {

@@ -154,6 +154,26 @@ function isUniqueReferenceConflict(err: unknown): boolean {
   );
 }
 
+/**
+ * Reject preferredDate values before today (local-time start-of-day). v1
+ * `AssignmentController::store` does the same via `before:today`. Empty /
+ * undefined is allowed — clearing the date is fine.
+ */
+const futureDateSchema = z
+  .string()
+  .optional()
+  .refine(
+    (v) => {
+      if (!v) return true;
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return d >= today;
+    },
+    "Preferred date can't be in the past.",
+  );
+
 // ─── Create ────────────────────────────────────────────────────────
 
 const createSchema = z.object({
@@ -213,7 +233,7 @@ const createSchema = z.object({
     .or(z.literal("")),
   isLargeProperty: z.boolean().optional(),
 
-  preferredDate: z.string().optional(),
+  preferredDate: futureDateSchema,
   calendarDate: z.string().optional(),
   calendarAccountEmail: z.string().email().optional().or(z.literal("")),
   // Key-pickup triple — Platform parity (AssignmentController.php:175-177).
@@ -658,7 +678,7 @@ const updateSchema = z.object({
     .or(z.literal("")),
   isLargeProperty: z.boolean().optional(),
 
-  preferredDate: z.string().optional(),
+  preferredDate: futureDateSchema,
   calendarDate: z.string().optional(),
   calendarAccountEmail: z.string().email().optional().or(z.literal("")),
   // Key-pickup triple — Platform parity (AssignmentController.php:469-471).
@@ -686,16 +706,7 @@ async function applyFreelancerUpdate(
   const id = existing.id;
   const rawDate = ((formData.get("preferred-date") as string) || "").trim();
   const parsed = z
-    .object({
-      preferredDate: z
-        .string()
-        .trim()
-        .optional()
-        .refine(
-          (s) => !s || !Number.isNaN(Date.parse(s)),
-          "Preferred date must be a valid date.",
-        ),
-    })
+    .object({ preferredDate: futureDateSchema })
     .safeParse({ preferredDate: rawDate || undefined });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid date." };

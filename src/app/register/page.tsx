@@ -14,6 +14,7 @@ export default function RegisterPage() {
     register,
     undefined,
   );
+  const v = state && !state.ok ? state.formValues ?? {} : {};
 
   return (
     <AuthShell
@@ -39,14 +40,14 @@ export default function RegisterPage() {
         )}
         <div className="grid grid-cols-2 gap-4">
           <Field label="First name" id="firstName" required>
-            <Input id="firstName" name="firstName" autoComplete="given-name" required />
+            <Input id="firstName" name="firstName" autoComplete="given-name" required defaultValue={v.firstName ?? ""} />
           </Field>
           <Field label="Last name" id="lastName" required>
-            <Input id="lastName" name="lastName" autoComplete="family-name" required />
+            <Input id="lastName" name="lastName" autoComplete="family-name" required defaultValue={v.lastName ?? ""} />
           </Field>
         </div>
         <Field label="Agency name" id="agency" hint="Optional — shown on your profile.">
-          <Input id="agency" name="agency" placeholder="Vastgoed Antwerp" />
+          <Input id="agency" name="agency" placeholder="Vastgoed Antwerp" defaultValue={v.agency ?? ""} />
         </Field>
         <Field label="Work email" id="email" required>
           <Input
@@ -56,6 +57,7 @@ export default function RegisterPage() {
             autoComplete="email"
             placeholder="you@agency.be"
             required
+            defaultValue={v.email ?? ""}
           />
         </Field>
         <Field label="Password" id="password" hint="At least 10 characters." required>
@@ -77,7 +79,7 @@ export default function RegisterPage() {
           />
         </Field>
         <Field label="Region" id="region">
-          <Select id="region" name="region" defaultValue="Flanders">
+          <Select id="region" name="region" defaultValue={v.region || "Flanders"}>
             <option value="Flanders">Flanders</option>
             <option value="Brussels">Brussels</option>
             <option value="Wallonia">Wallonia</option>
