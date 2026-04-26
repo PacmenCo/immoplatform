@@ -370,4 +370,56 @@ describe("updateAssignmentInner — wide-edit write semantics", () => {
     });
     expect(after.address).toBe("1 Teststraat");
   });
+
+  it("freelancer-routed update writes only the allowlisted fields (date), drops everything else", async () => {
+    // v1 parity (Platform/AssignmentController.php:406-439): a freelancer's
+    // edit submission only carries preferred-date / status / new-comment.
+    // v2's `filterUpdateForFreelancer` (permissions.ts:209-216) strips
+    // everything else BEFORE it reaches `applyFreelancerUpdate`. This test
+    // verifies the route — submit a fully-populated wide form as a
+    // freelancer and confirm the row's address/services/owner stay put.
+    const { freelancer, teams } = await seedBaseline();
+    const asg = await seedAssignment({
+      id: "a_wide_freelancer_filter",
+      status: "awaiting",
+      teamId: teams.t1.id,
+      freelancerId: freelancer.user.id,
+    });
+
+    const res = await updateAssignmentInner(
+      freelancer,
+      asg.id,
+      undefined,
+      buildUpdateForm(
+        {
+          // Junk that should NOT survive the freelancer-filter:
+          address: "Freelancer trying to rewrite address",
+          city: "Freelancer trying to rewrite city",
+          "owner-name": "Freelancer trying to rewrite owner",
+          // Allowlisted: preferred-date — this should land + auto-promote
+          "preferred-date": "2026-08-15",
+        },
+        asg.updatedAt.toISOString(),
+      ),
+    );
+    expect(res).toEqual({ ok: true });
+
+    const after = await prisma.assignment.findUniqueOrThrow({
+      where: { id: asg.id },
+      select: {
+        address: true,
+        city: true,
+        ownerName: true,
+        preferredDate: true,
+        status: true,
+      },
+    });
+    // Address/city/ownerName must be untouched (filtered out).
+    expect(after.address).toBe("1 Teststraat");
+    expect(after.city).toBe("Antwerpen");
+    expect(after.ownerName).toBe("Test Owner");
+    // Preferred date landed + auto-status flipped awaiting → scheduled.
+    expect(after.preferredDate?.toISOString().slice(0, 10)).toBe("2026-08-15");
+    expect(after.status).toBe("scheduled");
+  });
 });

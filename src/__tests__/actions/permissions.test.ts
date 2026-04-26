@@ -10,6 +10,7 @@ import {
   canViewAssignmentPricing,
   canViewCommission,
   assignmentScope,
+  getUserTeamIds,
   hasRole,
 } from "@/lib/permissions";
 import { setupTestDb } from "../_helpers/db";
@@ -418,5 +419,56 @@ describe("hasRole", () => {
     const { staff } = await seedBaseline();
     expect(hasRole(staff, "admin", "staff")).toBe(true);
     expect(hasRole(staff, "realtor", "freelancer")).toBe(false);
+  });
+});
+
+// `getUserTeamIds` powers the dashboard layout's realtor-no-team gate
+// (`src/app/dashboard/layout.tsx:30-33`). Flow-parity batch 5 exercised the
+// gate end-to-end via Playwright; these unit tests cover the underlying
+// logic so a regression doesn't silently let a teamless realtor onto the
+// dashboard.
+describe("getUserTeamIds", () => {
+  it("realtor with no team membership → all=[] and owned=[]", async () => {
+    await seedBaseline();
+    const lone = await makeSession({
+      role: "realtor",
+      userId: "u_lone_realtor_perm_test",
+    });
+    const result = await getUserTeamIds(lone.user.id);
+    expect(result.all).toEqual([]);
+    expect(result.owned).toEqual([]);
+  });
+
+  it("realtor-owner gets the team in BOTH all and owned", async () => {
+    const { realtor, teams } = await seedBaseline();
+    const result = await getUserTeamIds(realtor.user.id);
+    expect(result.all).toContain(teams.t1.id);
+    expect(result.owned).toContain(teams.t1.id);
+  });
+
+  it("realtor-member (not owner) gets the team in `all` but NOT in `owned`", async () => {
+    await seedBaseline();
+    await seedTeam("t_member_perm_test", "Member-Only Team");
+    const memberRealtor = await makeSession({
+      role: "realtor",
+      userId: "u_member_realtor_perm_test",
+      membershipTeams: [{ teamId: "t_member_perm_test", teamRole: "member" }],
+    });
+    const result = await getUserTeamIds(memberRealtor.user.id);
+    expect(result.all).toContain("t_member_perm_test");
+    expect(result.owned).not.toContain("t_member_perm_test");
+  });
+
+  it("freelancer with no team → all=[] (no-team gate doesn't apply but the helper still works)", async () => {
+    const { freelancer } = await seedBaseline();
+    // Seed baseline's freelancer is intentionally team-less.
+    const result = await getUserTeamIds(freelancer.user.id);
+    expect(result.all).toEqual([]);
+  });
+
+  it("admin without memberships → all=[] (admins bypass the gate via hasRole, not via memberships)", async () => {
+    const { admin } = await seedBaseline();
+    const result = await getUserTeamIds(admin.user.id);
+    expect(result.all).toEqual([]);
   });
 });

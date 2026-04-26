@@ -3,13 +3,16 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { Tabs } from "@/components/ui/Tabs";
 import { AssignmentForm } from "@/components/dashboard/AssignmentForm";
 import type { AssignmentFormInitial } from "@/components/dashboard/AssignmentForm";
+import { FreelancerEditForm } from "./FreelancerEditForm";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import {
+  canEditAssignment,
   canReassignFreelancer,
   canSetDiscount,
   canUpdateAssignmentFields,
   eligibleFreelancerWhere,
+  hasRole,
 } from "@/lib/permissions";
 import { isDiscountType } from "@/lib/pricing";
 import { updateAssignment } from "@/app/actions/assignments";
@@ -40,13 +43,16 @@ export default async function EditAssignment({
   ]);
 
   if (!assignment) notFound();
-  if (!(await canUpdateAssignmentFields(session, assignment))) notFound();
-  // v1 parity: AssignmentPolicy::update (Platform/app/Policies/
-  // AssignmentPolicy.php:85-94) does NOT gate on status — admin/realtor-
-  // owner can edit fields on terminal (completed/cancelled) assignments
-  // too. Commission snapshots are already frozen, so address/contact-info
-  // edits are non-destructive. Earlier v2 redirected here, which made the
-  // Edit tab in /[id]/page.tsx render a dead link. Drop the redirect.
+  // canEditAssignment is the wider gate that includes freelancers on their
+  // own rows. canUpdateAssignmentFields is the narrower gate that excludes
+  // freelancer (used for the wide-edit form). v1 parity: Platform exposes
+  // a freelancer-restricted edit form (date-only) at the same route via
+  // role-aware validation in AssignmentController::update. v2 splits the
+  // form rendering by role here.
+  if (!(await canEditAssignment(session, assignment))) notFound();
+  const isFreelancer = hasRole(session, "freelancer");
+  const canWideEdit = await canUpdateAssignmentFields(session, assignment);
+  if (!isFreelancer && !canWideEdit) notFound();
 
   const initial: AssignmentFormInitial = {
     address: assignment.address,
@@ -124,16 +130,25 @@ export default async function EditAssignment({
         />
       </div>
 
-      <AssignmentForm
-        services={services}
-        action={boundUpdate}
-        initial={initial}
-        cancelHref={`/dashboard/assignments/${id}`}
-        canSetDiscount={discountEditor}
-        canSetFreelancer={canFreelancer}
-        freelancers={freelancers}
-        loadedAt={assignment.updatedAt.toISOString()}
-      />
+      {isFreelancer ? (
+        <FreelancerEditForm
+          action={boundUpdate}
+          initialDate={initial.preferredDate}
+          loadedAt={assignment.updatedAt.toISOString()}
+          cancelHref={`/dashboard/assignments/${id}`}
+        />
+      ) : (
+        <AssignmentForm
+          services={services}
+          action={boundUpdate}
+          initial={initial}
+          cancelHref={`/dashboard/assignments/${id}`}
+          canSetDiscount={discountEditor}
+          canSetFreelancer={canFreelancer}
+          freelancers={freelancers}
+          loadedAt={assignment.updatedAt.toISOString()}
+        />
+      )}
     </>
   );
 }

@@ -163,7 +163,7 @@ export default async function AssignmentDetail({
         <Tabs
           tabs={[
             { label: "Details", href: `/dashboard/assignments/${id}`, active: true },
-            ...(canUpdateFields
+            ...(canTransition
               ? [{ label: "Edit", href: `/dashboard/assignments/${id}/edit` }]
               : []),
             { label: "Files", href: `/dashboard/assignments/${id}/files` },
