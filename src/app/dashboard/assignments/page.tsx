@@ -320,14 +320,14 @@ export default async function AssignmentsList({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
-                    <SortHeader current={currentState} id="created" label="Reference" />
+                    <SortHeader current={currentState} id="created" label="Reference" hideBelow="sm" />
                     <SortHeader current={currentState} id="address" label="Property" />
-                    <th scope="col" className="text-left font-semibold px-6 py-3">Services</th>
-                    <th scope="col" className="text-left font-semibold px-6 py-3">Team</th>
-                    <th scope="col" className="text-left font-semibold px-6 py-3">Freelancer</th>
-                    <SortHeader current={currentState} id="date" label="Preferred date" />
+                    <th scope="col" className="hidden sm:table-cell text-left font-semibold px-6 py-3">Services</th>
+                    <th scope="col" className="hidden md:table-cell text-left font-semibold px-6 py-3">Team</th>
+                    <th scope="col" className="hidden md:table-cell text-left font-semibold px-6 py-3">Freelancer</th>
+                    <SortHeader current={currentState} id="date" label="Preferred date" hideBelow="sm" />
                     <SortHeader current={currentState} id="status" label="Status" />
-                    <th scope="col" className="text-left font-semibold px-6 py-3"><span className="sr-only">Files</span></th>
+                    <th scope="col" className="hidden lg:table-cell text-left font-semibold px-6 py-3"><span className="sr-only">Files</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
@@ -339,7 +339,7 @@ export default async function AssignmentsList({
                         key={a.id}
                         className="group transition-colors hover:bg-[color-mix(in_srgb,var(--color-brand)_3%,var(--color-bg))]"
                       >
-                        <td className="px-6 py-3 whitespace-nowrap">
+                        <td className="hidden sm:table-cell px-3 sm:px-6 py-3 whitespace-nowrap">
                           <Link
                             href={`/dashboard/assignments/${a.id}`}
                             className="font-mono text-xs font-medium text-[var(--color-ink)] hover:underline"
@@ -347,15 +347,23 @@ export default async function AssignmentsList({
                             {a.reference}
                           </Link>
                         </td>
-                        <td className="px-6 py-3">
-                          <p className="text-sm font-medium text-[var(--color-ink)] leading-tight">
-                            {a.address}
-                          </p>
-                          <p className="text-xs text-[var(--color-ink-muted)]">
-                            {a.postal} {a.city}
-                          </p>
+                        <td className="px-3 sm:px-6 py-3">
+                          <Link
+                            href={`/dashboard/assignments/${a.id}`}
+                            className="block sm:contents"
+                          >
+                            <p className="text-sm font-medium text-[var(--color-ink)] leading-tight">
+                              {a.address}
+                            </p>
+                            <p className="text-xs text-[var(--color-ink-muted)]">
+                              {a.postal} {a.city}
+                            </p>
+                            <p className="mt-0.5 font-mono text-[10px] text-[var(--color-ink-faint)] sm:hidden">
+                              {a.reference}
+                            </p>
+                          </Link>
                         </td>
-                        <td className="px-6 py-3">
+                        <td className="hidden sm:table-cell px-6 py-3">
                           <div className="flex flex-nowrap items-center gap-1">
                             {visibleServices.map((s) => {
                               const svc = servicesByKey[s.serviceKey];
@@ -370,10 +378,10 @@ export default async function AssignmentsList({
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-sm text-[var(--color-ink-soft)]">
+                        <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-sm text-[var(--color-ink-soft)]">
                           {a.team?.name ?? "—"}
                         </td>
-                        <td className="px-6 py-3">
+                        <td className="hidden md:table-cell px-6 py-3">
                           {a.freelancer ? (
                             <Link
                               href={`/dashboard/users/${a.freelancer.id}`}
@@ -393,17 +401,17 @@ export default async function AssignmentsList({
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-sm text-[var(--color-ink-soft)] tabular-nums">
+                        <td className="hidden sm:table-cell px-6 py-3 whitespace-nowrap text-sm text-[var(--color-ink-soft)] tabular-nums">
                           {a.preferredDate?.toISOString().slice(0, 10) ?? "—"}
                         </td>
-                        <td className="px-6 py-3">
+                        <td className="px-3 sm:px-6 py-3">
                           <StatusPicker
                             assignmentId={a.id}
                             status={a.status as Status}
                             role={r}
                           />
                         </td>
-                        <td className="px-2 py-3">
+                        <td className="hidden lg:table-cell px-2 py-3">
                           <AssignmentFilesButton
                             assignmentId={a.id}
                             reference={a.reference}
@@ -435,10 +443,12 @@ function SortHeader({
   current,
   id,
   label,
+  hideBelow,
 }: {
   current: FilterState;
   id: SortId;
   label: string;
+  hideBelow?: "sm" | "md" | "lg";
 }) {
   const isActive = current.sort === id;
   const nextDir: "asc" | "desc" = isActive && current.dir === "desc" ? "asc" : "desc";
@@ -446,11 +456,12 @@ function SortHeader({
   // `resetPage()` (Platform/AssignmentsList.php:97-100). Otherwise a user
   // sitting on page 4 would land on a different slice of the new sort order.
   const href = buildUrl(current, { sort: id, dir: nextDir, page: 1 });
+  const hideClass = hideBelow ? `hidden ${hideBelow}:table-cell ` : "";
   return (
     <th
       scope="col"
       aria-sort={isActive ? (current.dir === "asc" ? "ascending" : "descending") : "none"}
-      className="text-left font-semibold px-6 py-3"
+      className={`${hideClass}text-left font-semibold px-3 sm:px-6 py-3`}
     >
       <Link
         href={href}

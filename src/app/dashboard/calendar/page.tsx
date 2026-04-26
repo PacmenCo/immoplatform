@@ -334,61 +334,104 @@ function WeekGrid({
   const days = Array.from({ length: 7 }, (_, i) => addDays(rangeStart, i));
 
   return (
-    <Card className="overflow-hidden">
-      {/* Header — weekday name + date number per column */}
-      <div className="grid grid-cols-7 border-b border-[var(--color-border)] bg-[var(--color-bg-alt)]">
-        {days.map((d, i) => {
-          const isToday = sameDay(d, today);
-          return (
-            <div
-              key={i}
-              className="px-3 py-2 flex items-center justify-between gap-2"
-            >
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-                {WEEKDAYS[i]}
-              </span>
-              <span
-                className={
-                  isToday
-                    ? "inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand)] text-xs font-semibold text-white"
-                    : "text-sm font-semibold text-[var(--color-ink-soft)]"
-                }
-              >
-                {d.getDate()}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      {/* Day columns — taller than month cells so morning/afternoon blocks
-          have room. Events ordered by time (calendarDate first, then preferredDate). */}
-      <div className="grid grid-cols-7">
+    <>
+      {/* Mobile: vertical agenda — each day is a stacked block. The 7-column
+          grid below is too cramped at < sm to read event titles. */}
+      <div className="sm:hidden space-y-3">
         {days.map((d, i) => {
           const iso = toISODate(d);
+          const isToday = sameDay(d, today);
           const events = byDay.get(iso) ?? [];
           return (
-            <div
-              key={i}
-              className="min-h-[420px] border-b border-r border-[var(--color-border)] p-2 space-y-1"
-            >
-              {events.length === 0 ? (
-                <div className="text-[11px] text-[var(--color-ink-faint)] italic px-1 pt-1">
-                  No assignments
-                </div>
-              ) : (
-                events.map((e) => (
-                  <WeekEventCard
-                    key={e.id}
-                    event={e}
-                    servicesByKey={servicesByKey}
-                  />
-                ))
-              )}
-            </div>
+            <Card key={i} className="overflow-hidden">
+              <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-bg-alt)] px-4 py-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                  {WEEKDAYS[i]}
+                </span>
+                <span
+                  className={
+                    isToday
+                      ? "inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand)] text-xs font-semibold text-[var(--color-on-brand)]"
+                      : "text-sm font-semibold text-[var(--color-ink-soft)]"
+                  }
+                >
+                  {d.getDate()}
+                </span>
+              </div>
+              <div className="p-2 space-y-1">
+                {events.length === 0 ? (
+                  <div className="text-[11px] text-[var(--color-ink-faint)] italic px-1 py-1">
+                    No assignments
+                  </div>
+                ) : (
+                  events.map((e) => (
+                    <WeekEventCard
+                      key={e.id}
+                      event={e}
+                      servicesByKey={servicesByKey}
+                    />
+                  ))
+                )}
+              </div>
+            </Card>
           );
         })}
       </div>
-    </Card>
+
+      {/* Tablet + desktop: classic 7-column week grid. */}
+      <Card className="hidden sm:block overflow-hidden">
+        <div className="grid grid-cols-7 border-b border-[var(--color-border)] bg-[var(--color-bg-alt)]">
+          {days.map((d, i) => {
+            const isToday = sameDay(d, today);
+            return (
+              <div
+                key={i}
+                className="px-3 py-2 flex items-center justify-between gap-2"
+              >
+                <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                  {WEEKDAYS[i]}
+                </span>
+                <span
+                  className={
+                    isToday
+                      ? "inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand)] text-xs font-semibold text-[var(--color-on-brand)]"
+                      : "text-sm font-semibold text-[var(--color-ink-soft)]"
+                  }
+                >
+                  {d.getDate()}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="grid grid-cols-7">
+          {days.map((d, i) => {
+            const iso = toISODate(d);
+            const events = byDay.get(iso) ?? [];
+            return (
+              <div
+                key={i}
+                className="min-h-[420px] border-b border-r border-[var(--color-border)] p-2 space-y-1"
+              >
+                {events.length === 0 ? (
+                  <div className="text-[11px] text-[var(--color-ink-faint)] italic px-1 pt-1">
+                    No assignments
+                  </div>
+                ) : (
+                  events.map((e) => (
+                    <WeekEventCard
+                      key={e.id}
+                      event={e}
+                      servicesByKey={servicesByKey}
+                    />
+                  ))
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </>
   );
 }
 
