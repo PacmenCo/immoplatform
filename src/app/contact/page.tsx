@@ -51,7 +51,7 @@ export default function ContactPage() {
         <section className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)]">
           <div className="mx-auto max-w-[var(--container)] px-6 py-20 md:py-28">
             <div className="max-w-3xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-fuel)]" />
                 Contact
               </span>

@@ -115,7 +115,7 @@ export default function PricingPage() {
       <main>
         <section className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)]">
           <div className="mx-auto max-w-[var(--container)] px-6 py-20 text-center md:py-28">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-epc)]" />
               Simple, transparent pricing
             </span>
@@ -188,7 +188,7 @@ export default function PricingPage() {
               </p>
             </div>
 
-            <div className="mt-10 overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
+            <div className="mt-10 overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]">
               <table className="w-full min-w-[720px] text-sm">
                 <thead className="bg-[var(--color-bg-muted)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
                   <tr>
@@ -204,7 +204,7 @@ export default function PricingPage() {
                     const svc = SERVICES[s.key];
                     const base = parseInt(s.price.replace(/[^\d]/g, ""), 10);
                     return (
-                      <tr key={s.key} className={i % 2 === 0 ? "bg-white" : "bg-[var(--color-bg-alt)]"}>
+                      <tr key={s.key} className={i % 2 === 0 ? "bg-[var(--color-bg)]" : "bg-[var(--color-bg-alt)]"}>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <ServicePill color={svc.color} label={svc.short} />
@@ -233,7 +233,7 @@ export default function PricingPage() {
               </p>
             </div>
 
-            <div className="mt-10 overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
+            <div className="mt-10 overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]">
               <table className="w-full min-w-[640px] text-sm">
                 <thead className="bg-[var(--color-bg-muted)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
                   <tr>
@@ -249,7 +249,7 @@ export default function PricingPage() {
                       key={row.label}
                       className={
                         i % 2 === 0
-                          ? "border-t border-[var(--color-border)] bg-white"
+                          ? "border-t border-[var(--color-border)] bg-[var(--color-bg)]"
                           : "border-t border-[var(--color-border)] bg-[var(--color-bg-alt)]"
                       }
                     >
@@ -276,7 +276,7 @@ export default function PricingPage() {
               {faqs.map((f) => (
                 <details
                   key={f.q}
-                  className="group rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white p-5 open:shadow-[var(--shadow-sm)]"
+                  className="group rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-5 open:shadow-[var(--shadow-sm)]"
                 >
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-[var(--color-ink)]">
                     {f.q}
@@ -293,18 +293,18 @@ export default function PricingPage() {
 
         <section className="py-20">
           <div className="mx-auto max-w-[var(--container)] px-6">
-            <div className="rounded-[var(--radius-xl)] bg-[var(--color-ink)] p-10 text-center text-white md:p-16">
-              <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">
+            <div className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-10 text-center md:p-16">
+              <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight text-[var(--color-ink)] md:text-4xl">
                 Ready to certify at scale?
               </h2>
-              <p className="mx-auto mt-4 max-w-xl text-white/70">
+              <p className="mx-auto mt-4 max-w-xl text-[var(--color-ink-soft)]">
                 Start free today. Upgrade the day you feel the ceiling.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                <Button href="/register" size="lg" variant="primary" className="bg-white text-[var(--color-ink)] hover:bg-white/90">
+                <Button href="/register" size="lg" variant="primary">
                   Create account
                 </Button>
-                <Button href="/demo" size="lg" variant="secondary" className="border-white/20 bg-transparent text-white hover:border-white">
+                <Button href="/demo" size="lg" variant="secondary">
                   Book a demo
                 </Button>
               </div>

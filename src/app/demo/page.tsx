@@ -3,7 +3,6 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/Input";
-import { Avatar } from "@/components/ui/Avatar";
 import { IconCheck } from "@/components/ui/Icons";
 
 const benefits = [
@@ -33,7 +32,7 @@ export default function DemoPage() {
         <section className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)]">
           <div className="mx-auto grid max-w-[var(--container)] gap-12 px-6 py-20 lg:grid-cols-2 lg:py-24">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-electrical)]" />
                 20-minute walkthrough
               </span>
@@ -89,7 +88,7 @@ export default function DemoPage() {
             </div>
 
             <div className="space-y-8 lg:pl-6">
-              <div className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-white p-8">
+              <div className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-bg)] p-8">
                 <h2 className="text-lg font-semibold text-[var(--color-ink)]">What you&apos;ll get out of it</h2>
                 <ul className="mt-6 space-y-5">
                   {benefits.map((b) => (
@@ -105,23 +104,6 @@ export default function DemoPage() {
                   ))}
                 </ul>
               </div>
-
-              <figure className="rounded-[var(--radius-xl)] bg-[var(--color-ink)] p-8 text-white">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="opacity-30">
-                  <path d="M7 7h4v4H7c0 3.3 2.7 6 6 6v2c-4.4 0-8-3.6-8-8V7zm10 0h4v4h-4c0 3.3 2.7 6 6 6v2c-4.4 0-8-3.6-8-8V7z" />
-                </svg>
-                <blockquote className="mt-6 text-xl font-medium leading-snug">
-                  The demo sold it. Twenty minutes in, I could see exactly how it replaces the four tabs we had open.
-                  We switched that week.
-                </blockquote>
-                <figcaption className="mt-6 flex items-center gap-3">
-                  <Avatar initials="EV" size="md" color="#10b981" />
-                  <div>
-                    <p className="text-sm font-medium">Els Vermeulen</p>
-                    <p className="text-xs opacity-70">Managing partner · Vastgoed Antwerp</p>
-                  </div>
-                </figcaption>
-              </figure>
 
               <p className="text-sm text-[var(--color-ink-muted)]">
                 Not ready for a demo?{" "}

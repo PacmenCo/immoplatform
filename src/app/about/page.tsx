@@ -105,7 +105,7 @@ export default function AboutPage() {
         <section className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)]">
           <div className="mx-auto max-w-[var(--container)] px-6 py-24 md:py-32">
             <div className="max-w-3xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
                 About Immo
               </span>
@@ -196,7 +196,7 @@ export default function AboutPage() {
 
             <div className="mt-10 grid gap-px overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-border)] sm:grid-cols-2 lg:grid-cols-3">
               {values.map((v) => (
-                <div key={v.title} className="bg-white p-8">
+                <div key={v.title} className="bg-[var(--color-bg)] p-8">
                   <h3 className="text-base font-semibold text-[var(--color-ink)]">{v.title}</h3>
                   <p className="mt-3 text-sm text-[var(--color-ink-soft)]">{v.body}</p>
                 </div>

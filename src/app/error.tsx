@@ -16,7 +16,7 @@ export default function RootError({
 
   return (
     <div className="grid min-h-screen place-items-center bg-[var(--color-bg-alt)] px-6">
-      <div className="w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-8 text-center shadow-[var(--shadow-md)]">
+      <div className="w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-8 text-center shadow-[var(--shadow-md)]">
         <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-full bg-[color-mix(in_srgb,var(--color-asbestos)_12%,white)] text-[var(--color-asbestos)]">
           <svg
             aria-hidden="true"

@@ -96,7 +96,7 @@ export default async function ServicePage({
       <main className="flex-1">
         <section
           className="border-b border-[var(--color-border)]"
-          style={{ backgroundColor: `color-mix(in srgb, ${svc.color} 6%, white)` }}
+          style={{ backgroundColor: `color-mix(in srgb, ${svc.color} 6%, var(--color-bg))` }}
         >
           <div className="mx-auto max-w-[var(--container)] px-6 py-20">
             <Link href="/#services" className="inline-flex items-center gap-2 text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]">
@@ -181,7 +181,7 @@ export default async function ServicePage({
                   </p>
                   <p className="mt-1 text-sm text-[var(--color-ink-soft)]">{d.who}</p>
                 </div>
-                <div className="rounded-md border border-[var(--color-border)] bg-white p-5">
+                <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-5">
                   <p className="text-sm font-medium text-[var(--color-ink)]">
                     Bundle & save
                   </p>
