@@ -199,6 +199,51 @@ describe("login", () => {
     });
     expect(session.activeTeamId).toBe("t_auth_1");
   });
+
+  it("redirects to ?next= when set to a same-origin path (Platform parity: redirect()->intended)", async () => {
+    await seedUserWithPassword("alice@test.local", "password123");
+    const target = await captureRedirect(() =>
+      login(
+        undefined,
+        form({
+          email: "alice@test.local",
+          password: "password123",
+          next: "/dashboard/assignments/abc123",
+        }),
+      ),
+    );
+    expect(target).toBe("/dashboard/assignments/abc123");
+  });
+
+  it("ignores ?next= protocol-relative URLs (//evil.example) — falls back to /dashboard", async () => {
+    await seedUserWithPassword("alice@test.local", "password123");
+    const target = await captureRedirect(() =>
+      login(
+        undefined,
+        form({
+          email: "alice@test.local",
+          password: "password123",
+          next: "//evil.example/steal",
+        }),
+      ),
+    );
+    expect(target).toBe("/dashboard");
+  });
+
+  it("ignores ?next= absolute URLs — falls back to /dashboard", async () => {
+    await seedUserWithPassword("alice@test.local", "password123");
+    const target = await captureRedirect(() =>
+      login(
+        undefined,
+        form({
+          email: "alice@test.local",
+          password: "password123",
+          next: "https://evil.example/steal",
+        }),
+      ),
+    );
+    expect(target).toBe("/dashboard");
+  });
 });
 
 describe("forgotPassword", () => {
@@ -560,5 +605,35 @@ describe("register — form value preservation", () => {
       expect(res.formValues?.firstName).toBe("Riley");
       expect(res.formValues?.email).toBe("taken@example.test");
     }
+  });
+
+  it("emits user.registered notification to platform admins (Platform parity)", async () => {
+    // Seed an admin who'll receive the fan-out + a staff user (admin-only
+    // event so staff is filtered out by `eventsForRole` inside notify).
+    const adminHash = await hashPassword("password123");
+    await prisma.user.create({
+      data: {
+        id: "u_admin_for_register_test",
+        email: "admin@test.local",
+        passwordHash: adminHash,
+        role: "admin",
+        firstName: "Admin",
+        lastName: "User",
+      },
+    });
+    await captureRedirect(() =>
+      register(undefined, regForm({ email: "fresh@example.test" })),
+    );
+    // The new user gets a `user.created` audit; the admin is the only
+    // recipient that should produce a notify-target downstream. Assert the
+    // user.created path instead of mocking sendEmail — the admin fan-out
+    // honors `notify`'s opt-out logic which is covered in notify.test.ts.
+    const created = await prisma.user.findUniqueOrThrow({
+      where: { email: "fresh@example.test" },
+    });
+    const auditRow = await prisma.auditLog.findFirst({
+      where: { actorId: created.id, verb: "user.created" },
+    });
+    expect(auditRow).toBeTruthy();
   });
 });

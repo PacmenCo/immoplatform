@@ -35,6 +35,10 @@ import MonthlyInvoiceReminder, {
   subject as monthlyInvoiceReminderSubject,
   type MonthlyInvoiceReminderEmailProps,
 } from "@/emails/MonthlyInvoiceReminder";
+import UserRegistered, {
+  subject as userRegisteredSubject,
+  type UserRegisteredEmailProps,
+} from "@/emails/UserRegistered";
 import EmailVerification, {
   subject as emailVerificationSubject,
   type EmailVerificationEmailProps,
@@ -251,6 +255,13 @@ export async function emailVerificationEmail(
 ): Promise<RenderedEmail> {
   const { html, text } = await renderTemplate(<EmailVerification {...props} />);
   return { subject: emailVerificationSubject(props), html, text };
+}
+
+export async function userRegisteredEmail(
+  props: UserRegisteredEmailProps,
+): Promise<RenderedEmail> {
+  const { html, text } = await renderTemplate(<UserRegistered {...props} />);
+  return { subject: userRegisteredSubject(props), html, text };
 }
 
 export async function addedToTeamEmail(

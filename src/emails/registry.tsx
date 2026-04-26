@@ -25,6 +25,11 @@ import MonthlyInvoiceReminder, {
   previewProps as monthlyInvoiceReminderProps,
   type MonthlyInvoiceReminderEmailProps,
 } from "./MonthlyInvoiceReminder";
+import UserRegistered, {
+  subject as userRegisteredSubject,
+  previewProps as userRegisteredProps,
+  type UserRegisteredEmailProps,
+} from "./UserRegistered";
 import EmailVerification, {
   subject as emailVerificationSubject,
   previewProps as emailVerificationProps,
@@ -140,6 +145,15 @@ export const EMAIL_TEMPLATES: AnyTemplate[] = [
     subject: (p) =>
       monthlyInvoiceReminderSubject(p as MonthlyInvoiceReminderEmailProps),
     previewProps: monthlyInvoiceReminderProps,
+  },
+  {
+    slug: "user-registered",
+    label: "User registered",
+    description:
+      "Sent to platform admins when someone self-registers. Honors the user.registered opt-out.",
+    element: (p) => <UserRegistered {...(p as UserRegisteredEmailProps)} />,
+    subject: (p) => userRegisteredSubject(p as UserRegisteredEmailProps),
+    previewProps: userRegisteredProps,
   },
   {
     slug: "assignment-scheduled",

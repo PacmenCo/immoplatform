@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Field, Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -15,6 +16,13 @@ export default function LoginPage() {
     undefined,
   );
   const v = state && !state.ok ? state.formValues ?? {} : {};
+  // Platform parity (`Login.php` `redirect()->intended(...)`). A user who
+  // followed an email link to a deep dashboard URL while signed-out lands
+  // here with `?next=/dashboard/assignments/abc`. We thread the param into
+  // a hidden field so the server action can validate it and redirect there
+  // on success.
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "";
 
   return (
     <AuthShell
@@ -30,6 +38,7 @@ export default function LoginPage() {
       }
     >
       <form className="space-y-5" action={formAction}>
+        {next && <input type="hidden" name="next" value={next} />}
         {state && !state.ok && (
           <p
             role="alert"

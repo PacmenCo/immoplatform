@@ -15,7 +15,10 @@ import {
   hashToken,
   verifyPassword,
 } from "@/lib/auth";
-import { passwordResetEmail, sendEmail } from "@/lib/email";
+import { passwordResetEmail, sendEmail, userRegisteredEmail } from "@/lib/email";
+import { collectPlatformAdmins } from "@/lib/assignment-recipients";
+import { notify } from "@/lib/notify";
+import { appBaseUrl } from "@/lib/urls";
 import {
   checkRateLimit,
   clientIpFromHeaders,
@@ -113,7 +116,14 @@ export async function login(
     objectId: user.id,
   });
 
-  redirect("/dashboard");
+  // Platform parity (`Login.php` `redirect()->intended()`): if the form
+  // posts a `next` URL, route there instead of /dashboard. Validate it's a
+  // same-origin path (starts with `/` and not `//` — the latter is a
+  // protocol-relative URL that would jump origins). Fallback: /dashboard.
+  const rawNext = String(formData.get("next") ?? "");
+  const target =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
+  redirect(target);
 }
 
 // ─── REGISTER ──────────────────────────────────────────────────────
@@ -219,6 +229,26 @@ export async function register(
     objectId: user.id,
     metadata: { via: "self_register", role: "realtor" },
   });
+
+  // Platform parity (EmailTypesSeeder `user_registered`): fan the new
+  // sign-up out to every platform admin who hasn't opted out so the team
+  // notices new accounts. Honors the `user.registered` opt-out via
+  // `notify` → `shouldSendEmail`. Best-effort: don't block the signup
+  // redirect on email delivery.
+  const admins = await collectPlatformAdmins({ exclude: [user.id] });
+  if (admins.length > 0) {
+    const tpl = await userRegisteredEmail({
+      newUserName: `${user.firstName} ${user.lastName}`,
+      newUserEmail: user.email,
+      newUserRole: "realtor",
+      agency: parsed.data.agency || null,
+      region: parsed.data.region || null,
+      usersUrl: `${appBaseUrl()}/dashboard/users`,
+    });
+    await Promise.all(
+      admins.map((to) => notify({ to, event: "user.registered", ...tpl })),
+    );
+  }
 
   await createSession({ userId: user.id, activeTeamId: null });
 

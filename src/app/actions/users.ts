@@ -253,6 +253,22 @@ export async function deleteUserByAdminInner(
     }
   }
 
+  // Platform parity (Platform/UserController.php:294-297): refuse to delete
+  // a user that's still attached to a team. Otherwise the team's owner FK
+  // (or the membership row) hangs off a soft-deleted user, surfacing as a
+  // ghost owner in the UI. Admin must reassign / remove the user from
+  // teams first.
+  const teamMembershipCount = await prisma.teamMember.count({
+    where: { userId },
+  });
+  if (teamMembershipCount > 0) {
+    return {
+      ok: false,
+      error:
+        "Remove this user from all teams before deleting. They still belong to one or more teams.",
+    };
+  }
+
   await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },

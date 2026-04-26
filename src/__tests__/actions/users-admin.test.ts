@@ -455,4 +455,18 @@ describe("deleteUserByAdminInner", () => {
     const res = await deleteUserByAdminInner(admin, "u_nonexistent");
     expect(res).toEqual({ ok: false, error: "User not found." });
   });
+
+  it("user attached to a team → rejected (Platform parity: UserController.php:294-297)", async () => {
+    const { admin, realtor } = await seedBaseline();
+    // Baseline realtor owns t_test_1 — deletion must refuse so the team
+    // doesn't end up with a soft-deleted owner.
+    const res = await deleteUserByAdminInner(admin, realtor.user.id);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/Remove this user from all teams/);
+    // Row remains live.
+    const after = await prisma.user.findUniqueOrThrow({
+      where: { id: realtor.user.id },
+    });
+    expect(after.deletedAt).toBeNull();
+  });
 });
