@@ -539,3 +539,89 @@ describe("transferTeamOwnershipInner", () => {
     expect(meta.newOwnerName).toBeTruthy();
   });
 });
+
+// Gap-fill from flow-parity batch 3 — the realtor-team-branding scenario
+// verified via Playwright that every v1-equivalent branding field round-
+// trips through updateTeamInner. Existing tests in this file only assert
+// `name` persists; the branding fields are a parity contract worth
+// pinning down so a future refactor doesn't silently drop one.
+
+describe("updateTeamInner — branding field round-trip", () => {
+  it("persists every branding field on a single save (legalName, VAT, KBO, IBAN, billing*, defaultClientType, prefersLogoOnPhotos)", async () => {
+    const { admin, teams } = await seedBaseline();
+    const fd = teamForm({
+      name: "Branded Team",
+      description: "A description with newlines\nand stuff.",
+      legalName: "Vastgoed Antwerp BV",
+      vatNumber: "BE0123456789",
+      kboNumber: "0123.456.789",
+      iban: "BE68539007547034",
+      billingEmail: "billing@example.test",
+      billingPhone: "+32 470 12 34 56",
+      billingAddress: "Rue de la Loi 1",
+      billingPostal: "1000",
+      billingCity: "Brussels",
+      billingCountry: "Belgium",
+      defaultClientType: "firm",
+      prefersLogoOnPhotos: "on",
+    });
+    const res = await updateTeamInner(admin, teams.t1.id, undefined, fd);
+    expect(res).toEqual({ ok: true });
+    const after = await prisma.team.findUniqueOrThrow({
+      where: { id: teams.t1.id },
+      select: {
+        legalName: true,
+        vatNumber: true,
+        kboNumber: true,
+        iban: true,
+        billingEmail: true,
+        billingPhone: true,
+        billingAddress: true,
+        billingPostal: true,
+        billingCity: true,
+        billingCountry: true,
+        defaultClientType: true,
+        prefersLogoOnPhotos: true,
+        description: true,
+      },
+    });
+    expect(after).toEqual({
+      legalName: "Vastgoed Antwerp BV",
+      vatNumber: "BE0123456789",
+      kboNumber: "0123.456.789",
+      iban: "BE68539007547034",
+      billingEmail: "billing@example.test",
+      billingPhone: "+32 470 12 34 56",
+      billingAddress: "Rue de la Loi 1",
+      billingPostal: "1000",
+      billingCity: "Brussels",
+      billingCountry: "Belgium",
+      defaultClientType: "firm",
+      prefersLogoOnPhotos: true,
+      description: "A description with newlines\nand stuff.",
+    });
+  });
+
+  it("empty branding fields are stored as null (not empty string) for clean optional-field handling", async () => {
+    const { admin, teams } = await seedBaseline();
+    // First populate, then clear in a second save.
+    await updateTeamInner(
+      admin,
+      teams.t1.id,
+      undefined,
+      teamForm({ legalName: "Initial", vatNumber: "BE0000" }),
+    );
+    const cleared = await updateTeamInner(
+      admin,
+      teams.t1.id,
+      undefined,
+      teamForm({ legalName: "", vatNumber: "" }),
+    );
+    expect(cleared).toEqual({ ok: true });
+    const after = await prisma.team.findUniqueOrThrow({
+      where: { id: teams.t1.id },
+      select: { legalName: true, vatNumber: true },
+    });
+    expect(after).toEqual({ legalName: null, vatNumber: null });
+  });
+});
