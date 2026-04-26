@@ -100,6 +100,7 @@ type AssignmentSeed = {
   discountType?: "percentage" | "fixed" | null;
   discountValue?: number | null;
   areaM2?: number | null;
+  quantity?: number;
 };
 
 export async function seedAssignment(opts: AssignmentSeed = {}) {
@@ -126,6 +127,7 @@ export async function seedAssignment(opts: AssignmentSeed = {}) {
       discountType: opts.discountType ?? null,
       discountValue: opts.discountValue ?? null,
       areaM2: opts.areaM2 ?? null,
+      ...(opts.quantity !== undefined ? { quantity: opts.quantity } : {}),
       services: {
         create: opts.services ?? [
           { serviceKey: "asbestos", unitPriceCents: 25000 },

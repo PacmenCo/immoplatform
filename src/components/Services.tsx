@@ -5,6 +5,8 @@ type Service = {
   title: string;
   tagline: string;
   description: string;
+  whenNeeded: string;
+  validity: string;
   colorVar: string;
   badge: string;
   icon: React.ReactNode;
@@ -16,7 +18,9 @@ const services: Service[] = [
     title: "Energy Performance Certificate",
     tagline: "EPC",
     description:
-      "Mandatory energy-performance rating for every residential sale or lease, delivered within days.",
+      "Energy-performance rating shown on the property listing. The certificate displays the energy class (A → G) and must be available before the property is advertised for sale or rent.",
+    whenNeeded: "Before advertising a sale or rental",
+    validity: "10 years",
     colorVar: "var(--color-epc)",
     badge: "EPC",
     icon: <IconLeaf />,
@@ -26,7 +30,9 @@ const services: Service[] = [
     title: "Asbestos Inventory Attest",
     tagline: "AIV",
     description:
-      "Legally required asbestos inventory for buildings built before 2001. Certified inspectors, fast turnaround.",
+      "Mandatory in Flanders since November 2022 for the sale of any residential property built before 2001. Issued by an OVAM-certified inspector after a non-destructive site inventory.",
+    whenNeeded: "Sale of pre-2001 buildings (Flanders)",
+    validity: "Up to 10 years",
     colorVar: "var(--color-asbestos)",
     badge: "AIV",
     icon: <IconShield />,
@@ -36,7 +42,9 @@ const services: Service[] = [
     title: "Electrical Inspection",
     tagline: "EK",
     description:
-      "AREI installation inspection for safe electrical systems. Required on sale and after major renovations.",
+      "AREI/RGIE installation check covering the safety of the electrical system. Required at every residential sale and after major renovations of the installation.",
+    whenNeeded: "On every residential sale",
+    validity: "25 years if approved · 18 months to remediate if not",
     colorVar: "var(--color-electrical)",
     badge: "EK",
     icon: <IconBolt />,
@@ -46,7 +54,9 @@ const services: Service[] = [
     title: "Fuel Tank Check",
     tagline: "TK",
     description:
-      "Above-ground and buried heating-oil tank inspections, certified for Flemish regulations.",
+      "Periodic inspection of residential heating-oil tanks, above-ground or buried. The certificate confirms the tank meets regional regulations and may continue to be used.",
+    whenNeeded: "Periodic — frequency depends on tank type",
+    validity: "Reissued at each inspection",
     colorVar: "var(--color-fuel)",
     badge: "TK",
     icon: <IconDroplet />,
@@ -105,6 +115,21 @@ function ServiceCard({ service }: { service: Service }) {
       <p className="mt-3 text-sm text-[var(--color-ink-soft)]">
         {service.description}
       </p>
+
+      <dl className="mt-5 space-y-2 border-t border-[var(--color-border)] pt-4 text-xs">
+        <div>
+          <dt className="font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+            When
+          </dt>
+          <dd className="mt-0.5 text-[var(--color-ink-soft)]">{service.whenNeeded}</dd>
+        </div>
+        <div>
+          <dt className="font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+            Validity
+          </dt>
+          <dd className="mt-0.5 text-[var(--color-ink-soft)]">{service.validity}</dd>
+        </div>
+      </dl>
 
       <Link
         href={`/services/${service.slug}`}

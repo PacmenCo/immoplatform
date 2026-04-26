@@ -7,12 +7,12 @@ const stats = [
 
 export default function Stats() {
   return (
-    <section className="border-b border-[var(--color-border)] bg-[var(--color-brand)] text-white">
+    <section className="border-b border-[var(--color-border)] bg-[var(--color-brand)] text-[var(--color-on-brand)]">
       <div className="mx-auto max-w-[var(--container)] px-6 py-24">
         <dl className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label}>
-              <dt className="text-sm uppercase tracking-wider text-white/60">
+              <dt className="text-sm uppercase tracking-wider text-[var(--color-on-brand)]/60">
                 {stat.label}
               </dt>
               <dd

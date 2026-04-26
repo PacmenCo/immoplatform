@@ -67,7 +67,7 @@ export function MobileNav() {
           </Link>
           <Link
             href="/register"
-            className="mt-1 flex min-h-11 items-center justify-center rounded-md bg-[var(--color-brand)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-brand-soft)]"
+            className="mt-1 flex min-h-11 items-center justify-center rounded-md bg-[var(--color-brand)] px-3 py-2 text-sm font-medium text-[var(--color-on-brand)] transition-colors hover:bg-[var(--color-brand-soft)]"
           >
             Register as agent
           </Link>

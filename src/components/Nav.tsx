@@ -33,7 +33,7 @@ export default function Nav() {
           </Link>
           <Link
             href="/register"
-            className="hidden md:inline-block rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--color-brand-soft)] hover:shadow-md"
+            className="hidden md:inline-block rounded-md bg-[var(--color-brand)] px-4 py-2 text-sm font-medium text-[var(--color-on-brand)] transition-all hover:bg-[var(--color-brand-soft)] hover:shadow-md"
           >
             Register as agent
           </Link>

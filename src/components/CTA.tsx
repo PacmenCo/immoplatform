@@ -24,7 +24,7 @@ export default function CTA() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <a
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-md bg-[var(--color-brand)] px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-[var(--color-brand-soft)] hover:shadow-lg"
+                className="inline-flex items-center gap-2 rounded-md bg-[var(--color-brand)] px-6 py-3 text-sm font-semibold text-[var(--color-on-brand)] transition-all hover:bg-[var(--color-brand-soft)] hover:shadow-lg"
               >
                 Register your office
               </a>

@@ -45,7 +45,7 @@ export default function Footer() {
         <div className="grid gap-10 md:grid-cols-5">
           <div className="md:col-span-1">
             <a href="/" className="flex items-center gap-2 font-semibold">
-              <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-white text-sm font-bold">
+              <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-[var(--color-on-brand)] text-sm font-bold">
                 I
               </span>
               <span className="text-lg">Immo</span>

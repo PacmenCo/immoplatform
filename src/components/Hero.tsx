@@ -33,7 +33,7 @@ export default function Hero() {
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <a
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-md bg-[var(--color-brand)] px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-[var(--color-brand-soft)] hover:shadow-lg"
+                className="inline-flex items-center gap-2 rounded-md bg-[var(--color-brand)] px-6 py-3 text-sm font-semibold text-[var(--color-on-brand)] transition-all hover:bg-[var(--color-brand-soft)] hover:shadow-lg"
               >
                 Register your office
                 <ArrowRight />
@@ -45,10 +45,6 @@ export default function Hero() {
                 See services
               </a>
             </div>
-
-            <p className="mt-8 text-sm text-[var(--color-ink-muted)]">
-              Trusted by 400+ agents across Flanders and Brussels.
-            </p>
           </div>
 
           <HeroPreview />
@@ -128,13 +124,6 @@ function HeroPreview() {
         </div>
       </div>
 
-      <div className="absolute -top-4 -right-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-brand)] p-3 text-white shadow-[var(--shadow-md)]">
-        <div className="flex items-center gap-2.5">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-white/60">This week</span>
-        </div>
-        <p className="mt-0.5 text-lg font-semibold tabular-nums">+23</p>
-        <p className="text-[10px] text-white/60">assignments delivered</p>
-      </div>
     </div>
   );
 }

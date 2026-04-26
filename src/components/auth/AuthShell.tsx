@@ -51,31 +51,54 @@ export function AuthShell({
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(245,158,11,0.15),transparent_50%),radial-gradient(circle_at_70%_80%,rgba(16,185,129,0.15),transparent_50%)]" />
         <div className="relative flex h-full flex-col justify-between p-12 text-[var(--color-on-brand)]">
-          <div className="flex items-center gap-2 text-sm opacity-80">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-epc)]" />
-            Trusted by 400+ agencies in Belgium
+          <div className="inline-flex items-center gap-2 self-start rounded-full border border-[var(--color-on-brand)]/15 bg-[var(--color-on-brand)]/5 px-3 py-1 text-xs font-medium uppercase tracking-wider opacity-80">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-epc)]" aria-hidden />
+            Belgian real-estate certifications
           </div>
-          <div className="max-w-md">
-            <p className="text-2xl font-medium leading-snug">
-              &ldquo;We went from juggling four inspectors to one dashboard. Our
-              sales cycle on certificates shortened by 40%.&rdquo;
+
+          <div className="max-w-md space-y-4">
+            <h2
+              className="font-semibold leading-[1.1] tracking-tight"
+              style={{ fontSize: "clamp(1.875rem, 2.6vw, 2.5rem)" }}
+            >
+              One dashboard for every certificate.
+            </h2>
+            <p className="text-base leading-relaxed opacity-80">
+              Order, schedule, track, and invoice every inspection &mdash;
+              all from one place.
             </p>
-            <div className="mt-6 flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--color-bg)]/10 text-sm font-semibold">
-                EV
-              </span>
-              <div>
-                <p className="text-sm font-medium">Els Vermeulen</p>
-                <p className="text-xs opacity-70">Vastgoed Antwerp</p>
-              </div>
-            </div>
           </div>
-          <div className="grid grid-cols-4 gap-2 text-center text-xs opacity-70">
-            <span>EPC</span>
-            <span>Asbestos</span>
-            <span>Electrical</span>
-            <span>Fuel Tank</span>
-          </div>
+
+          <ul className="grid max-w-md grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <li className="flex items-center gap-2.5">
+              <span
+                aria-hidden
+                className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-epc)]"
+              />
+              EPC certificates
+            </li>
+            <li className="flex items-center gap-2.5">
+              <span
+                aria-hidden
+                className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-asbestos)]"
+              />
+              Asbestos attests
+            </li>
+            <li className="flex items-center gap-2.5">
+              <span
+                aria-hidden
+                className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-electrical)]"
+              />
+              Electrical inspections
+            </li>
+            <li className="flex items-center gap-2.5">
+              <span
+                aria-hidden
+                className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-fuel)]"
+              />
+              Fuel-tank checks
+            </li>
+          </ul>
         </div>
       </div>
     </div>
