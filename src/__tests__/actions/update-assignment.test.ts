@@ -188,3 +188,186 @@ describe("updateAssignmentInner — optimistic locking", () => {
     expect(res).toEqual({ ok: true });
   });
 });
+
+// Gap-filling tests for the wide-edit path manually verified via Playwright
+// in the realtor-wide-edit flow-parity scenario. The optimistic-locking
+// suite above covers the predicate; these cover the actual write semantics
+// (services snapshot replace, basic field writes, scope gating).
+
+describe("updateAssignmentInner — wide-edit write semantics", () => {
+  it("adding a service to an existing assignment replaces the service list and snapshots prices", async () => {
+    const { admin, teams } = await seedBaseline();
+    const asg = await seedAssignment({
+      id: "a_wide_services_add",
+      status: "scheduled",
+      teamId: teams.t1.id,
+      services: [{ serviceKey: "asbestos", unitPriceCents: 25_000 }],
+    });
+
+    const res = await updateAssignmentInner(
+      admin,
+      asg.id,
+      undefined,
+      buildUpdateForm(
+        { service_asbestos: "on", service_epc: "on" },
+        asg.updatedAt.toISOString(),
+      ),
+    );
+    expect(res).toEqual({ ok: true });
+
+    const lines = await prisma.assignmentService.findMany({
+      where: { assignmentId: asg.id },
+      orderBy: { serviceKey: "asc" },
+      select: { serviceKey: true, unitPriceCents: true },
+    });
+    // EPC catalog price = 15_000 cents (seedServices fixture).
+    expect(lines).toEqual([
+      { serviceKey: "asbestos", unitPriceCents: 25_000 },
+      { serviceKey: "epc", unitPriceCents: 15_000 },
+    ]);
+  });
+
+  it("removing a service drops the line; snapshot replace is total, not additive", async () => {
+    const { admin, teams } = await seedBaseline();
+    const asg = await seedAssignment({
+      id: "a_wide_services_drop",
+      status: "scheduled",
+      teamId: teams.t1.id,
+      services: [
+        { serviceKey: "asbestos", unitPriceCents: 25_000 },
+        { serviceKey: "epc", unitPriceCents: 15_000 },
+      ],
+    });
+
+    const res = await updateAssignmentInner(
+      admin,
+      asg.id,
+      undefined,
+      buildUpdateForm(
+        // Only asbestos in the new payload — EPC line should be gone.
+        { service_asbestos: "on" },
+        asg.updatedAt.toISOString(),
+      ),
+    );
+    expect(res).toEqual({ ok: true });
+    const lines = await prisma.assignmentService.findMany({
+      where: { assignmentId: asg.id },
+      select: { serviceKey: true },
+    });
+    expect(lines).toEqual([{ serviceKey: "asbestos" }]);
+  });
+
+  it("ownerEmail change persists through the wide-edit path", async () => {
+    const { admin, teams } = await seedBaseline();
+    const asg = await seedAssignment({
+      id: "a_wide_owner_email",
+      status: "scheduled",
+      teamId: teams.t1.id,
+    });
+    const res = await updateAssignmentInner(
+      admin,
+      asg.id,
+      undefined,
+      buildUpdateForm(
+        { "owner-email": "new-owner@example.test" },
+        asg.updatedAt.toISOString(),
+      ),
+    );
+    expect(res).toEqual({ ok: true });
+    const after = await prisma.assignment.findUniqueOrThrow({
+      where: { id: asg.id },
+      select: { ownerEmail: true },
+    });
+    expect(after.ownerEmail).toBe("new-owner@example.test");
+  });
+
+  it("combined edit (date + service add + ownerEmail) lands in one save and emits a single assignment.updated audit", async () => {
+    const { admin, teams } = await seedBaseline();
+    const asg = await seedAssignment({
+      id: "a_wide_combined",
+      status: "scheduled",
+      teamId: teams.t1.id,
+      preferredDate: new Date("2026-04-01T10:00:00Z"),
+    });
+
+    const res = await updateAssignmentInner(
+      admin,
+      asg.id,
+      undefined,
+      buildUpdateForm(
+        {
+          "preferred-date": "2026-06-15",
+          service_asbestos: "on",
+          service_epc: "on",
+          "owner-email": "combined@example.test",
+        },
+        asg.updatedAt.toISOString(),
+      ),
+    );
+    expect(res).toEqual({ ok: true });
+
+    const after = await prisma.assignment.findUniqueOrThrow({
+      where: { id: asg.id },
+      select: { ownerEmail: true, preferredDate: true },
+    });
+    expect(after.ownerEmail).toBe("combined@example.test");
+    expect(after.preferredDate?.toISOString().slice(0, 10)).toBe("2026-06-15");
+
+    const audits = await prisma.auditLog.findMany({
+      where: { verb: "assignment.updated", objectId: asg.id },
+    });
+    expect(audits).toHaveLength(1);
+  });
+
+  it("realtor can edit her own team's assignment (positive scope)", async () => {
+    const { realtor, teams } = await seedBaseline();
+    const asg = await seedAssignment({
+      id: "a_wide_realtor_own",
+      status: "scheduled",
+      teamId: teams.t1.id,
+      createdById: realtor.user.id,
+    });
+    const res = await updateAssignmentInner(
+      realtor,
+      asg.id,
+      undefined,
+      buildUpdateForm(
+        { address: "Realtor edited her own row" },
+        asg.updatedAt.toISOString(),
+      ),
+    );
+    expect(res).toEqual({ ok: true });
+    const after = await prisma.assignment.findUniqueOrThrow({
+      where: { id: asg.id },
+      select: { address: true },
+    });
+    expect(after.address).toBe("Realtor edited her own row");
+  });
+
+  it("realtor cannot edit another team's assignment (negative scope)", async () => {
+    const { realtor, teams } = await seedBaseline();
+    // Seed an assignment on the OTHER team (t2) that the baseline realtor
+    // doesn't own. canEditAssignment must refuse.
+    const asg = await seedAssignment({
+      id: "a_wide_realtor_other_team",
+      status: "scheduled",
+      teamId: teams.t2.id,
+    });
+    const res = await updateAssignmentInner(
+      realtor,
+      asg.id,
+      undefined,
+      buildUpdateForm(
+        { address: "Trying cross-team write" },
+        asg.updatedAt.toISOString(),
+      ),
+    );
+    expect(res.ok).toBe(false);
+    // Row is unchanged regardless of error copy.
+    const after = await prisma.assignment.findUniqueOrThrow({
+      where: { id: asg.id },
+      select: { address: true },
+    });
+    expect(after.address).toBe("1 Teststraat");
+  });
+});
