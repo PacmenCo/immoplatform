@@ -160,6 +160,9 @@ export default function AboutPage() {
               <Button href="/register" size="lg">
                 Register your agency
               </Button>
+              <Button href="/demo" size="lg" variant="secondary">
+                Request a demo
+              </Button>
             </div>
           </div>
         </section>
