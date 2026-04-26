@@ -52,17 +52,19 @@ function NotifIcon({ name, accent }: { name: Notif["icon"]; accent: string }) {
 
 function Item({ n, unread }: { n: Notif; unread?: boolean }) {
   return (
-    <li className="flex items-start gap-4 px-6 py-4">
-      <NotifIcon name={n.icon} accent={n.accent} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          {unread && <span className="h-2 w-2 rounded-full bg-[var(--color-asbestos)]" aria-label="unread" />}
-          <p className={unread ? "font-semibold text-[var(--color-ink)]" : "text-[var(--color-ink-soft)]"}>{n.message}</p>
+    <li className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-start sm:gap-4">
+      <div className="flex items-start gap-3 sm:contents">
+        <NotifIcon name={n.icon} accent={n.accent} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            {unread && <span className="h-2 w-2 rounded-full bg-[var(--color-asbestos)]" aria-label="unread" />}
+            <p className={unread ? "font-semibold text-[var(--color-ink)]" : "text-[var(--color-ink-soft)]"}>{n.message}</p>
+          </div>
+          {n.detail && <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{n.detail}</p>}
+          <p className="mt-1 text-xs text-[var(--color-ink-faint)]">{n.time}</p>
         </div>
-        {n.detail && <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{n.detail}</p>}
-        <p className="mt-1 text-xs text-[var(--color-ink-faint)]">{n.time}</p>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
         {unread && (
           <Button variant="ghost" size="sm"><IconCheck size={14} />Mark read</Button>
         )}
@@ -79,10 +81,10 @@ export default function NotificationsPage() {
     <>
       <Topbar title="Notifications" subtitle={`${UNREAD.length} unread · ${READ.length} read`} />
 
-      <div className="p-8 max-w-[1000px] space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="p-4 sm:p-8 max-w-[1000px] space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-[var(--color-ink-muted)]">Events on assignments, teams and announcements you follow.</p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm">Notification settings</Button>
             <Button size="sm"><IconCheck size={14} />Mark all as read</Button>
           </div>
