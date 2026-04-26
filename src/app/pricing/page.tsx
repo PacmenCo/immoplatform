@@ -304,9 +304,6 @@ export default function PricingPage() {
                 <Button href="/register" size="lg" variant="primary">
                   Create account
                 </Button>
-                <Button href="/demo" size="lg" variant="secondary">
-                  Book a demo
-                </Button>
               </div>
             </div>
           </div>

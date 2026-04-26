@@ -15,14 +15,12 @@ const columns = [
     links: [
       { label: "About", href: "/about" },
       { label: "Pricing", href: "/pricing" },
-      { label: "Book a demo", href: "/demo" },
       { label: "Contact", href: "/contact" },
     ],
   },
   {
     title: "Support",
     links: [
-      { label: "Help center", href: "/contact" },
       { label: "Contact", href: "/contact" },
       { label: "Login", href: "/login" },
       { label: "Register", href: "/register" },

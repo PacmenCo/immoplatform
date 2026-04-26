@@ -151,17 +151,14 @@ export default function AboutPage() {
         <section className="border-t border-[var(--color-border)] bg-[var(--color-bg-alt)] py-20">
           <div className="mx-auto max-w-[var(--container)] px-6 text-center">
             <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight text-[var(--color-ink)] md:text-4xl">
-              Want to work with the four of us?
+              Four certificates, one workflow.
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-[var(--color-ink-soft)]">
-              Register your agency, or book a 20-minute walkthrough with our team.
+              Register your agency and start routing every EPC, asbestos, electrical and fuel-tank check from a single dashboard.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button href="/register" size="lg">
-                Register your office
-              </Button>
-              <Button href="/demo" size="lg" variant="secondary">
-                Book a demo
+                Register your agency
               </Button>
             </div>
           </div>

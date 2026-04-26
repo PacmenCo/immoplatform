@@ -28,12 +28,6 @@ export default function CTA() {
               >
                 Register your office
               </a>
-              <a
-                href="/demo"
-                className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border-strong)] px-6 py-3 text-sm font-semibold text-[var(--color-ink)] transition-all hover:border-[var(--color-ink)]"
-              >
-                Book a demo
-              </a>
             </div>
           </div>
         </div>

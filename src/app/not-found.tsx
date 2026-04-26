@@ -45,11 +45,6 @@ export default function NotFound() {
               </Link>
             </li>
             <li>
-              <Link href="/demo" className="hover:text-[var(--color-ink)]">
-                Book a demo
-              </Link>
-            </li>
-            <li>
               <Link href="/login" className="hover:text-[var(--color-ink)]">
                 Log in
               </Link>
