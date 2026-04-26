@@ -40,7 +40,7 @@ export default function InvoiceRemindersPage() {
     <>
       <Topbar title="Invoice reminders" subtitle="Monthly balance emails to your teams" />
 
-      <div className="p-8 max-w-[1300px] space-y-6">
+      <div className="p-4 sm:p-8 max-w-[1300px] space-y-6">
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
@@ -53,8 +53,8 @@ export default function InvoiceRemindersPage() {
           <span className="text-[var(--color-ink-soft)]">Invoice reminders</span>
         </nav>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-6 min-w-0">
             {/* Schedule card */}
             <Card>
               <CardHeader className="flex items-center justify-between">

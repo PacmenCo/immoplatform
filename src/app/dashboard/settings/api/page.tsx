@@ -78,7 +78,7 @@ export default async function ApiSettingsPage() {
               </Button>
             </div>
           </CardHeader>
-          <CardBody className="p-0">
+          <CardBody className="p-0 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] text-left text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">

@@ -29,7 +29,7 @@ export default function OdooIntegrationPage() {
     <>
       <Topbar title="Odoo" subtitle="ERP sync — invoices, products, contacts" />
 
-      <div className="p-8 max-w-[1200px]">
+      <div className="p-4 sm:p-8 max-w-[1200px]">
         <SettingsNav />
 
         {/* Breadcrumb back to integrations */}
@@ -42,8 +42,8 @@ export default function OdooIntegrationPage() {
         </nav>
 
         {/* Status hero */}
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
-          <div className="space-y-6">
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-6 min-w-0">
             <Card>
               <CardBody className="flex items-center gap-4">
                 <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-[#f3e8fd] text-base font-bold text-[#714b67]">
@@ -181,7 +181,7 @@ export default function OdooIntegrationPage() {
             </Card>
           </div>
 
-          <aside className="space-y-4">
+          <aside className="space-y-4 min-w-0">
             <Card>
               <CardBody className="space-y-4">
                 <div>
