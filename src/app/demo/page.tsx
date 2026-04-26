@@ -8,7 +8,7 @@ import { IconCheck } from "@/components/ui/Icons";
 const benefits = [
   {
     title: "See your actual workflow, not a canned deck",
-    body: "Bring a real address. We&rsquo;ll walk it through the platform end-to-end: order, schedule, deliver, invoice.",
+    body: "Bring a real address. We'll walk it through the platform end-to-end: order, schedule, deliver, invoice.",
   },
   {
     title: "Meet your future account manager",
@@ -16,11 +16,11 @@ const benefits = [
   },
   {
     title: "Get a migration plan",
-    body: "If you&rsquo;re switching from another tool or spreadsheet, you leave with a concrete step-by-step.",
+    body: "If you're switching from another tool or spreadsheet, you leave with a concrete step-by-step.",
   },
   {
     title: "No slides, no sales pitch",
-    body: "Twenty minutes, screen-share, questions throughout. We stop when you&rsquo;ve seen enough.",
+    body: "Twenty minutes, screen-share, questions throughout. We stop when you've seen enough.",
   },
 ];
 

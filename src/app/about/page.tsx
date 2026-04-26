@@ -1,8 +1,6 @@
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/Button";
-import { Card, CardBody } from "@/components/ui/Card";
-import { Avatar } from "@/components/ui/Avatar";
 import { ServicePill } from "@/components/ui/Badge";
 import { SERVICES } from "@/lib/mockData";
 
@@ -36,37 +34,6 @@ const timeline = [
     title: "Immo launches",
     body: "Four specialists, one brand, one platform. We open our shared dashboard to every real-estate agency in Belgium.",
     tag: null,
-  },
-];
-
-const leaders = [
-  {
-    initials: "JR",
-    name: "Jordan Remy",
-    role: "Chief Executive Officer",
-    bio: "Founded Asbest Experts in 2011. Steers the combined group and its product direction.",
-    color: "#0f172a",
-  },
-  {
-    initials: "EV",
-    name: "Els Vermeulen",
-    role: "Head of EPC Operations",
-    bio: "Certified assessor with 12 years of field experience. Led the EPC Partner acquisition.",
-    color: "#10b981",
-  },
-  {
-    initials: "PD",
-    name: "Pierre Dubois",
-    role: "Head of Electrical Inspections",
-    bio: "AREI expert. Oversees a team of 18 inspectors covering Wallonia and Brussels.",
-    color: "#f59e0b",
-  },
-  {
-    initials: "SJ",
-    name: "Sofie Janssens",
-    role: "Head of Tank & Site Services",
-    bio: "Joined from Tank Check in 2021. Responsible for fuel-tank compliance and site logistics.",
-    color: "#0ea5e9",
   },
 ];
 
@@ -162,30 +129,6 @@ export default function AboutPage() {
         </section>
 
         <section className="border-t border-[var(--color-border)] bg-[var(--color-bg-alt)] py-20">
-          <div className="mx-auto max-w-[var(--container)] px-6">
-            <div className="max-w-2xl">
-              <h2 className="text-3xl font-semibold tracking-tight text-[var(--color-ink)]">Leadership</h2>
-              <p className="mt-3 text-[var(--color-ink-soft)]">
-                The four people who ran the four companies — now running them together.
-              </p>
-            </div>
-
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {leaders.map((p) => (
-                <Card key={p.name}>
-                  <CardBody>
-                    <Avatar initials={p.initials} size="lg" color={p.color} />
-                    <h3 className="mt-5 text-base font-semibold text-[var(--color-ink)]">{p.name}</h3>
-                    <p className="text-sm text-[var(--color-ink-muted)]">{p.role}</p>
-                    <p className="mt-4 text-sm text-[var(--color-ink-soft)]">{p.bio}</p>
-                  </CardBody>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="py-20">
           <div className="mx-auto max-w-[var(--container)] px-6">
             <div className="max-w-2xl">
               <h2 className="text-3xl font-semibold tracking-tight text-[var(--color-ink)]">What we believe</h2>
