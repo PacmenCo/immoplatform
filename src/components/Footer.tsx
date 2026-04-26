@@ -19,9 +19,8 @@ const columns = [
     ],
   },
   {
-    title: "Support",
+    title: "Account",
     links: [
-      { label: "Contact", href: "/contact" },
       { label: "Login", href: "/login" },
       { label: "Register", href: "/register" },
     ],
