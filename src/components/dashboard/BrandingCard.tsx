@@ -80,7 +80,7 @@ function LogoSection({
               className="block w-full max-w-sm text-sm text-[var(--color-ink-soft)] file:mr-3 file:rounded-md file:border file:border-[var(--color-border-strong)] file:bg-[var(--color-bg)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--color-ink)] hover:file:bg-[var(--color-bg-muted)]"
             />
             <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
-              PNG, JPG, WebP, SVG or GIF — max {LOGO_MAX_MB} MB.
+              PNG, JPG, WebP or GIF — max {LOGO_MAX_MB} MB.
             </p>
             <div className="mt-3">
               <Button type="submit" variant="secondary" size="sm" loading={uploading}>

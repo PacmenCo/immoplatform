@@ -1,9 +1,13 @@
 /**
  * Team-branding upload constants — mirrors lib/avatar.ts for the user side.
  *
- * Both limits match Platform (2 MB). Logo accepts the broader set of formats
- * Platform does (including SVG + GIF); signature is raster-only because PDFs
- * need raster stamping and SVG is a footgun at legal-document scale.
+ * Both limits match Platform (2 MB). Raster only: SVG was dropped because the
+ * IMAGE_SAFETY_HEADERS CSP only applies on the local-storage path; on S3 /
+ * DO Spaces the browser fetches bytes via a presigned-URL redirect with
+ * bucket-controlled headers, so a malicious SVG could execute scripts when
+ * opened directly. The PDF generator already silently omits SVG logos
+ * (pdf-lib only embeds PNG/JPG), so dropping support is consistent with
+ * effective behavior.
  */
 
 export const TEAM_LOGO_MAX_BYTES = 2 * 1024 * 1024;
@@ -13,7 +17,6 @@ export const TEAM_LOGO_MIME_TO_EXT: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
-  "image/svg+xml": "svg",
   "image/gif": "gif",
 };
 

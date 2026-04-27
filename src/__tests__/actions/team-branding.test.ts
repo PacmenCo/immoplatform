@@ -94,14 +94,15 @@ describe("uploadTeamBrandingInner — logo path", () => {
     if (!res.ok) expect(res.error).toMatch(/2 MB or smaller/);
   });
 
-  it("disallowed MIME (PDF) → 'Use PNG, JPG, WebP, SVG, or GIF for the logo.'", async () => {
+  it("disallowed MIME (PDF) → 'Use PNG, JPG, WebP, or GIF for the logo.'", async () => {
     const { admin, teams } = await seedBaseline();
     const pdf = new File(["pdfbytes"], "a.pdf", { type: "application/pdf" });
     const res = await uploadTeamBrandingInner(admin, teams.t1.id, "logo", form("logo", pdf));
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.error).toMatch(/PNG/);
-      expect(res.error).toMatch(/SVG/);
+      // SVG removed from allowlist — the message should no longer mention it.
+      expect(res.error).not.toMatch(/SVG/);
       expect(res.error).toMatch(/logo/);
     }
   });
@@ -132,7 +133,39 @@ describe("uploadTeamBrandingInner — logo path", () => {
   });
 });
 
-describe("uploadTeamBrandingInner — SVG active-content sanitizer", () => {
+describe("uploadTeamBrandingInner — SVG dropped from logo allowlist (security)", () => {
+  // SVG was an XSS vector when served from S3 / DO Spaces (the IMAGE_SAFETY_HEADERS
+  // CSP only applies on the local-storage path, not on presigned-URL redirects).
+  // The PDF generator already silently omits SVG logos (pdf-lib only embeds
+  // PNG/JPG), so removing SVG support is consistent with effective behavior.
+  // Callers who relied on SVG must rasterize.
+  it("SVG logo upload rejected at the MIME allowlist (no longer in the allowed set)", async () => {
+    const { admin, teams } = await seedBaseline();
+    const svg = new File(
+      ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="red"/></svg>'],
+      "a.svg",
+      { type: "image/svg+xml" },
+    );
+    const res = await uploadTeamBrandingInner(admin, teams.t1.id, "logo", form("logo", svg));
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      // Generic MIME-allowlist message — should NOT mention SVG anymore.
+      expect(res.error).toMatch(/PNG/);
+      expect(res.error).not.toMatch(/SVG/);
+    }
+  });
+
+  it("source contract: image/svg+xml is removed from TEAM_LOGO_MIME_TO_EXT", async () => {
+    const { TEAM_LOGO_MIME_TO_EXT, TEAM_SIGNATURE_MIME_TO_EXT } = await import(
+      "@/lib/teamBranding"
+    );
+    expect(TEAM_LOGO_MIME_TO_EXT["image/svg+xml"]).toBeUndefined();
+    // Signature was already raster-only, but pin it so it stays that way.
+    expect(TEAM_SIGNATURE_MIME_TO_EXT["image/svg+xml"]).toBeUndefined();
+  });
+});
+
+describe.skip("uploadTeamBrandingInner — SVG active-content sanitizer (skipped: SVG no longer accepted)", () => {
   async function uploadSvgBytes(contents: string) {
     const { admin, teams } = await seedBaseline();
     const svg = new File([contents], "a.svg", { type: "image/svg+xml" });
