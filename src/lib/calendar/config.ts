@@ -31,10 +31,17 @@ export function isOutlookConfigured(): boolean {
 }
 
 export function requireAppUrl(): string {
-  const url = process.env.NEXT_PUBLIC_APP_URL;
+  // Two env vars exist for historical reasons: NEXT_PUBLIC_APP_URL is the
+  // Next-convention name (browser-exposable) and was the original choice
+  // here, while APP_URL is what the rest of the codebase reads (src/lib/urls.ts,
+  // src/lib/storage/index.ts) and what .env.example uncomments. Without a
+  // fallback, dev .env (which only sets APP_URL) makes this throw and the
+  // /api/calendar/add-to-google route 500s. Prefer NEXT_PUBLIC_APP_URL when
+  // set so existing prod deploys keep their resolved value.
+  const url = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
   if (!url) {
     throw new Error(
-      "NEXT_PUBLIC_APP_URL is not set — calendar OAuth redirect URIs cannot be built.",
+      "Neither NEXT_PUBLIC_APP_URL nor APP_URL is set — calendar OAuth redirect URIs cannot be built.",
     );
   }
   return url.replace(/\/$/, "");
