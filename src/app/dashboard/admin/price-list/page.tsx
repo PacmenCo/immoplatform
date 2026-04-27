@@ -68,26 +68,26 @@ export default function PriceListPage() {
     <>
       <Topbar title="Price list" subtitle="Master service catalog and Odoo mapping" />
 
-      <div className="p-8 max-w-[1400px] space-y-6">
-        <div className="flex items-center justify-between gap-4">
+      <div className="p-4 sm:p-8 max-w-[1400px] space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div>
             <p className="text-sm text-[var(--color-ink-muted)]">Changes apply platform-wide unless a team has an override.</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm">Discard</Button>
             <Button size="sm"><IconCheck size={14} />Save changes</Button>
           </div>
         </div>
 
         <Card>
-          <CardHeader className="flex items-center justify-between">
+          <CardHeader className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle>Service items</CardTitle>
               <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{ROWS.length} items · {ROWS.filter(r => r.active).length} active</p>
             </div>
             <Button size="sm"><IconPlus size={14} />Add row</Button>
           </CardHeader>
-          <CardBody className="p-0">
+          <CardBody className="p-0 overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
                 <tr>

@@ -162,8 +162,8 @@ export default async function TeamSettingsPage() {
           </CardBody>
         </Card>
 
-          <div className="sticky bottom-0 z-20 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 px-8 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-bg)]/80">
-            <div className="flex items-center justify-between gap-3">
+          <div className="sticky bottom-0 z-20 -mx-4 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-bg)]/80 sm:-mx-8 sm:px-8">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-[var(--color-ink)]">Team preferences</p>
                 <p className="text-xs text-[var(--color-ink-muted)]">

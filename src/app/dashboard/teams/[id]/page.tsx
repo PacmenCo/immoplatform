@@ -1137,7 +1137,7 @@ export default async function TeamDetailPage({
         </section>
         )}
 
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] pt-6">
           {isAdmin ? (
             <DeleteTeamButton teamId={id} teamName={team.name} />
           ) : (

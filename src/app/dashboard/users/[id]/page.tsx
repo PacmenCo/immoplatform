@@ -184,7 +184,7 @@ export default async function UserDetail({
             />
           </div>
           <div className="relative px-6 pb-6">
-            <div className="-mt-12 flex items-start justify-between gap-4">
+            <div className="-mt-12 flex flex-wrap items-start justify-between gap-4">
               <Avatar
                 initials={initials(user.firstName, user.lastName)}
                 imageUrl={avatarSrc}
@@ -192,7 +192,7 @@ export default async function UserDetail({
                 size="xl"
                 color="#334155"
               />
-              <div className="mt-14 flex items-center gap-2">
+              <div className="mt-14 flex flex-wrap items-center gap-2">
                 <Button href={`mailto:${user.email}`} variant="secondary" size="sm">
                   <IconMail size={14} />
                   Message

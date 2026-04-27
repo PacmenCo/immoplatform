@@ -101,10 +101,10 @@ export default async function EmailPreviewPage({
         ) : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
         <EmailPreviewEditor slug={slug} initialJson={initialPropsJson} />
 
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           <div className="overflow-hidden rounded-md border border-[var(--color-border)] bg-white">
             <iframe
               title={`${tpl.label} preview`}
