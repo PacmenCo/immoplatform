@@ -1,15 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
+import { canViewAssignment, hasRole } from "@/lib/permissions";
 import { buildEventPayload } from "@/lib/calendar/payload";
 import { createPersonalGoogleEvent } from "@/lib/calendar/google";
 import { requireAppUrl } from "@/lib/calendar/config";
 
 /**
  * One-click "Add to my Google calendar" from an assignment email. Lands
- * here with `?a=<assignmentId>`; session must belong to a user who has
- * connected their personal Google account. On success, redirects to the
- * assignment detail page with a success flash.
+ * here with `?a=<assignmentId>`; admin/staff session that has connected
+ * their personal Google account. On success, redirects to the assignment
+ * detail page with a success flash.
  *
  * If the user isn't connected yet, we bounce them to the integration
  * settings page with a note about reconnecting, then they can come back
@@ -17,6 +18,14 @@ import { requireAppUrl } from "@/lib/calendar/config";
  */
 export async function GET(req: NextRequest): Promise<Response> {
   const session = await requireSession();
+  // Defense-in-depth: mirror the OAuth initiate gate. Today only admin/staff
+  // can hold a CalendarAccount row (the OAuth callback enforces it), but if
+  // that ever loosens this route would otherwise let any authenticated user
+  // push an arbitrary assignment's address/contacts into their personal
+  // Google calendar by guessing the id.
+  if (!hasRole(session, "admin", "staff")) {
+    return new Response("Calendar connection is limited to admin and staff.", { status: 403 });
+  }
   const url = new URL(req.url);
   const appUrl = requireAppUrl();
   const assignmentId = url.searchParams.get("a");
@@ -43,6 +52,12 @@ export async function GET(req: NextRequest): Promise<Response> {
     include: { team: { select: { name: true, legalName: true } } },
   });
   if (!assignment) {
+    return new Response("Assignment not found.", { status: 404 });
+  }
+  // Mirrors getAssignmentFileDownloadUrlInner — same 404 copy on both
+  // missing-row and unauthorised so the route can't be used as an existence
+  // oracle for assignment ids that belong to other tenants.
+  if (!(await canViewAssignment(session, assignment))) {
     return new Response("Assignment not found.", { status: 404 });
   }
 
