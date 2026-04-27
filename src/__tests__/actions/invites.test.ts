@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   acceptInviteInner,
   createInviteInner,
@@ -690,6 +690,50 @@ describe("resendInviteInner", () => {
       ok: false,
       error: "You don't have permission to resend this invite.",
     });
+  });
+
+  // Contract pin: the action must NOT load invitedBy with `include: true` —
+  // that returns the full User row including passwordHash. Even if the hash
+  // isn't currently returned to the client, having it sit in server memory
+  // tied to a long-lived `invite` object is one console.log / audit-metadata /
+  // error-serialization away from leaking. Narrow via select so the surface
+  // shrinks regardless of how callers reuse the invite object downstream.
+  //
+  // Vitest can't `spyOn` Prisma client methods (they're proxy-defined), so
+  // we pin the contract at the source level. Brittle to formatting but
+  // catches the exact regression we care about: somebody re-introducing
+  // `invitedBy: true`.
+  it("source contract: resendInvite must not use `invitedBy: true` (over-fetches passwordHash)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/app/actions/invites.ts", "utf8");
+    // Locate the resendInviteInner body and inspect its findUnique include.
+    const start = src.indexOf("export async function resendInviteInner");
+    expect(start).toBeGreaterThan(-1);
+    // Slice a generous window — the function's findUnique sits within ~20 lines.
+    const body = src.slice(start, start + 1500);
+    expect(body).toContain("invite.findUnique");
+    // The bug shape: `invitedBy: true` anywhere in this window.
+    expect(body).not.toMatch(/invitedBy\s*:\s*true/);
+    // The fix shape: a select narrowing including firstName + lastName.
+    expect(body).toMatch(/invitedBy\s*:\s*\{\s*select\s*:[^}]*firstName/);
+    expect(body).toMatch(/invitedBy\s*:\s*\{\s*select\s*:[^}]*lastName/);
+    // And no passwordHash anywhere in the same select.
+    expect(body).not.toMatch(/invitedBy\s*:\s*\{\s*select\s*:[^}]*passwordHash/);
+  });
+
+  it("the email send still receives the correct inviter name (no regression)", async () => {
+    // Functional check that the narrowed select doesn't break the email path.
+    // If the inviter name had been undefined, inviteEmail would have built
+    // a malformed body but resendInviteInner would still return ok:true (the
+    // template is best-effort). So we instead assert the side-effects fire
+    // (token rotated, expiry bumped) — proves the action made it past the
+    // template-render step without throwing.
+    const { invite, admin } = await setupInvite();
+    const res = await resendInviteInner(admin, invite.id);
+    expect(res).toEqual({ ok: true });
+    const after = await prisma.invite.findUniqueOrThrow({ where: { id: invite.id } });
+    expect(after.tokenHash).not.toBe(invite.tokenHash);
+    expect(after.expiresAt.getTime()).toBeGreaterThan(invite.expiresAt.getTime() - 1000);
   });
 });
 

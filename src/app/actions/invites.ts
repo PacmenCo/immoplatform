@@ -391,7 +391,15 @@ export async function resendInviteInner(
 ): Promise<ActionResult> {
   const invite = await prisma.invite.findUnique({
     where: { id: inviteId },
-    include: { team: true, invitedBy: true },
+    // Narrowed select on invitedBy — `include: true` would pull passwordHash
+    // along with the rest of the User row. The hash isn't returned to the
+    // caller today but having it bound to a long-lived `invite` object is
+    // one console.log / audit metadata / error serialization away from
+    // leaking. Same shape getInviteByToken uses (line 222).
+    include: {
+      team: true,
+      invitedBy: { select: { firstName: true, lastName: true } },
+    },
   });
   if (!invite) return { ok: false, error: "Invite not found." };
   if (invite.acceptedAt) return { ok: false, error: "Invite already accepted." };
