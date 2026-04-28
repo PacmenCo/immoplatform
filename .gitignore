@@ -49,3 +49,7 @@ next-env.d.ts
 # local file storage (dev)
 /storage
 .claude/
+
+# playwright-mcp test artifacts (console logs + accessibility-tree dumps)
+/.playwright-mcp/
+/invite-full.yml
