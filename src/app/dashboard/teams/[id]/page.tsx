@@ -941,22 +941,6 @@ export default async function TeamDetailPage({
                 </div>
               </div>
 
-              <label className="flex items-start justify-between gap-4 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-4">
-                <div>
-                  <p className="font-medium text-[var(--color-ink)]">
-                    Stamp logo on exported photos
-                  </p>
-                  <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
-                    When freelancers upload property photos for this team&apos;s assignments,
-                    the team logo gets overlaid in the bottom-right corner before export.
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  defaultChecked={team.prefersLogoOnPhotos}
-                  className="mt-1 h-4 w-4 accent-[var(--color-brand)]"
-                />
-              </label>
             </CardBody>
           </Card>
         </section>

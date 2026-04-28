@@ -4,14 +4,11 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge, ServicePill } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
-import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import {
   IconMapPin,
   IconMail,
   IconPhone,
-  IconCalendar,
-  IconCheck,
   IconFileText,
 } from "@/components/ui/Icons";
 import { STATUS_META, Status, isTerminalStatus } from "@/lib/mockData";
@@ -413,24 +410,6 @@ export default async function AssignmentDetail({
                         : "At office"
                       : "Not required"}
                   </span>
-                </div>
-                <div className="pt-2 border-t border-[var(--color-border)]">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-                    Calendar
-                  </p>
-                  <p className="mt-1 inline-flex items-center gap-1 text-xs text-[var(--color-epc)]">
-                    <IconCheck size={12} />
-                    Not yet synced
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button variant="secondary" size="sm" className="flex-1">
-                      <IconCalendar size={12} />
-                      Sync
-                    </Button>
-                    <Button variant="secondary" size="sm" className="flex-1">
-                      Outlook…
-                    </Button>
-                  </div>
                 </div>
               </CardBody>
             </Card>
