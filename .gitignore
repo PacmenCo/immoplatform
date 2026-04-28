@@ -53,3 +53,7 @@ next-env.d.ts
 # playwright-mcp test artifacts (console logs + accessibility-tree dumps)
 /.playwright-mcp/
 /invite-full.yml
+
+# QA screenshots dropped at repo root by ad-hoc playwright/test sessions
+# (root-only — keeps public/*.png and src/**/*.png trackable)
+/*.png
