@@ -1,18 +1,15 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Avatar } from "@/components/ui/Avatar";
-import { ServicePill } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SearchInput } from "@/components/dashboard/SearchInput";
 import {
   IconPlus,
   IconBuilding,
-  IconUsers,
-  IconList,
   IconMapPin,
   IconArrowRight,
-  IconShield,
 } from "@/components/ui/Icons";
 import { prisma } from "@/lib/db";
 import { requireRoleOrRedirect } from "@/lib/auth";
@@ -23,14 +20,23 @@ import {
   hasRole,
   teamScope,
 } from "@/lib/permissions";
-import { initials } from "@/lib/format";
 
 export const metadata = { title: "Teams" };
+
+const SORT_FIELDS = ["name", "members", "assignments"] as const;
+type SortField = (typeof SORT_FIELDS)[number];
+
+type SearchParams = Promise<{
+  q?: string;
+  sort?: string;
+  dir?: string;
+  needs_team?: string;
+}>;
 
 export default async function TeamsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ needs_team?: string }>;
+  searchParams: SearchParams;
 }) {
   const session = await requireRoleOrRedirect(
     ["admin", "staff", "realtor"],
@@ -38,51 +44,85 @@ export default async function TeamsPage({
   );
   const params = await searchParams;
   const scope = await teamScope(session);
-  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
-  // Founder-flow surface for realtors with no memberships. Shown both when
-  // arrived via the soft-gate redirect (?needs_team=1) and on direct visit
-  // — the trigger is the user's actual state, not the URL flag.
+  const q = (params.q ?? "").trim();
+  const sort: SortField = (SORT_FIELDS as readonly string[]).includes(
+    params.sort ?? "",
+  )
+    ? (params.sort as SortField)
+    : "name";
+  const dir: "asc" | "desc" = params.dir === "desc" ? "desc" : "asc";
+
+  // Realtors with no team get the founder banner. Detected by actual state,
+  // not the URL flag — the flag only suppresses the "you tried to access X"
+  // prefix when arriving via the soft-gate redirect.
   const isRealtorWithoutTeam =
     hasRole(session, "realtor") &&
     (await getUserTeamIds(session.user.id)).all.length === 0;
   const showFounderBanner = isRealtorWithoutTeam;
   const canFound = showFounderBanner && (await canCreateFirstTeam(session));
-  // Suppress the "you tried to access X" prefix when arriving directly so
-  // the banner reads naturally.
   const fromGate = params.needs_team === "1";
 
+  // Multi-word search across team name/city + owner first/last/email,
+  // matching the assignments-page idiom (AND across words, OR across fields).
+  // Insensitive mode mirrors v1 MySQL `LIKE` collation behaviour
+  // (Platform/app/Livewire/TeamsList.php:62-71) on Postgres.
+  const words = q.split(/\s+/).filter(Boolean);
+  const searchWhere: Prisma.TeamWhereInput | undefined = words.length
+    ? {
+        AND: words.map((w) => ({
+          OR: [
+            { name: { contains: w, mode: "insensitive" as const } },
+            { city: { contains: w, mode: "insensitive" as const } },
+            {
+              members: {
+                some: {
+                  user: {
+                    OR: [
+                      { firstName: { contains: w, mode: "insensitive" as const } },
+                      { lastName: { contains: w, mode: "insensitive" as const } },
+                      { email: { contains: w, mode: "insensitive" as const } },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        })),
+      }
+    : undefined;
+
+  const where = composeWhere<Prisma.TeamWhereInput>(scope, searchWhere);
+
+  const orderBy: Prisma.TeamOrderByWithRelationInput =
+    sort === "members"
+      ? { members: { _count: dir } }
+      : sort === "assignments"
+        ? { assignments: { _count: dir } }
+        : { name: dir };
+
   const teams = await prisma.team.findMany({
-    where: composeWhere(scope),
-    orderBy: { name: "asc" },
+    where,
+    orderBy,
     include: {
+      _count: { select: { members: true, assignments: true } },
       members: {
-        include: { user: { select: { firstName: true, lastName: true } } },
-      },
-      assignments: {
-        include: { services: true },
+        where: { teamRole: "owner" },
+        take: 1,
+        include: {
+          user: { select: { firstName: true, lastName: true, email: true } },
+        },
       },
     },
   });
 
-  // Fetch services once to resolve color/short for pills
-  const services = await prisma.service.findMany();
-  const svcByKey = Object.fromEntries(services.map((s) => [s.key, s]));
-
-  // Aggregate counters
   const totals = {
     teams: teams.length,
-    members: teams.reduce((s, t) => s + t.members.length, 0),
-    activeAssignments: teams.reduce(
-      (s, t) => s + t.assignments.filter((a) => ["scheduled", "in_progress"].includes(a.status)).length,
-      0,
-    ),
-    deliveredThisMonth: teams.reduce(
-      (s, t) =>
-        s + t.assignments.filter((a) => a.deliveredAt && a.deliveredAt >= monthStart).length,
-      0,
-    ),
+    members: teams.reduce((s, t) => s + t._count.members, 0),
+    assignments: teams.reduce((s, t) => s + t._count.assignments, 0),
   };
+
+  const hasActiveSearch = q.length > 0;
 
   return (
     <>
@@ -130,17 +170,16 @@ export default async function TeamsPage({
           </Card>
         )}
 
-        {/* Header summary */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-[var(--color-ink)]">
-              {totals.teams} partner {totals.teams === 1 ? "office" : "offices"} across Belgium
+              {totals.teams} partner{" "}
+              {totals.teams === 1 ? "office" : "offices"} across Belgium
             </h2>
             <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
               {totals.members} total member{totals.members === 1 ? "" : "s"} ·{" "}
-              {totals.activeAssignments} active assignment
-              {totals.activeAssignments === 1 ? "" : "s"} ·{" "}
-              {totals.deliveredThisMonth} delivered this month
+              {totals.assignments} total assignment
+              {totals.assignments === 1 ? "" : "s"}
             </p>
           </div>
           <Button href="/dashboard/teams/new" size="md">
@@ -149,178 +188,317 @@ export default async function TeamsPage({
           </Button>
         </div>
 
-        {/* Grid */}
-        {teams.length === 0 ? (
-          <EmptyState
-            variant="dashed"
-            icon={<IconBuilding size={22} />}
-            title="No teams yet"
-            description="Create your first agency office. You'll be able to add members, set commission rules and order certificates on their behalf."
-            action={
-              <Button href="/dashboard/teams/new" size="md">
-                <IconPlus size={14} />
-                Create first team
-              </Button>
-            }
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput
+            initialQuery={q}
+            placeholder="Search by team name, city or owner…"
           />
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {teams.map((team) => {
-              const active = team.assignments.filter((a) =>
-                ["scheduled", "in_progress"].includes(a.status),
-              ).length;
-              const delivered = team.assignments.filter(
-                (a) => a.deliveredAt && a.deliveredAt >= monthStart,
-              ).length;
+        </div>
 
-              // Count service usage
-              const svcCount: Record<string, number> = {};
-              for (const a of team.assignments) {
-                for (const s of a.services) {
-                  svcCount[s.serviceKey] = (svcCount[s.serviceKey] ?? 0) + 1;
-                }
+        {teams.length === 0 ? (
+          hasActiveSearch ? (
+            <EmptyState
+              variant="dashed"
+              icon={<IconBuilding size={22} />}
+              title="No teams match that search"
+              description={`Nothing found for "${q}". Try a different name, city, or owner.`}
+            />
+          ) : (
+            <EmptyState
+              variant="dashed"
+              icon={<IconBuilding size={22} />}
+              title="No teams yet"
+              description="Create your first agency office. You'll be able to add members, set commission rules and order certificates on their behalf."
+              action={
+                <Button href="/dashboard/teams/new" size="md">
+                  <IconPlus size={14} />
+                  Create first team
+                </Button>
               }
-              const topServices = Object.entries(svcCount)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 4)
-                .map(([k]) => svcByKey[k])
-                .filter(Boolean);
-
-              const memberAvatars = team.members.slice(0, 4);
-              const extraMembers = team.members.length - memberAvatars.length;
-              const owner = team.members.find((m) => m.teamRole === "owner");
-
-              return (
-                <Card
-                  key={team.id}
-                  className="group relative overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
-                >
-                  <Link
-                    href={`/dashboard/teams/${team.id}`}
-                    aria-label={`Open ${team.name}`}
-                    className="absolute inset-0 z-10 rounded-[var(--radius-lg)]"
-                  />
-
-                  {/* Colored accent strip */}
-                  <div
-                    aria-hidden
-                    className="h-1 w-full"
-                    style={{ backgroundColor: team.logoColor ?? "#0f172a" }}
-                  />
-
-                  <CardBody className="relative">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span
-                          className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-sm font-bold text-white"
-                          style={{ backgroundColor: team.logoColor ?? "#0f172a" }}
-                        >
-                          {team.logo ?? "??"}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold text-[var(--color-ink)] group-hover:underline">
-                            {team.name}
-                          </p>
-                          <p className="flex items-center gap-1 text-xs text-[var(--color-ink-muted)]">
-                            <IconMapPin size={11} />
-                            {team.city ?? "—"}
-                          </p>
-                        </div>
-                      </div>
-                      <IconArrowRight
-                        size={16}
-                        className="mt-1 shrink-0 text-[var(--color-ink-faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--color-ink-soft)]"
-                      />
-                    </div>
-
-                    {/* Members row */}
-                    <div className="mt-5 flex items-center justify-between gap-3">
-                      <div className="flex items-center">
-                        {memberAvatars.length === 0 ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)]">
-                            <IconUsers size={12} />
-                            No members yet
-                          </span>
-                        ) : (
-                          <div className="flex items-center -space-x-2">
-                            {memberAvatars.map((m) => (
-                              <span
-                                key={m.userId}
-                                className="relative ring-2 ring-[var(--color-bg)]"
-                                style={{ borderRadius: "9999px" }}
-                              >
-                                <Avatar
-                                  initials={initials(m.user.firstName, m.user.lastName)}
-                                  size="sm"
-                                />
-                              </span>
-                            ))}
-                            {extraMembers > 0 && (
-                              <span className="relative grid h-8 w-8 place-items-center rounded-full bg-[var(--color-bg-muted)] text-[10px] font-semibold text-[var(--color-ink-soft)] ring-2 ring-[var(--color-bg)]">
-                                +{extraMembers}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {owner && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-                          <IconShield size={10} />
-                          Owned by {owner.user.firstName}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Stats */}
-                    <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-[var(--color-border)] pt-4">
-                      <Stat icon={<IconUsers size={12} />} label="Members" value={team.members.length} />
-                      <Stat icon={<IconList size={12} />} label="Active" value={active} />
-                      <Stat icon={<IconBuilding size={12} />} label="MTD" value={delivered} />
-                    </dl>
-
-                    {/* Service mix */}
-                    {topServices.length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-                          Most ordered
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {topServices.map((svc) => (
-                            <ServicePill key={svc.key} color={svc.color} label={svc.short} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardBody>
-                </Card>
-              );
-            })}
-          </div>
+            />
+          )
+        ) : (
+          <>
+            <DesktopTable teams={teams} q={q} sort={sort} dir={dir} />
+            <MobileList teams={teams} />
+          </>
         )}
       </div>
     </>
   );
 }
 
-function Stat({
-  icon,
-  label,
-  value,
+type TeamRow = Prisma.TeamGetPayload<{
+  include: {
+    _count: { select: { members: true; assignments: true } };
+    members: {
+      where: { teamRole: "owner" };
+      take: 1;
+      include: {
+        user: { select: { firstName: true; lastName: true; email: true } };
+      };
+    };
+  };
+}>;
+
+function DesktopTable({
+  teams,
+  q,
+  sort,
+  dir,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
+  teams: TeamRow[];
+  q: string;
+  sort: SortField;
+  dir: "asc" | "desc";
 }) {
   return (
-    <div>
-      <dt className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-        <span className="text-[var(--color-ink-muted)]">{icon}</span>
-        {label}
-      </dt>
-      <dd className="mt-0.5 text-lg font-semibold text-[var(--color-ink)] tabular-nums">
-        {value}
-      </dd>
+    <div className="hidden overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] shadow-[var(--shadow-sm)] sm:block">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
+            <tr>
+              <SortHeader
+                label="Office"
+                field="name"
+                q={q}
+                currentSort={sort}
+                currentDir={dir}
+                className="px-6 py-3 text-left font-medium"
+              />
+              <th className="px-6 py-3 text-left font-medium">Owner</th>
+              <SortHeader
+                label="Members"
+                field="members"
+                q={q}
+                currentSort={sort}
+                currentDir={dir}
+                className="px-6 py-3 text-left font-medium"
+              />
+              <SortHeader
+                label="Assignments"
+                field="assignments"
+                q={q}
+                currentSort={sort}
+                currentDir={dir}
+                className="px-6 py-3 text-left font-medium"
+              />
+              <th className="px-6 py-3" aria-hidden />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--color-border)]">
+            {teams.map((team) => {
+              const owner = team.members[0];
+              return (
+                <tr
+                  key={team.id}
+                  className="group cursor-pointer transition-colors hover:bg-[var(--color-bg-alt)]"
+                >
+                  <td className="px-6 py-4">
+                    <Link
+                      href={`/dashboard/teams/${team.id}`}
+                      className="flex items-center gap-3 text-[var(--color-ink)]"
+                    >
+                      <span
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-xs font-bold text-white"
+                        style={{
+                          backgroundColor: team.logoColor ?? "#0f172a",
+                        }}
+                      >
+                        {team.logo ?? "??"}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium group-hover:underline">
+                          {team.name}
+                        </p>
+                        <p className="flex items-center gap-1 text-xs text-[var(--color-ink-muted)]">
+                          <IconMapPin size={11} />
+                          {team.city ?? "—"}
+                        </p>
+                      </div>
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4">
+                    {owner ? (
+                      <div className="min-w-0">
+                        <p className="truncate text-[var(--color-ink)]">
+                          {owner.user.firstName} {owner.user.lastName}
+                        </p>
+                        <p className="truncate text-xs text-[var(--color-ink-muted)]">
+                          {owner.user.email}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-[var(--color-ink-muted)]">
+                        —
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 tabular-nums text-[var(--color-ink)]">
+                    {team._count.members}
+                  </td>
+                  <td className="px-6 py-4 tabular-nums text-[var(--color-ink)]">
+                    {team._count.assignments}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <IconArrowRight
+                      size={16}
+                      className="text-[var(--color-ink-faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--color-ink-soft)]"
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
+  );
+}
+
+function MobileList({ teams }: { teams: TeamRow[] }) {
+  return (
+    <div className="space-y-3 sm:hidden">
+      {teams.map((team) => {
+        const owner = team.members[0];
+        return (
+          <Card key={team.id} className="overflow-hidden">
+            <Link
+              href={`/dashboard/teams/${team.id}`}
+              className="block px-4 py-3"
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-xs font-bold text-white"
+                  style={{ backgroundColor: team.logoColor ?? "#0f172a" }}
+                >
+                  {team.logo ?? "??"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-[var(--color-ink)]">
+                    {team.name}
+                  </p>
+                  <p className="flex items-center gap-1 text-xs text-[var(--color-ink-muted)]">
+                    <IconMapPin size={11} />
+                    {team.city ?? "—"}
+                  </p>
+                </div>
+                <IconArrowRight
+                  size={16}
+                  className="shrink-0 text-[var(--color-ink-faint)]"
+                />
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-3 border-t border-[var(--color-border)] pt-3 text-xs">
+                <div>
+                  <p className="font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                    Owner
+                  </p>
+                  <p className="mt-0.5 truncate text-[var(--color-ink)]">
+                    {owner
+                      ? `${owner.user.firstName} ${owner.user.lastName}`
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                    Members
+                  </p>
+                  <p className="mt-0.5 tabular-nums text-[var(--color-ink)]">
+                    {team._count.members}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                    Assignments
+                  </p>
+                  <p className="mt-0.5 tabular-nums text-[var(--color-ink)]">
+                    {team._count.assignments}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function SortHeader({
+  label,
+  field,
+  q,
+  currentSort,
+  currentDir,
+  className,
+}: {
+  label: string;
+  field: SortField;
+  q: string;
+  currentSort: SortField;
+  currentDir: "asc" | "desc";
+  className?: string;
+}) {
+  const isActive = currentSort === field;
+  const nextDir = isActive && currentDir === "asc" ? "desc" : "asc";
+
+  const sp = new URLSearchParams();
+  if (q) sp.set("q", q);
+  sp.set("sort", field);
+  sp.set("dir", nextDir);
+  const href = `/dashboard/teams?${sp.toString()}`;
+
+  return (
+    <th scope="col" className={className}>
+      <Link
+        href={href}
+        className="inline-flex items-center gap-1 hover:text-[var(--color-ink)]"
+        aria-sort={
+          isActive
+            ? currentDir === "asc"
+              ? "ascending"
+              : "descending"
+            : "none"
+        }
+      >
+        <span>{label}</span>
+        <SortArrow active={isActive} dir={currentDir} />
+      </Link>
+    </th>
+  );
+}
+
+function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (!active) {
+    return (
+      <svg
+        aria-hidden
+        width="10"
+        height="10"
+        viewBox="0 0 10 10"
+        className="opacity-40"
+      >
+        <path
+          d="M3 4l2-2 2 2M3 6l2 2 2-2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden width="10" height="10" viewBox="0 0 10 10">
+      <path
+        d={dir === "asc" ? "M3 6l2-2 2 2" : "M3 4l2 2 2-2"}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

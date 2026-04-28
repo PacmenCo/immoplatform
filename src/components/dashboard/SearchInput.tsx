@@ -46,6 +46,13 @@ export function SearchInput({
   const lastQueryRef = useRef(initialQuery);
 
   useEffect(() => {
+    // When `initialQuery` changes because of our own push (lastQueryRef matches),
+    // skip the reset — otherwise an in-progress edit gets clobbered. Concretely:
+    // type "a" then " " inside the debounce window; the timer pushes the trimmed
+    // "a" to the URL, the server echoes initialQuery="a" back, and without this
+    // guard the effect would overwrite the local "a " (with the trailing space
+    // the user is mid-typing) back to "a".
+    if (lastQueryRef.current === initialQuery) return;
     lastQueryRef.current = initialQuery;
     setQuery(initialQuery);
   }, [initialQuery]);

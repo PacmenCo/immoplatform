@@ -1,7 +1,6 @@
 import { IconPlus } from "@/components/ui/Icons";
 import { Button } from "@/components/ui/Button";
 import { TeamSwitcher, type SwitcherTeam } from "./TeamSwitcher";
-import { TopbarSearch } from "./TopbarSearch";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { getSession } from "@/lib/auth";
 import {
@@ -55,10 +54,6 @@ export async function Topbar({
             />
           </>
         )}
-      </div>
-
-      <div className="hidden xl:flex flex-1 max-w-md items-center">
-        <TopbarSearch />
       </div>
 
       <div className="flex items-center gap-1.5">
