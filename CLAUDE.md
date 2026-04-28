@@ -156,12 +156,21 @@ ssh root@178.128.246.222
 - **Env:** `/opt/immoplatform/app/.env.production` (mode 600, owner `immo`)
 - **Service:** `systemctl {status|restart|stop} immoplatform` · logs via `journalctl -u immoplatform -f`
 - **Listening on:** `127.0.0.1:3000` only (nginx reverse-proxies from `:80`/`:443`)
-- **Storage:** LocalStorage at `/opt/immoplatform/app/storage` until S3/DO Spaces is wired. Bytes survive deploy but NOT droplet wipe.
+- **Storage:** DO Spaces (`immoplatform-real-storage` bucket in AMS3). Bytes survive droplet wipe. See dedicated section below.
 
 ### Database
 
 - **PostgreSQL 16** on the same droplet, bound to `127.0.0.1:5432` only · `pg_hba.conf` requires `scram-sha-256` for TCP
 - **DB / role:** both named `immo`. Connection string lives at `/root/secrets/database.env` on the server (mode 600). Don't put this anywhere else.
+
+### Storage (DO Spaces)
+
+- **Bucket:** `immoplatform-real-storage` in AMS3 (matches droplet region — free intra-region transfer). CDN enabled but only helps on public-read objects; the app's signed-URL flows go straight to origin.
+- **Access key:** granular (Limited Access scope), Read/Write/Delete on this bucket only. Stored at `S3_ACCESS_KEY` + `S3_SECRET_KEY` in `.env.production`.
+- **Env vars on droplet:** `STORAGE_PROVIDER=do-spaces`, `S3_BUCKET=immoplatform-real-storage`, `S3_REGION=ams3`, `S3_ENDPOINT=https://ams3.digitaloceanspaces.com` (region-level URL — the SDK prepends the bucket name automatically; do NOT use the bucket-prefixed URL here).
+- **Code path:** `src/lib/storage/index.ts` switches on `STORAGE_PROVIDER`; `s3-storage.ts` is the active backend. `local-storage.ts` is the dev / fallback.
+- **Object layout:** `avatars/{userId}/{version}.{ext}` · `teams/{teamId}/{logo|signature}/{version}.{ext}` · `assignments/{assignmentId}/{lane}/{fileId}_{originalName}`.
+- **Debugging:** the bucket Files tab in DO panel shows uploads in real time. If an upload appears to succeed in the UI but the bucket stays empty, check `journalctl -u immoplatform | grep -iE "s3|storage"` for the SDK error.
 
 ### Email (Postmark)
 
@@ -192,11 +201,21 @@ systemctl restart immoplatform
 ### Not yet configured (deliberately deferred)
 
 - Google + Outlook OAuth credentials — calendar features no-op without these
-- S3 / DO Spaces storage env vars — using LocalStorage instead
-- Cron jobs hitting `/api/cron/*` — monthly invoice reminder + hourly assignment auto-status-update won't fire on schedule
 - fail2ban — keys-only SSH makes brute-force moot, just adds log noise
 - DB backups — no users yet; configure before that changes
-- Admin user in DB — bootstrap one via `/register` (creates a realtor) then bump role via SQL
+- Droplet resize to 2 GB — current 1 GB requires a `systemctl stop immoplatform` before each rebuild (build + running app together OOM); 2 GB enables zero-downtime deploys
+
+### Admin user
+
+Bootstrapped via `/opt/immoplatform/app/scripts/bootstrap-admin.ts` (server-only file, untracked in git). Re-runnable to rotate password / restore role:
+
+```bash
+cd /opt/immoplatform/app
+sudo -u immo bash -c 'set -a; source .env.production; set +a; \
+  npx tsx scripts/bootstrap-admin.ts <email> <password> <firstName> <lastName>'
+```
+
+Upserts on email — safe to re-run. Bypasses Zod's 10-char minimum (writes directly via Prisma), so any password value works.
 
 ### Secrets to back up to a password manager (lost = unrecoverable)
 
