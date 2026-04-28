@@ -8,7 +8,7 @@
 const themeInitScript = `
 (function() {
   try {
-    var pref = localStorage.getItem('theme-pref') || 'system';
+    var pref = localStorage.getItem('theme-pref') || 'light';
     var sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     var effective = pref === 'dark' || pref === 'light' ? pref : sys;
     var root = document.documentElement;

@@ -8,10 +8,12 @@ export type EffectiveTheme = "light" | "dark";
 const STORAGE_KEY = "theme-pref";
 
 function readPref(): ThemePref {
-  if (typeof window === "undefined") return "system";
+  // Default is "light" (product decision). Users can pick "system" or "dark"
+  // explicitly via /dashboard/settings/appearance and that's persisted.
+  if (typeof window === "undefined") return "light";
   const root = document.documentElement.getAttribute("data-theme-pref");
-  if (root === "light" || root === "dark") return root;
-  return "system";
+  if (root === "light" || root === "dark" || root === "system") return root;
+  return "light";
 }
 
 function systemTheme(): EffectiveTheme {
@@ -28,7 +30,7 @@ function applyTheme(pref: ThemePref) {
 }
 
 export function useTheme() {
-  const [pref, setPrefState] = useState<ThemePref>("system");
+  const [pref, setPrefState] = useState<ThemePref>("light");
   const [effective, setEffective] = useState<EffectiveTheme>("light");
 
   useEffect(() => {
