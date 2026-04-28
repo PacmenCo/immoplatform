@@ -12,7 +12,6 @@ import {
   IconCalendar,
   IconChart,
   IconSettings,
-  IconBell,
   IconMegaphone,
   IconLogout,
 } from "@/components/ui/Icons";
@@ -164,14 +163,6 @@ export function MobileTopbar() {
       </Link>
 
       <div className="flex items-center gap-1 sm:gap-2">
-        <Link
-          href="/dashboard/notifications"
-          aria-label="Notifications"
-          className="relative grid h-11 w-11 place-items-center rounded-md text-[var(--color-ink-soft)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
-        >
-          <IconBell size={18} />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[var(--color-asbestos)]" />
-        </Link>
         <Link
           href="/dashboard/settings"
           aria-label="Your profile"

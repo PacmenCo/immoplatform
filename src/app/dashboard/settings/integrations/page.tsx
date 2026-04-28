@@ -121,16 +121,6 @@ export default function IntegrationsPage() {
                   Org-wide integrations affect everyone on the team. Personal
                   integrations (like your own calendar) only sync your assignments.
                 </p>
-                <p className="text-sm leading-relaxed text-[var(--color-ink-soft)]">
-                  Need something not listed? Propose it in{" "}
-                  <Link
-                    href="/dashboard/help"
-                    className="underline decoration-dotted underline-offset-2"
-                  >
-                    #product-feedback
-                  </Link>
-                  .
-                </p>
               </CardBody>
             </Card>
           </aside>

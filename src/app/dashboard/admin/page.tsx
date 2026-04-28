@@ -8,9 +8,7 @@ import {
   IconMegaphone,
   IconChart,
   IconArrowRight,
-  IconSettings,
   IconWallet,
-  IconMail,
   IconPlug,
 } from "@/components/ui/Icons";
 
@@ -58,25 +56,11 @@ const CARDS = [
     accent: "#15803d",
   },
   {
-    href: "/dashboard/admin/invoice-reminders",
-    icon: IconMail,
-    title: "Invoice reminders",
-    description: "Monthly balance email schedule, recipients, manual triggers.",
-    accent: "#b45309",
-  },
-  {
     href: "/dashboard/settings/integrations",
     icon: IconPlug,
     title: "Integrations",
     description: "Odoo sync status, calendar connections, email provider.",
     accent: "#6d28d9",
-  },
-  {
-    href: "/dashboard/admin/exports",
-    icon: IconSettings,
-    title: "Data exports",
-    description: "Download CSVs of assignments, payouts, teams and users.",
-    accent: "var(--color-ink-soft)",
   },
 ];
 
