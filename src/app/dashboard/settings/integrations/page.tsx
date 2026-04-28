@@ -32,7 +32,6 @@ const integrationDetail: Record<
     logo: "O",
   },
   odoo: {
-    href: "/dashboard/settings/integrations/odoo",
     accent: "#714b67",
     logoBg: "#f3e8fd",
     logoInk: "#714b67",
@@ -77,13 +76,6 @@ export default function IntegrationsPage() {
                     Some data may be out of date. Review and retry below.
                   </p>
                 </div>
-                <Button
-                  href="/dashboard/settings/integrations/odoo"
-                  variant="secondary"
-                  size="sm"
-                >
-                  Review
-                </Button>
               </div>
             )}
 

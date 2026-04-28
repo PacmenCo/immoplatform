@@ -456,25 +456,6 @@ export const INTEGRATIONS: Integration[] = [
   },
 ];
 
-export type OdooSyncRecord = {
-  id: string;
-  at: string;
-  entity: "product" | "invoice" | "contact" | "assignment";
-  direction: "push" | "pull";
-  status: "ok" | "failed" | "retrying";
-  message?: string;
-  itemsCount: number;
-};
-
-export const ODOO_SYNC_LOG: OdooSyncRecord[] = [
-  { id: "os_01", at: "2026-04-19 08:15", entity: "invoice", direction: "push", status: "ok", itemsCount: 18 },
-  { id: "os_02", at: "2026-04-19 08:15", entity: "assignment", direction: "push", status: "ok", itemsCount: 42 },
-  { id: "os_03", at: "2026-04-19 02:00", entity: "invoice", direction: "push", status: "failed", itemsCount: 3, message: "Product 'product_fuel_buried' not found in Odoo — price list mismatch." },
-  { id: "os_04", at: "2026-04-18 08:15", entity: "contact", direction: "pull", status: "ok", itemsCount: 7 },
-  { id: "os_05", at: "2026-04-18 02:00", entity: "invoice", direction: "push", status: "retrying", itemsCount: 1, message: "Odoo 504 — will retry in 5 min." },
-  { id: "os_06", at: "2026-04-17 08:15", entity: "product", direction: "push", status: "ok", itemsCount: 5 },
-];
-
 export const DASHBOARD_STATS = [
   { label: "Active assignments", value: "47", delta: "+12%" },
   { label: "Due this week", value: "8", delta: "3 today" },
