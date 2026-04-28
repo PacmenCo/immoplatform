@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { BrandName } from "@/components/BrandName";
 
 export function AuthShell({
   title,
@@ -15,11 +16,8 @@ export function AuthShell({
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="flex flex-col justify-between px-8 py-10 sm:px-16">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-[var(--color-on-brand)] text-sm font-bold">
-            I
-          </span>
-          <span className="text-lg">Immo</span>
+        <Link href="/" className="flex items-center font-semibold">
+          <BrandName className="text-xl" />
         </Link>
 
         <main id="main" className="mx-auto w-full max-w-sm">
@@ -41,7 +39,7 @@ export function AuthShell({
         </main>
 
         <p className="text-xs text-[var(--color-ink-muted)]">
-          © {new Date().getFullYear()} Immo. All rights reserved.
+          © {new Date().getFullYear()} <BrandName />. All rights reserved.
         </p>
       </div>
 

@@ -3,10 +3,11 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { IconShield, IconArrowRight } from "@/components/ui/Icons";
+import { BRAND_NAME } from "@/lib/site";
 
 const MESSAGES = {
   users: {
-    title: "Team administration is managed by Immo.",
+    title: `Team administration is managed by ${BRAND_NAME}.`,
     body:
       "The global users list is only available to platform admins and support staff. To add or remove teammates for your agency, use the Members tab on your team's detail page, or email us at support@immo.app.",
   },
@@ -36,7 +37,7 @@ const MESSAGES = {
       "Org-wide revenue breakdowns are restricted to admin and staff. Your own team's delivered work shows on your team detail page.",
   },
   announcements: {
-    title: "Announcements are managed by Immo.",
+    title: `Announcements are managed by ${BRAND_NAME}.`,
     body:
       "Only admins can create platform-wide announcements. You'll see any active ones in the dashboard automatically.",
   },

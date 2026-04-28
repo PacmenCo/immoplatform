@@ -24,7 +24,7 @@ const CATEGORIES: Category[] = [
     title: "Getting started",
     accent: "var(--color-brand)",
     articles: [
-      { title: "Welcome to Immo", description: "A guided tour of the dashboard and where to find each section." },
+      { title: "Welcome to immoplatform", description: "A guided tour of the dashboard and where to find each section." },
       { title: "Setting up your profile", description: "Photo, contact info, notification preferences and signature." },
       { title: "Inviting your first team member", description: "Roles, permissions and how invites arrive by email." },
       { title: "Connecting your Odoo instance", description: "Link product mappings and invoice templates." },

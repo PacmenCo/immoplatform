@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Button } from "@/components/ui/Button";
+import { BRAND_NAME } from "@/lib/site";
 
 export default function NoTeamPage() {
   return (
     <AuthShell
       title="Your agency isn't set up yet."
-      subtitle="Immo runs on agency teams — you need to belong to one before you can use the dashboard."
+      subtitle={`${BRAND_NAME} runs on agency teams — you need to belong to one before you can use the dashboard.`}
     >
       <div className="space-y-6">
         <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-5">

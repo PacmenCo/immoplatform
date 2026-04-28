@@ -6,12 +6,13 @@ import { getSession } from "@/lib/auth";
 import { avatarImageUrl } from "@/lib/avatar";
 import { initials } from "@/lib/format";
 import { getUserTeamIds, hasRole } from "@/lib/permissions";
+import { BRAND_NAME } from "@/lib/site";
 
 // Per-page titles. Pages set their own `export const metadata` and Next slots
 // the value into `%s`. Without the template every dashboard route inherited
 // the marketing default — bad for tab-switcher orientation + screen readers.
 export const metadata: Metadata = {
-  title: { template: "%s · Immo", default: "Dashboard · Immo" },
+  title: { template: `%s · ${BRAND_NAME}`, default: `Dashboard · ${BRAND_NAME}` },
 };
 
 export default async function DashboardLayout({

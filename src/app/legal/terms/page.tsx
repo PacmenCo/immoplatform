@@ -2,6 +2,7 @@ import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import { TAP_TARGET_LINK } from "@/components/ui/tap-target";
+import { BRAND_NAME, BRAND_LEGAL } from "@/lib/site";
 
 const sections = [
   {
@@ -10,7 +11,7 @@ const sections = [
     children: [
       {
         subtitle: null,
-        body: "By accessing or using the Immo platform (the \u201CService\u201D), you agree to be bound by these Terms of Service and all incorporated policies. If you do not agree, do not use the Service. These Terms constitute a binding agreement between you and Immo BV, a company registered in Belgium.",
+        body: `By accessing or using the ${BRAND_NAME} platform (the \u201CService\u201D), you agree to be bound by these Terms of Service and all incorporated policies. If you do not agree, do not use the Service. These Terms constitute a binding agreement between you and ${BRAND_LEGAL}, a company registered in Belgium.`,
       },
       {
         subtitle: "1.1 Eligibility",
@@ -147,7 +148,7 @@ export default function TermsPage() {
               Terms of service
             </h1>
             <p className="mt-4 max-w-2xl text-[var(--color-ink-soft)]">
-              Last updated: 18 April 2026. These Terms govern your use of the Immo platform and services.
+              Last updated: 18 April 2026. These Terms govern your use of the {BRAND_NAME} platform and services.
             </p>
           </div>
         </section>

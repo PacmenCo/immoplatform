@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Input";
 import { IconCheck, IconArrowRight, IconPlus, IconMail } from "@/components/ui/Icons";
+import { BrandName } from "@/components/BrandName";
 
 
 const STEPS = [
@@ -19,11 +20,8 @@ export default function OnboardingInvitePage() {
     <div className="min-h-screen bg-[var(--color-bg-alt)]">
       <header className="border-b border-[var(--color-border)] bg-white">
         <div className="mx-auto flex h-16 max-w-[var(--container)] items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-white text-sm font-bold">
-              I
-            </span>
-            <span className="text-lg">Immo</span>
+          <Link href="/" className="flex items-center font-semibold">
+            <BrandName className="text-lg" />
           </Link>
           <Link href="/onboarding" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]">
             Back to overview

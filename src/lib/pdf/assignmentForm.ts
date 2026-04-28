@@ -7,6 +7,7 @@ import {
   rgb,
   type RGB,
 } from "pdf-lib";
+import { BRAND_NAME } from "@/lib/site";
 
 /**
  * Programmatic Opdrachtformulier — the assignment-authorisation form a
@@ -262,7 +263,7 @@ async function drawHeader(
       // renders with just the team name text.
     }
   }
-  ctx.page.drawText(team?.legalName ?? team?.name ?? "Immo", {
+  ctx.page.drawText(team?.legalName ?? team?.name ?? BRAND_NAME, {
     x: leftCursorX,
     y: A4_HEIGHT - 34,
     size: 13,
@@ -620,10 +621,10 @@ export async function generateAssignmentFormPdf(
 ): Promise<Buffer> {
   const doc = await PDFDocument.create();
   doc.setTitle(`Opdrachtformulier ${input.reference}`);
-  doc.setAuthor(input.team?.legalName ?? input.team?.name ?? "Immo");
+  doc.setAuthor(input.team?.legalName ?? input.team?.name ?? BRAND_NAME);
   doc.setSubject("Assignment authorisation");
-  doc.setProducer("Immo");
-  doc.setCreator("Immo");
+  doc.setProducer(BRAND_NAME);
+  doc.setCreator(BRAND_NAME);
   doc.setCreationDate(new Date());
 
   const regular = await doc.embedFont(StandardFonts.Helvetica);

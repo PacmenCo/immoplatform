@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/Button";
 import { ServicePill } from "@/components/ui/Badge";
 import { SERVICES } from "@/lib/mockData";
+import { BrandName } from "@/components/BrandName";
 
 const timeline = [
   {
@@ -31,7 +32,7 @@ const timeline = [
   },
   {
     year: "2026",
-    title: "Immo launches",
+    title: "immoplatform launches",
     body: "Four specialists, one brand, one platform. We open our shared dashboard to every real-estate agency in Belgium.",
     tag: null,
   },
@@ -74,7 +75,7 @@ export default function AboutPage() {
             <div className="max-w-3xl">
               <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
-                About Immo
+                About <BrandName />
               </span>
               <h1
                 className="mt-6 font-semibold tracking-tight text-[var(--color-ink)]"

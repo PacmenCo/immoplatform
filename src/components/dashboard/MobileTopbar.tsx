@@ -16,6 +16,7 @@ import {
   IconMegaphone,
   IconLogout,
 } from "@/components/ui/Icons";
+import { BrandName } from "@/components/BrandName";
 
 const NAV = [
   { href: "/dashboard", label: "Overview", icon: IconHome },
@@ -158,11 +159,8 @@ export function MobileTopbar() {
         )}
       </div>
 
-      <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-        <span className="grid h-7 w-7 place-items-center rounded-md bg-[var(--color-brand)] text-[var(--color-on-brand)] text-xs font-bold">
-          I
-        </span>
-        <span className="text-sm">Immo</span>
+      <Link href="/dashboard" className="flex items-center font-semibold">
+        <BrandName className="text-base" />
       </Link>
 
       <div className="flex items-center gap-1 sm:gap-2">

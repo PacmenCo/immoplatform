@@ -2,6 +2,7 @@ import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import { TAP_TARGET_LINK } from "@/components/ui/tap-target";
+import { BRAND_LEGAL } from "@/lib/site";
 
 const sections = [
   {
@@ -10,7 +11,7 @@ const sections = [
     children: [
       {
         subtitle: null,
-        body: "Immo BV (\u201Cwe\u201D, \u201Cus\u201D) respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, and safeguard information when you use our platform or interact with our website.",
+        body: `${BRAND_LEGAL} (\u201Cwe\u201D, \u201Cus\u201D) respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, and safeguard information when you use our platform or interact with our website.`,
       },
       {
         subtitle: "1.1 Scope",

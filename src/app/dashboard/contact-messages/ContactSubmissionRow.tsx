@@ -165,7 +165,7 @@ export function ContactSubmissionRow({
             <Button
               size="sm"
               variant="ghost"
-              href={`mailto:${encodeURIComponent(submission.email)}?subject=${encodeURIComponent(`Re: ${submission.subject ?? "your message to Immo"}`)}`}
+              href={`mailto:${encodeURIComponent(submission.email)}?subject=${encodeURIComponent(`Re: ${submission.subject ?? "your message to immoplatform"}`)}`}
             >
               Reply via email
             </Button>

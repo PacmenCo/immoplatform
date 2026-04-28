@@ -5,7 +5,8 @@
 
 import * as React from "react";
 import { Link } from "@react-email/components";
-import { CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
+import { BrandMark, CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
+import { BRAND_NAME } from "@/lib/site";
 
 export type AddedToTeamEmailProps = {
   inviterName: string;
@@ -15,7 +16,7 @@ export type AddedToTeamEmailProps = {
 };
 
 export const subject = (p: AddedToTeamEmailProps) =>
-  `You've been added to ${p.teamName} on Immo`;
+  `You've been added to ${p.teamName} on ${BRAND_NAME}`;
 
 export default function AddedToTeam(props: AddedToTeamEmailProps) {
   return (
@@ -25,7 +26,7 @@ export default function AddedToTeam(props: AddedToTeamEmailProps) {
     >
       <P>
         {props.inviterName} added you to the team{" "}
-        <strong>&ldquo;{props.teamName}&rdquo;</strong> on Immo as a{" "}
+        <strong>&ldquo;{props.teamName}&rdquo;</strong> on <BrandMark /> as a{" "}
         {props.teamRole}.
       </P>
       <P>Sign in to see the team&rsquo;s assignments:</P>

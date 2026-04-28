@@ -1,12 +1,13 @@
 import type { MetadataRoute } from "next";
+import { BRAND_NAME } from "@/lib/site";
 
 // Next 16 serves this as /manifest.webmanifest. Keep it a pure, server-safe
 // module — no client-only imports. Values here are mirrored (where relevant)
 // by layout.tsx metadata/viewport exports; don't duplicate unnecessarily.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Immo — Real-estate certificates",
-    short_name: "Immo",
+    name: `${BRAND_NAME} — Real-estate certificates`,
+    short_name: BRAND_NAME,
     description:
       "EPC, asbestos, electrical and fuel-tank certification for Belgian real-estate agents. One dashboard, one invoice, one team.",
     start_url: "/dashboard",

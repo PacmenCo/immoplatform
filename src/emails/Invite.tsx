@@ -8,7 +8,8 @@
 
 import * as React from "react";
 import { Link } from "@react-email/components";
-import { CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
+import { BrandMark, CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
+import { BRAND_NAME } from "@/lib/site";
 
 export type InviteEmailProps = {
   inviterName: string;
@@ -21,15 +22,15 @@ export type InviteEmailProps = {
 };
 
 export const subject = (p: InviteEmailProps) =>
-  `You're invited to join Immo as a ${p.role}`;
+  `You're invited to join ${BRAND_NAME} as a ${p.role}`;
 
 export default function Invite(props: InviteEmailProps) {
   const expiresOn = props.expiresAt.toISOString().slice(0, 10);
-  const preview = `${props.inviterName} invited you to Immo.`;
+  const preview = `${props.inviterName} invited you to ${BRAND_NAME}.`;
   return (
-    <EmailLayout preview={preview} title={`You're invited to Immo`}>
+    <EmailLayout preview={preview} title={`You're invited to ${BRAND_NAME}`}>
       <P>
-        <strong>{props.inviterName}</strong> invited you to Immo.
+        <strong>{props.inviterName}</strong> invited you to <BrandMark />.
       </P>
       <P>
         Role: <strong>{props.role}</strong>

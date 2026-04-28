@@ -1,4 +1,5 @@
 import { TAP_TARGET_LINK } from "@/components/ui/tap-target";
+import { BrandName } from "@/components/BrandName";
 
 const columns = [
   {
@@ -77,7 +78,7 @@ export default function Footer() {
 
         <div className="mt-16 flex flex-col items-start justify-between gap-4 border-t border-[var(--color-border)] pt-8 sm:flex-row sm:items-center">
           <p className="text-sm text-[var(--color-ink-muted)]">
-            © {new Date().getFullYear()} Immo. All rights reserved.
+            © {new Date().getFullYear()} <BrandName />. All rights reserved.
           </p>
           <p className="text-sm text-[var(--color-ink-muted)]">
             Asbest Experts · EPC Partner · Elec Inspect · Tank Check

@@ -7,6 +7,8 @@ import { IconBuilding, IconMapPin, IconShield, IconCheck } from "@/components/ui
 import { getInviteByToken } from "@/app/actions/invites";
 import { getSession } from "@/lib/auth";
 import { AlreadySignedIn } from "./AlreadySignedIn";
+import { BrandName } from "@/components/BrandName";
+import { BRAND_NAME } from "@/lib/site";
 
 const roleColor: Record<string, { bg: string; fg: string; label: string }> = {
   admin: { bg: "#fef2f2", fg: "#b91c1c", label: "Admin" },
@@ -49,7 +51,7 @@ export default async function InvitePage({
   return (
     <AuthShell
       title="You've been invited."
-      subtitle="Set up your account and join your colleagues on Immo."
+      subtitle={`Set up your account and join your colleagues on ${BRAND_NAME}.`}
       footer={<>Invite expires in {daysLeft} day{daysLeft === 1 ? "" : "s"}.</>}
     >
       <div className="space-y-6">
@@ -147,7 +149,7 @@ export default async function InvitePage({
         </div>
 
         <p className="text-center text-xs text-[var(--color-ink-muted)]">
-          By accepting, you agree to the Immo Terms and Privacy Policy.
+          By accepting, you agree to the <BrandName /> Terms and Privacy Policy.
         </p>
       </div>
     </AuthShell>

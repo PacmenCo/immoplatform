@@ -140,7 +140,7 @@ async function sendViaPostmark(args: SendEmailArgs): Promise<void> {
   }
   if (!from) {
     throw new Error(
-      'EMAIL_FROM is not set. Use e.g. "Immo <no-reply@asbestexperts.be>".',
+      'EMAIL_FROM is not set. Use e.g. "immoplatform <no-reply@immoplatform.be>".',
     );
   }
 
@@ -181,7 +181,7 @@ async function sendViaResend(args: SendEmailArgs): Promise<void> {
   }
   if (!from) {
     throw new Error(
-      'EMAIL_FROM is not set. Use e.g. "Immo <no-reply@yourdomain.com>".',
+      'EMAIL_FROM is not set. Use e.g. "immoplatform <no-reply@yourdomain.com>".',
     );
   }
 

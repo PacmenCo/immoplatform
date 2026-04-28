@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/Icons";
 import { INTEGRATIONS } from "@/lib/mockData";
 import { SettingsNav } from "../_nav";
+import { BRAND_NAME } from "@/lib/site";
 
 const integrationDetail: Record<
   string,
@@ -58,7 +59,7 @@ export default function IntegrationsPage() {
 
   return (
     <>
-      <Topbar title="Integrations" subtitle="Connect Immo to the rest of your stack" />
+      <Topbar title="Integrations" subtitle={`Connect ${BRAND_NAME} to the rest of your stack`} />
 
       <div className="p-8 max-w-[1200px]">
         <SettingsNav />

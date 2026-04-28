@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
 import { IconArrowRight, IconCheck, IconUsers, IconBuilding, IconSettings, IconMail } from "@/components/ui/Icons";
+import { BrandName } from "@/components/BrandName";
 
 const steps = [
   {
@@ -43,11 +44,8 @@ export default function OnboardingHubPage() {
     <div className="min-h-screen bg-[var(--color-bg-alt)]">
       <header className="border-b border-[var(--color-border)] bg-white">
         <div className="mx-auto flex h-16 max-w-[var(--container)] items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-white text-sm font-bold">
-              I
-            </span>
-            <span className="text-lg">Immo</span>
+          <Link href="/" className="flex items-center font-semibold">
+            <BrandName className="text-lg" />
           </Link>
           <Link href="/dashboard" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]">
             Skip for now
@@ -58,7 +56,7 @@ export default function OnboardingHubPage() {
       <div className="mx-auto max-w-[var(--container)] px-6 py-16">
         <div className="max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-            Welcome to Immo
+            Welcome to <BrandName />
           </p>
           <h1
             className="mt-3 font-semibold tracking-tight"

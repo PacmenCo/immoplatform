@@ -6,6 +6,7 @@ import { IconPlus, IconArrowRight } from "@/components/ui/Icons";
 import { requireRoleOrRedirect } from "@/lib/auth";
 import { SettingsNav } from "../_nav";
 import { SettingsScopeBanner } from "@/components/dashboard/SettingsScopeBanner";
+import { BrandName } from "@/components/BrandName";
 
 const KEYS = [
   {
@@ -69,7 +70,7 @@ export default async function ApiSettingsPage() {
               <div>
                 <CardTitle>Active keys</CardTitle>
                 <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                  Keys can be used to authenticate requests to the Immo API. Treat them like passwords.
+                  Keys can be used to authenticate requests to the <BrandName /> API. Treat them like passwords.
                 </p>
               </div>
               <Button variant="primary" size="sm">

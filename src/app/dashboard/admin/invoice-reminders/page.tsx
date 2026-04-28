@@ -11,6 +11,7 @@ import {
   IconAlert,
 } from "@/components/ui/Icons";
 import { COMMISSIONS, TEAMS } from "@/lib/mockData";
+import { BrandName } from "@/components/BrandName";
 
 // Derive recipients for current month (pending/approved balances that need a reminder)
 const period = "2026-04";
@@ -232,7 +233,7 @@ export default function InvoiceRemindersPage() {
                 <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-4 text-sm">
                   <div className="mb-3 flex items-center gap-2 text-xs text-[var(--color-ink-muted)]">
                     <IconMail size={12} />
-                    <span>From: Immo Billing &lt;billing@immo.app&gt;</span>
+                    <span>From: <BrandName /> Billing &lt;billing@immoplatform.be&gt;</span>
                   </div>
                   <p className="font-semibold text-[var(--color-ink)]">
                     Your April balance is € 1,413.00
@@ -241,7 +242,7 @@ export default function InvoiceRemindersPage() {
                     Hi Vastgoed Antwerp team,
                   </p>
                   <p className="mt-2 text-[var(--color-ink-soft)]">
-                    Here&apos;s a summary of your April commission with Immo.
+                    Here&apos;s a summary of your April commission with <BrandName />.
                   </p>
                   <div className="mt-4 rounded border border-[var(--color-border)] bg-[var(--color-bg)] p-3">
                     <div className="flex items-center justify-between text-xs text-[var(--color-ink-muted)]">

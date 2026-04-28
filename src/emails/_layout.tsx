@@ -6,8 +6,8 @@
  * a single column, a title, body content, an optional CTA button, and a
  * muted footer.
  *
- * Brand color `#0f172a` is inlined here because email clients do not
- * support CSS custom properties. Source: `src/app/globals.css` `--color-brand`.
+ * Hex colors are inlined because email clients do not support CSS custom
+ * properties. Mirror values from `src/app/globals.css` (light theme).
  */
 
 import {
@@ -24,15 +24,33 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 import { appBaseUrl } from "@/lib/urls";
+import { BRAND_PRIMARY, BRAND_ACCENT, BRAND_NAME } from "@/lib/site";
 
-// Inlined from globals.css `--color-brand`. When the brand hex changes,
-// update here too — email clients do not see CSS variables.
-export const BRAND_HEX = "#0f172a";
+// Mirrors globals.css light-theme values — emails always render against the
+// light surface (no dark-mode emails) so we inline the light palette.
+export const BRAND_HEX = "#0f172a";          // --color-ink
+export const ACCENT_HEX = "#f59e0b";          // --color-accent (amber)
 export const BRAND_ON_HEX = "#ffffff";
 export const MUTED_HEX = "#64748b";
 export const BORDER_HEX = "#e2e8f0";
 
-export const BRAND_NAME = "Immo";
+// Re-export the canonical brand name from site.ts so existing template
+// imports of `BRAND_NAME` from this file keep working.
+export { BRAND_NAME };
+
+/**
+ * Two-tone wordmark for inside email body prose. Mirrors `<BrandName />`
+ * from the web — kept as a separate component so emails ship with inline
+ * hex colors (CSS vars don't survive the @react-email/render → HTML pass).
+ */
+export function BrandMark({ size = 14 }: { size?: number }) {
+  return (
+    <span style={{ fontWeight: 700, letterSpacing: "-0.01em", fontSize: size }}>
+      <span style={{ color: BRAND_HEX }}>{BRAND_PRIMARY}</span>
+      <span style={{ color: ACCENT_HEX }}>{BRAND_ACCENT}</span>
+    </span>
+  );
+}
 
 type Props = {
   /** Short preview snippet shown in the inbox list. */
@@ -50,7 +68,10 @@ export function EmailLayout({ preview, title, children }: Props) {
       <Body style={body}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={brand}>{BRAND_NAME}</Text>
+            <Text style={brand}>
+              <span style={{ color: BRAND_HEX }}>{BRAND_PRIMARY}</span>
+              <span style={{ color: ACCENT_HEX }}>{BRAND_ACCENT}</span>
+            </Text>
           </Section>
           <Section style={content}>
             {title ? <Heading style={heading}>{title}</Heading> : null}
@@ -113,11 +134,11 @@ const header: React.CSSProperties = {
 };
 
 const brand: React.CSSProperties = {
-  color: BRAND_HEX,
   fontSize: 20,
   fontWeight: 700,
   margin: 0,
   letterSpacing: "-0.01em",
+  textTransform: "lowercase",
 };
 
 const content: React.CSSProperties = {

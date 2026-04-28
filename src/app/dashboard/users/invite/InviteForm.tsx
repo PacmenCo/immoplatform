@@ -12,6 +12,7 @@ import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider
 import { useFormDirty } from "@/lib/useFormDirty";
 import type { ActionResult } from "@/app/actions/_types";
 import type { Role } from "@/lib/permissions.types";
+import { BrandName } from "@/components/BrandName";
 
 type RoleOption = {
   value: Role;
@@ -33,7 +34,7 @@ const ALL_ROLE_OPTIONS: RoleOption[] = [
   {
     value: "staff",
     label: "Staff",
-    description: "Immo support — can view all teams and help users.",
+    description: "immoplatform support — can view all teams and help users.",
   },
   {
     value: "admin",
@@ -150,7 +151,7 @@ export function InviteForm({
                 <Input
                   id="invite-note"
                   name="note"
-                  placeholder="Hi Lucas — welcome to our Immo workspace."
+                  placeholder="Hi Lucas — welcome to our immoplatform workspace."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                 />
@@ -339,13 +340,13 @@ export function InviteForm({
                 </span>
               </div>
               <div className="mb-3 flex items-center gap-2 text-xs text-[var(--color-ink-muted)]">
-                <span>From: Immo &lt;no-reply@immo.app&gt;</span>
+                <span>From: <BrandName /> &lt;no-reply@immoplatform.be&gt;</span>
               </div>
               <p className="font-semibold text-[var(--color-ink)]">
-                You&apos;re invited to join Immo
+                You&apos;re invited to join <BrandName />
               </p>
               <p className="mt-3 text-[var(--color-ink-soft)]">
-                You&apos;ve been invited to join Immo as a{" "}
+                You&apos;ve been invited to join <BrandName /> as a{" "}
                 <strong>{selectedRole?.label}</strong>
                 {selectedTeamForPreview ? (
                   <>

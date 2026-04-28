@@ -17,6 +17,7 @@ import {
   IconMail,
 } from "@/components/ui/Icons";
 import { logout } from "@/app/actions/auth";
+import { BrandName } from "@/components/BrandName";
 
 type NavRole = "admin" | "staff" | "realtor" | "freelancer";
 
@@ -88,11 +89,8 @@ export function Sidebar({ user }: { user?: SidebarUser }) {
 
   return (
     <aside className="hidden md:flex h-screen w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-bg)] sticky top-0">
-      <div className="flex items-center gap-2 px-6 h-16 border-b border-[var(--color-border)]">
-        <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-white text-sm font-bold">
-          I
-        </span>
-        <span className="font-semibold tracking-tight">Immo</span>
+      <div className="flex items-center px-6 h-16 border-b border-[var(--color-border)]">
+        <BrandName className="text-lg" />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">

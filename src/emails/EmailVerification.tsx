@@ -4,7 +4,8 @@
 
 import * as React from "react";
 import { Link } from "@react-email/components";
-import { CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
+import { BrandMark, CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
+import { BRAND_NAME } from "@/lib/site";
 
 export type EmailVerificationEmailProps = {
   name: string;
@@ -15,12 +16,12 @@ export type EmailVerificationEmailProps = {
  *  templates (the registry treats `subject(props)` as homogeneous). */
 export const subject = (_p: EmailVerificationEmailProps): string =>
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  "Verify your Immo email address";
+  `Verify your ${BRAND_NAME} email address`;
 
 export default function EmailVerification(props: EmailVerificationEmailProps) {
   return (
     <EmailLayout
-      preview="Confirm your email address on Immo"
+      preview={`Confirm your email address on ${BRAND_NAME}`}
       title="Verify your email"
     >
       <P>Hi {props.name},</P>
@@ -33,8 +34,9 @@ export default function EmailVerification(props: EmailVerificationEmailProps) {
         Or open this URL: <Link href={props.verifyUrl}>{props.verifyUrl}</Link>
       </P>
       <P style={mutedStyle}>
-        If you didn&rsquo;t change your email on Immo, you can safely ignore
-        this message — your account stays on the previous address.
+        If you didn&rsquo;t change your email on <BrandMark size={13} />, you
+        can safely ignore this message — your account stays on the previous
+        address.
       </P>
     </EmailLayout>
   );

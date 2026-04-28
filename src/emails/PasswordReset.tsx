@@ -5,7 +5,8 @@
 
 import * as React from "react";
 import { Link } from "@react-email/components";
-import { CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
+import { BrandMark, CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
+import { BRAND_NAME } from "@/lib/site";
 
 export type PasswordResetEmailProps = {
   name: string;
@@ -13,19 +14,19 @@ export type PasswordResetEmailProps = {
 };
 
 export const subject = (_p: PasswordResetEmailProps) =>
-  "Reset your Immo password";
+  `Reset your ${BRAND_NAME} password`;
 
 export default function PasswordReset(props: PasswordResetEmailProps) {
   return (
     <EmailLayout
-      preview="Reset your Immo password"
+      preview={`Reset your ${BRAND_NAME} password`}
       title="Reset your password"
     >
       <P>Hi {props.name},</P>
       <P>
-        Someone requested a password reset for your Immo account. If this was
-        you, open the link below to choose a new password. The link expires in
-        1 hour.
+        Someone requested a password reset for your <BrandMark size={15} />{" "}
+        account. If this was you, open the link below to choose a new password.
+        The link expires in 1 hour.
       </P>
       <CtaButton href={props.resetUrl}>Choose a new password</CtaButton>
       <P style={mutedStyle}>
