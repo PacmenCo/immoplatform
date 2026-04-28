@@ -107,14 +107,10 @@ export default function DemoPage() {
 
               <p className="text-sm text-[var(--color-ink-muted)]">
                 Not ready for a demo?{" "}
-                <Link href="/pricing" className="font-medium text-[var(--color-ink)] hover:underline">
-                  Browse pricing
-                </Link>{" "}
-                or{" "}
                 <Link href="/register" className="font-medium text-[var(--color-ink)] hover:underline">
-                  jump straight in
-                </Link>
-                .
+                  Jump straight in
+                </Link>{" "}
+                — your first assignment is free.
               </p>
             </div>
           </div>

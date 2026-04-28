@@ -35,11 +35,6 @@ export default function NotFound() {
 
           <ul className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-[var(--color-ink-muted)]">
             <li>
-              <Link href="/pricing" className="hover:text-[var(--color-ink)]">
-                Pricing
-              </Link>
-            </li>
-            <li>
               <Link href="/about" className="hover:text-[var(--color-ink)]">
                 About
               </Link>
