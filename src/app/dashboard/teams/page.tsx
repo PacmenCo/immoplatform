@@ -15,6 +15,7 @@ import { prisma } from "@/lib/db";
 import { requireRoleOrRedirect } from "@/lib/auth";
 import {
   canCreateFirstTeam,
+  canCreateTeam,
   composeWhere,
   getUserTeamIds,
   hasRole,
@@ -56,9 +57,20 @@ export default async function TeamsPage({
   // Realtors with no team get the founder banner. Detected by actual state,
   // not the URL flag — the flag only suppresses the "you tried to access X"
   // prefix when arriving via the soft-gate redirect.
+  // Also doubles as the input for `canEdit` below — getUserTeamIds is
+  // React-cache()'d so calling it once and reusing is the same cost as
+  // calling twice.
+  const isAdmin = hasRole(session, "admin");
+  const userTeamIds = isAdmin ? null : await getUserTeamIds(session.user.id);
+  const ownedTeamIds = new Set(userTeamIds?.owned ?? []);
   const isRealtorWithoutTeam =
-    hasRole(session, "realtor") &&
-    (await getUserTeamIds(session.user.id)).all.length === 0;
+    hasRole(session, "realtor") && (userTeamIds?.all.length ?? 0) === 0;
+  // v1 parity: clicking a team row goes to /edit when the user can edit,
+  // else to the read-only detail view (Platform's teams-list.blade.php:150
+  // `onclick="window.location='{{ route('admin.teams.edit', $team) }}'"`).
+  // Mirrors canEditTeam(): admin always; realtor iff they own the team;
+  // staff falls through to detail (canEditTeam returns false for staff).
+  const canEdit = (teamId: string) => isAdmin || ownedTeamIds.has(teamId);
   const showFounderBanner = isRealtorWithoutTeam;
   const canFound = showFounderBanner && (await canCreateFirstTeam(session));
   const fromGate = params.needs_team === "1";
@@ -182,10 +194,12 @@ export default async function TeamsPage({
               {totals.assignments === 1 ? "" : "s"}
             </p>
           </div>
-          <Button href="/dashboard/teams/new" size="md">
-            <IconPlus size={14} />
-            Create team
-          </Button>
+          {canCreateTeam(session) && (
+            <Button href="/dashboard/teams/new" size="md">
+              <IconPlus size={14} />
+              Create team
+            </Button>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -210,17 +224,19 @@ export default async function TeamsPage({
               title="No teams yet"
               description="Create your first agency office. You'll be able to add members, set commission rules and order certificates on their behalf."
               action={
-                <Button href="/dashboard/teams/new" size="md">
-                  <IconPlus size={14} />
-                  Create first team
-                </Button>
+                canCreateTeam(session) ? (
+                  <Button href="/dashboard/teams/new" size="md">
+                    <IconPlus size={14} />
+                    Create first team
+                  </Button>
+                ) : undefined
               }
             />
           )
         ) : (
           <>
-            <DesktopTable teams={teams} q={q} sort={sort} dir={dir} />
-            <MobileList teams={teams} />
+            <DesktopTable teams={teams} q={q} sort={sort} dir={dir} canEdit={canEdit} />
+            <MobileList teams={teams} canEdit={canEdit} />
           </>
         )}
       </div>
@@ -246,8 +262,10 @@ function DesktopTable({
   q,
   sort,
   dir,
+  canEdit,
 }: {
   teams: TeamRow[];
+  canEdit: (teamId: string) => boolean;
   q: string;
   sort: SortField;
   dir: "asc" | "desc";
@@ -296,7 +314,7 @@ function DesktopTable({
                 >
                   <td className="px-6 py-4">
                     <Link
-                      href={`/dashboard/teams/${team.id}`}
+                      href={`/dashboard/teams/${team.id}${canEdit(team.id) ? "/edit" : ""}`}
                       className="flex items-center gap-3 text-[var(--color-ink)]"
                     >
                       <span
@@ -356,7 +374,7 @@ function DesktopTable({
   );
 }
 
-function MobileList({ teams }: { teams: TeamRow[] }) {
+function MobileList({ teams, canEdit }: { teams: TeamRow[]; canEdit: (teamId: string) => boolean }) {
   return (
     <div className="space-y-3 sm:hidden">
       {teams.map((team) => {
@@ -364,7 +382,7 @@ function MobileList({ teams }: { teams: TeamRow[] }) {
         return (
           <Card key={team.id} className="overflow-hidden">
             <Link
-              href={`/dashboard/teams/${team.id}`}
+              href={`/dashboard/teams/${team.id}${canEdit(team.id) ? "/edit" : ""}`}
               className="block px-4 py-3"
             >
               <div className="flex items-center gap-3">
