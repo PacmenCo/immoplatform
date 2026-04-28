@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "250mb",
     },
   },
+  // Production droplet has 1 GB RAM; tsc OOMs if run inline with `next build`.
+  // Type safety is enforced via local `tsc --noEmit` + Vitest pre-deploy.
+  // See CLAUDE.md "Build constraints". (Next 16 dropped the top-level `eslint`
+  // config option since `next lint` was removed, so no eslint key needed.)
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 export default nextConfig;
