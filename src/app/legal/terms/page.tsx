@@ -186,8 +186,8 @@ export default function TermsPage() {
 
               <div className="mt-16 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-6 text-sm text-[var(--color-ink-soft)]">
                 Questions about these terms? Contact{" "}
-                <a href="mailto:legal@immo.be" className="font-medium text-[var(--color-ink)] hover:underline">
-                  legal@immo.be
+                <a href="mailto:Jordan@asbestexperts.be" className="font-medium text-[var(--color-ink)] hover:underline">
+                  Jordan@asbestexperts.be
                 </a>
                 .
               </div>

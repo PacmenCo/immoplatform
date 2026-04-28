@@ -98,7 +98,7 @@ const sections = [
     children: [
       {
         subtitle: null,
-        body: "Questions about cookies: privacy@immo.be.",
+        body: "Questions about cookies: Jordan@asbestexperts.be.",
       },
     ],
   },

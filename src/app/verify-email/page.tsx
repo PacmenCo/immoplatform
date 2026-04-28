@@ -63,7 +63,7 @@ export default async function VerifyEmailPage({
         footer={
           <>
             Need help?{" "}
-            <a href="mailto:support@immo.be" className="font-medium text-[var(--color-ink)] hover:underline">
+            <a href="mailto:Jordan@asbestexperts.be" className="font-medium text-[var(--color-ink)] hover:underline">
               Contact support
             </a>
           </>
@@ -122,8 +122,8 @@ export default async function VerifyEmailPage({
 
         <p className="text-xs text-[var(--color-ink-muted)]">
           Still nothing after 5 minutes? Email{" "}
-          <a href="mailto:support@immo.be" className="font-medium text-[var(--color-ink)] hover:underline">
-            support@immo.be
+          <a href="mailto:Jordan@asbestexperts.be" className="font-medium text-[var(--color-ink)] hover:underline">
+            Jordan@asbestexperts.be
           </a>{" "}
           and we&apos;ll verify you manually.
         </p>

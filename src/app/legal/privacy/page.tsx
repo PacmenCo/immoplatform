@@ -94,7 +94,7 @@ const sections = [
     children: [
       {
         subtitle: null,
-        body: "You have the right to access, correct, delete, restrict, object to, and port your personal data. You can exercise these rights from within your account settings or by emailing privacy@immo.be. If you are unsatisfied with our response, you can lodge a complaint with the Belgian Data Protection Authority.",
+        body: "You have the right to access, correct, delete, restrict, object to, and port your personal data. You can exercise these rights from within your account settings or by emailing Jordan@asbestexperts.be. If you are unsatisfied with our response, you can lodge a complaint with the Belgian Data Protection Authority.",
       },
     ],
   },
@@ -124,7 +124,7 @@ const sections = [
     children: [
       {
         subtitle: null,
-        body: "Questions, requests or complaints: privacy@immo.be. Our Data Protection Officer can be reached at dpo@immo.be.",
+        body: "Questions, requests or complaints: Jordan@asbestexperts.be. Our Data Protection Officer can be reached at Jordan@asbestexperts.be.",
       },
     ],
   },
@@ -184,8 +184,8 @@ export default function PrivacyPage() {
 
               <div className="mt-16 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-6 text-sm text-[var(--color-ink-soft)]">
                 Questions about your data? Contact{" "}
-                <a href="mailto:privacy@immo.be" className="font-medium text-[var(--color-ink)] hover:underline">
-                  privacy@immo.be
+                <a href="mailto:Jordan@asbestexperts.be" className="font-medium text-[var(--color-ink)] hover:underline">
+                  Jordan@asbestexperts.be
                 </a>
                 .
               </div>
