@@ -52,6 +52,9 @@ next-env.d.ts
 
 # playwright-mcp test artifacts (console logs + accessibility-tree dumps)
 /.playwright-mcp/
+# playwright test runner artifacts (HTML reports + traces with embedded RSC payloads)
+/test-results/
+/playwright-report/
 /invite-full.yml
 
 # QA screenshots dropped at repo root by ad-hoc playwright/test sessions
