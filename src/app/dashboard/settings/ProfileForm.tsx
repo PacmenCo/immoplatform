@@ -219,6 +219,7 @@ function AvatarCard({ initial }: { initial: ProfileFormInitial }) {
     ActionResult | undefined,
     FormData
   >(async () => removeAvatar(), undefined);
+  const uploadFormRef = useRef<HTMLFormElement>(null);
 
   return (
     <Card>
@@ -237,21 +238,24 @@ function AvatarCard({ initial }: { initial: ProfileFormInitial }) {
             size="lg"
             color="#334155"
           />
-          <form action={uploadAction} className="flex-1">
+          <form ref={uploadFormRef} action={uploadAction} className="flex-1">
             <input
               type="file"
               name="avatar"
               accept={AVATAR_ACCEPT_ATTR}
-              className="block w-full max-w-sm text-sm text-[var(--color-ink-soft)] file:mr-3 file:rounded-md file:border file:border-[var(--color-border-strong)] file:bg-[var(--color-bg)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--color-ink)] hover:file:bg-[var(--color-bg-muted)]"
+              disabled={uploading}
+              onChange={(e) => {
+                if (e.currentTarget.files && e.currentTarget.files.length > 0) {
+                  uploadFormRef.current?.requestSubmit();
+                }
+              }}
+              className="block w-full max-w-sm text-sm text-[var(--color-ink-soft)] file:mr-3 file:rounded-md file:border file:border-[var(--color-border-strong)] file:bg-[var(--color-bg)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--color-ink)] hover:file:bg-[var(--color-bg-muted)] disabled:cursor-not-allowed disabled:opacity-60"
             />
-            <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
-              PNG, JPG or WebP — max {AVATAR_MAX_MB} MB.
+            <p className="mt-2 text-xs text-[var(--color-ink-muted)]" aria-live="polite">
+              {uploading
+                ? "Uploading…"
+                : `PNG, JPG or WebP — max ${AVATAR_MAX_MB} MB.`}
             </p>
-            <div className="mt-3">
-              <Button type="submit" variant="secondary" size="sm" loading={uploading}>
-                Upload
-              </Button>
-            </div>
           </form>
           {initial.avatarUrl && (
             <form action={removeAction}>
