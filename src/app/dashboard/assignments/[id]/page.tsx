@@ -98,6 +98,23 @@ export default async function AssignmentDetail({
       canDeleteAssignment(session, assignment),
     ]);
 
+  // Pre-shape the data the inline complete dialog needs — keeps the
+  // AssignmentActions client component free of DB access. Only computed
+  // when the action is reachable (canComplete + delivered status), so
+  // we don't pay for the mapping on every detail-page render.
+  const completeServices =
+    canComplete && assignment.status === "delivered"
+      ? assignment.services
+          .map((as) => services.find((s) => s.key === as.serviceKey))
+          .filter((s): s is (typeof services)[number] => !!s)
+          .map((s) => ({ key: s.key, short: s.short, color: s.color }))
+      : [];
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const defaultFinishedAt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+    now.getDate(),
+  )}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
   const pricing = canPricing ? await loadAssignmentPricing(id) : null;
   const canCommission = assignment.teamId
     ? await canViewCommission(session, assignment.teamId)
@@ -192,6 +209,7 @@ export default async function AssignmentDetail({
           <div className="flex flex-wrap items-center gap-2">
             <AssignmentActions
               assignmentId={assignment.id}
+              reference={assignment.reference}
               status={assignment.status}
               canStart={
                 canTransition &&
@@ -201,6 +219,8 @@ export default async function AssignmentDetail({
               canUpdateFields={canUpdateFields}
               canComplete={canComplete}
               canCancel={canCancel}
+              completeServices={completeServices}
+              defaultFinishedAt={defaultFinishedAt}
             />
             {canDelete && (
               <DeleteAssignmentButton

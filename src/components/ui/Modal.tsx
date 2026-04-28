@@ -6,12 +6,13 @@ import { cn } from "@/lib/cn";
 
 /**
  * Two presentation modes:
- *   - default: in-place panel (used by /assignments/[id]/complete which is a
- *     page-route modal — the page IS the dialog).
+ *   - default: in-place panel (no current callers — historically used by
+ *     page-route modals like /assignments/[id]/complete; that route was
+ *     collapsed into an inline dialog).
  *   - `overlay`: floating dialog with backdrop, body-scroll lock, click-out
- *     and Escape-to-close. Used by triggered confirms (cancel, reassign,
- *     transfer ownership, delete account). Without the lock, on touch the
- *     page behind scrolls under the dialog.
+ *     and Escape-to-close. Used by every active modal (complete, cancel,
+ *     reassign, transfer ownership, delete account). Without the lock, on
+ *     touch the page behind scrolls under the dialog.
  *
  * Overlay mode is a true ARIA dialog — `role="dialog"`, `aria-modal="true"`,
  * `aria-labelledby` referencing the title. Focus moves into the panel on

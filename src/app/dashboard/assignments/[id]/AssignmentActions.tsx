@@ -13,28 +13,39 @@ import {
   markAssignmentDelivered,
   markAssignmentInProgress,
 } from "@/app/actions/assignments";
+import { CompleteForm } from "./CompleteForm";
 
 type Props = {
   assignmentId: string;
+  reference: string;
   status: string;
   canStart: boolean;
   canDeliver: boolean;
   canUpdateFields: boolean;
   canComplete: boolean;
   canCancel: boolean;
+  /** Service summary for the complete dialog. Computed in the page so the
+   *  client component doesn't re-fetch.  */
+  completeServices: Array<{ key: string; short: string; color: string }>;
+  /** Pre-formatted local datetime-string for the dialog's "Finished at" field. */
+  defaultFinishedAt: string;
 };
 
 export function AssignmentActions({
   assignmentId,
+  reference,
   status,
   canStart,
   canDeliver,
   canUpdateFields,
   canComplete,
   canCancel,
+  completeServices,
+  defaultFinishedAt,
 }: Props) {
   const [pending, startTransition] = useTransition();
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -118,10 +129,7 @@ export function AssignmentActions({
           </Button>
         )}
         {showComplete && (
-          <Button
-            href={`/dashboard/assignments/${assignmentId}/complete`}
-            size="sm"
-          >
+          <Button size="sm" onClick={() => setCompleteOpen(true)}>
             <IconCheck size={12} />
             Mark completed
           </Button>
@@ -180,6 +188,15 @@ export function AssignmentActions({
           </div>
         </Modal>
       )}
+
+      <CompleteForm
+        assignmentId={assignmentId}
+        reference={reference}
+        services={completeServices}
+        defaultFinishedAt={defaultFinishedAt}
+        open={completeOpen}
+        onClose={() => setCompleteOpen(false)}
+      />
     </>
   );
 }

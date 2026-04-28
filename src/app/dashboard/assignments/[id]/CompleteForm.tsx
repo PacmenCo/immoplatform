@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { Field, Input, Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { ServicePill } from "@/components/ui/Badge";
@@ -16,15 +16,26 @@ type Props = {
   reference: string;
   services: Array<{ key: string; short: string; color: string }>;
   defaultFinishedAt: string;
-  cancelHref: string;
+  /** Open/close state owned by the trigger component (AssignmentActions). */
+  open: boolean;
+  onClose: () => void;
 };
 
+/**
+ * Triggered overlay dialog for completing an assignment. v1 parity:
+ * agency-side completion is an inline action on the assignment view, not a
+ * dedicated `/complete` route — Platform changes status from a dropdown on
+ * the edit form, no navigation. We keep the note + custom-finishedAt fields
+ * (real user value) but ditch the page navigation, so the action feels
+ * proportional to its weight.
+ */
 export function CompleteForm({
   assignmentId,
   reference,
   services,
   defaultFinishedAt,
-  cancelHref,
+  open,
+  onClose,
 }: Props) {
   const boundAction = markAssignmentCompleted.bind(null, assignmentId);
   const [state, formAction, pending] = useActionState<
@@ -33,15 +44,28 @@ export function CompleteForm({
   >(boundAction, undefined);
 
   const formRef = useRef<HTMLFormElement>(null);
-  useUnsavedChanges(useFormDirty(formRef));
+  // Only guard unsaved changes while the dialog is actually open — otherwise
+  // the form lives offscreen and dirty-tracking would block navigation
+  // for a form the user can't see.
+  useUnsavedChanges(open && useFormDirty(formRef));
+
+  // Auto-close on success. The action revalidates the page underneath, so
+  // closing the dialog reveals the new "completed" badge.
+  useEffect(() => {
+    if (state?.ok) onClose();
+  }, [state, onClose]);
+
+  if (!open) return null;
 
   return (
     <Modal
+      overlay
       title={`Complete ${reference}`}
       description="Wrap up the inspection and move this assignment out of the active queue."
+      onClose={onClose}
       footer={
         <>
-          <Button variant="ghost" size="md" href={cancelHref}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             Cancel
           </Button>
           <Button type="submit" size="md" form="complete-form" loading={pending}>

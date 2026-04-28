@@ -20,11 +20,9 @@ const LABEL_OVERRIDES: Record<string, string> = {
   announcements: "Announcements",
   activity: "Activity",
   calendar: "Calendar",
-  search: "Search",
   freelancer: "Freelancer",
   new: "New",
   edit: "Edit",
-  complete: "Complete",
   files: "Files",
 };
 
