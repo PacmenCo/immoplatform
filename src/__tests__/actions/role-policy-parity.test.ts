@@ -22,6 +22,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  canActOnInvite,
   canAdminUsers,
   canCreateAssignment,
   canCreateFirstTeam,
@@ -262,5 +263,90 @@ describe("userListRoleFilter — query filter mirroring canViewUser", () => {
     expect(userListRoleFilter(freelancer)).toEqual({
       role: { notIn: ["admin", "staff", "realtor", "freelancer"] },
     });
+  });
+});
+
+// ─── canActOnInvite (v1 parity — Platform medewerker has zero invite UI) ──
+//   No direct v1 policy method exists; the gate is implicit via route
+//   middleware (UserController + TeamController/Admin\TeamController are
+//   admin-only or admin+makelaar). v2 mirrors that surface explicitly:
+//   admin (any), realtor-creator-team-owner (own invites), staff/freelancer
+//   never.
+describe("canActOnInvite — v1 invite-UI parity (admin + realtor-creator-owner)", () => {
+  it("admin can act on any invite", async () => {
+    const { admin, teams } = await seedBaseline();
+    expect(
+      await canActOnInvite(admin, {
+        invitedById: "u_someone_else",
+        teamId: teams.t1.id,
+      }),
+    ).toBe(true);
+    expect(
+      await canActOnInvite(admin, {
+        invitedById: "u_someone_else",
+        teamId: null,
+      }),
+    ).toBe(true);
+  });
+
+  it("realtor can act on invite they sent for a team they own", async () => {
+    const { realtor, teams } = await seedBaseline();
+    expect(
+      await canActOnInvite(realtor, {
+        invitedById: realtor.user.id,
+        teamId: teams.t1.id, // realtor owns t1 in seedBaseline
+      }),
+    ).toBe(true);
+  });
+
+  it("realtor CANNOT act on invite they didn't send (different inviter)", async () => {
+    const { realtor, teams } = await seedBaseline();
+    expect(
+      await canActOnInvite(realtor, {
+        invitedById: "u_someone_else",
+        teamId: teams.t1.id,
+      }),
+    ).toBe(false);
+  });
+
+  it("realtor CANNOT act on invite for a team they don't own", async () => {
+    const { realtor, teams } = await seedBaseline();
+    // realtor owns t1 only; t2 is a spare team they don't own.
+    expect(
+      await canActOnInvite(realtor, {
+        invitedById: realtor.user.id,
+        teamId: teams.t2.id,
+      }),
+    ).toBe(false);
+  });
+
+  it("realtor CANNOT act on invite with no team (admin-only path)", async () => {
+    const { realtor } = await seedBaseline();
+    expect(
+      await canActOnInvite(realtor, {
+        invitedById: realtor.user.id,
+        teamId: null,
+      }),
+    ).toBe(false);
+  });
+
+  it("staff CANNOT act — v1 medewerker has no invite UI", async () => {
+    const { staff, teams } = await seedBaseline();
+    expect(
+      await canActOnInvite(staff, {
+        invitedById: staff.user.id,
+        teamId: teams.t1.id,
+      }),
+    ).toBe(false);
+  });
+
+  it("freelancer CANNOT act", async () => {
+    const { freelancer, teams } = await seedBaseline();
+    expect(
+      await canActOnInvite(freelancer, {
+        invitedById: freelancer.user.id,
+        teamId: teams.t1.id,
+      }),
+    ).toBe(false);
   });
 });

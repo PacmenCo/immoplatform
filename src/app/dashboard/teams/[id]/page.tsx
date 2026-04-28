@@ -319,14 +319,16 @@ export default async function TeamDetailPage({
               <Button href="/dashboard/teams" variant="ghost" size="sm">
                 ← All teams
               </Button>
-              <Button
-                href={`/dashboard/users/invite?teamId=${id}`}
-                variant="secondary"
-                size="sm"
-              >
-                <IconPlus size={14} />
-                Invite member
-              </Button>
+              {canTransfer && (
+                <Button
+                  href={`/dashboard/users/invite?teamId=${id}`}
+                  variant="secondary"
+                  size="sm"
+                >
+                  <IconPlus size={14} />
+                  Invite member
+                </Button>
+              )}
               {canTransfer && (
                 <Button href={`/dashboard/teams/${id}/edit`} size="sm">
                   Edit team
@@ -531,11 +533,13 @@ export default async function TeamDetailPage({
                   icon={<IconList size={14} />}
                   label="Create assignment"
                 />
-                <QuickLink
-                  href="/dashboard/users/invite"
-                  icon={<IconMail size={14} />}
-                  label="Invite member"
-                />
+                {canTransfer && (
+                  <QuickLink
+                    href={`/dashboard/users/invite?teamId=${id}`}
+                    icon={<IconMail size={14} />}
+                    label="Invite member"
+                  />
+                )}
                 <QuickLink href="#billing" icon={<IconFileText size={14} />} label="Edit billing details" />
                 {isAdmin && (
                   <QuickLink
@@ -568,10 +572,12 @@ export default async function TeamDetailPage({
                     eligible={eligibleOwners}
                   />
                 )}
-                <Button href={`/dashboard/users/invite?teamId=${id}`} size="sm">
-                  <IconPlus size={14} />
-                  Invite member
-                </Button>
+                {canTransfer && (
+                  <Button href={`/dashboard/users/invite?teamId=${id}`} size="sm">
+                    <IconPlus size={14} />
+                    Invite member
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardBody className="p-0">

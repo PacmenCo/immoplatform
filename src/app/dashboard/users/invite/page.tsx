@@ -23,7 +23,7 @@ export default async function InviteUserPage({
   );
   const { teamId: queryTeamId } = await searchParams;
 
-  // Realtors can only invite to teams they OWN. Admins + staff see all teams.
+  // Realtors can only invite to teams they OWN. Admins see all teams.
   const isRealtor = hasRole(session, "realtor");
   const where = isRealtor
     ? {
