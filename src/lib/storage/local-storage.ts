@@ -1,7 +1,21 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  open,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
-import type { SignedUrlOptions, Storage, StoragePutResult } from "./types";
+import type {
+  ObjectHead,
+  PresignedUploadOptions,
+  SignedUrlOptions,
+  Storage,
+  StoragePutResult,
+} from "./types";
 
 /**
  * Filesystem-backed storage for development and self-hosted deployments.
@@ -67,20 +81,43 @@ export class LocalStorage implements Storage {
 
   async getSignedUrl(key: string, opts: SignedUrlOptions): Promise<string> {
     const exp = Math.floor(Date.now() / 1000) + opts.ttlSec;
-    const sig = this.sign(key, exp);
+    const sig = this.sign("GET", key, exp);
     const base = this.appUrl.replace(/\/$/, "");
     const encodedKey = key.split("/").map(encodeURIComponent).join("/");
     return `${base}/api/files/${encodedKey}?exp=${exp}&sig=${sig}`;
   }
 
+  async getPresignedUploadUrl(
+    key: string,
+    opts: PresignedUploadOptions,
+  ): Promise<string> {
+    const exp = Math.floor(Date.now() / 1000) + opts.ttlSec;
+    // The browser will send Content-Type, but we don't bind it into the
+    // local signature — the route handler validates Content-Type matches
+    // the AssignmentFile row's mimeType after the fact. S3 binds it via the
+    // SDK; this is the dev parity gap that doesn't matter at this scale.
+    const sig = this.sign("PUT", key, exp);
+    const base = this.appUrl.replace(/\/$/, "");
+    const encodedKey = key.split("/").map(encodeURIComponent).join("/");
+    return `${base}/api/files/upload/${encodedKey}?exp=${exp}&sig=${sig}`;
+  }
+
   /**
-   * Verify a signed-URL request. Used by the `/api/files/*` route — not on
-   * the `Storage` interface because only LocalStorage handles downloads
-   * in-process. S3 presigned URLs are verified at the bucket.
+   * Verify a signed-URL request. Used by the `/api/files/*` route handlers —
+   * not on the `Storage` interface because only LocalStorage handles uploads
+   * + downloads in-process. S3 presigned URLs are verified at the bucket.
+   *
+   * The `method` parameter ("GET" | "PUT") is part of the signature input —
+   * a download URL can't be replayed as an upload URL or vice versa.
    */
-  verifySignature(key: string, exp: number, sig: string): boolean {
+  verifySignature(
+    method: "GET" | "PUT",
+    key: string,
+    exp: number,
+    sig: string,
+  ): boolean {
     if (Number.isNaN(exp) || exp < Math.floor(Date.now() / 1000)) return false;
-    const expected = this.sign(key, exp);
+    const expected = this.sign(method, key, exp);
     const a = Buffer.from(expected);
     const b = Buffer.from(sig);
     if (a.length !== b.length) return false;
@@ -95,9 +132,51 @@ export class LocalStorage implements Storage {
     }
   }
 
-  private sign(key: string, exp: number): string {
+  async headObject(key: string): Promise<ObjectHead | null> {
+    try {
+      const s = await stat(this.abs(key));
+      if (!s.isFile()) return null;
+      return { sizeBytes: s.size };
+    } catch {
+      return null;
+    }
+  }
+
+  async getRange(
+    key: string,
+    start: number,
+    length: number,
+  ): Promise<Buffer | null> {
+    if (length <= 0) return Buffer.alloc(0);
+    let fh;
+    try {
+      fh = await open(this.abs(key), "r");
+      const buf = Buffer.alloc(length);
+      const { bytesRead } = await fh.read(buf, 0, length, start);
+      return bytesRead === length ? buf : buf.subarray(0, bytesRead);
+    } catch {
+      return null;
+    } finally {
+      await fh?.close();
+    }
+  }
+
+  /**
+   * Write bytes for a freshly-uploaded object. Used by the
+   * `/api/files/upload/*` route after HMAC verification — keeps the
+   * path-escape guard, parent-directory creation, and write-then-stat
+   * convention in one place.
+   */
+  async writeUploaded(key: string, data: Buffer): Promise<{ sizeBytes: number }> {
+    const absPath = this.abs(key);
+    await mkdir(path.dirname(absPath), { recursive: true });
+    await writeFile(absPath, data);
+    return { sizeBytes: data.byteLength };
+  }
+
+  private sign(method: "GET" | "PUT", key: string, exp: number): string {
     return createHmac("sha256", this.signingSecret)
-      .update(`${key}|${exp}`)
+      .update(`${method}|${key}|${exp}`)
       .digest("hex");
   }
 }

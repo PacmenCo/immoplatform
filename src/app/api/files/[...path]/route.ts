@@ -44,7 +44,7 @@ export async function GET(
       { status: 404 },
     );
   }
-  if (!store.verifySignature(storageKey, exp, sig)) {
+  if (!store.verifySignature("GET", storageKey, exp, sig)) {
     return NextResponse.json({ error: "Invalid or expired link." }, { status: 401 });
   }
 

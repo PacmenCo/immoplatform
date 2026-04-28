@@ -15,16 +15,26 @@ export interface LaneConstraints {
   readonly acceptHint: string; // shown in Dropzone hint text
 }
 
+// Caps match v1 Platform parity (resources/js/pages/assignments/edit.js):
+//   freelancer (`files[]`): 5 GB / 10 files in v1 → 500 MB here, plenty for
+//     an inspector PDF and well under the 1 hour presign window; v1's 5 GB
+//     was effectively "no cap" via chunked FilePond.
+//   realtor (`makelaar_files[]`): 100 MB / 10 files — exact v1 parity.
+// Files tab uploads go direct-to-storage (presign → browser PUT → finalize)
+// so droplet RAM isn't a constraint. The at-assignment-create flow
+// (assignments.ts) still routes realtor bytes through Node; in the
+// pathological 10×100 MB case that would pressure a 1 GB box, but typical
+// realtor files (photos, floor plans) sit well below the cap.
 export const FILE_CONSTRAINTS: Record<FileLane, LaneConstraints> = {
   freelancer: {
-    maxMB: 50,
+    maxMB: 500,
     allowedMimes: ["application/pdf"],
-    acceptHint: "PDF only · up to 50 MB · up to 20 files per upload",
+    acceptHint: "PDF only · up to 500 MB · up to 20 files per upload",
   },
   realtor: {
-    maxMB: 10,
+    maxMB: 100,
     allowedMimes: ["application/pdf", "image/jpeg", "image/png", "image/webp"],
-    acceptHint: "PDF, JPG, PNG, WebP · up to 10 MB each · up to 20 files per upload",
+    acceptHint: "PDF, JPG, PNG, WebP · up to 100 MB each · up to 20 files per upload",
   },
 } as const;
 

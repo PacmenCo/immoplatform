@@ -9,7 +9,13 @@ import {
   type S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { SignedUrlOptions, Storage, StoragePutResult } from "./types";
+import type {
+  ObjectHead,
+  PresignedUploadOptions,
+  SignedUrlOptions,
+  Storage,
+  StoragePutResult,
+} from "./types";
 
 /**
  * AWS S3 / DigitalOcean Spaces / Cloudflare R2 / any S3-compatible backend.
@@ -126,6 +132,61 @@ export class S3Storage implements Storage {
       }),
       { expiresIn: opts.ttlSec },
     );
+  }
+
+  async getPresignedUploadUrl(
+    key: string,
+    opts: PresignedUploadOptions,
+  ): Promise<string> {
+    // ContentType in the signed PutObjectCommand binds the header into the
+    // signature — the browser MUST send `Content-Type: ${mimeType}` or the
+    // PUT is rejected. That's a feature: it stops a client from quietly
+    // changing the type after we validated it server-side.
+    return getSignedUrl(
+      this.client,
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: opts.mimeType,
+      }),
+      { expiresIn: opts.ttlSec },
+    );
+  }
+
+  async headObject(key: string): Promise<ObjectHead | null> {
+    try {
+      const res = await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      return { sizeBytes: Number(res.ContentLength ?? 0) };
+    } catch (err) {
+      if (err instanceof NotFound || (err as { name?: string }).name === "NotFound") {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  async getRange(
+    key: string,
+    start: number,
+    length: number,
+  ): Promise<Buffer | null> {
+    if (length <= 0) return Buffer.alloc(0);
+    try {
+      const res = await this.client.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Range: `bytes=${start}-${start + length - 1}`,
+        }),
+      );
+      const bytes = await res.Body?.transformToByteArray();
+      return bytes ? Buffer.from(bytes) : null;
+    } catch (err) {
+      if (err instanceof NoSuchKey || err instanceof NotFound) return null;
+      throw err;
+    }
   }
 }
 

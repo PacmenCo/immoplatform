@@ -46,10 +46,17 @@ type Props = {
   /**
    * True while the enclosing form's action is in flight. Renders a
    * spinner in place of each file's remove button and pulses a
-   * subtle in-progress stripe on the row. Server actions don't expose
-   * byte-level progress, so this is deliberately indeterminate.
+   * subtle in-progress stripe on the row. With `progress` set per file
+   * (direct-to-storage uploads), shows the byte-level percentage instead.
    */
   uploading?: boolean;
+  /**
+   * Optional per-file upload progress (0–100). Index aligns with `files`.
+   * When present, replaces the spinner with a percentage label. Direct-
+   * to-storage uploads have real byte-level progress via XHR; in-process
+   * server actions don't and should leave this undefined.
+   */
+  progress?: number[];
   /** Called with a friendly message when client-side validation rejects. */
   onError?: (message: string) => void;
 };
@@ -66,6 +73,7 @@ export function Dropzone({
   className,
   disabled,
   uploading,
+  progress,
   onError,
 }: Props) {
   const inputId = useId();
@@ -185,12 +193,21 @@ export function Dropzone({
                 {formatBytes(f.size)}
               </span>
               {uploading ? (
-                <span
-                  aria-label={`Uploading ${f.name}`}
-                  className="grid h-9 w-9 shrink-0 place-items-center text-[var(--color-brand)]"
-                >
-                  <Spinner />
-                </span>
+                progress && Number.isFinite(progress[i]) ? (
+                  <span
+                    aria-label={`Uploading ${f.name}: ${Math.round(progress[i])}%`}
+                    className="shrink-0 px-1 text-xs font-medium tabular-nums text-[var(--color-brand)]"
+                  >
+                    {Math.round(progress[i])}%
+                  </span>
+                ) : (
+                  <span
+                    aria-label={`Uploading ${f.name}`}
+                    className="grid h-9 w-9 shrink-0 place-items-center text-[var(--color-brand)]"
+                  >
+                    <Spinner />
+                  </span>
+                )
               ) : (
                 <button
                   type="button"

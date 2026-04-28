@@ -30,6 +30,7 @@ import {
   type FileLane,
 } from "@/lib/file-constraints";
 import { makeAssignmentFileKey, storage } from "@/lib/storage";
+import type { Storage } from "@/lib/storage";
 import { withSession, type ActionResult } from "./_types";
 
 /** TTL for signed download URLs. Matches Platform's 5-minute window. */
@@ -48,111 +49,44 @@ const LANE_UPLOAD_POLICY: Record<FileLane, LaneUploadPolicy> = {
   realtor: canUploadToRealtorLane,
 };
 
-// ─── Upload ────────────────────────────────────────────────────────
+/**
+ * Window the browser has after `presign` to PUT all bytes and call
+ * `finalize`. Long enough for a 500 MB upload on a flaky 10 Mbps link
+ * (~7 min) plus headroom; short enough that an abandoned tab doesn't
+ * leave a usable upload URL lying around.
+ */
+const PRESIGN_TTL_SEC = 30 * 60;
 
 /**
- * Session-accepting body of `uploadAssignmentFiles`. Exported so Vitest
- * integration tests can drive the action without a live cookie / request
- * context. Consumers should use the `withSession`-wrapped form below.
+ * Tolerance on the size sanity check during finalize. The browser
+ * rounds Content-Length and S3 reports the exact stored byte count;
+ * a tiny delta isn't suspicious. Anything bigger is — likely a swap.
  */
-export async function uploadAssignmentFilesInner(
+const SIZE_TOLERANCE_BYTES = 8;
+
+type PreparedRow = {
+  id: string;
+  key: string;
+  sizeBytes: number;
+  originalName: string;
+  mimeType: string;
+};
+
+/**
+ * Shared post-storage workflow for both the legacy in-process upload
+ * (`uploadAssignmentFilesInner`) and the direct-to-storage finalize
+ * (`finalizeAssignmentFileUploadInner`). Bytes are already at `store`;
+ * we own DB rows + status transition + commission + audits + emails.
+ *
+ * On any failure deletes the storage objects so we don't leak orphans.
+ */
+async function applyUploadBookkeeping(
   session: SessionWithUser,
   assignmentId: string,
   lane: FileLane,
-  _prev: ActionResult | undefined,
-  formData: FormData,
+  prepared: PreparedRow[],
+  store: Storage,
 ): Promise<ActionResult> {
-  if (!isLane(lane)) return { ok: false, error: "Invalid file lane." };
-
-  const assignment = await prisma.assignment.findUnique({
-    where: { id: assignmentId },
-    select: {
-      id: true,
-      status: true,
-      teamId: true,
-      freelancerId: true,
-      createdById: true,
-    },
-  });
-  if (!assignment) return { ok: false, error: "Assignment not found." };
-  if (!(await LANE_UPLOAD_POLICY[lane](session, assignment))) {
-    return {
-      ok: false,
-      error:
-        lane === "freelancer"
-          ? "Only the assigned freelancer can upload deliverables."
-          : "Only the assignment's agency can upload supporting files.",
-    };
-  }
-  if (isTerminalStatus(assignment.status)) {
-    return {
-      ok: false,
-      error: `This assignment is ${assignment.status} — uploads are closed.`,
-    };
-  }
-
-  const files = formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) return { ok: false, error: "Pick a file to upload." };
-  if (files.length > MAX_FILES_PER_UPLOAD) {
-    return { ok: false, error: `Upload up to ${MAX_FILES_PER_UPLOAD} files at a time.` };
-  }
-
-  const { maxMB, allowedMimes } = FILE_CONSTRAINTS[lane];
-  const maxBytes = maxMB * 1024 * 1024;
-  for (const file of files) {
-    const mime = file.type.toLowerCase();
-    if (!allowedMimes.includes(mime)) {
-      return {
-        ok: false,
-        error: `"${file.name}" isn't an allowed file type. ${FILE_CONSTRAINTS[lane].acceptHint}.`,
-      };
-    }
-    if (file.size > maxBytes) {
-      return {
-        ok: false,
-        error: `"${file.name}" is larger than the ${maxMB} MB limit.`,
-      };
-    }
-    // Magic-byte sniff against the declared MIME — `file.type` is browser-
-    // supplied and trivially spoofable. Without this an attacker can upload
-    // an HTML/script polyglot under `application/pdf` that becomes XSS if
-    // any future viewer renders it inline.
-    const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
-    if (!magicBytesValid(head, mime)) {
-      return {
-        ok: false,
-        error: `"${file.name}" doesn't match its declared file type.`,
-      };
-    }
-  }
-
-  const store = storage();
-
-  // Pre-generate ids so the storage key reflects the final DB id — lets a
-  // future reconcile job pair orphan objects with rows unambiguously.
-  //
-  // Put phase: if ANY put rejects we must delete already-written bytes
-  // before rethrowing. Sequential loop keeps tracking simple and gives
-  // deterministic cleanup — parallel puts were a lurking orphan bug.
-  const prepared: Array<{ id: string; key: string; sizeBytes: number; file: File }> = [];
-  try {
-    for (const file of files) {
-      const id = generateCuid();
-      const key = makeAssignmentFileKey({
-        assignmentId,
-        lane,
-        fileId: id,
-        originalName: file.name,
-      });
-      const buf = Buffer.from(await file.arrayBuffer());
-      const { sizeBytes } = await store.put(key, buf, { mimeType: file.type });
-      prepared.push({ id, key, sizeBytes, file });
-    }
-  } catch (err) {
-    await Promise.all(prepared.map((p) => store.delete(p.key).catch(() => {})));
-    throw err;
-  }
-
   let autoCompleted = false;
   let commissionAmountCents: number | null = null;
   try {
@@ -172,8 +106,8 @@ export async function uploadAssignmentFilesInner(
           uploaderId: session.user.id,
           lane,
           storageKey: p.key,
-          originalName: p.file.name,
-          mimeType: p.file.type.toLowerCase(),
+          originalName: p.originalName,
+          mimeType: p.mimeType,
           sizeBytes: p.sizeBytes,
         })),
       });
@@ -207,17 +141,17 @@ export async function uploadAssignmentFilesInner(
     throw err;
   }
 
-  for (const { id, file } of prepared) {
+  for (const p of prepared) {
     await audit({
       actorId: session.user.id,
       verb: "assignment.file_uploaded",
       objectType: "assignment_file",
-      objectId: id,
+      objectId: p.id,
       metadata: {
         assignmentId,
         lane,
-        originalName: file.name,
-        sizeBytes: file.size,
+        originalName: p.originalName,
+        sizeBytes: p.sizeBytes,
       },
     });
   }
@@ -335,7 +269,395 @@ export async function uploadAssignmentFilesInner(
   return { ok: true };
 }
 
+// ─── Upload ────────────────────────────────────────────────────────
+
+/**
+ * Session-accepting body of `uploadAssignmentFiles`. Exported so Vitest
+ * integration tests can drive the action without a live cookie / request
+ * context. Consumers should use the `withSession`-wrapped form below.
+ */
+export async function uploadAssignmentFilesInner(
+  session: SessionWithUser,
+  assignmentId: string,
+  lane: FileLane,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  if (!isLane(lane)) return { ok: false, error: "Invalid file lane." };
+
+  const assignment = await prisma.assignment.findUnique({
+    where: { id: assignmentId },
+    select: {
+      id: true,
+      status: true,
+      teamId: true,
+      freelancerId: true,
+      createdById: true,
+    },
+  });
+  if (!assignment) return { ok: false, error: "Assignment not found." };
+  if (!(await LANE_UPLOAD_POLICY[lane](session, assignment))) {
+    return {
+      ok: false,
+      error:
+        lane === "freelancer"
+          ? "Only the assigned freelancer can upload deliverables."
+          : "Only the assignment's agency can upload supporting files.",
+    };
+  }
+  if (isTerminalStatus(assignment.status)) {
+    return {
+      ok: false,
+      error: `This assignment is ${assignment.status} — uploads are closed.`,
+    };
+  }
+
+  const files = formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) return { ok: false, error: "Pick a file to upload." };
+  if (files.length > MAX_FILES_PER_UPLOAD) {
+    return { ok: false, error: `Upload up to ${MAX_FILES_PER_UPLOAD} files at a time.` };
+  }
+
+  const { maxMB, allowedMimes } = FILE_CONSTRAINTS[lane];
+  const maxBytes = maxMB * 1024 * 1024;
+  for (const file of files) {
+    const mime = file.type.toLowerCase();
+    if (!allowedMimes.includes(mime)) {
+      return {
+        ok: false,
+        error: `"${file.name}" isn't an allowed file type. ${FILE_CONSTRAINTS[lane].acceptHint}.`,
+      };
+    }
+    if (file.size > maxBytes) {
+      return {
+        ok: false,
+        error: `"${file.name}" is larger than the ${maxMB} MB limit.`,
+      };
+    }
+    // Magic-byte sniff against the declared MIME — `file.type` is browser-
+    // supplied and trivially spoofable. Without this an attacker can upload
+    // an HTML/script polyglot under `application/pdf` that becomes XSS if
+    // any future viewer renders it inline.
+    const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
+    if (!magicBytesValid(head, mime)) {
+      return {
+        ok: false,
+        error: `"${file.name}" doesn't match its declared file type.`,
+      };
+    }
+  }
+
+  const store = storage();
+
+  // Pre-generate ids so the storage key reflects the final DB id — lets a
+  // future reconcile job pair orphan objects with rows unambiguously.
+  //
+  // Put phase: if ANY put rejects we must delete already-written bytes
+  // before rethrowing. Sequential loop keeps tracking simple and gives
+  // deterministic cleanup — parallel puts were a lurking orphan bug.
+  const prepared: PreparedRow[] = [];
+  try {
+    for (const file of files) {
+      const id = generateCuid();
+      const key = makeAssignmentFileKey({
+        assignmentId,
+        lane,
+        fileId: id,
+        originalName: file.name,
+      });
+      const buf = Buffer.from(await file.arrayBuffer());
+      const { sizeBytes } = await store.put(key, buf, { mimeType: file.type });
+      prepared.push({
+        id,
+        key,
+        sizeBytes,
+        originalName: file.name,
+        mimeType: file.type.toLowerCase(),
+      });
+    }
+  } catch (err) {
+    await Promise.all(prepared.map((p) => store.delete(p.key).catch(() => {})));
+    throw err;
+  }
+
+  return applyUploadBookkeeping(session, assignmentId, lane, prepared, store);
+}
+
 export const uploadAssignmentFiles = withSession(uploadAssignmentFilesInner);
+
+// ─── Direct-to-storage upload (presign + finalize) ────────────────
+//
+// Replacement for the in-process upload above on large files. The browser:
+//   1) calls `presignAssignmentFileUpload` with file metadata
+//   2) PUTs each file straight to S3 / DO Spaces using the returned URL
+//   3) calls `finalizeAssignmentFileUpload` with the keys
+//
+// Bytes never travel through the Node server, so the 1 GB droplet handles
+// 500 MB uploads without strain. Auth + lane policy + size cap + magic-byte
+// check all happen on the server before/after the bucket round-trip.
+
+export type PresignedUpload = {
+  fileId: string;
+  storageKey: string;
+  uploadUrl: string;
+  originalName: string;
+  mimeType: string;
+};
+
+export type FinalizeItem = {
+  fileId: string;
+  storageKey: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+};
+
+export async function presignAssignmentFileUploadInner(
+  session: SessionWithUser,
+  assignmentId: string,
+  lane: FileLane,
+  files: Array<{ name: string; mimeType: string; sizeBytes: number }>,
+): Promise<ActionResult<{ uploads: PresignedUpload[] }>> {
+  if (!isLane(lane)) return { ok: false, error: "Invalid file lane." };
+
+  const assignment = await prisma.assignment.findUnique({
+    where: { id: assignmentId },
+    select: {
+      id: true,
+      status: true,
+      teamId: true,
+      freelancerId: true,
+      createdById: true,
+    },
+  });
+  if (!assignment) return { ok: false, error: "Assignment not found." };
+  if (!(await LANE_UPLOAD_POLICY[lane](session, assignment))) {
+    return {
+      ok: false,
+      error:
+        lane === "freelancer"
+          ? "Only the assigned freelancer can upload deliverables."
+          : "Only the assignment's agency can upload supporting files.",
+    };
+  }
+  if (isTerminalStatus(assignment.status)) {
+    return {
+      ok: false,
+      error: `This assignment is ${assignment.status} — uploads are closed.`,
+    };
+  }
+
+  if (!Array.isArray(files) || files.length === 0) {
+    return { ok: false, error: "Pick a file to upload." };
+  }
+  if (files.length > MAX_FILES_PER_UPLOAD) {
+    return { ok: false, error: `Upload up to ${MAX_FILES_PER_UPLOAD} files at a time.` };
+  }
+
+  const { maxMB, allowedMimes } = FILE_CONSTRAINTS[lane];
+  const maxBytes = maxMB * 1024 * 1024;
+  for (const f of files) {
+    const mime = f.mimeType?.toLowerCase() ?? "";
+    if (!allowedMimes.includes(mime)) {
+      return {
+        ok: false,
+        error: `"${f.name}" isn't an allowed file type. ${FILE_CONSTRAINTS[lane].acceptHint}.`,
+      };
+    }
+    if (!Number.isFinite(f.sizeBytes) || f.sizeBytes <= 0) {
+      return { ok: false, error: `"${f.name}" is empty.` };
+    }
+    if (f.sizeBytes > maxBytes) {
+      return {
+        ok: false,
+        error: `"${f.name}" is larger than the ${maxMB} MB limit.`,
+      };
+    }
+  }
+
+  const store = storage();
+  const uploads: PresignedUpload[] = [];
+  for (const f of files) {
+    const fileId = generateCuid();
+    const storageKey = makeAssignmentFileKey({
+      assignmentId,
+      lane,
+      fileId,
+      originalName: f.name,
+    });
+    const mime = f.mimeType.toLowerCase();
+    const uploadUrl = await store.getPresignedUploadUrl(storageKey, {
+      ttlSec: PRESIGN_TTL_SEC,
+      mimeType: mime,
+    });
+    uploads.push({
+      fileId,
+      storageKey,
+      uploadUrl,
+      originalName: f.name,
+      mimeType: mime,
+    });
+  }
+  return { ok: true, data: { uploads } };
+}
+
+export const presignAssignmentFileUpload = withSession(
+  presignAssignmentFileUploadInner,
+);
+
+export async function finalizeAssignmentFileUploadInner(
+  session: SessionWithUser,
+  assignmentId: string,
+  lane: FileLane,
+  items: FinalizeItem[],
+): Promise<ActionResult> {
+  if (!isLane(lane)) return { ok: false, error: "Invalid file lane." };
+  if (!Array.isArray(items) || items.length === 0) {
+    return { ok: false, error: "No uploaded files to finalize." };
+  }
+  if (items.length > MAX_FILES_PER_UPLOAD) {
+    return { ok: false, error: `Finalize up to ${MAX_FILES_PER_UPLOAD} files at a time.` };
+  }
+
+  const assignment = await prisma.assignment.findUnique({
+    where: { id: assignmentId },
+    select: {
+      id: true,
+      status: true,
+      teamId: true,
+      freelancerId: true,
+      createdById: true,
+    },
+  });
+  if (!assignment) return { ok: false, error: "Assignment not found." };
+  if (!(await LANE_UPLOAD_POLICY[lane](session, assignment))) {
+    return {
+      ok: false,
+      error:
+        lane === "freelancer"
+          ? "Only the assigned freelancer can upload deliverables."
+          : "Only the assignment's agency can upload supporting files.",
+    };
+  }
+  if (isTerminalStatus(assignment.status)) {
+    return {
+      ok: false,
+      error: `This assignment is ${assignment.status} — uploads are closed.`,
+    };
+  }
+
+  const expectedPrefix = `assignments/${assignmentId}/${lane}/`;
+  const { maxMB, allowedMimes } = FILE_CONSTRAINTS[lane];
+  const maxBytes = maxMB * 1024 * 1024;
+
+  // Re-validate every item against current policy + the actual stored
+  // bytes. The browser is hostile by default — we trust nothing it sent
+  // back from presign other than the keys (which we minted) and the bytes
+  // (which we now read directly).
+  const store = storage();
+  const cleanup = async () => {
+    await Promise.all(items.map((it) => store.delete(it.storageKey).catch(() => {})));
+  };
+  const prepared: PreparedRow[] = [];
+  for (const it of items) {
+    if (!it.storageKey.startsWith(expectedPrefix)) {
+      await cleanup();
+      return { ok: false, error: "Upload keys don't match this assignment." };
+    }
+    const mime = (it.mimeType ?? "").toLowerCase();
+    if (!allowedMimes.includes(mime)) {
+      await cleanup();
+      return {
+        ok: false,
+        error: `"${it.originalName}" isn't an allowed file type.`,
+      };
+    }
+    const head = await store.headObject(it.storageKey);
+    if (!head) {
+      await cleanup();
+      return {
+        ok: false,
+        error: `"${it.originalName}" didn't finish uploading. Try again.`,
+      };
+    }
+    if (head.sizeBytes > maxBytes) {
+      await cleanup();
+      return {
+        ok: false,
+        error: `"${it.originalName}" is larger than the ${maxMB} MB limit.`,
+      };
+    }
+    if (Math.abs(head.sizeBytes - it.sizeBytes) > SIZE_TOLERANCE_BYTES) {
+      await cleanup();
+      return {
+        ok: false,
+        error: `"${it.originalName}" doesn't match the expected size.`,
+      };
+    }
+    const headBytes = await store.getRange(it.storageKey, 0, 1024);
+    if (!headBytes || !magicBytesValid(new Uint8Array(headBytes), mime)) {
+      await cleanup();
+      return {
+        ok: false,
+        error: `"${it.originalName}" doesn't match its declared file type.`,
+      };
+    }
+    prepared.push({
+      id: it.fileId,
+      key: it.storageKey,
+      sizeBytes: head.sizeBytes,
+      originalName: it.originalName,
+      mimeType: mime,
+    });
+  }
+
+  return applyUploadBookkeeping(session, assignmentId, lane, prepared, store);
+}
+
+export const finalizeAssignmentFileUpload = withSession(
+  finalizeAssignmentFileUploadInner,
+);
+
+/**
+ * Best-effort cleanup the client calls when a PUT fails mid-batch. Lets
+ * us free orphan bytes deterministically instead of waiting on a bucket
+ * lifecycle rule. Permission to delete a key is the same as permission
+ * to upload — we re-check lane policy.
+ */
+export async function abortAssignmentFileUploadsInner(
+  session: SessionWithUser,
+  assignmentId: string,
+  lane: FileLane,
+  storageKeys: string[],
+): Promise<ActionResult> {
+  if (!isLane(lane)) return { ok: false, error: "Invalid file lane." };
+  if (!Array.isArray(storageKeys) || storageKeys.length === 0) {
+    return { ok: true };
+  }
+  const assignment = await prisma.assignment.findUnique({
+    where: { id: assignmentId },
+    select: {
+      id: true,
+      status: true,
+      teamId: true,
+      freelancerId: true,
+      createdById: true,
+    },
+  });
+  if (!assignment) return { ok: false, error: "Assignment not found." };
+  if (!(await LANE_UPLOAD_POLICY[lane](session, assignment))) {
+    return { ok: false, error: "Forbidden." };
+  }
+  const expectedPrefix = `assignments/${assignmentId}/${lane}/`;
+  const safe = storageKeys.filter((k) => k.startsWith(expectedPrefix));
+  if (safe.length === 0) return { ok: true };
+  await storage().deleteMany(safe);
+  return { ok: true };
+}
+
+export const abortAssignmentFileUploads = withSession(
+  abortAssignmentFileUploadsInner,
+);
 
 // ─── Delete ────────────────────────────────────────────────────────
 
