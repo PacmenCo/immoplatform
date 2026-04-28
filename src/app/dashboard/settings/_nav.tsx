@@ -9,7 +9,6 @@ const items = [
   { href: "/dashboard/settings/notifications", label: "Notifications" },
   { href: "/dashboard/settings/appearance", label: "Appearance" },
   { href: "/dashboard/settings/integrations", label: "Integrations" },
-  { href: "/dashboard/settings/api", label: "API" },
 ];
 
 export function SettingsNav() {
