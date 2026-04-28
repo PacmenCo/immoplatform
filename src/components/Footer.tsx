@@ -40,11 +40,14 @@ export default function Footer() {
       <div className="mx-auto max-w-[var(--container)] px-6 py-16">
         <div className="grid gap-10 md:grid-cols-5">
           <div className="md:col-span-1">
-            <a href="/" className="flex items-center gap-2 font-semibold">
-              <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--color-brand)] text-[var(--color-on-brand)] text-sm font-bold">
-                I
-              </span>
-              <span className="text-lg">Immo</span>
+            <a href="/" className="inline-flex items-center" aria-label="immoplatform.be — home">
+              <img
+                src="/logo.png"
+                alt="immoplatform.be"
+                width={998}
+                height={250}
+                className="h-8 w-auto"
+              />
             </a>
             <p className="mt-4 text-sm text-[var(--color-ink-soft)]">
               One platform for every real-estate certificate in Belgium.

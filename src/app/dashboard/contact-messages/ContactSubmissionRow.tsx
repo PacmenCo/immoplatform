@@ -71,9 +71,19 @@ export function ContactSubmissionRow({
               · {submission.email}
             </span>
             {handled ? (
-              <Badge bg="#ecfdf5" fg="#047857">Handled</Badge>
+              <Badge
+                bg="var(--color-bg-success, #ecfdf5)"
+                fg="var(--color-ink-success, #047857)"
+              >
+                Handled
+              </Badge>
             ) : (
-              <Badge bg="#fef3c7" fg="#b45309">New</Badge>
+              <Badge
+                bg="var(--color-bg-warning, #fef3c7)"
+                fg="var(--color-ink-warning, #b45309)"
+              >
+                New
+              </Badge>
             )}
           </div>
           <p className="text-sm text-[var(--color-ink-soft)] truncate">
@@ -155,7 +165,7 @@ export function ContactSubmissionRow({
             <Button
               size="sm"
               variant="ghost"
-              href={`mailto:${submission.email}?subject=Re: ${encodeURIComponent(submission.subject ?? "your message to Immo")}`}
+              href={`mailto:${encodeURIComponent(submission.email)}?subject=${encodeURIComponent(`Re: ${submission.subject ?? "your message to Immo"}`)}`}
             >
               Reply via email
             </Button>

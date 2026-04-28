@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { audit, requireSession } from "@/lib/auth";
+import { audit } from "@/lib/auth";
 import { hasRole } from "@/lib/permissions";
 import { contactSubmissionEmail, sendEmail } from "@/lib/email";
 import { appBaseUrl } from "@/lib/urls";
@@ -115,9 +115,16 @@ export async function submitContactFormInner(
   }
 
   const d = parsed.data;
+  // Strip CR/LF from name before it lands in any email subject — Zod's
+  // `.trim()` only nibbles leading/trailing whitespace, not embedded
+  // newlines. Postmark/Resend already sanitize at their layer, but doing
+  // it here too means downstream consumers (audit metadata, the admin
+  // table) get a clean single-line value.
+  const safeName = d.name.replace(/[\r\n]+/g, " ").slice(0, 120);
+
   const row = await prisma.contactSubmission.create({
     data: {
-      name: d.name,
+      name: safeName,
       email: d.email,
       phone: d.phone,
       subject: d.subject,
@@ -128,18 +135,22 @@ export async function submitContactFormInner(
     select: { id: true },
   });
 
+  // Resolve adminUrl outside the try so an env-misconfig surfaces here
+  // (rather than getting silently swallowed by the email try/catch).
+  const adminUrl = `${appBaseUrl()}/dashboard/contact-messages`;
+
   // Best-effort email — don't fail the submission if Postmark hiccups.
   // The row is in the DB and visible in the admin dashboard regardless.
   const notifyTo = process.env.NOTIFY_CONTACT_TO || FALLBACK_NOTIFY_TO;
   try {
     const tpl = await contactSubmissionEmail({
-      name: d.name,
+      name: safeName,
       email: d.email,
       phone: d.phone,
       subject: d.subject,
       message: d.message,
       submissionId: row.id,
-      adminUrl: `${appBaseUrl()}/dashboard/contact-messages`,
+      adminUrl,
     });
     await sendEmail({
       to: notifyTo,
@@ -147,8 +158,18 @@ export async function submitContactFormInner(
       ...tpl,
     });
   } catch (err) {
-    console.warn("contact submission email failed:", err);
+    console.warn(`contact submission email failed for id ${row.id}:`, err);
   }
+
+  // No actorId — public submission. Verb captures the create event so the
+  // global activity log + per-row audit trail stay consistent with every
+  // other mutation in the codebase.
+  await audit({
+    verb: "contact.submitted",
+    objectType: "contact_submission",
+    objectId: row.id,
+    metadata: { email: d.email, hasPhone: !!d.phone, hasSubject: !!d.subject },
+  });
 
   revalidatePath("/dashboard/contact-messages");
   return { ok: true };
@@ -160,6 +181,11 @@ export const submitContactForm = submitContactFormInner;
 
 /**
  * Toggle handled state on a contact submission. Admin only.
+ *
+ * Single `updateMany` (no preceding findUnique probe) so two admins clicking
+ * simultaneously both succeed atomically; if the row was deleted between
+ * page load and click, count===0 and we return a "not found" error rather
+ * than implicitly creating it.
  */
 export const markContactHandled = withSession(async (
   session,
@@ -169,18 +195,16 @@ export const markContactHandled = withSession(async (
   if (!hasRole(session, "admin")) {
     return { ok: false, error: "Only admins can update contact submissions." };
   }
-  const existing = await prisma.contactSubmission.findUnique({
-    where: { id },
-    select: { id: true },
-  });
-  if (!existing) return { ok: false, error: "Submission not found." };
 
-  await prisma.contactSubmission.update({
+  const result = await prisma.contactSubmission.updateMany({
     where: { id },
     data: handled
       ? { handledById: session.user.id, handledAt: new Date() }
       : { handledById: null, handledAt: null },
   });
+  if (result.count === 0) {
+    return { ok: false, error: "Submission not found." };
+  }
 
   await audit({
     actorId: session.user.id,
@@ -224,21 +248,23 @@ export const updateContactNotes = withSession(async (
     };
   }
 
-  const existing = await prisma.contactSubmission.findUnique({
-    where: { id },
-    select: { id: true },
-  });
-  if (!existing) return { ok: false, error: "Submission not found." };
-
-  await prisma.contactSubmission.update({
+  // Single updateMany: atomic, and absence of the row → count===0 → 404.
+  const result = await prisma.contactSubmission.updateMany({
     where: { id },
     data: { notes: parsed.data.notes },
+  });
+  if (result.count === 0) {
+    return { ok: false, error: "Submission not found." };
+  }
+
+  await audit({
+    actorId: session.user.id,
+    verb: "contact.notes_updated",
+    objectType: "contact_submission",
+    objectId: id,
+    metadata: { hasNotes: parsed.data.notes !== null },
   });
 
   revalidatePath("/dashboard/contact-messages");
   return { ok: true };
 });
-
-// Required so the dashboard page can fetch session in the action's typed
-// signature without re-importing from auth.
-void requireSession;

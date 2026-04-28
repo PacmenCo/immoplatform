@@ -101,10 +101,12 @@ export function ContactForm() {
         />
       </Field>
 
-      {/* Honeypot — hidden from real users via inline styles + tabindex.
-          Bots that auto-fill every field will populate `website`, and the
-          server action silently treats that as a success without persisting
-          or emailing. Don't use display:none — some bots skip those. */}
+      {/* Honeypot — hidden from real users via off-screen positioning.
+          Bots that auto-fill every field populate `website`, and the server
+          action silently treats that as a success without persisting or
+          emailing. Don't use display:none — some bots skip those.
+          aria-hidden + tabIndex={-1} + autoComplete="off" keeps it out of
+          the AT tree and tab order. */}
       <div
         aria-hidden="true"
         style={{
@@ -116,28 +118,15 @@ export function ContactForm() {
           overflow: "hidden",
         }}
       >
-        <label htmlFor="website">
-          Leave this field empty
-          <input
-            id="website"
-            name="website"
-            type="text"
-            tabIndex={-1}
-            autoComplete="off"
-          />
-        </label>
-      </div>
-
-      <label className="flex items-start gap-2 text-sm text-[var(--color-ink-soft)]">
         <input
-          type="checkbox"
-          required
-          className="mt-0.5 h-4 w-4 accent-[var(--color-brand)]"
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
         />
-        <span>
-          I agree to be contacted about my inquiry per the privacy policy.
-        </span>
-      </label>
+      </div>
 
       <Button
         type="submit"
