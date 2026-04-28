@@ -46,8 +46,10 @@ export function CompleteForm({
   const formRef = useRef<HTMLFormElement>(null);
   // Only guard unsaved changes while the dialog is actually open — otherwise
   // the form lives offscreen and dirty-tracking would block navigation
-  // for a form the user can't see.
-  useUnsavedChanges(open && useFormDirty(formRef));
+  // for a form the user can't see. Call the hook unconditionally to satisfy
+  // the rules of hooks; the gating happens on the boolean we pass downstream.
+  const isDirty = useFormDirty(formRef);
+  useUnsavedChanges(open && isDirty);
 
   // Auto-close on success. The action revalidates the page underneath, so
   // closing the dialog reveals the new "completed" badge.

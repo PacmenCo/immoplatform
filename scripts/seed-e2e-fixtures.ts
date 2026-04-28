@@ -41,12 +41,20 @@ const FOUNDER_EMAIL = "founder@e2e.local";
     where: { name: { startsWith: "E2E Founder Office" } },
   });
 
-  // 2) Ensure Tim (u_3) has at least one in_progress assignment for the
-  //    toggle test. If one exists, leave it; otherwise create one in t_01.
-  const existing = await prisma.assignment.findFirst({
-    where: { freelancerId: "u_3", status: "in_progress" },
+  // 2) Ensure Tim (u_3) has at least one in_progress E2E-TOGGLE assignment.
+  //    Tests advance the status (in_progress → delivered → completed); rather
+  //    than create a new row each run, RESET any existing E2E-TOGGLE-* row
+  //    for Tim back to in_progress so the helper's selectors stay stable.
+  const reset = await prisma.assignment.updateMany({
+    where: {
+      freelancerId: "u_3",
+      reference: { startsWith: "E2E-TOGGLE-" },
+    },
+    data: { status: "in_progress", deliveredAt: null, completedAt: null },
   });
-  if (!existing) {
+  if (reset.count > 0) {
+    console.log(`✅ Reset ${reset.count} E2E-TOGGLE assignment(s) to in_progress`);
+  } else {
     const refSlug = `E2E-TOGGLE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     await prisma.assignment.create({
       data: {
@@ -66,8 +74,6 @@ const FOUNDER_EMAIL = "founder@e2e.local";
       },
     });
     console.log(`✅ Created in_progress assignment ${refSlug} for Tim (u_3)`);
-  } else {
-    console.log(`✅ Tim already has in_progress assignment ${existing.reference}`);
   }
 
   console.log(`\n✅ E2E fixtures ready`);

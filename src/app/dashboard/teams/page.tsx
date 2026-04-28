@@ -194,7 +194,7 @@ export default async function TeamsPage({
               {totals.assignments === 1 ? "" : "s"}
             </p>
           </div>
-          {canCreateTeam(session) && (
+          {(canCreateTeam(session) || canFound) && (
             <Button href="/dashboard/teams/new" size="md">
               <IconPlus size={14} />
               Create team
@@ -224,7 +224,7 @@ export default async function TeamsPage({
               title="No teams yet"
               description="Create your first agency office. You'll be able to add members, set commission rules and order certificates on their behalf."
               action={
-                canCreateTeam(session) ? (
+                (canCreateTeam(session) || canFound) ? (
                   <Button href="/dashboard/teams/new" size="md">
                     <IconPlus size={14} />
                     Create first team
