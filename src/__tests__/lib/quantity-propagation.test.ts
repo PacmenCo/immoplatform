@@ -28,7 +28,7 @@ import { seedAssignment, seedBaseline } from "../_helpers/fixtures";
 setupTestDb();
 
 describe("Assignment.quantity propagates to loadAssignmentPricing", () => {
-  it.fails("multiplies line totals by Assignment.quantity", async () => {
+  it("multiplies line totals by Assignment.quantity", async () => {
     const { teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_qty_pricing",
@@ -43,7 +43,7 @@ describe("Assignment.quantity propagates to loadAssignmentPricing", () => {
     expect(pricing?.totalCents).toBe(50_000);
   });
 
-  it.fails("stacks correctly with the 300 m² area surcharge", async () => {
+  it("stacks correctly with the 300 m² area surcharge", async () => {
     const { teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_qty_surcharge",
@@ -76,7 +76,7 @@ describe("Assignment.quantity propagates to loadAssignmentPricing", () => {
 });
 
 describe("Assignment.quantity propagates to applyCommission", () => {
-  it.fails("commission is computed off quantity-aware total", async () => {
+  it("commission is computed off quantity-aware total", async () => {
     const { teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_qty_commission",
@@ -100,7 +100,7 @@ describe("Assignment.quantity propagates to applyCommission", () => {
 });
 
 describe("Assignment.quantity propagates to loadFinancialOverview", () => {
-  it.fails("revenue rollup reflects Assignment.quantity", async () => {
+  it("revenue rollup reflects Assignment.quantity", async () => {
     const { teams } = await seedBaseline();
     const completedAt = new Date(Date.UTC(2026, 4, 15)); // 2026-05-15 UTC
     await seedAssignment({

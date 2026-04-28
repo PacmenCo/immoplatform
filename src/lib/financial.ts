@@ -77,6 +77,7 @@ type AssignmentForRevenue = {
   teamId: string | null;
   completedAt: Date | null;
   areaM2: number | null;
+  quantity: number;
   discountType: string | null;
   discountValue: number | null;
   services: Array<{ serviceKey: string; unitPriceCents: number }>;
@@ -87,7 +88,7 @@ function priceAssignment(a: AssignmentForRevenue): PricingBreakdown {
     lines: a.services.map((s) => ({
       serviceKey: s.serviceKey,
       unitPriceCents: s.unitPriceCents,
-      quantity: 1,
+      quantity: a.quantity,
     })),
     areaM2: a.areaM2,
     discount: isDiscountType(a.discountType)
@@ -144,6 +145,7 @@ export async function loadFinancialOverview(
         teamId: true,
         completedAt: true,
         areaM2: true,
+        quantity: true,
         discountType: true,
         discountValue: true,
         services: { select: { serviceKey: true, unitPriceCents: true } },

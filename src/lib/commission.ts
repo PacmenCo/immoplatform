@@ -109,6 +109,7 @@ export async function applyCommission(
       discountType: true,
       discountValue: true,
       areaM2: true,
+      quantity: true,
       services: { select: { serviceKey: true, unitPriceCents: true } },
       team: {
         select: {
@@ -124,6 +125,7 @@ export async function applyCommission(
 
   const totalCents = totalFromAssignment({
     areaM2: a.areaM2,
+    quantity: a.quantity,
     discountType: a.discountType,
     discountValue: a.discountValue,
     services: a.services,
@@ -277,6 +279,7 @@ export async function teamQuarterLines(
 
 function totalFromAssignment(a: {
   areaM2: number | null;
+  quantity: number;
   discountType: string | null;
   discountValue: number | null;
   services: Array<{ serviceKey: string; unitPriceCents: number }>;
@@ -285,7 +288,7 @@ function totalFromAssignment(a: {
     lines: a.services.map((s) => ({
       serviceKey: s.serviceKey,
       unitPriceCents: s.unitPriceCents,
-      quantity: 1,
+      quantity: a.quantity,
     })),
     areaM2: a.areaM2,
     discount: isDiscountType(a.discountType)

@@ -177,6 +177,7 @@ export async function loadAssignmentPricing(
     where: { id: assignmentId },
     select: {
       areaM2: true,
+      quantity: true,
       discountType: true,
       discountValue: true,
       services: { select: { serviceKey: true, unitPriceCents: true } },
@@ -188,7 +189,7 @@ export async function loadAssignmentPricing(
     lines: a.services.map((s) => ({
       serviceKey: s.serviceKey,
       unitPriceCents: s.unitPriceCents,
-      quantity: 1,
+      quantity: a.quantity,
     })),
     areaM2: a.areaM2,
     discount: discountFromAssignment(a),
