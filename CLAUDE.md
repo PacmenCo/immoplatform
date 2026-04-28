@@ -15,7 +15,7 @@ This project deliberately starts fresh in Node/TS/Next.js — do not reintroduce
 - **Next.js 16** (App Router, Turbopack) — read `node_modules/next/dist/docs/01-app/` before writing Next-specific code, APIs have shifted from earlier major versions
 - **React 19**, **TypeScript**
 - **Tailwind CSS 4** — tokens live in `src/app/globals.css` under `:root`; the `@theme inline` block exposes them to Tailwind
-- **Prisma 6** — dev runs on **SQLite** (`prisma/dev.db`); PostgreSQL for production (swap via `DATABASE_URL`). Migrations in `prisma/migrations/`. Re-run `npx prisma db seed` after schema changes.
+- **Prisma 6** — dev + prod both run on **PostgreSQL** (dev uses local `immo_dev`; prod uses the droplet's `immo` DB). The schema's `provider` is `"postgresql"`; `prisma/dev.db` is a leftover empty file from the SQLite era. Migrations in `prisma/migrations/`. Re-run `npx prisma db seed` after schema changes — the seed is idempotent (upserts) and password-rotates every dummy user to `Jordan1234` on each run.
 
 ## Project layout
 
