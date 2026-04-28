@@ -39,7 +39,7 @@ Keep page files thin (composition only). Business logic lives in `src/lib/*`; se
 - **Auth:** cookie-based session (see `src/lib/auth.ts`); roles `admin | staff | realtor | freelancer`. Permission gates in `src/lib/permissions.ts` (`hasRole`, `canEditAssignment`, scope helpers). Use `withSession` from `src/app/actions/_types.ts` to wrap any mutation.
 - **Money math:** integer cents everywhere; percentages are basis points (15% = `1500`). Never store float prices. Pricing engine `src/lib/pricing.ts`; commission `src/lib/commission.ts`; financial overview `src/lib/financial.ts`.
 - **Audit:** `audit({actorId, verb, ...})` from `src/lib/auth.ts` — the `AuditVerb` union is compile-time-enforced. Extend the union when adding a new mutation.
-- **Emails:** `src/lib/email.ts` wraps dev-console / Postmark / Resend behind `sendEmail`. Event templates live in the same file; user opt-outs via `emailPrefs` JSON + `shouldSendEmail` (`src/lib/email-events.ts`).
+- **Emails:** `src/lib/email.tsx` wraps dev-console / Postmark / Resend behind `sendEmail`. Event templates live in the same file; user opt-outs via `emailPrefs` JSON + `shouldSendEmail` (`src/lib/email-events.ts`).
 - **Calendar sync:** `src/lib/calendar/*` — agency Google (service account) + per-user Google + Outlook via MSAL/Graph directly (no n8n). Tokens AES-GCM-encrypted using `CALENDAR_ENCRYPTION_KEY`. `syncAssignmentToCalendars(id, action)` is best-effort and called from assignment lifecycle actions.
 - **Forms:** `useFormDirty(ref)` + `useUnsavedChanges(dirty)` (from `src/components/dashboard/UnsavedChangesProvider`) wire an unsaved-changes guard. Use `ConfirmDialog` (`src/components/ui/ConfirmDialog.tsx`), never `window.confirm`.
 - **Prisma-server-only separation:** anything under `src/lib/*` that imports `prisma` or emits queries starts with `import "server-only"`. Keep pure helpers (date math, Period types, etc.) in separate server-safe files so client components can reuse them — see `src/lib/period.ts` as the pattern.
@@ -163,6 +163,14 @@ ssh root@178.128.246.222
 - **PostgreSQL 16** on the same droplet, bound to `127.0.0.1:5432` only · `pg_hba.conf` requires `scram-sha-256` for TCP
 - **DB / role:** both named `immo`. Connection string lives at `/root/secrets/database.env` on the server (mode 600). Don't put this anywhere else.
 
+### Email (Postmark)
+
+- **Provider:** Postmark, configured 2026-04-28. Server is named `immoplatform` and lives inside the **shared Asbestexperts Postmark account** (same account as Platform/Asbestexperts/Winergy). New servers there = stats and suppressions are isolated, but billing rolls up.
+- **Sender:** `Immo <no-reply@immoplatform.be>`. Domain is DKIM + Return-Path verified at Postmark; DNS records sit at Combell (`20260428144600pm._domainkey` TXT and `pm-bounces` CNAME → `pm.mtasv.net`). SPF and `_dmarc` (`p=none`) were already on the zone.
+- **Env vars on droplet:** `EMAIL_PROVIDER=postmark`, `POSTMARK_TOKEN=<server-token>`, `EMAIL_FROM="Immo <no-reply@immoplatform.be>"`. Default message stream is `outbound` (transactional) — don't switch to `broadcast` for transactional sends.
+- **Code path:** `src/lib/email.tsx` (`sendViaPostmark`); throws on delivery failure, callers decide whether to surface or swallow (`forgotPassword` swallows to avoid email enumeration; `createInvite` propagates).
+- **Debugging a failed send:** check Postmark **Activity** tab first; if the request never landed, `journalctl -u immoplatform -n 100 | grep -i postmark` shows the API rejection string verbatim.
+
 ### Build constraints (1 GB RAM is tight)
 
 - `next.config.ts` has `typescript.ignoreBuildErrors = true` and `eslint.ignoreDuringBuilds = true` — both `tsc` and `eslint` OOM during build on this droplet. **Always run typecheck + vitest locally before deploying.**
@@ -183,7 +191,6 @@ systemctl restart immoplatform
 
 ### Not yet configured (deliberately deferred)
 
-- Email provider (POSTMARK_TOKEN / RESEND_API_KEY) — emails fall back to journald logs
 - Google + Outlook OAuth credentials — calendar features no-op without these
 - S3 / DO Spaces storage env vars — using LocalStorage instead
 - Cron jobs hitting `/api/cron/*` — monthly invoice reminder + hourly assignment auto-status-update won't fire on schedule
@@ -195,6 +202,7 @@ systemctl restart immoplatform
 
 - `CALENDAR_ENCRYPTION_KEY` from `.env.production` — if lost, every encrypted OAuth token in the DB becomes unreadable
 - `DATABASE_URL` (postgres password) from `/root/secrets/database.env` — recoverable via `ALTER ROLE` but annoying
+- `POSTMARK_TOKEN` from `.env.production` — recoverable by issuing a new Server token in Postmark and rotating, but worth keeping
 - `CRON_SECRET` from `.env.production` — needed once cron jobs are wired
 
 ## Commit + push discipline
