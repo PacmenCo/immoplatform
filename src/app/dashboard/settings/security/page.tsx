@@ -1,6 +1,5 @@
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
@@ -49,7 +48,7 @@ export default async function SecuritySettingsPage() {
 
   return (
     <>
-      <Topbar title="Security" subtitle="Password, 2FA and active sessions" />
+      <Topbar title="Security" subtitle="Password and active sessions" />
 
       <div className="p-8 max-w-[960px]">
         <SettingsNav />
@@ -65,33 +64,6 @@ export default async function SecuritySettingsPage() {
           </CardHeader>
           <CardBody>
             <PasswordChangeForm />
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle>Two-factor authentication</CardTitle>
-              <Badge>Not enabled</Badge>
-            </div>
-            <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-              Protect your account with an additional step at sign-in.
-            </p>
-          </CardHeader>
-          <CardBody>
-            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-              <div>
-                <p className="text-sm font-medium text-[var(--color-ink)]">
-                  Authenticator app
-                </p>
-                <p className="text-sm text-[var(--color-ink-soft)]">
-                  Scan a QR code with Google Authenticator, 1Password or similar.
-                </p>
-              </div>
-              <Button variant="secondary" size="md" disabled title="Coming soon">
-                Set up 2FA
-              </Button>
-            </div>
           </CardBody>
         </Card>
 
