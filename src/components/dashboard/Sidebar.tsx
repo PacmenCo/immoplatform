@@ -17,7 +17,7 @@ import {
   IconMail,
 } from "@/components/ui/Icons";
 import { logout } from "@/app/actions/auth";
-import { BrandName } from "@/components/BrandName";
+import { BrandLogo } from "@/components/BrandLogo";
 
 type NavRole = "admin" | "staff" | "realtor" | "freelancer";
 
@@ -84,13 +84,23 @@ type SidebarUser = {
   avatarUrl: string | null;
 };
 
-export function Sidebar({ user }: { user?: SidebarUser }) {
+type SidebarProps = {
+  user?: SidebarUser;
+  /** Count of contact_submissions where handledAt IS NULL — rendered as a
+   *  badge on the Messages item. Computed in the dashboard layout for admins
+   *  only; falsy / 0 means no badge shown. */
+  unreadContactCount?: number;
+};
+
+export function Sidebar({ user, unreadContactCount }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside className="hidden md:flex h-screen w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-bg)] sticky top-0">
       <div className="flex items-center px-6 h-16 border-b border-[var(--color-border)]">
-        <BrandName className="text-lg" />
+        <Link href="/dashboard" aria-label="immoplatform.be — dashboard">
+          <BrandLogo className="h-9 w-auto" />
+        </Link>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -103,6 +113,10 @@ export function Sidebar({ user }: { user?: SidebarUser }) {
             )
             .map((item) => {
             const active = isActive(pathname, item.href);
+            const badge =
+              item.href === "/dashboard/contact-messages" && unreadContactCount
+                ? String(unreadContactCount)
+                : item.badge;
             return (
               <li key={item.href}>
                 <Link
@@ -127,7 +141,7 @@ export function Sidebar({ user }: { user?: SidebarUser }) {
                     />
                     {item.label}
                   </span>
-                  {item.badge && (
+                  {badge && (
                     <span
                       className={
                         "rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums " +
@@ -136,7 +150,7 @@ export function Sidebar({ user }: { user?: SidebarUser }) {
                           : "bg-[var(--color-accent)] text-[var(--color-brand)]")
                       }
                     >
-                      {item.badge}
+                      {badge}
                     </span>
                   )}
                 </Link>

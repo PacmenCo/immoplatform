@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileTopbar } from "@/components/dashboard/MobileTopbar";
 import { getSession } from "@/lib/auth";
 import { avatarImageUrl } from "@/lib/avatar";
+import { prisma } from "@/lib/db";
 import { initials } from "@/lib/format";
 import { getUserTeamIds, hasRole } from "@/lib/permissions";
 import { BRAND_NAME } from "@/lib/site";
@@ -35,6 +36,12 @@ export default async function DashboardLayout({
 
   const user = session.user;
 
+  // Unread contact-message badge — admin-only feature, so we skip the query
+  // entirely for non-admins (other roles can't see the Messages nav item).
+  const unreadContactCount = hasRole(session, "admin")
+    ? await prisma.contactSubmission.count({ where: { handledAt: null } })
+    : undefined;
+
   return (
     <div className="flex min-h-screen bg-[var(--color-bg-alt)]">
       <Sidebar
@@ -45,6 +52,7 @@ export default async function DashboardLayout({
           avatarInitials: initials(user.firstName, user.lastName),
           avatarUrl: avatarImageUrl(user),
         }}
+        unreadContactCount={unreadContactCount}
       />
       <div className="flex-1 min-w-0">
         <MobileTopbar />
