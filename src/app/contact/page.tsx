@@ -1,7 +1,6 @@
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
-import { Button } from "@/components/ui/Button";
-import { Field, Input, Textarea } from "@/components/ui/Input";
+import { ContactForm } from "@/components/ContactForm";
 
 export default function ContactPage() {
   return (
@@ -36,31 +35,7 @@ export default function ContactPage() {
               We reply within 4 business hours on weekdays.
             </p>
 
-            <form className="mt-8 space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Full name" id="name">
-                  <Input id="name" autoComplete="name" placeholder="Jane Mertens" />
-                </Field>
-                <Field label="Work email" id="email">
-                  <Input id="email" type="email" autoComplete="email" placeholder="you@agency.be" />
-                </Field>
-              </div>
-              <Field label="Company" id="company" hint="Optional — helps us route your request faster.">
-                <Input id="company" autoComplete="organization" placeholder="Vastgoed Antwerp" />
-              </Field>
-              <Field label="Message" id="message">
-                <Textarea id="message" rows={6} placeholder="Tell us what you're looking for..." />
-              </Field>
-
-              <label className="flex items-start gap-2 text-sm text-[var(--color-ink-soft)]">
-                <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--color-brand)]" />
-                <span>I agree to be contacted about my inquiry per the privacy policy.</span>
-              </label>
-
-              <Button type="submit" size="lg" className="w-full sm:w-auto">
-                Send message
-              </Button>
-            </form>
+            <ContactForm />
           </div>
         </section>
       </main>

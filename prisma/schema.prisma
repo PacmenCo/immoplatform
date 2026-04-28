@@ -112,9 +112,36 @@ model User {
   createdAnnouncements   Announcement[]          @relation("AnnouncementCreator")
   announcementDismissals AnnouncementDismissal[] @relation("AnnouncementDismissals")
   emailVerifications     EmailVerification[]
+  handledContactSubmissions ContactSubmission[]  @relation("ContactHandledBy")
 
   @@index([role, deletedAt])
   @@map("users")
+}
+
+/// Public contact-form submissions from /contact. Anyone can create rows
+/// (no auth on the action — rate-limited per IP). Admins read + handle them
+/// from /dashboard/contact-messages. The handledBy relation is nullable so
+/// pending rows have no assignee; once an admin marks one handled we
+/// snapshot who and when.
+model ContactSubmission {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  name        String
+  email       String
+  phone       String?
+  subject     String?
+  message     String
+  ipAddress   String?
+  userAgent   String?
+  handledById String?
+  handledAt   DateTime?
+  notes       String?
+
+  handledBy   User?     @relation("ContactHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([handledAt])
+  @@map("contact_submissions")
 }
 
 model AssignmentCommission {

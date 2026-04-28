@@ -27,6 +27,10 @@ import Invite, {
   subject as inviteSubject,
   type InviteEmailProps,
 } from "@/emails/Invite";
+import ContactSubmission, {
+  subject as contactSubmissionSubject,
+  type ContactSubmissionEmailProps,
+} from "@/emails/ContactSubmission";
 import PasswordReset, {
   subject as passwordResetSubject,
   type PasswordResetEmailProps,
@@ -91,6 +95,12 @@ type SendEmailArgs = {
   subject: string;
   html?: string;
   text: string;
+  /**
+   * Optional Reply-To header. Used by the contact-form notification so an
+   * admin can hit Reply in their inbox and message the visitor directly,
+   * rather than replying to the no-reply@ sender.
+   */
+  replyTo?: string;
 };
 
 /** Shape returned by every `*Email()` template helper. */
@@ -142,6 +152,7 @@ async function sendViaPostmark(args: SendEmailArgs): Promise<void> {
     MessageStream: process.env.POSTMARK_MESSAGE_STREAM ?? "outbound",
   };
   if (args.html) body.HtmlBody = args.html;
+  if (args.replyTo) body.ReplyTo = args.replyTo;
 
   const res = await fetch("https://api.postmarkapp.com/email", {
     method: "POST",
@@ -181,6 +192,7 @@ async function sendViaResend(args: SendEmailArgs): Promise<void> {
     text: args.text,
   };
   if (args.html) body.html = args.html;
+  if (args.replyTo) body.reply_to = args.replyTo;
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -352,4 +364,11 @@ export async function commentPostedEmail(
 ): Promise<RenderedEmail> {
   const { html, text } = await renderTemplate(<CommentPosted {...props} />);
   return { subject: commentPostedSubject(props), html, text };
+}
+
+export async function contactSubmissionEmail(
+  props: ContactSubmissionEmailProps,
+): Promise<RenderedEmail> {
+  const { html, text } = await renderTemplate(<ContactSubmission {...props} />);
+  return { subject: contactSubmissionSubject(props), html, text };
 }

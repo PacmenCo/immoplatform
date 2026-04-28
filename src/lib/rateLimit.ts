@@ -95,4 +95,9 @@ export const RATE_LIMITS = {
   /** Guards the token-consume step. High enough that a user with a slow
    *  password manager isn't blocked. */
   resetPassword: { max: 5, windowSec: 900 },
+  /** Public /contact form. Per-IP cap so spam scripts can't flood the ops
+   *  inbox even after defeating the honeypot. 5 per hour is generous for
+   *  a real visitor (corrections, follow-ups) and tight enough to bound
+   *  abuse. */
+  contactSubmission: { max: 5, windowSec: 3600 },
 } as const;

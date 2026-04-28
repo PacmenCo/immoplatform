@@ -5,6 +5,7 @@ import { SkipLink } from "@/components/ui/SkipLink";
 import { ThemeScript } from "@/components/theme/ThemeScript";
 import { UnsavedChangesProvider } from "@/components/dashboard/UnsavedChangesProvider";
 import { ToastProvider } from "@/components/ui/Toast";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,17 +24,32 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Immo — One platform for every real-estate certificate",
-  description:
-    "Energy Performance Certificates, Asbestos Inventory Attests, Electrical Inspections and Fuel Tank Checks for Belgian real-estate agents. One dashboard, one invoice, one team of experts.",
-  applicationName: "Immo",
+  metadataBase: new URL(SITE_URL),
+  title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
   appleWebApp: {
     capable: true,
-    title: "Immo",
+    title: SITE_NAME,
     statusBarStyle: "default",
   },
   icons: {
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+    // og:image is auto-emitted from app/opengraph-image.tsx
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+    // twitter:image inherits from og:image when not specified
   },
   // Note: next auto-emits <link rel="manifest" href="/manifest.webmanifest"> from app/manifest.ts.
 };

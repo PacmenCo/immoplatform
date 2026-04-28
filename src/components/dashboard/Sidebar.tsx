@@ -14,6 +14,7 @@ import {
   IconMegaphone,
   IconWallet,
   IconLogout,
+  IconMail,
 } from "@/components/ui/Icons";
 import { logout } from "@/app/actions/auth";
 
@@ -57,6 +58,12 @@ const nav: Array<{
     href: "/dashboard/announcements",
     label: "Announcements",
     icon: IconMegaphone,
+    visibleFor: ["admin"],
+  },
+  {
+    href: "/dashboard/contact-messages",
+    label: "Messages",
+    icon: IconMail,
     visibleFor: ["admin"],
   },
   { href: "/dashboard/settings", label: "Settings", icon: IconSettings },

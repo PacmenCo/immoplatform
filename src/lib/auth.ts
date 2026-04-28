@@ -225,7 +225,9 @@ export type AuditVerb =
   | "team.member_removed"
   | "user.role_changed"
   | "invoice_reminder.sent"
-  | "invoice_reminder.skipped";
+  | "invoice_reminder.skipped"
+  | "contact.handled"
+  | "contact.unhandled";
 
 export async function audit(opts: {
   actorId?: string | null;
