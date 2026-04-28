@@ -56,50 +56,68 @@ export function ContactSubmissionRow({
 
   return (
     <Card className="overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setExpanded((e) => !e)}
-        className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-[var(--color-bg-muted)]"
-        aria-expanded={expanded}
-      >
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-[var(--color-ink)]">
-              {submission.name}
-            </span>
-            <span className="text-sm text-[var(--color-ink-muted)]">
-              · {submission.email}
-            </span>
-            {handled ? (
-              <Badge
-                bg="var(--color-bg-success, #ecfdf5)"
-                fg="var(--color-ink-success, #047857)"
-              >
-                Handled
-              </Badge>
-            ) : (
-              <Badge
-                bg="var(--color-bg-warning, #fef3c7)"
-                fg="var(--color-ink-warning, #b45309)"
-              >
-                New
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm text-[var(--color-ink-soft)] truncate">
-            {submission.subject ? (
-              <span className="font-medium">
-                {submission.subject} —{" "}
+      <div className="flex items-stretch">
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="group flex flex-1 min-w-0 items-center gap-4 px-5 py-4 text-left hover:bg-[var(--color-bg-muted)]"
+          aria-expanded={expanded}
+          aria-label={expanded ? "Collapse message" : "Expand message"}
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-[var(--color-ink)]">
+                {submission.name}
               </span>
-            ) : null}
-            {submission.message.slice(0, 140)}
-            {submission.message.length > 140 ? "…" : ""}
-          </p>
-        </div>
-        <div className="text-xs text-[var(--color-ink-muted)] whitespace-nowrap">
-          {dateFmt.format(new Date(submission.createdAt))}
-        </div>
-      </button>
+              <span className="text-sm text-[var(--color-ink-muted)]">
+                · {submission.email}
+              </span>
+              {handled ? (
+                <Badge
+                  bg="var(--color-bg-success, #ecfdf5)"
+                  fg="var(--color-ink-success, #047857)"
+                >
+                  Handled
+                </Badge>
+              ) : (
+                <Badge
+                  bg="var(--color-bg-warning, #fef3c7)"
+                  fg="var(--color-ink-warning, #b45309)"
+                >
+                  New
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm text-[var(--color-ink-soft)] truncate">
+              {submission.subject ? (
+                <span className="font-medium">
+                  {submission.subject} —{" "}
+                </span>
+              ) : null}
+              {submission.message.slice(0, 140)}
+              {submission.message.length > 140 ? "…" : ""}
+            </p>
+          </div>
+          <div className="text-xs text-[var(--color-ink-muted)] whitespace-nowrap">
+            {dateFmt.format(new Date(submission.createdAt))}
+          </div>
+          <ChevronIcon expanded={expanded} />
+        </button>
+
+        {!handled ? (
+          <div className="flex items-center pr-3 sm:pr-4 border-l border-[var(--color-border)]">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={toggleHandled}
+              loading={pending}
+              className="ml-3 sm:ml-4"
+            >
+              Mark as handled
+            </Button>
+          </div>
+        ) : null}
+      </div>
 
       {expanded ? (
         <div className="border-t border-[var(--color-border)] px-5 py-5 space-y-5 bg-[var(--color-bg-alt)]">
@@ -160,7 +178,7 @@ export function ContactSubmissionRow({
               onClick={toggleHandled}
               loading={pending}
             >
-              {handled ? "Mark as new" : "Mark as handled"}
+              {handled ? "Reopen" : "Mark as handled"}
             </Button>
             <Button
               size="sm"
@@ -203,5 +221,27 @@ export function ContactSubmissionRow({
         </div>
       ) : null}
     </Card>
+  );
+}
+
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={
+        "shrink-0 text-[var(--color-ink-muted)] transition-transform " +
+        (expanded ? "rotate-180" : "")
+      }
+    >
+      <polyline points="4 6 8 10 12 6" />
+    </svg>
   );
 }
