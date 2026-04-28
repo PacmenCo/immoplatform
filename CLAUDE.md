@@ -129,6 +129,74 @@ curl -s https://masterplan.asbestexperts.be/command-center/api/data \
 4. If 2+ todos form a theme → create a feature and re-parent them. Pick the feature that matches the area you're touching (run a list fetch first — features pre-exist: Foundation, Assignments (core), Teams & Offices, Notifications, Files & uploads, Scheduling & calendar, Invite & onboarding, Dashboards & lists, Design system & polish, PWA & polish, PDF generation, Admin tools, Homepage v1, Service selection & pricing, Backend — missing endpoints, Frontend interactivity).
 5. Always set `createdBy` / `updatedBy` / activity `author` to your model name so the human can see who did what.
 
+## Production deployment
+
+Live at **https://immoplatform.be** on a DigitalOcean droplet (set up 2026-04-28).
+
+### Server
+
+- **IP:** `178.128.246.222` (DO Basic · 1 vCPU · 1 GB RAM · 25 GB disk)
+- **OS:** Ubuntu 24.04.3 LTS · 2 GB swap at `/swapfile` · UFW active (allows `22, 80, 443` only)
+- **TLS:** Let's Encrypt via certbot (auto-renews via systemd timer; expires 2026-07-27 then rolls)
+- **DNS:** managed at Combell. Apex `immoplatform.be` → `178.128.246.222`. `www.` still points to an old Combell IP — fix at Combell if `www.` should work.
+
+### SSH access
+
+The key (`~/.ssh/zymo_jordankeys`) has a passphrase. Load into the agent once per machine, then plain SSH inherits it via `SSH_AUTH_SOCK`:
+
+```bash
+ssh-add --apple-use-keychain ~/.ssh/zymo_jordankeys
+ssh root@178.128.246.222
+```
+
+### Application layout on the server
+
+- **App:** `/opt/immoplatform/app` (cloned from main on GitHub)
+- **User:** runs as system user `immo` (no shell login)
+- **Env:** `/opt/immoplatform/app/.env.production` (mode 600, owner `immo`)
+- **Service:** `systemctl {status|restart|stop} immoplatform` · logs via `journalctl -u immoplatform -f`
+- **Listening on:** `127.0.0.1:3000` only (nginx reverse-proxies from `:80`/`:443`)
+- **Storage:** LocalStorage at `/opt/immoplatform/app/storage` until S3/DO Spaces is wired. Bytes survive deploy but NOT droplet wipe.
+
+### Database
+
+- **PostgreSQL 16** on the same droplet, bound to `127.0.0.1:5432` only · `pg_hba.conf` requires `scram-sha-256` for TCP
+- **DB / role:** both named `immo`. Connection string lives at `/root/secrets/database.env` on the server (mode 600). Don't put this anywhere else.
+
+### Build constraints (1 GB RAM is tight)
+
+- `next.config.ts` has `typescript.ignoreBuildErrors = true` and `eslint.ignoreDuringBuilds = true` — both `tsc` and `eslint` OOM during build on this droplet. **Always run typecheck + vitest locally before deploying.**
+- Build command needs `NODE_OPTIONS="--max-old-space-size=768"` to fit
+- Build takes ~5 min on this tier. Resize to 2 GB ($12/mo) for ~2 min builds + zero-downtime deploys.
+
+### Deploy / redeploy command
+
+```bash
+ssh root@178.128.246.222
+cd /opt/immoplatform/app
+sudo -u immo git pull
+sudo -u immo bash -c 'set -a; source .env.production; set +a; \
+  npx prisma migrate deploy && \
+  NODE_OPTIONS=--max-old-space-size=768 npm run build'
+systemctl restart immoplatform
+```
+
+### Not yet configured (deliberately deferred)
+
+- Email provider (POSTMARK_TOKEN / RESEND_API_KEY) — emails fall back to journald logs
+- Google + Outlook OAuth credentials — calendar features no-op without these
+- S3 / DO Spaces storage env vars — using LocalStorage instead
+- Cron jobs hitting `/api/cron/*` — monthly invoice reminder + hourly assignment auto-status-update won't fire on schedule
+- fail2ban — keys-only SSH makes brute-force moot, just adds log noise
+- DB backups — no users yet; configure before that changes
+- Admin user in DB — bootstrap one via `/register` (creates a realtor) then bump role via SQL
+
+### Secrets to back up to a password manager (lost = unrecoverable)
+
+- `CALENDAR_ENCRYPTION_KEY` from `.env.production` — if lost, every encrypted OAuth token in the DB becomes unreadable
+- `DATABASE_URL` (postgres password) from `/root/secrets/database.env` — recoverable via `ALTER ROLE` but annoying
+- `CRON_SECRET` from `.env.production` — needed once cron jobs are wired
+
 ## Commit + push discipline
 
 Never run `git commit` / `git push` / Command Center writes without an explicit user OK in the current turn. The sandbox enforces this with a block; in your own workflow, finish the code, run typecheck + build + seed, report what's staged, and wait for approval before touching origin or the board. See memory file `feedback_git_commit_confirmation.md`.
@@ -137,4 +205,3 @@ Never run `git commit` / `git push` / Command Center writes without an explicit 
 
 - Final brand name for the merged entity (placeholder: "Immo").
 - Real names + scope for the 4 services (placeholders: EPC, Asbestos, Electrical, Fuel Tank).
-- Postgres cutover — Prisma schema works on SQLite today; moving to Postgres needs an enum + JSONB + partial-unique pass.
