@@ -30,6 +30,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { TransferOwnershipButton } from "./TransferOwnershipButton";
 import { DeleteTeamButton } from "./DeleteTeamButton";
 import { RemoveMemberButton } from "./RemoveMemberButton";
+import { updateTeamBilling } from "@/app/actions/teams";
 
 type TabId = "overview" | "members" | "assignments" | "billing" | "branding" | "services" | "commission";
 
@@ -205,6 +206,18 @@ export default async function TeamDetailPage({
   // admin-only — realtor-owners can edit the team's branding, contact info,
   // and member roster, but not these three.
   const isAdmin = hasRole(session, "admin");
+
+  // Inline billing-section save (v1 parity with Platform's TeamEdit Livewire,
+  // where the legal/billing fields edit on the same page that displays them).
+  // Bound action takes only FormData — withSession injects session, the bind
+  // pins teamId + the unused `_prev` slot. Cast to a void-returning shape
+  // because <form action> only types as Promise<void>; the ActionResult the
+  // wrapped action returns is intentionally discarded here (no useActionState
+  // on this server-rendered page — errors surface via the action throwing
+  // or via the page re-rendering with stale data).
+  const boundUpdateBilling = updateTeamBilling.bind(null, id, undefined) as unknown as (
+    formData: FormData,
+  ) => Promise<void>;
   const eligibleOwners = team.members
     .filter(
       (m) =>
@@ -789,71 +802,81 @@ export default async function TeamDetailPage({
         {/* ───── Billing ──────────────────────────────────────────── */}
         <section id="billing" className="scroll-mt-20">
           <Card>
-            <CardHeader>
-              <CardTitle>Billing & legal</CardTitle>
-              <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
-                Legal entity details for invoices issued to and from this team.
-              </p>
-            </CardHeader>
-            <CardBody className="space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Legal name" id="legal-name" hint="Official entity name on invoices">
-                  <Input id="legal-name" defaultValue={team.legalName ?? ""} placeholder="e.g. Vastgoed Antwerp BVBA" />
-                </Field>
-                <Field label="Contact email" id="team-email" hint="Team-wide inbox for notifications">
-                  <Input id="team-email" type="email" defaultValue={team.email ?? ""} placeholder="contact@team.be" />
-                </Field>
-                <Field label="VAT number" id="vat" hint="Belgian format: BE 0xxx.xxx.xxx">
-                  <Input id="vat" defaultValue={team.vatNumber ?? ""} placeholder="BE 0xxx.xxx.xxx" />
-                </Field>
-                <Field label="KBO / Chamber of Commerce" id="kbo">
-                  <Input id="kbo" defaultValue={team.kboNumber ?? ""} placeholder="0xxxxxxxxx" />
-                </Field>
-                <Field label="IBAN" id="iban">
-                  <Input id="iban" defaultValue={team.iban ?? ""} placeholder="BE68 5390 0754 7034" />
-                </Field>
-                <Field label="Billing email" id="bill-email" hint="Invoice delivery address">
-                  <Input id="bill-email" type="email" defaultValue={team.billingEmail ?? ""} placeholder="billing@team.be" />
-                </Field>
-              </div>
+            <form action={canTransfer ? boundUpdateBilling : undefined}>
+              <CardHeader>
+                <CardTitle>Billing & legal</CardTitle>
+                <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
+                  Legal entity details for invoices issued to and from this team.
+                </p>
+              </CardHeader>
+              <CardBody className="space-y-5">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Legal name" id="legal-name" hint="Official entity name on invoices">
+                    <Input id="legal-name" name="legalName" defaultValue={team.legalName ?? ""} placeholder="e.g. Vastgoed Antwerp BVBA" disabled={!canTransfer} />
+                  </Field>
+                  <Field label="Contact email" id="team-email" hint="Team-wide inbox for notifications">
+                    <Input id="team-email" name="email" type="email" defaultValue={team.email ?? ""} placeholder="contact@team.be" disabled={!canTransfer} />
+                  </Field>
+                  <Field label="VAT number" id="vat" hint="Belgian format: BE 0xxx.xxx.xxx">
+                    <Input id="vat" name="vatNumber" defaultValue={team.vatNumber ?? ""} placeholder="BE 0xxx.xxx.xxx" disabled={!canTransfer} />
+                  </Field>
+                  <Field label="KBO / Chamber of Commerce" id="kbo">
+                    <Input id="kbo" name="kboNumber" defaultValue={team.kboNumber ?? ""} placeholder="0xxxxxxxxx" disabled={!canTransfer} />
+                  </Field>
+                  <Field label="IBAN" id="iban">
+                    <Input id="iban" name="iban" defaultValue={team.iban ?? ""} placeholder="BE68 5390 0754 7034" disabled={!canTransfer} />
+                  </Field>
+                  <Field label="Billing email" id="bill-email" hint="Invoice delivery address">
+                    <Input id="bill-email" name="billingEmail" type="email" defaultValue={team.billingEmail ?? ""} placeholder="billing@team.be" disabled={!canTransfer} />
+                  </Field>
+                </div>
 
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Billing phone" id="bill-phone">
-                  <Input id="bill-phone" defaultValue={team.billingPhone ?? ""} placeholder="+32 …" />
-                </Field>
-                <Field label="Default invoice recipient" id="client-type" hint="Fallback when creating assignments">
-                  <Select id="client-type" defaultValue={team.defaultClientType ?? ""}>
-                    <option value="">— Pick per assignment —</option>
-                    <option value="owner">Property owner</option>
-                    <option value="firm">Firm / agency</option>
-                  </Select>
-                </Field>
-              </div>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Billing phone" id="bill-phone">
+                    <Input id="bill-phone" name="billingPhone" defaultValue={team.billingPhone ?? ""} placeholder="+32 …" disabled={!canTransfer} />
+                  </Field>
+                  <Field label="Default invoice recipient" id="client-type" hint="Fallback when creating assignments">
+                    <Select id="client-type" name="defaultClientType" defaultValue={team.defaultClientType ?? ""} disabled={!canTransfer}>
+                      <option value="">— Pick per assignment —</option>
+                      <option value="owner">Property owner</option>
+                      <option value="firm">Firm / agency</option>
+                    </Select>
+                  </Field>
+                </div>
 
-              <div className="grid gap-5 sm:grid-cols-[2fr_1fr_2fr_1fr]">
-                <Field label="Address" id="billing-address">
-                  <Input id="billing-address" defaultValue={team.billingAddress ?? ""} placeholder="Street + number" />
-                </Field>
-                <Field label="Postal" id="billing-postal">
-                  <Input id="billing-postal" defaultValue={team.billingPostal ?? ""} placeholder="2000" />
-                </Field>
-                <Field label="City" id="billing-city">
-                  <Input id="billing-city" defaultValue={team.billingCity ?? ""} placeholder="Antwerpen" />
-                </Field>
-                <Field label="Country" id="billing-country">
-                  <Input id="billing-country" defaultValue={team.billingCountry ?? "Belgium"} />
-                </Field>
-              </div>
+                <div className="grid gap-5 sm:grid-cols-[2fr_1fr_2fr_1fr]">
+                  <Field label="Address" id="billing-address">
+                    <Input id="billing-address" name="billingAddress" defaultValue={team.billingAddress ?? ""} placeholder="Street + number" disabled={!canTransfer} />
+                  </Field>
+                  <Field label="Postal" id="billing-postal">
+                    <Input id="billing-postal" name="billingPostal" defaultValue={team.billingPostal ?? ""} placeholder="2000" disabled={!canTransfer} />
+                  </Field>
+                  <Field label="City" id="billing-city">
+                    <Input id="billing-city" name="billingCity" defaultValue={team.billingCity ?? ""} placeholder="Antwerpen" disabled={!canTransfer} />
+                  </Field>
+                  <Field label="Country" id="billing-country">
+                    <Input id="billing-country" name="billingCountry" defaultValue={team.billingCountry ?? "Belgium"} disabled={!canTransfer} />
+                  </Field>
+                </div>
 
-              <Field label="Description / internal notes" id="description">
-                <Textarea
-                  id="description"
-                  rows={3}
-                  defaultValue={team.description ?? ""}
-                  placeholder="Anything worth remembering about this team — primary contact, scheduling quirks, …"
-                />
-              </Field>
-            </CardBody>
+                <Field label="Description / internal notes" id="description">
+                  <Textarea
+                    id="description"
+                    name="description"
+                    rows={3}
+                    defaultValue={team.description ?? ""}
+                    placeholder="Anything worth remembering about this team — primary contact, scheduling quirks, …"
+                    disabled={!canTransfer}
+                  />
+                </Field>
+
+                {canTransfer && (
+                  <div className="flex justify-end pt-2">
+                    <Button type="submit">Save billing details</Button>
+                  </div>
+                )}
+              </CardBody>
+            </form>
           </Card>
         </section>
 

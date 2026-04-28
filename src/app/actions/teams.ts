@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { audit, type SessionWithUser } from "@/lib/auth";
-import { canCreateTeam, canEditTeam, hasRole } from "@/lib/permissions";
+import { canCreateFirstTeam, canCreateTeam, canEditTeam, hasRole } from "@/lib/permissions";
 import { withSession, type ActionResult } from "./_types";
 
 // ─── Schemas ───────────────────────────────────────────────────────
@@ -122,7 +122,12 @@ export async function createTeamInner(
   _prev: ActionResult<{ id: string }> | undefined,
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
-  if (!canCreateTeam(session)) {
+  // Admin can always create. Realtors get a one-shot founder grant via
+  // canCreateFirstTeam (zero owned teams). After their first team they
+  // fall back to admin-only — preventing realtor team proliferation.
+  const allowed =
+    canCreateTeam(session) || (await canCreateFirstTeam(session));
+  if (!allowed) {
     return { ok: false, error: "You don't have permission to create teams." };
   }
 
@@ -273,6 +278,120 @@ export const updateTeam = withSession(async (
   const result = await updateTeamInner(session, teamId, _prev, formData);
   if (result.ok) redirect(`/dashboard/teams/${teamId}`);
   return result;
+});
+
+// ─── Update billing (partial — legal entity + invoice details only) ─
+
+/**
+ * Subset schema for the inline "Billing & legal" section on the team detail
+ * page. Lets that section save without requiring `name` / `logo` / commission
+ * config the way the full `updateTeam` form does. Fields mirror v1's
+ * Platform `TeamEdit` Livewire component (legal_name, vat_number,
+ * chamber_of_commerce_number, iban, billing_address) plus a few v2
+ * additions (defaultClientType, internal description).
+ */
+const billingSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("Team email looks invalid.")
+    .max(200)
+    .or(z.literal(""))
+    .optional()
+    .transform((s) => (s ? s : null)),
+  legalName: optString(200),
+  vatNumber: optString(40),
+  kboNumber: optString(40),
+  iban: optString(40),
+  billingEmail: z
+    .string()
+    .trim()
+    .email("Billing email looks invalid.")
+    .max(200)
+    .or(z.literal(""))
+    .optional()
+    .transform((s) => (s ? s : null)),
+  billingPhone: optString(40),
+  billingAddress: optString(200),
+  billingPostal: optString(20),
+  billingCity: optString(80),
+  billingCountry: optString(80),
+  defaultClientType: z
+    .enum(["owner", "firm"])
+    .or(z.literal(""))
+    .optional()
+    .transform((v) => (v ? v : null)),
+  description: optString(1000),
+});
+
+export async function updateTeamBillingInner(
+  session: SessionWithUser,
+  teamId: string,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  if (!(await canEditTeam(session, teamId))) {
+    return { ok: false, error: "You don't have permission to edit this team." };
+  }
+
+  const parsed = billingSchema.safeParse({
+    email: (formData.get("email") as string) || "",
+    legalName: (formData.get("legalName") as string) || "",
+    vatNumber: (formData.get("vatNumber") as string) || "",
+    kboNumber: (formData.get("kboNumber") as string) || "",
+    iban: (formData.get("iban") as string) || "",
+    billingEmail: (formData.get("billingEmail") as string) || "",
+    billingPhone: (formData.get("billingPhone") as string) || "",
+    billingAddress: (formData.get("billingAddress") as string) || "",
+    billingPostal: (formData.get("billingPostal") as string) || "",
+    billingCity: (formData.get("billingCity") as string) || "",
+    billingCountry: (formData.get("billingCountry") as string) || "",
+    defaultClientType: (formData.get("defaultClientType") as string) || "",
+    description: (formData.get("description") as string) || "",
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+  }
+  const d = parsed.data;
+
+  await prisma.team.update({
+    where: { id: teamId },
+    data: {
+      email: d.email ?? null,
+      legalName: d.legalName ?? null,
+      vatNumber: d.vatNumber ?? null,
+      kboNumber: d.kboNumber ?? null,
+      iban: d.iban ?? null,
+      billingEmail: d.billingEmail ?? null,
+      billingPhone: d.billingPhone ?? null,
+      billingAddress: d.billingAddress ?? null,
+      billingPostal: d.billingPostal ?? null,
+      billingCity: d.billingCity ?? null,
+      billingCountry: d.billingCountry ?? null,
+      defaultClientType: d.defaultClientType ?? null,
+      description: d.description ?? null,
+    },
+  });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "team.updated",
+    objectType: "team",
+    objectId: teamId,
+    metadata: { section: "billing" },
+  });
+
+  revalidatePath(`/dashboard/teams/${teamId}`);
+  return { ok: true };
+}
+
+export const updateTeamBilling = withSession(async (
+  session: SessionWithUser,
+  teamId: string,
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> => {
+  return await updateTeamBillingInner(session, teamId, _prev, formData);
 });
 
 // ─── Delete ────────────────────────────────────────────────────────
