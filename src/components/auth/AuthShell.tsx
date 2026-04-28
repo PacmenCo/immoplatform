@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { BrandName } from "@/components/BrandName";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export function AuthShell({
   title,
@@ -16,8 +17,8 @@ export function AuthShell({
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="flex flex-col justify-between px-8 py-10 sm:px-16">
-        <Link href="/" className="flex items-center font-semibold">
-          <BrandName className="text-xl" />
+        <Link href="/" className="inline-flex items-center" aria-label="immoplatform.be — home">
+          <BrandLogo className="h-12 w-auto" />
         </Link>
 
         <main id="main" className="mx-auto w-full max-w-sm">

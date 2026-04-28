@@ -16,7 +16,7 @@ import {
   IconMegaphone,
   IconLogout,
 } from "@/components/ui/Icons";
-import { BrandName } from "@/components/BrandName";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const NAV = [
   { href: "/dashboard", label: "Overview", icon: IconHome },
@@ -159,8 +159,8 @@ export function MobileTopbar() {
         )}
       </div>
 
-      <Link href="/dashboard" className="flex items-center font-semibold">
-        <BrandName className="text-base" />
+      <Link href="/dashboard" className="flex items-center" aria-label="immoplatform.be — dashboard">
+        <BrandLogo className="h-7 w-auto" />
       </Link>
 
       <div className="flex items-center gap-1 sm:gap-2">

@@ -1,18 +1,13 @@
 import Link from "next/link";
 import { MobileNav } from "@/components/MobileNav";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function Nav() {
   return (
     <header className="sticky top-0 z-50 bg-[color-mix(in_srgb,var(--color-bg)_80%,transparent)] backdrop-blur border-b border-[var(--color-border)]">
       <div className="mx-auto flex h-16 max-w-[var(--container)] items-center justify-between gap-3 px-4 sm:px-6">
         <Link href="/" className="flex items-center" aria-label="immoplatform.be — home">
-          <img
-            src="/logo.png"
-            alt="immoplatform.be"
-            width={998}
-            height={250}
-            className="h-8 w-auto"
-          />
+          <BrandLogo className="h-12 w-auto" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm text-[var(--color-ink-soft)]">

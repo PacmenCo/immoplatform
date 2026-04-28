@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { IconCheck, IconArrowRight } from "@/components/ui/Icons";
 import { SERVICES, type ServiceKey } from "@/lib/mockData";
-import { BrandName } from "@/components/BrandName";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const STEPS = [
   { n: 1, label: "Profile", href: "/onboarding/profile" },
@@ -26,8 +26,8 @@ export default function OnboardingServicesPage() {
     <div className="min-h-screen bg-[var(--color-bg-alt)]">
       <header className="border-b border-[var(--color-border)] bg-white">
         <div className="mx-auto flex h-16 max-w-[var(--container)] items-center justify-between px-6">
-          <Link href="/" className="flex items-center font-semibold">
-            <BrandName className="text-lg" />
+          <Link href="/" className="inline-flex items-center" aria-label="immoplatform.be — home">
+            <BrandLogo className="h-10 w-auto" />
           </Link>
           <Link href="/onboarding" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]">
             Back to overview
