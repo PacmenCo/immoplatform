@@ -14,6 +14,7 @@ import {
   assignmentScope,
   composeWhere,
   eligibleFreelancerWhere,
+  gateRealtorRequiresTeam,
   hasRole,
   role,
   teamScope,
@@ -109,6 +110,7 @@ export default async function AssignmentsList({
   searchParams: SearchParams;
 }) {
   const session = await requireSession();
+  await gateRealtorRequiresTeam(session);
   const scope = await assignmentScope(session);
   const r = role(session);
   const isFreelancer = hasRole(session, "freelancer");

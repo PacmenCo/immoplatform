@@ -197,10 +197,7 @@ export default async function AssignmentDetail({
                 canTransition &&
                 canRoleTransitionTo(role(session), assignment.status as Status, "in_progress")
               }
-              canDeliver={
-                canTransition &&
-                canRoleTransitionTo(role(session), assignment.status as Status, "delivered")
-              }
+              canDeliver={canTransition}
               canUpdateFields={canUpdateFields}
               canComplete={canComplete}
               canCancel={canCancel}

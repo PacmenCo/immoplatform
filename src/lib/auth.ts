@@ -201,6 +201,7 @@ export type AuditVerb =
   | "assignment.updated"
   | "assignment.started"
   | "assignment.delivered"
+  | "assignment.undelivered"
   | "assignment.completed"
   | "assignment.cancelled"
   | "assignment.reassigned"

@@ -94,12 +94,14 @@ describe("createInviteInner — role gate", () => {
   it("realtor can only invite to teams they OWN", async () => {
     const { realtor } = await seedBaseline();
     // realtor owns t_test_1 via seedBaseline. Try to invite to t_test_2 — no owner membership.
+    // Use realtor invitee since freelancer + teamId is now schema-rejected
+    // (v1 parity: freelancers are platform-global, never team-attached).
     const res = await createInviteInner(
       realtor,
       undefined,
       form({
-        email: "freelo@test.local",
-        role: "freelancer",
+        email: "newcoworker@test.local",
+        role: "realtor",
         teamId: "t_test_2",
         teamRole: "member",
       }),
@@ -127,10 +129,11 @@ describe("createInviteInner — role gate", () => {
 describe("createInviteInner — team pairing", () => {
   it("teamId without teamRole → rejected", async () => {
     const { admin, teams } = await seedBaseline();
+    // Use realtor invitee — freelancer + teamId is now schema-rejected.
     const res = await createInviteInner(
       admin,
       undefined,
-      form({ email: "x@test.local", role: "freelancer", teamId: teams.t1.id }),
+      form({ email: "x@test.local", role: "realtor", teamId: teams.t1.id }),
     );
     expect(res).toEqual({
       ok: false,
@@ -143,7 +146,7 @@ describe("createInviteInner — team pairing", () => {
     const res = await createInviteInner(
       admin,
       undefined,
-      form({ email: "x@test.local", role: "freelancer", teamRole: "owner" }),
+      form({ email: "x@test.local", role: "realtor", teamRole: "owner" }),
     );
     expect(res).toEqual({
       ok: false,
@@ -173,9 +176,38 @@ describe("createInviteInner — team pairing", () => {
 });
 
 describe("createInviteInner — existing user path", () => {
-  it("existing user + teamId → adds them to the team silently (no invite row)", async () => {
+  it("existing realtor user + teamId → adds them to the team silently (no invite row)", async () => {
+    // Need a non-owner realtor user that isn't already on t2. Create a fresh one.
+    const { admin, teams } = await seedBaseline();
+    const realtor2 = await makeSession({
+      role: "realtor",
+      userId: "u_realtor2",
+    });
+    const res = await createInviteInner(
+      admin,
+      undefined,
+      form({
+        email: realtor2.user.email,
+        role: "realtor",
+        teamId: teams.t2.id,
+        teamRole: "member",
+      }),
+    );
+    expect(res).toEqual({ ok: true });
+    const invites = await prisma.invite.count({
+      where: { email: realtor2.user.email },
+    });
+    expect(invites).toBe(0);
+    const membership = await prisma.teamMember.findUniqueOrThrow({
+      where: {
+        teamId_userId: { teamId: teams.t2.id, userId: realtor2.user.id },
+      },
+    });
+    expect(membership.teamRole).toBe("member");
+  });
+
+  it("existing freelancer user + teamId → REJECTED (v1 parity: freelancers can never be team-attached)", async () => {
     const { admin, teams, freelancer } = await seedBaseline();
-    // freelancer exists as a user but isn't on any team
     const res = await createInviteInner(
       admin,
       undefined,
@@ -186,25 +218,25 @@ describe("createInviteInner — existing user path", () => {
         teamRole: "member",
       }),
     );
-    expect(res).toEqual({ ok: true });
-    const invites = await prisma.invite.count({
-      where: { email: freelancer.user.email },
-    });
-    expect(invites).toBe(0);
-    const membership = await prisma.teamMember.findUniqueOrThrow({
-      where: {
-        teamId_userId: { teamId: teams.t2.id, userId: freelancer.user.id },
-      },
-    });
-    expect(membership.teamRole).toBe("member");
+    // Schema fires first because the invite payload has freelancer + teamId.
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toMatch(/Freelancers can't be assigned to a team/);
+    }
   });
 
-  it("existing user WITHOUT teamId → rejected with clear error", async () => {
-    const { admin, freelancer } = await seedBaseline();
+  it("existing user WITHOUT teamId → rejected with clear error (non-freelancer)", async () => {
+    const { admin } = await seedBaseline();
+    // Need an existing non-freelancer user since freelancer-existing now hits
+    // a different branch. Realtor with no team is the cleanest fixture.
+    const dangling = await makeSession({
+      role: "realtor",
+      userId: "u_dangling_realtor",
+    });
     const res = await createInviteInner(
       admin,
       undefined,
-      form({ email: freelancer.user.email, role: "freelancer" }),
+      form({ email: dangling.user.email, role: "realtor" }),
     );
     expect(res).toEqual({
       ok: false,
@@ -241,7 +273,7 @@ describe("createInviteInner — invite creation + shape", () => {
       undefined,
       form({
         email: "fresh@test.local",
-        role: "freelancer",
+        role: "realtor",
         teamId: teams.t1.id,
         teamRole: "member",
         note: "Welcome aboard!",
@@ -250,7 +282,7 @@ describe("createInviteInner — invite creation + shape", () => {
     const invite = await prisma.invite.findFirstOrThrow({
       where: { email: "fresh@test.local" },
     });
-    expect(invite.role).toBe("freelancer");
+    expect(invite.role).toBe("realtor");
     expect(invite.teamId).toBe(teams.t1.id);
     expect(invite.teamRole).toBe("member");
     expect(invite.note).toBe("Welcome aboard!");
@@ -296,7 +328,7 @@ describe("createInviteInner — invite creation + shape", () => {
       undefined,
       form({
         email: "duplicate@test.local",
-        role: "freelancer",
+        role: "realtor",
         teamId: teams.t1.id,
         teamRole: "member",
       }),
@@ -306,7 +338,7 @@ describe("createInviteInner — invite creation + shape", () => {
       undefined,
       form({
         email: "duplicate@test.local",
-        role: "freelancer",
+        role: "realtor",
         teamId: teams.t1.id,
         teamRole: "member",
       }),
@@ -329,7 +361,7 @@ describe("getInviteByToken", () => {
     const invite = await prisma.invite.create({
       data: {
         email: "invitee@test.local",
-        role: "freelancer",
+        role: "realtor",
         teamId: teams.t1.id,
         teamRole: "member",
         tokenHash: hashToken(token),
@@ -380,7 +412,7 @@ describe("acceptInviteInner", () => {
     const invite = await prisma.invite.create({
       data: {
         email: "accepted@test.local",
-        role: "freelancer",
+        role: "realtor",
         teamId: teams.t1.id,
         teamRole: "member",
         tokenHash: hashToken(token),
@@ -409,7 +441,7 @@ describe("acceptInviteInner", () => {
       where: { email: "accepted@test.local" },
     });
     expect(user.firstName).toBe("Newbie");
-    expect(user.role).toBe("freelancer");
+    expect(user.role).toBe("realtor");
     expect(user.emailVerifiedAt).toBeInstanceOf(Date);
 
     const membership = await prisma.teamMember.findUniqueOrThrow({
@@ -481,7 +513,7 @@ describe("acceptInviteInner", () => {
     await prisma.invite.create({
       data: {
         email: "expired-invitee@test.local",
-        role: "freelancer",
+        role: "realtor",
         teamId: teams.t1.id,
         teamRole: "member",
         tokenHash: hashToken(token),
@@ -511,7 +543,7 @@ describe("acceptInviteInner", () => {
     await prisma.invite.create({
       data: {
         email: "revoked-invitee@test.local",
-        role: "freelancer",
+        role: "realtor",
         teamId: teams.t1.id,
         teamRole: "member",
         tokenHash: hashToken(token),
@@ -808,5 +840,117 @@ describe("revokeInviteInner", () => {
       ok: false,
       error: "You don't have permission to revoke this invite.",
     });
+  });
+});
+
+// ─── v1 parity: freelancers are platform-global, never team-attached ──
+//
+// Mirrors `Platform/app/Services/TeamService.php:52`:
+//   if (! $user->hasRole('makelaar')) { continue; }
+// Three layers of defense in v2 — schema, action guard, accept-time guard.
+// All three should reject any path that would land a freelancer in
+// `team_member`. Belt + suspenders + safety net.
+
+describe("createInviteInner — freelancer team-attach blocked (v1 parity)", () => {
+  it("admin invites freelancer + teamId → schema rejects", async () => {
+    const { admin, teams } = await seedBaseline();
+    const res = await createInviteInner(
+      admin,
+      undefined,
+      form({
+        email: "freebie@test.local",
+        role: "freelancer",
+        teamId: teams.t1.id,
+        teamRole: "member",
+      }),
+    );
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toMatch(/Freelancers can't be assigned to a team/);
+    }
+    // Confirm no invite row was created either.
+    const invites = await prisma.invite.count({
+      where: { email: "freebie@test.local" },
+    });
+    expect(invites).toBe(0);
+  });
+
+  it("admin invites freelancer with NO teamId → succeeds (this is the only valid path)", async () => {
+    const { admin } = await seedBaseline();
+    const res = await createInviteInner(
+      admin,
+      undefined,
+      form({ email: "freebie@test.local", role: "freelancer" }),
+    );
+    expect(res).toEqual({ ok: true });
+    const invite = await prisma.invite.findFirstOrThrow({
+      where: { email: "freebie@test.local" },
+    });
+    expect(invite.role).toBe("freelancer");
+    expect(invite.teamId).toBeNull();
+    expect(invite.teamRole).toBeNull();
+  });
+
+  it("acceptInvite for a stale freelancer invite WITH teamId silently skips teamMember insert", async () => {
+    // Defensive layer: even if a pre-fix DB row carries teamId/teamRole on
+    // a freelancer invite, the accept path must NOT insert a team_member.
+    // Bypass createInvite (which would now reject) by writing the bad row
+    // directly — simulates legacy data.
+    const { admin, teams } = await seedBaseline();
+    const token = generateToken();
+    await prisma.invite.create({
+      data: {
+        email: "stale-freelancer@test.local",
+        role: "freelancer",
+        teamId: teams.t1.id,        // legacy/manual-SQL state
+        teamRole: "member",          // legacy/manual-SQL state
+        tokenHash: hashToken(token),
+        invitedById: admin.user.id,
+        expiresAt: new Date(Date.now() + 86_400_000),
+      },
+    });
+    const res = await acceptInviteInner(
+      undefined,
+      form({
+        token,
+        firstName: "Stale",
+        lastName: "Freelancer",
+        password: "ten-char-password",
+        confirm: "ten-char-password",
+      }),
+    );
+    expect(res).toEqual({ ok: true });
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { email: "stale-freelancer@test.local" },
+    });
+    expect(user.role).toBe("freelancer");
+    // Critical assertion — no team_member row created despite invite.teamId.
+    const memberships = await prisma.teamMember.count({
+      where: { userId: user.id },
+    });
+    expect(memberships).toBe(0);
+  });
+
+  it("admin invites EXISTING freelancer user with teamId → action rejects (defensive)", async () => {
+    const { admin, teams, freelancer } = await seedBaseline();
+    const res = await createInviteInner(
+      admin,
+      undefined,
+      form({
+        email: freelancer.user.email,
+        role: "freelancer",
+        teamId: teams.t2.id,
+        teamRole: "member",
+      }),
+    );
+    expect(res.ok).toBe(false);
+    // Schema fires first since freelancer + teamId is in payload.
+    if (!res.ok) {
+      expect(res.error).toMatch(/Freelancers can't be assigned to a team/);
+    }
+    const memberships = await prisma.teamMember.count({
+      where: { userId: freelancer.user.id, teamId: teams.t2.id },
+    });
+    expect(memberships).toBe(0);
   });
 });

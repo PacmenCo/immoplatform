@@ -19,13 +19,21 @@ import { addedToTeamEmail, inviteEmail, sendEmail } from "@/lib/email";
 import { inviteAcceptUrl, loginUrl } from "@/lib/urls";
 import { withSession, type ActionResult } from "./_types";
 
-const createInviteSchema = z.object({
-  email: z.string().email().transform((s) => s.toLowerCase().trim()),
-  role: z.enum(["admin", "staff", "realtor", "freelancer"]),
-  teamId: z.string().optional().or(z.literal("")),
-  teamRole: z.enum(["owner", "member"]).optional().or(z.literal("")),
-  note: z.string().max(500).optional(),
-});
+const createInviteSchema = z
+  .object({
+    email: z.string().email().transform((s) => s.toLowerCase().trim()),
+    role: z.enum(["admin", "staff", "realtor", "freelancer"]),
+    teamId: z.string().optional().or(z.literal("")),
+    teamRole: z.enum(["owner", "member"]).optional().or(z.literal("")),
+    note: z.string().max(500).optional(),
+  })
+  // v1 parity: freelancers are platform-global, never team members.
+  // `Platform/app/Services/TeamService.php:52` explicitly skips non-makelaars.
+  // Block at the schema layer so any caller (UI, API) sees the same rejection.
+  .refine((d) => !(d.role === "freelancer" && d.teamId), {
+    message: "Freelancers can't be assigned to a team — they work platform-wide.",
+    path: ["teamId"],
+  });
 
 // ─── CREATE INVITE ─────────────────────────────────────────────────
 
@@ -106,6 +114,16 @@ export async function createInviteInner(
   // Existing user → add to team silently instead of creating an invite.
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
+    // v1 parity: an existing freelancer can never be team-attached even if
+    // the inviter accidentally wires it up. Schema also blocks at create
+    // time, but the user's actual role here is the source of truth (their
+    // role might have been changed since invite-time).
+    if (existing.role === "freelancer" && (teamId || teamRole)) {
+      return {
+        ok: false,
+        error: "This email belongs to a freelancer — freelancers work platform-wide and can't be added to teams.",
+      };
+    }
     if (!teamId || !teamRole) {
       return {
         ok: false,
@@ -317,7 +335,10 @@ export async function acceptInviteInner(
           emailVerifiedAt: new Date(),
         },
       });
-      if (invite.teamId && invite.teamRole) {
+      // Skip team-member creation for freelancers — v1 parity. Pre-fix
+      // invites that slipped through the schema (legacy DB state, manual
+      // SQL) shouldn't silently attach a freelancer to a team here either.
+      if (invite.teamId && invite.teamRole && user.role !== "freelancer") {
         await tx.teamMember.create({
           data: {
             teamId: invite.teamId,

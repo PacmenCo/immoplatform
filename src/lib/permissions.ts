@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import type { SessionWithUser } from "./auth";
@@ -77,18 +78,20 @@ export async function assignmentScope(
   s: SessionWithUser,
 ): Promise<Prisma.AssignmentWhereInput | undefined> {
   if (hasRole(s, "admin", "staff")) return undefined;
-  const { all } = await getUserTeamIds(s.user.id);
   if (hasRole(s, "realtor")) {
+    const { all } = await getUserTeamIds(s.user.id);
     // createdById branch keeps the list in sync with canViewAssignment — a realtor
     // who created a row still sees it after leaving the team.
     return {
       OR: [{ createdById: s.user.id }, { teamId: { in: all } }],
     };
   }
-  // freelancer — union: assigned-to-me OR member-of-its-team
-  return {
-    OR: [{ freelancerId: s.user.id }, { teamId: { in: all } }],
-  };
+  // freelancer — strictly assigned-to-me, mirroring v1's
+  // `where('freelancer_id', $user->id)` (Platform/app/Livewire/AssignmentsList.php:233).
+  // Even if a stale teamMember row exists (legacy DB state pre-fix), they
+  // shouldn't see team-wide assignments — freelancers are platform-global
+  // workers, not team participants.
+  return { freelancerId: s.user.id };
 }
 
 export async function teamScope(
@@ -299,12 +302,48 @@ export async function canEditTeam(
 }
 
 /**
- * Create a new team. Admin only — Platform's /admin/teams resource is
- * role:admin, and Team.realtor_id is set at create time by admin (the
- * creator assigns a realtor as owner). Realtors cannot self-serve a team.
+ * Create a new team. Admin only by default — Platform's /admin/teams
+ * resource is role:admin. Realtors get a one-shot founder flow handled
+ * separately by `canCreateFirstTeam` so the action layer can OR the two.
  */
 export function canCreateTeam(s: SessionWithUser): boolean {
   return hasRole(s, "admin");
+}
+
+/**
+ * Founder flow: a realtor who owns zero teams may create their first one,
+ * mirroring the agency-bootstrap path that v1's admin had to do manually.
+ * After creating it they own one team, so this returns false on the next
+ * call — preventing realtor-driven team proliferation. Beyond the first
+ * team, only admin can create.
+ *
+ * Membership in someone else's team (invitee) does NOT consume the founder
+ * grant — a realtor freelancing for one agency can still bootstrap their
+ * own. The check is on `owned`, not `all`.
+ */
+export async function canCreateFirstTeam(s: SessionWithUser): Promise<boolean> {
+  if (!hasRole(s, "realtor")) return false;
+  const { owned } = await getUserTeamIds(s.user.id);
+  return owned.length === 0;
+}
+
+/**
+ * Soft team-membership gate. Mirrors v1's `EnsureRealtorHasTeam` middleware
+ * (Platform/app/Http/Middleware/EnsureRealtorHasTeam.php) — only realtors
+ * are gated, and only when they have zero memberships. Admin, staff, and
+ * freelancer always pass. Realtor with any membership (owner OR invitee)
+ * passes — same semantics as v1's `isInvitee()` escape hatch.
+ *
+ * Call at the top of pages that require a team context (overview,
+ * assignments, calendar, file ops). Don't call from `/dashboard/teams` —
+ * that's the founder's escape hatch and must remain reachable.
+ */
+export async function gateRealtorRequiresTeam(s: SessionWithUser): Promise<void> {
+  if (!hasRole(s, "realtor")) return;
+  const { all } = await getUserTeamIds(s.user.id);
+  if (all.length === 0) {
+    redirect("/dashboard/teams?needs_team=1");
+  }
 }
 
 /**

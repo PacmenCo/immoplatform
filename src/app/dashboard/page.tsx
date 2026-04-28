@@ -12,7 +12,16 @@ import {
 import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { assignmentScope, canCreateAssignment, composeWhere, hasRole, role, userScope, type Role } from "@/lib/permissions";
+import {
+  assignmentScope,
+  canCreateAssignment,
+  composeWhere,
+  gateRealtorRequiresTeam,
+  hasRole,
+  role,
+  userScope,
+  type Role,
+} from "@/lib/permissions";
 import { AnnouncementBanner } from "@/components/dashboard/AnnouncementBanner";
 import { loadActiveAnnouncements } from "@/lib/announcements";
 
@@ -33,6 +42,7 @@ export const metadata = { title: "Dashboard" };
 
 export default async function DashboardHome() {
   const session = await requireSession();
+  await gateRealtorRequiresTeam(session);
 
   const now = new Date();
   const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);

@@ -6,7 +6,7 @@ import { getSession } from "@/lib/auth";
 import { avatarImageUrl } from "@/lib/avatar";
 import { prisma } from "@/lib/db";
 import { initials } from "@/lib/format";
-import { getUserTeamIds, hasRole } from "@/lib/permissions";
+import { hasRole } from "@/lib/permissions";
 import { BRAND_NAME } from "@/lib/site";
 
 // Per-page titles. Pages set their own `export const metadata` and Next slots
@@ -26,13 +26,12 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Realtor-needs-team gate. Admins & staff bypass; freelancers are allowed
-  // without a team (they may work independently). getUserTeamIds is cached,
-  // so child pages that inspect memberships reuse this result.
-  if (hasRole(session, "realtor")) {
-    const { all } = await getUserTeamIds(session.user.id);
-    if (all.length === 0) redirect("/no-team");
-  }
+  // No layout-level team gate. Realtor team-membership is enforced softly,
+  // page-by-page, via `gateRealtorRequiresTeam` (mirroring v1's
+  // `EnsureRealtorHasTeam` middleware which is route-scoped, not global).
+  // This keeps `/dashboard/teams` and `/dashboard/settings` reachable for
+  // a team-less realtor so they can create their first team or update
+  // their profile — same recovery surface v1 offered.
 
   const user = session.user;
 

@@ -641,7 +641,14 @@ export const createAssignment = withSession(async (
   return result;
 });
 
-// ─── Mark delivered ────────────────────────────────────────────────
+// ─── Mark delivered (toggle) ───────────────────────────────────────
+//
+// Mirrors v1's `AssignmentController::markFinished` (Platform/app/Http/
+// Controllers/AssignmentController.php:1066-1077) which toggles `finished_at`:
+// set to now() if null, set to null if not. v2 splits delivered (freelancer
+// says "done") from completed (agency confirms + applies commission), so the
+// toggle here is bound to the delivered ↔ in_progress edge only — completed
+// remains a one-way gate (commission already applied).
 
 export const markAssignmentDelivered = withSession(async (
   session,
@@ -649,9 +656,6 @@ export const markAssignmentDelivered = withSession(async (
 ): Promise<ActionResult> => {
   const a = await prisma.assignment.findUnique({ where: { id } });
   if (!a) return { ok: false, error: "Assignment not found." };
-  if (a.status === "delivered" || a.status === "completed") {
-    return { ok: false, error: "Already delivered." };
-  }
 
   if (!(await canEditAssignment(session, a))) {
     return {
@@ -660,10 +664,32 @@ export const markAssignmentDelivered = withSession(async (
     };
   }
 
-  const claim = await prisma.assignment.updateMany({
-    where: { id, status: { in: sourcesOf("delivered") } },
-    data: { status: "delivered", deliveredAt: new Date() },
-  });
+  // Completed = commission applied, audit trail closed. Reverting that here
+  // would silently bypass the un-completion path. Reject and steer the user
+  // to whoever owns reversing a completed row.
+  if (a.status === "completed") {
+    return {
+      ok: false,
+      error: "This assignment is already completed — reversing requires admin help.",
+    };
+  }
+
+  // Toggle back to in_progress when the row is currently delivered. Same
+  // reversibility v1 freelancers had on `finished_at`. The status sources
+  // for delivered include in_progress + scheduled etc.; the un-mark target
+  // is in_progress regardless of how it got to delivered, since v2 has no
+  // "go back to scheduled" flow at this point in the lifecycle.
+  const isUnmark = a.status === "delivered";
+
+  const claim = isUnmark
+    ? await prisma.assignment.updateMany({
+        where: { id, status: "delivered" },
+        data: { status: "in_progress", deliveredAt: null },
+      })
+    : await prisma.assignment.updateMany({
+        where: { id, status: { in: sourcesOf("delivered") } },
+        data: { status: "delivered", deliveredAt: new Date() },
+      });
   if (claim.count === 0) {
     return {
       ok: false,
@@ -673,7 +699,7 @@ export const markAssignmentDelivered = withSession(async (
 
   await audit({
     actorId: session.user.id,
-    verb: "assignment.delivered",
+    verb: isUnmark ? "assignment.undelivered" : "assignment.delivered",
     objectType: "assignment",
     objectId: id,
     metadata: { fromStatus: a.status },
@@ -682,38 +708,43 @@ export const markAssignmentDelivered = withSession(async (
   // Notify everyone on the row who didn't flip the switch: creator + team
   // owners (agency side) AND the assigned freelancer. When an admin or realtor
   // marks delivered on behalf, the freelancer should still learn that their
-  // work just moved into the agency's review queue.
-  const [agency, assignedFreelancer] = await Promise.all([
-    collectAgencyRecipients({
-      teamId: a.teamId,
-      createdById: a.createdById,
-      exclude: [session.user.id],
-    }),
-    loadUser(a.freelancerId),
-  ]);
-  const deliveredRecipients: Recipient[] = [...agency];
-  if (assignedFreelancer && assignedFreelancer.id !== session.user.id) {
-    // Avoid double-notifying if the freelancer is also the creator.
-    if (!deliveredRecipients.some((r) => r.id === assignedFreelancer.id)) {
-      deliveredRecipients.push(assignedFreelancer);
-    }
-  }
-  const actorName = fullName(session.user);
-  const freelancerName = assignedFreelancer ? fullName(assignedFreelancer) : null;
-  await Promise.all(
-    deliveredRecipients.map(async (r) =>
-      notify({
-        to: r,
-        event: "assignment.delivered",
-        ...(await assignmentDeliveredEmail({
-          ...ctxFromAssignment(a),
-          recipientName: r.firstName,
-          actorName,
-          freelancerName,
-        })),
+  // work just moved into the agency's review queue. v1 only fired on the
+  // forward direction; we mirror that — un-marking is rare, usually a "oops"
+  // by the freelancer, and dragging the agency into the inbox for it would be
+  // noisy.
+  if (!isUnmark) {
+    const [agency, assignedFreelancer] = await Promise.all([
+      collectAgencyRecipients({
+        teamId: a.teamId,
+        createdById: a.createdById,
+        exclude: [session.user.id],
       }),
-    ),
-  );
+      loadUser(a.freelancerId),
+    ]);
+    const deliveredRecipients: Recipient[] = [...agency];
+    if (assignedFreelancer && assignedFreelancer.id !== session.user.id) {
+      // Avoid double-notifying if the freelancer is also the creator.
+      if (!deliveredRecipients.some((r) => r.id === assignedFreelancer.id)) {
+        deliveredRecipients.push(assignedFreelancer);
+      }
+    }
+    const actorName = fullName(session.user);
+    const freelancerName = assignedFreelancer ? fullName(assignedFreelancer) : null;
+    await Promise.all(
+      deliveredRecipients.map(async (r) =>
+        notify({
+          to: r,
+          event: "assignment.delivered",
+          ...(await assignmentDeliveredEmail({
+            ...ctxFromAssignment(a),
+            recipientName: r.firstName,
+            actorName,
+            freelancerName,
+          })),
+        }),
+      ),
+    );
+  }
 
   revalidatePath(`/dashboard/assignments/${id}`);
   revalidatePath("/dashboard/assignments");

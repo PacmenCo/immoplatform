@@ -16,18 +16,41 @@ import {
 } from "@/components/ui/Icons";
 import { prisma } from "@/lib/db";
 import { requireRoleOrRedirect } from "@/lib/auth";
-import { composeWhere, teamScope } from "@/lib/permissions";
+import {
+  canCreateFirstTeam,
+  composeWhere,
+  getUserTeamIds,
+  hasRole,
+  teamScope,
+} from "@/lib/permissions";
 import { initials } from "@/lib/format";
 
 export const metadata = { title: "Teams" };
 
-export default async function TeamsPage() {
+export default async function TeamsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ needs_team?: string }>;
+}) {
   const session = await requireRoleOrRedirect(
     ["admin", "staff", "realtor"],
     "teams",
   );
+  const params = await searchParams;
   const scope = await teamScope(session);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  // Founder-flow surface for realtors with no memberships. Shown both when
+  // arrived via the soft-gate redirect (?needs_team=1) and on direct visit
+  // — the trigger is the user's actual state, not the URL flag.
+  const isRealtorWithoutTeam =
+    hasRole(session, "realtor") &&
+    (await getUserTeamIds(session.user.id)).all.length === 0;
+  const showFounderBanner = isRealtorWithoutTeam;
+  const canFound = showFounderBanner && (await canCreateFirstTeam(session));
+  // Suppress the "you tried to access X" prefix when arriving directly so
+  // the banner reads naturally.
+  const fromGate = params.needs_team === "1";
 
   const teams = await prisma.team.findMany({
     where: composeWhere(scope),
@@ -66,6 +89,47 @@ export default async function TeamsPage() {
       <Topbar title="Teams" subtitle={`${totals.teams} offices`} />
 
       <div className="p-8 max-w-[1400px] space-y-6">
+        {showFounderBanner && (
+          <Card className="border-[var(--color-accent)]/30 bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-bg))]">
+            <CardBody className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <span
+                  aria-hidden
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
+                >
+                  <IconBuilding size={20} />
+                </span>
+                <div>
+                  <p className="font-semibold text-[var(--color-ink)]">
+                    {fromGate
+                      ? "You need a team before you can use that section."
+                      : "Your agency isn't set up yet."}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                    {canFound
+                      ? "Create your office to get started — you can invite teammates and order certificates afterwards."
+                      : "Ask an administrator to create your office, or contact support if you're a new agency owner."}
+                  </p>
+                </div>
+              </div>
+              {canFound ? (
+                <Button href="/dashboard/teams/new" size="md">
+                  <IconPlus size={14} />
+                  Create your office
+                </Button>
+              ) : (
+                <Button
+                  href="mailto:jordan@asbestexperts.be"
+                  variant="secondary"
+                  size="md"
+                >
+                  Contact support
+                </Button>
+              )}
+            </CardBody>
+          </Card>
+        )}
+
         {/* Header summary */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

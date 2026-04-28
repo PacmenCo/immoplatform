@@ -3,7 +3,7 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { Card } from "@/components/ui/Card";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { assignmentScope, composeWhere } from "@/lib/permissions";
+import { assignmentScope, composeWhere, gateRealtorRequiresTeam } from "@/lib/permissions";
 import { STATUS_META, type Status } from "@/lib/mockData";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -85,6 +85,7 @@ export const metadata = { title: "Calendar" };
 
 export default async function CalendarPage({ searchParams }: { searchParams: SearchParams }) {
   const session = await requireSession();
+  await gateRealtorRequiresTeam(session);
   const params = await searchParams;
   const view: View = params.view === "week" ? "week" : "month";
   const cursor = parseDateParam(params.date);

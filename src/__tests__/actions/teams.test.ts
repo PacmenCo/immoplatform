@@ -51,12 +51,13 @@ describe("createTeamInner — role gate", () => {
     expect(res.ok).toBe(true);
   });
 
-  it("realtor rejected — v1 parity (Platform admin/teams is role:admin)", async () => {
+  it("realtor with an existing owned team rejected — founder grant already used", async () => {
+    // seedBaseline's realtor owns t_test_1 → no founder grant remains.
     const { realtor } = await seedBaseline();
     const res = await createTeamInner(
       realtor,
       undefined,
-      teamForm({ name: "Realtor's New Team" }),
+      teamForm({ name: "Realtor's Second Team" }),
     );
     expect(res).toEqual({
       ok: false,
@@ -77,6 +78,72 @@ describe("createTeamInner — role gate", () => {
     const { freelancer } = await seedBaseline();
     const res = await createTeamInner(freelancer, undefined, teamForm());
     expect(res).toEqual({
+      ok: false,
+      error: "You don't have permission to create teams.",
+    });
+  });
+});
+
+describe("createTeamInner — realtor founder flow", () => {
+  // v1+1 enhancement: a realtor who owns zero teams may bootstrap their
+  // own. Mirrors v1's "agency owner contacts admin" path, but self-serve.
+  // Capped at one to prevent realtor team proliferation — a realtor with
+  // one owned team falls back to admin-only for any subsequent team.
+
+  it("realtor with zero owned teams can create their first", async () => {
+    await import("../_helpers/fixtures").then((m) => m.seedServices());
+    const founder = await makeSession({
+      role: "realtor",
+      userId: "u_founder",
+      // Deliberately no membershipTeams — they're freshly self-registered.
+    });
+    const res = await createTeamInner(
+      founder,
+      undefined,
+      teamForm({ name: "Founder's First Office" }),
+    );
+    expect(res.ok).toBe(true);
+  });
+
+  it("realtor on someone else's team (no ownership) can still bootstrap their own", async () => {
+    // Mirrors a realtor who freelances at one agency and starts their own
+    // on the side. v1's `isInvitee()` lets them pass the team-membership
+    // gate; the founder grant lets them ALSO create their own office.
+    await import("../_helpers/fixtures").then((m) => m.seedServices());
+    const otherTeam = await seedTeam("t_other", "Other Agency");
+    const founder = await makeSession({
+      role: "realtor",
+      userId: "u_invitee_founder",
+      membershipTeams: [{ teamId: otherTeam.id, teamRole: "member" }],
+    });
+    const res = await createTeamInner(
+      founder,
+      undefined,
+      teamForm({ name: "Side Hustle Office" }),
+    );
+    expect(res.ok).toBe(true);
+  });
+
+  it("realtor cannot create a second team after their founder grant is spent", async () => {
+    await import("../_helpers/fixtures").then((m) => m.seedServices());
+    const founder = await makeSession({
+      role: "realtor",
+      userId: "u_2x_founder",
+    });
+    // First create succeeds.
+    const first = await createTeamInner(
+      founder,
+      undefined,
+      teamForm({ name: "First Office" }),
+    );
+    expect(first.ok).toBe(true);
+    // Second create rejected — they now own a team, founder grant spent.
+    const second = await createTeamInner(
+      founder,
+      undefined,
+      teamForm({ name: "Second Office" }),
+    );
+    expect(second).toEqual({
       ok: false,
       error: "You don't have permission to create teams.",
     });

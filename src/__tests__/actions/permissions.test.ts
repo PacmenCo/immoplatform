@@ -13,7 +13,7 @@ import {
   getUserTeamIds,
   hasRole,
 } from "@/lib/permissions";
-import { setupTestDb } from "../_helpers/db";
+import { prisma, setupTestDb } from "../_helpers/db";
 import { makeSession } from "../_helpers/session";
 import { seedBaseline, seedTeam } from "../_helpers/fixtures";
 
@@ -395,15 +395,31 @@ describe("assignmentScope (query filter)", () => {
     });
   });
 
-  it("freelancer → OR(freelancerId | teamId in memberships)", async () => {
+  it("freelancer → strictly { freelancerId: self } (v1 parity, no team union)", async () => {
+    // Mirrors v1's `where('freelancer_id', $user->id)` in
+    // Platform/app/Livewire/AssignmentsList.php:233. Even if a stale
+    // teamMember row exists for a freelancer (legacy DB state pre-fix),
+    // they shouldn't see team-wide assignments — freelancers are
+    // platform-global workers, not team participants.
     const { freelancer } = await seedBaseline();
     const scope = await assignmentScope(freelancer);
-    expect(scope).toEqual({
-      OR: [
-        { freelancerId: freelancer.user.id },
-        { teamId: { in: [] } },
-      ],
+    expect(scope).toEqual({ freelancerId: freelancer.user.id });
+  });
+
+  it("freelancer with a stale team_member row → STILL strictly assigned-to-me", async () => {
+    // Defensive: stale data must not leak scope. Insert a freelancer onto
+    // a team manually (bypassing the invite guards) and verify the scope
+    // helper still returns strict assigned-to-me.
+    const { freelancer, teams } = await seedBaseline();
+    await prisma.teamMember.create({
+      data: {
+        teamId: teams.t1.id,
+        userId: freelancer.user.id,
+        teamRole: "member",
+      },
     });
+    const scope = await assignmentScope(freelancer);
+    expect(scope).toEqual({ freelancerId: freelancer.user.id });
   });
 });
 

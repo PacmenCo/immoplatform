@@ -2,12 +2,17 @@ import { redirect } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { TeamForm } from "@/components/dashboard/TeamForm";
 import { requireSession } from "@/lib/auth";
-import { canCreateTeam } from "@/lib/permissions";
+import { canCreateFirstTeam, canCreateTeam, hasRole } from "@/lib/permissions";
 import { createTeam } from "@/app/actions/teams";
 
 export default async function NewTeamPage() {
   const session = await requireSession();
-  if (!canCreateTeam(session)) {
+  // Mirror the action-layer gate: admin can always create; realtors get a
+  // one-shot founder grant via `canCreateFirstTeam` when they own zero teams.
+  // Both gates collapse to the same OR — keep them in sync.
+  const allowed =
+    canCreateTeam(session) || (await canCreateFirstTeam(session));
+  if (!allowed) {
     redirect("/no-access?section=teams");
   }
 
@@ -17,9 +22,14 @@ export default async function NewTeamPage() {
         title="Create team"
         subtitle="Start a new agency office. You'll become its owner."
       />
-      {/* canCreateTeam is admin-only (commit d17c030), so anyone on this
-          page is admin — pass isAdmin to unlock the Commission accordion. */}
-      <TeamForm action={createTeam} cancelHref="/dashboard/teams" isAdmin />
+      {/* Commission accordion is admin-only — realtor founders shouldn't be
+          dictating their own commission rate. The accordion remains hidden;
+          admin can configure it after the team is created. */}
+      <TeamForm
+        action={createTeam}
+        cancelHref="/dashboard/teams"
+        isAdmin={hasRole(session, "admin")}
+      />
     </>
   );
 }

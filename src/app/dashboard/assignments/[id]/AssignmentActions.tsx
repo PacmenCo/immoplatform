@@ -72,7 +72,10 @@ export function AssignmentActions({
 
   const isTerminal = isTerminalStatus(status);
   const showStart = canStart && (status === "scheduled" || status === "draft");
+  // Mirror v1's reversible `finished_at` flag — show on both edges of the
+  // delivered ↔ in_progress toggle. Label flips so the action is unambiguous.
   const showDeliver = canDeliver && status === "in_progress";
+  const showUndeliver = canDeliver && status === "delivered";
   const showComplete = canComplete && status === "delivered";
   const showCancel = canCancel && !isTerminal;
   const showEdit = canUpdateFields && !isTerminal;
@@ -102,6 +105,16 @@ export function AssignmentActions({
           <Button size="sm" onClick={runDeliver} loading={pending}>
             <IconCheck size={12} />
             Mark delivered
+          </Button>
+        )}
+        {showUndeliver && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={runDeliver}
+            loading={pending}
+          >
+            Mark not delivered
           </Button>
         )}
         {showComplete && (
