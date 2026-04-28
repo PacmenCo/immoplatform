@@ -47,7 +47,12 @@ export async function createInviteInner(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  if (!["admin", "staff", "realtor"].includes(session.user.role)) {
+  // v1 parity: invite power is admin + realtor-team-owner only. Platform's
+  // medewerker (= staff) is excluded from both UserController (route gated to
+  // role:admin at routes/web.php:103) and team-edit (role:admin,makelaar at
+  // line 91), so they have zero invite capability in v1. Realtor restrictions
+  // (own teams only, no admin/staff invitee role) are enforced further down.
+  if (!["admin", "realtor"].includes(session.user.role)) {
     return { ok: false, error: "You don't have permission to invite users." };
   }
 
@@ -107,10 +112,6 @@ export async function createInviteInner(
       return { ok: false, error: "You can only invite to teams you own." };
     }
   }
-  if (session.user.role === "staff" && role === "admin") {
-    return { ok: false, error: "Staff cannot invite admins." };
-  }
-
   // Existing user → add to team silently instead of creating an invite.
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -211,7 +212,7 @@ export async function createInvite(
 ): Promise<ActionResult> {
   let session: SessionWithUser;
   try {
-    session = await requireRole(["admin", "staff", "realtor"]);
+    session = await requireRole(["admin", "realtor"]);
   } catch {
     return { ok: false, error: "You don't have permission to invite users." };
   }

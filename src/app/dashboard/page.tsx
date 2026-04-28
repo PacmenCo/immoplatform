@@ -51,6 +51,8 @@ export default async function DashboardHome() {
   const scope = await assignmentScope(session);
   const r = role(session);
   const canCreate = canCreateAssignment(session);
+  // v1 parity: invite is admin + realtor only — staff is excluded.
+  const canInvite = hasRole(session, "admin", "realtor");
   const isFreelancer = hasRole(session, "freelancer");
 
   // Privacy: admin/staff see the global feed; others see only their own
@@ -321,20 +323,22 @@ export default async function DashboardHome() {
                   Start now
                 </Button>
               </Card>
-              <Card className="p-6">
-                <p className="font-medium text-[var(--color-ink)]">Invite a colleague</p>
-                <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                  Add people to your team so they can manage assignments too.
-                </p>
-                <Button
-                  href="/dashboard/users/invite"
-                  size="sm"
-                  variant="secondary"
-                  className="mt-4"
-                >
-                  Invite user
-                </Button>
-              </Card>
+              {canInvite && (
+                <Card className="p-6">
+                  <p className="font-medium text-[var(--color-ink)]">Invite a colleague</p>
+                  <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                    Add people to your team so they can manage assignments too.
+                  </p>
+                  <Button
+                    href="/dashboard/users/invite"
+                    size="sm"
+                    variant="secondary"
+                    className="mt-4"
+                  >
+                    Invite user
+                  </Button>
+                </Card>
+              )}
               <Card className="p-6">
                 <p className="font-medium text-[var(--color-ink)]">
                   This month&apos;s overview

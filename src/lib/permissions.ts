@@ -515,15 +515,21 @@ export async function canDeleteAssignmentFile(
 
 /**
  * Can `session` act on `invite` (resend or revoke)?
- * - admin / staff: any invite
+ * - admin: any invite
  * - realtor: only invites they sent, for a team they still own
- * - freelancer: never
+ * - staff / freelancer: never
+ *
+ * v1 parity: Platform's medewerker has zero invite UI (no UserController
+ * access at routes/web.php:103, no team-edit access at line 91), so they
+ * can't see invites — let alone act on them. Strict parity excludes staff
+ * here even though they can SEE the pending-invites list (they help support
+ * by viewing, not by mutating).
  */
 export async function canActOnInvite(
   s: SessionWithUser,
   invite: { invitedById: string; teamId: string | null },
 ): Promise<boolean> {
-  if (hasRole(s, "admin", "staff")) return true;
+  if (hasRole(s, "admin")) return true;
   if (!hasRole(s, "realtor")) return false;
   if (invite.invitedById !== s.user.id) return false;
   if (!invite.teamId) return false;

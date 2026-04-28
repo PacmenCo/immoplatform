@@ -16,6 +16,7 @@ export function PendingInviteRow({
   teamRole,
   invitedBy,
   sentAt,
+  canAct,
 }: {
   inviteId: string;
   email: string;
@@ -25,6 +26,7 @@ export function PendingInviteRow({
   teamRole: string | null;
   invitedBy: string;
   sentAt: string;
+  canAct: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -69,29 +71,33 @@ export function PendingInviteRow({
           </span>
         </div>
       </div>
-      <div className="flex items-center gap-1">
-        <Button variant="ghost" size="sm" onClick={doResend} disabled={pending}>
-          Resend
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setConfirmOpen(true)}
-          disabled={pending}
-        >
-          Revoke
-        </Button>
-      </div>
-      <ConfirmDialog
-        open={confirmOpen}
-        tone="danger"
-        title={`Revoke invite for ${email}?`}
-        description="They won't be able to use the accept link anymore. Sending a fresh invite is still possible afterwards."
-        confirmLabel="Revoke invite"
-        cancelLabel="Keep it"
-        onConfirm={runRevoke}
-        onCancel={() => setConfirmOpen(false)}
-      />
+      {canAct && (
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={doResend} disabled={pending}>
+            Resend
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirmOpen(true)}
+            disabled={pending}
+          >
+            Revoke
+          </Button>
+        </div>
+      )}
+      {canAct && (
+        <ConfirmDialog
+          open={confirmOpen}
+          tone="danger"
+          title={`Revoke invite for ${email}?`}
+          description="They won't be able to use the accept link anymore. Sending a fresh invite is still possible afterwards."
+          confirmLabel="Revoke invite"
+          cancelLabel="Keep it"
+          onConfirm={runRevoke}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </li>
   );
 }

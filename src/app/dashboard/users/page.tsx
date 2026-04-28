@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Topbar } from "@/components/dashboard/Topbar";
-import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -18,7 +18,7 @@ import { roleBadge } from "@/lib/roleColors";
 import { isOnline } from "@/lib/userStatus";
 import { SearchInput } from "@/components/dashboard/SearchInput";
 import type { Prisma } from "@prisma/client";
-import { PendingInviteRow } from "./PendingInviteRow";
+import { PendingInvitesPanel } from "./PendingInvitesPanel";
 import { DeleteUserButton } from "./DeleteUserButton";
 
 type SearchParams = Promise<{ role?: string; q?: string }>;
@@ -139,40 +139,19 @@ export default async function UsersPage({
 
       <div className="p-8 max-w-[1400px] space-y-6">
         {pendingInvites.length > 0 && (
-          <Card>
-            <CardHeader className="flex items-center justify-between">
-              <div>
-                <CardTitle>Pending invites</CardTitle>
-                <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
-                  {pendingInvites.length} invite
-                  {pendingInvites.length === 1 ? "" : "s"} awaiting acceptance
-                </p>
-              </div>
-              <Button href="/dashboard/users/invite" variant="secondary" size="sm">
-                <IconPlus size={14} />
-                Invite user
-              </Button>
-            </CardHeader>
-            <ul className="divide-y divide-[var(--color-border)]">
-              {pendingInvites.map((inv) => {
-                const rb = roleBadge(inv.role);
-                const inviter = `${inv.invitedBy.firstName} ${inv.invitedBy.lastName}`;
-                return (
-                  <PendingInviteRow
-                    key={inv.id}
-                    inviteId={inv.id}
-                    email={inv.email}
-                    role={inv.role}
-                    roleBadge={rb}
-                    teamName={inv.team?.name ?? null}
-                    teamRole={inv.teamRole}
-                    invitedBy={inviter}
-                    sentAt={inv.createdAt.toISOString().slice(0, 10)}
-                  />
-                );
-              })}
-            </ul>
-          </Card>
+          <PendingInvitesPanel
+            canInvite={hasRole(session, "admin")}
+            invites={pendingInvites.map((inv) => ({
+              id: inv.id,
+              email: inv.email,
+              role: inv.role,
+              roleBadge: roleBadge(inv.role),
+              teamName: inv.team?.name ?? null,
+              teamRole: inv.teamRole,
+              invitedBy: `${inv.invitedBy.firstName} ${inv.invitedBy.lastName}`,
+              sentAt: inv.createdAt.toISOString().slice(0, 10),
+            }))}
+          />
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -216,10 +195,12 @@ export default async function UsersPage({
               initialQuery={q}
               placeholder="Search by name or email…"
             />
-            <Button href="/dashboard/users/invite" size="sm">
-              <IconPlus size={14} />
-              Invite user
-            </Button>
+            {hasRole(session, "admin") && (
+              <Button href="/dashboard/users/invite" size="sm">
+                <IconPlus size={14} />
+                Invite user
+              </Button>
+            )}
           </div>
         </div>
 

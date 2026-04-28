@@ -53,14 +53,19 @@ describe("createInviteInner — role gate", () => {
     expect(invites[0].role).toBe("admin");
   });
 
-  it("staff CANNOT invite admin", async () => {
+  it("staff CANNOT invite at all (v1 parity — Platform's medewerker has zero invite power)", async () => {
     const { staff } = await seedBaseline();
-    const res = await createInviteInner(
-      staff,
-      undefined,
-      form({ email: "newadmin@test.local", role: "admin" }),
-    );
-    expect(res).toEqual({ ok: false, error: "Staff cannot invite admins." });
+    for (const role of ["admin", "staff", "realtor", "freelancer"]) {
+      const res = await createInviteInner(
+        staff,
+        undefined,
+        form({ email: "x@test.local", role }),
+      );
+      expect(res).toEqual({
+        ok: false,
+        error: "You don't have permission to invite users.",
+      });
+    }
   });
 
   it("realtor CANNOT invite admin or staff", async () => {
@@ -630,7 +635,7 @@ describe("acceptInviteInner", () => {
 
 describe("resendInviteInner", () => {
   async function setupInvite(inviterSession?: { userId: string }) {
-    const { admin, teams } = await seedBaseline();
+    const { admin, staff, teams } = await seedBaseline();
     const inviter = inviterSession ?? admin;
     const token = generateToken();
     const invite = await prisma.invite.create({
@@ -644,7 +649,7 @@ describe("resendInviteInner", () => {
         expiresAt: new Date(Date.now() + 86_400_000),
       },
     });
-    return { token, invite, admin };
+    return { token, invite, admin, staff };
   }
 
   it("admin resend → rotates token hash, extends expiry, bumps resendCount", async () => {
@@ -724,6 +729,18 @@ describe("resendInviteInner", () => {
     });
   });
 
+  it("staff CANNOT resend (v1 parity — Platform's medewerker has no invite UI)", async () => {
+    // setupInvite calls seedBaseline once already; reuse the staff session
+    // it spawns rather than calling seedBaseline twice (would conflict on team
+    // unique IDs).
+    const { invite, staff } = await setupInvite();
+    const res = await resendInviteInner(staff, invite.id);
+    expect(res).toEqual({
+      ok: false,
+      error: "You don't have permission to resend this invite.",
+    });
+  });
+
   // Contract pin: the action must NOT load invitedBy with `include: true` —
   // that returns the full User row including passwordHash. Even if the hash
   // isn't currently returned to the client, having it sit in server memory
@@ -771,7 +788,7 @@ describe("resendInviteInner", () => {
 
 describe("revokeInviteInner", () => {
   async function pendingInvite() {
-    const { admin, teams } = await seedBaseline();
+    const { admin, staff, teams } = await seedBaseline();
     const invite = await prisma.invite.create({
       data: {
         email: "revoke-me@test.local",
@@ -783,7 +800,7 @@ describe("revokeInviteInner", () => {
         expiresAt: new Date(Date.now() + 86_400_000),
       },
     });
-    return { invite, admin };
+    return { invite, admin, staff };
   }
 
   it("admin revoke → sets revokedAt + emits audit", async () => {
@@ -836,6 +853,15 @@ describe("revokeInviteInner", () => {
       membershipTeams: [{ teamId: "t_outsider_revoke", teamRole: "owner" }],
     });
     const res = await revokeInviteInner(outsider, invite.id);
+    expect(res).toEqual({
+      ok: false,
+      error: "You don't have permission to revoke this invite.",
+    });
+  });
+
+  it("staff CANNOT revoke (v1 parity — Platform's medewerker has no invite UI)", async () => {
+    const { invite, staff } = await pendingInvite();
+    const res = await revokeInviteInner(staff, invite.id);
     expect(res).toEqual({
       ok: false,
       error: "You don't have permission to revoke this invite.",

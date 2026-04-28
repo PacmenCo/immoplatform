@@ -14,7 +14,7 @@ const MESSAGES = {
   invite: {
     title: "Inviting new users is restricted.",
     body:
-      "Admins, staff, and realtor team-owners can invite people to the platform. If you think you should have access, ask your agency owner to transfer team ownership to you, or email us at support@immo.app.",
+      "Admins and realtor team-owners can invite people to the platform. If you think you should have access, ask your agency owner to transfer team ownership to you, or email us at support@immo.app.",
   },
   teams: {
     title: "Team management is not available for your role.",

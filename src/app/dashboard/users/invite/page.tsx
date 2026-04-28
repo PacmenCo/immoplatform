@@ -14,8 +14,11 @@ export default async function InviteUserPage({
 }: {
   searchParams: Promise<{ teamId?: string }>;
 }) {
+  // v1 parity: invite is admin + realtor-team-owner only. Platform's
+  // medewerker (= staff) is excluded from UserController (admin-only) and
+  // from team edit (admin + makelaar only), so staff cannot invite anyone.
   const session = await requireRoleOrRedirect(
-    ["admin", "staff", "realtor"],
+    ["admin", "realtor"],
     "invite",
   );
   const { teamId: queryTeamId } = await searchParams;
