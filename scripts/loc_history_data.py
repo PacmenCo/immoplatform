@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+"""
+Generate the daily LOC time-series consumed by public/loc_history.html.
+
+For every calendar date that has at least one commit, samples the last
+commit on that date and counts lines per category by walking the git
+tree at that commit (no checkout needed).
+
+Categories:
+  src     — src/app, src/components, src/lib, src/emails
+  test    — src/__tests__
+  schema  — prisma/
+  scripts — scripts/, docs/, public/ (non-binary)
+
+Counted file extensions: .ts .tsx .js .jsx .mjs .cjs .css .scss .json
+                         .yaml .yml .prisma .sql .md .html
+
+Output: writes a single JS line to stdout that can be pasted into
+public/loc_history.html  (and is also written to public/loc_history_data.js
+for refresh-without-redeploy).
+
+Usage:
+  python3 scripts/loc_history_data.py
+"""
+import json
+import os
+import subprocess
+from collections import defaultdict
+from datetime import datetime
+
+REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+EXTS = {
+    ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
+    ".css", ".scss",
+    ".json", ".yaml", ".yml",
+    ".prisma", ".sql",
+    ".md", ".html",
+}
+
+
+def run(args):
+    return subprocess.run(args, cwd=REPO, capture_output=True, text=True, check=True).stdout
+
+
+def categorize(path: str) -> str | None:
+    """Map a repo-relative path to a category, or None to skip."""
+    if path.startswith("src/__tests__/"):
+        return "test"
+    if path.startswith(("src/app/", "src/components/", "src/lib/", "src/emails/")):
+        return "src"
+    if path.startswith("src/"):
+        # Anything else under src that isn't a test or known bucket.
+        return "src"
+    if path.startswith("prisma/"):
+        return "schema"
+    if path.startswith(("scripts/", "docs/", "public/")):
+        return "scripts"
+    return None
+
+
+def loc_at(commit: str) -> dict:
+    """Return {category: total_lines} for the tree at `commit`."""
+    out = run(["git", "ls-tree", "-r", "--name-only", commit])
+    files = [p for p in out.splitlines() if p]
+    counts = defaultdict(int)
+
+    # Stream all blobs through `git cat-file --batch` for speed.
+    targets = []
+    for path in files:
+        ext = os.path.splitext(path)[1].lower()
+        if ext not in EXTS:
+            continue
+        cat = categorize(path)
+        if cat is None:
+            continue
+        targets.append((path, cat))
+
+    if not targets:
+        return dict(counts)
+
+    proc = subprocess.Popen(
+        ["git", "cat-file", "--batch=%(objectsize)"],
+        cwd=REPO,
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        text=False,
+    )
+    # Build the input list as `<commit>:<path>\n` so cat-file resolves
+    # blobs at that revision.
+    payload = "\n".join(f"{commit}:{p}" for p, _ in targets) + "\n"
+    proc.stdin.write(payload.encode())
+    proc.stdin.close()
+
+    # Read header (objectsize) + blob bytes, repeated.
+    blobs = []
+    raw = proc.stdout.read()
+    proc.wait()
+
+    # Parse the streamed format: "<size>\n<blob bytes>\n" per entry.
+    pos = 0
+    for path, cat in targets:
+        # Read the size header line (terminated by \n).
+        nl = raw.find(b"\n", pos)
+        if nl == -1:
+            break
+        try:
+            size = int(raw[pos:nl])
+        except ValueError:
+            # cat-file may emit "missing" for paths not in the commit
+            # — unlikely here since ls-tree gave us the list, but skip.
+            pos = nl + 1
+            continue
+        pos = nl + 1
+        blob = raw[pos:pos + size]
+        pos += size + 1  # +1 for trailing \n after the blob
+        # Count lines: 1 + number of \n, but treat empty file as 0.
+        if not blob:
+            n = 0
+        else:
+            n = blob.count(b"\n")
+            if not blob.endswith(b"\n"):
+                n += 1
+        counts[cat] += n
+
+    return dict(counts)
+
+
+def main():
+    log = run(["git", "log", "--reverse", "--pretty=format:%H|%ai"]).strip().splitlines()
+    by_date: dict[str, str] = {}
+    for line in log:
+        h, date_str = line.split("|", 1)
+        d = date_str.split(" ")[0]   # YYYY-MM-DD
+        by_date[d] = h               # last write wins → last commit of day
+
+    rows = []
+    for d in sorted(by_date.keys()):
+        commit = by_date[d]
+        c = loc_at(commit)
+        rows.append({
+            "date": d,
+            "src":     c.get("src", 0),
+            "test":    c.get("test", 0),
+            "schema":  c.get("schema", 0),
+            "scripts": c.get("scripts", 0),
+        })
+        total = sum(c.values())
+        print(f"  {d} @ {commit[:7]}  src={c.get('src', 0)} test={c.get('test', 0)} schema={c.get('schema', 0)} scripts={c.get('scripts', 0)} (total {total:,})")
+
+    # Write a JS module the HTML page can import OR simply re-paste.
+    js_path = os.path.join(REPO, "public", "loc_history_data.js")
+    os.makedirs(os.path.dirname(js_path), exist_ok=True)
+    payload = json.dumps(rows, separators=(",", ":"))
+    with open(js_path, "w") as f:
+        f.write(f"// Auto-generated by scripts/loc_history_data.py — do not edit.\n")
+        f.write(f"// Refresh: `python3 scripts/loc_history_data.py`\n")
+        f.write(f"window.LOC_HISTORY = {payload};\n")
+    print(f"\nWrote {len(rows)} rows to {js_path}")
+
+
+if __name__ == "__main__":
+    main()

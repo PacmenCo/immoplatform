@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ImmoPlatform — Lines of Code Over Time</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #0f1117; color: #e0e0e0; padding: 2rem; }
+  h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+  .sub { color: #888; font-size: 0.875rem; margin-bottom: 1.5rem; }
+
+  .chart-container { position: relative; height: 480px; background: #1a1d27; border-radius: 12px; padding: 1rem; margin-bottom: 2rem; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .stat { background: #1a1d27; border-radius: 8px; padding: 1rem; }
+  .stat-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-value { font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem; font-variant-numeric: tabular-nums; }
+
+  /* Category colours — chosen so the page reads as related to but not
+     identical to the MasterPlan dashboard at a glance. */
+  .total   { color: #a78bfa; }
+  .src     { color: #60a5fa; }
+  .test    { color: #34d399; }
+  .schema  { color: #f59e0b; }
+  .scripts { color: #f472b6; }
+
+  .toggle-bar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .toggle-btn { display: flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; border-radius: 6px; border: 1px solid #333; background: #1a1d27; color: #ccc; font-size: 0.8125rem; cursor: pointer; transition: all 0.15s; }
+  .toggle-btn:hover { border-color: #555; }
+  .toggle-btn.active { border-color: var(--color); background: color-mix(in srgb, var(--color) 15%, #1a1d27); }
+  .toggle-btn.off { opacity: 0.4; }
+  .toggle-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color); flex-shrink: 0; }
+
+  h2 { font-size: 1.25rem; margin: 2rem 0 1rem; }
+
+  /* Highlight cards */
+  .fun-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .fun-card { background: #1a1d27; border-radius: 8px; padding: 1rem 1.25rem; }
+  .fun-card h3 { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+  .fun-row { display: flex; justify-content: space-between; align-items: center; padding: 0.3rem 0; font-size: 0.8125rem; }
+  .fun-row .label { color: #ccc; }
+  .fun-row .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .fun-row .value.highlight { color: #a78bfa; }
+  .fun-row .value.green { color: #34d399; }
+  .fun-row .value.blue { color: #60a5fa; }
+  .fun-row .value.red { color: #f87171; }
+  .fun-row .sub-label { color: #666; font-size: 0.75rem; display: block; margin-top: 0.1rem; }
+
+  /* Daily-detail table */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 0.8125rem; margin-bottom: 2rem; }
+  .tbl th { text-align: left; color: #888; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.5rem 0.75rem; border-bottom: 1px solid #2a2d37; }
+  .tbl th.num { text-align: right; }
+  .tbl td { padding: 0.4rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .tbl td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tbl tr:hover { background: rgba(255,255,255,0.03); }
+  .tbl .add { color: #34d399; }
+  .tbl .del { color: #f87171; }
+  .tbl .net-pos { color: #34d399; }
+  .tbl .net-neg { color: #f87171; }
+  .tbl .dim { color: #555; }
+  .tbl .day { color: #888; font-size: 0.75rem; }
+  .tbl .cum { color: #a78bfa; }
+  .tbl .top-day { background: rgba(167,139,250,0.06); }
+  .tbl .summary-row td { border-top: 1px solid #2a2d37; font-weight: 600; color: #ccc; }
+
+  .empty-note { color: #666; font-style: italic; margin: 1rem 0; }
+</style>
+</head>
+<body>
+<h1>ImmoPlatform — Lines of Code Over Time</h1>
+<p class="sub" id="generated-sub"></p>
+
+<div class="stats" id="stats"></div>
+
+<div class="toggle-bar" id="toggle-bar">
+  <button class="toggle-btn active" style="--color:#60a5fa" data-idx="1"><span class="toggle-dot"></span>Source</button>
+  <button class="toggle-btn active" style="--color:#34d399" data-idx="2"><span class="toggle-dot"></span>Tests</button>
+  <button class="toggle-btn active" style="--color:#f59e0b" data-idx="3"><span class="toggle-dot"></span>Schema</button>
+  <button class="toggle-btn active" style="--color:#f472b6" data-idx="4"><span class="toggle-dot"></span>Scripts</button>
+</div>
+
+<div class="chart-container"><canvas id="chart"></canvas></div>
+
+<h2>Snapshot Highlights</h2>
+<div class="fun-stats" id="fun-stats"></div>
+
+<h2>Daily Detail</h2>
+<div id="daily-section"></div>
+
+<script src="/loc_history_data.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────────────────
+// Mirrors the MasterPlan loc_history.html where it makes sense:
+//   - dark palette + stat cards
+//   - per-category toggle buttons that recompute the dashed Total line
+//   - daily-detail table with top-3 day highlighting
+//
+// Skipped (intentionally): the architecture/treemap/dependency views
+// from MasterPlan, since those rely on a separate offline analyzer.
+//
+// All dynamic content is built via DOM helpers — no innerHTML — even
+// though the data comes exclusively from a generated JS file we control.
+// Cheap belt-and-suspenders.
+// ─────────────────────────────────────────────────────────────────────────
+
+const data = window.LOC_HISTORY || [];
+
+// Tiny DOM-helper.  `el('div', {class: 'x'}, child1, child2, 'text')`.
+function el(tag, props, ...children) {
+  const node = document.createElement(tag);
+  if (props) {
+    for (const [k, v] of Object.entries(props)) {
+      if (v == null || v === false) continue;
+      if (k === 'class') node.className = v;
+      else if (k === 'style') node.setAttribute('style', v);
+      else if (k === 'dataset') Object.assign(node.dataset, v);
+      else node.setAttribute(k, v);
+    }
+  }
+  for (const c of children) {
+    if (c == null || c === false) continue;
+    node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return node;
+}
+function txt(node, ...children) {
+  for (const c of children) {
+    if (c == null || c === false) continue;
+    node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return node;
+}
+
+if (data.length === 0) {
+  document.body.appendChild(
+    el('p', { class: 'empty-note' },
+      'No LOC history yet — run ',
+      el('code', null, 'python3 scripts/loc_history_data.py'),
+      ' to populate.')
+  );
+} else {
+  const CATEGORIES = [
+    { key: 'src',     label: 'Source',  color: '#60a5fa', bg: 'rgba(96,165,250,0.10)' },
+    { key: 'test',    label: 'Tests',   color: '#34d399', bg: 'rgba(52,211,153,0.10)' },
+    { key: 'schema',  label: 'Schema',  color: '#f59e0b', bg: 'rgba(245,158,11,0.10)' },
+    { key: 'scripts', label: 'Scripts', color: '#f472b6', bg: 'rgba(244,114,182,0.10)' },
+  ];
+  const fmt = n => (n === 0 ? '0' : n.toLocaleString());
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  // ── Header subtitle ─────────────────────────────────────────────────
+  const last = data[data.length - 1];
+  document.getElementById('generated-sub').textContent =
+    `Generated ${new Date().toISOString().slice(0, 10)} · ${data.length} day${data.length === 1 ? '' : 's'} of history · latest snapshot ${last.date}`;
+
+  // ── Stats cards ──────────────────────────────────────────────────────
+  const total = CATEGORIES.reduce((s, c) => s + last[c.key], 0);
+  const statsEl = document.getElementById('stats');
+  statsEl.appendChild(
+    el('div', { class: 'stat' },
+      el('div', { class: 'stat-label' }, 'Total Lines'),
+      el('div', { class: 'stat-value total' }, fmt(total)),
+    ),
+  );
+  for (const c of CATEGORIES) {
+    statsEl.appendChild(
+      el('div', { class: 'stat' },
+        el('div', { class: 'stat-label' }, c.label),
+        el('div', { class: 'stat-value', style: `color:${c.color}` }, fmt(last[c.key])),
+      ),
+    );
+  }
+
+  // ── Chart ────────────────────────────────────────────────────────────
+  const totalsByDay = data.map(d => CATEGORIES.reduce((s, c) => s + d[c.key], 0));
+
+  const chart = new Chart(document.getElementById('chart'), {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.date),
+      datasets: [
+        {
+          label: 'Total',
+          data: totalsByDay.slice(),
+          borderColor: '#a78bfa',
+          backgroundColor: 'rgba(167,139,250,0.08)',
+          fill: true, tension: 0.25, pointRadius: 0, borderWidth: 2.5, borderDash: [6, 3],
+          isTotal: true,
+        },
+        ...CATEGORIES.map(c => ({
+          label: c.label,
+          key: c.key,
+          data: data.map(d => d[c.key]),
+          borderColor: c.color,
+          backgroundColor: c.bg,
+          fill: true, tension: 0.25, pointRadius: 0, borderWidth: 2,
+        })),
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          filter: item => item.datasetIndex > 0,
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} lines`,
+            afterBody: items => {
+              const i = items[0]?.dataIndex;
+              if (i == null) return '';
+              const t = chart.data.datasets[0].data[i];
+              return `\nTotal: ${t.toLocaleString()} lines`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { color: '#888', maxTicksLimit: 15 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color: '#888', callback: v => v >= 1000 ? (v/1000).toFixed(0) + 'k' : v }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      },
+    },
+  });
+
+  // Recompute the dashed Total line whenever a category is toggled, so it
+  // always reflects the visible series — same behaviour as MasterPlan.
+  function recalcTotal() {
+    chart.data.datasets[0].data = data.map((_, i) => {
+      let s = 0;
+      for (let j = 1; j < chart.data.datasets.length; j++) {
+        if (chart.isDatasetVisible(j)) s += chart.data.datasets[j].data[i];
+      }
+      return s;
+    });
+  }
+
+  document.querySelectorAll('#toggle-bar .toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      const visible = chart.isDatasetVisible(idx);
+      chart.setDatasetVisibility(idx, !visible);
+      btn.classList.toggle('active', !visible);
+      btn.classList.toggle('off', visible);
+      recalcTotal();
+      chart.update();
+    });
+  });
+
+  // ── Per-day deltas (used by both highlights + table) ────────────────
+  const dailyDeltas = data.map((d, i) => {
+    if (i === 0) return { date: d.date, src: d.src, test: d.test, schema: d.schema, scripts: d.scripts, total: 0 };
+    const p = data[i - 1];
+    return {
+      date: d.date,
+      src: d.src - p.src,
+      test: d.test - p.test,
+      schema: d.schema - p.schema,
+      scripts: d.scripts - p.scripts,
+      total: totalsByDay[i] - totalsByDay[i - 1],
+    };
+  });
+  const realDeltas = dailyDeltas.slice(1);
+  const totalGrowth = realDeltas.reduce((s, d) => s + d.total, 0);
+  const avgDaily = realDeltas.length ? Math.round(totalGrowth / realDeltas.length) : 0;
+  const biggestDay = realDeltas.length
+    ? realDeltas.reduce((a, b) => (Math.abs(b.total) > Math.abs(a.total) ? b : a))
+    : null;
+  const biggestSrcDay = realDeltas.length
+    ? realDeltas.reduce((a, b) => (b.src > a.src ? b : a))
+    : null;
+  const biggestTestDay = realDeltas.length
+    ? realDeltas.reduce((a, b) => (b.test > a.test ? b : a))
+    : null;
+
+  // ── Snapshot highlights ──────────────────────────────────────────────
+  function row(label, value, valueClass = '', sub = null) {
+    const labelNode = el('span', { class: 'label' }, label);
+    if (sub) labelNode.appendChild(el('span', { class: 'sub-label' }, sub));
+    return el('div', { class: 'fun-row' },
+      labelNode,
+      el('span', { class: `value ${valueClass}` }, value),
+    );
+  }
+  function card(title, ...rows) {
+    return el('div', { class: 'fun-card' },
+      el('h3', null, title),
+      ...rows,
+    );
+  }
+
+  const funEl = document.getElementById('fun-stats');
+  funEl.appendChild(card('Growth',
+    row('Lines added', `+${fmt(totalGrowth)}`, 'green'),
+    row('Daily average', `${avgDaily >= 0 ? '+' : ''}${fmt(avgDaily)}`, ''),
+    row('Days tracked', String(data.length), ''),
+  ));
+  if (biggestDay) {
+    funEl.appendChild(card('Biggest Day',
+      row(biggestDay.date, `${biggestDay.total >= 0 ? '+' : ''}${fmt(biggestDay.total)}`, biggestDay.total >= 0 ? 'green' : 'red'),
+      row('Source', `${biggestDay.src >= 0 ? '+' : ''}${fmt(biggestDay.src)}`, 'blue'),
+      row('Tests', `${biggestDay.test >= 0 ? '+' : ''}${fmt(biggestDay.test)}`, 'green'),
+    ));
+  }
+  if (biggestSrcDay && biggestSrcDay.src > 0) {
+    const testRow = (biggestTestDay && biggestTestDay.test > 0)
+      ? row(biggestTestDay.date, `+${fmt(biggestTestDay.test)}`, 'green', 'biggest test push')
+      : row('—', '', '', 'no test pushes yet');
+    const ratio = total ? Math.round(100 * last.test / total) : 0;
+    funEl.appendChild(card('Top Pushes',
+      row(biggestSrcDay.date, `+${fmt(biggestSrcDay.src)}`, 'blue', 'biggest source push'),
+      testRow,
+      row('Test ratio', `${ratio}%`, '', 'tests / total at HEAD'),
+    ));
+  }
+
+  // ── Daily detail table ───────────────────────────────────────────────
+  const tbl = el('table', { class: 'tbl' });
+  const thead = el('thead', null,
+    el('tr', null,
+      el('th', null, 'Date'),
+      el('th', null, 'Day'),
+      el('th', { class: 'num' }, 'Source'),
+      el('th', { class: 'num' }, 'Tests'),
+      el('th', { class: 'num' }, 'Schema'),
+      el('th', { class: 'num' }, 'Scripts'),
+      el('th', { class: 'num' }, 'Net'),
+      el('th', { class: 'num' }, 'Total'),
+    ),
+  );
+  tbl.appendChild(thead);
+
+  const tbody = el('tbody');
+  // Highlight top-3 net growth days, mirroring MasterPlan.
+  const topSet = new Set(
+    realDeltas.map(d => ({ date: d.date, n: d.total }))
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 3)
+      .map(x => x.date)
+  );
+
+  function deltaCell(value, isFirstDay, fallback) {
+    // First-day rows are "seed" rows — show absolute counts as the
+    // initial add (mirrors MasterPlan's first-row treatment).
+    if (isFirstDay) {
+      if (fallback === 0) return el('td', { class: 'num dim' }, '—');
+      return el('td', { class: 'num add' }, `+${fmt(fallback)}`);
+    }
+    if (value === 0) return el('td', { class: 'num dim' }, '—');
+    const cls = value > 0 ? 'add' : 'del';
+    return el('td', { class: `num ${cls}` }, `${value > 0 ? '+' : ''}${fmt(value)}`);
+  }
+
+  for (let i = data.length - 1; i >= 0; i--) {
+    const d = data[i];
+    const delta = dailyDeltas[i];
+    const dt = new Date(d.date + 'T12:00:00');
+    const dayLabel = dayNames[dt.getDay()];
+    const isFirst = i === 0;
+    const tot = totalsByDay[i];
+    const net = isFirst ? tot : delta.total;
+
+    const tr = el('tr', topSet.has(d.date) ? { class: 'top-day' } : null,
+      el('td', null, d.date),
+      el('td', { class: 'day' }, dayLabel),
+      deltaCell(delta.src,     isFirst, d.src),
+      deltaCell(delta.test,    isFirst, d.test),
+      deltaCell(delta.schema,  isFirst, d.schema),
+      deltaCell(delta.scripts, isFirst, d.scripts),
+      el('td', { class: `num ${net >= 0 ? 'net-pos' : 'net-neg'}` },
+         `${net >= 0 ? '+' : ''}${fmt(net)}`),
+      el('td', { class: 'num cum' }, fmt(tot)),
+    );
+    tbody.appendChild(tr);
+  }
+
+  // Summary row aggregates real deltas only (skips the seed day so we
+  // don't double-count the initial commit).
+  if (realDeltas.length) {
+    const sum = realDeltas.reduce(
+      (a, d) => ({
+        src: a.src + d.src, test: a.test + d.test,
+        schema: a.schema + d.schema, scripts: a.scripts + d.scripts,
+        total: a.total + d.total,
+      }),
+      { src: 0, test: 0, schema: 0, scripts: 0, total: 0 }
+    );
+    const sumCell = (v) => el('td', { class: `num ${v >= 0 ? 'net-pos' : 'net-neg'}` },
+      `${v >= 0 ? '+' : ''}${fmt(v)}`);
+    tbody.appendChild(
+      el('tr', { class: 'summary-row' },
+        el('td', null, `${data.length} days`),
+        el('td'),
+        sumCell(sum.src),
+        sumCell(sum.test),
+        sumCell(sum.schema),
+        sumCell(sum.scripts),
+        sumCell(sum.total),
+        el('td', { class: 'num cum' }, fmt(totalsByDay[totalsByDay.length - 1])),
+      ),
+    );
+  }
+
+  tbl.appendChild(tbody);
+  document.getElementById('daily-section').appendChild(tbl);
+}
+</script>
+</body>
+</html>
