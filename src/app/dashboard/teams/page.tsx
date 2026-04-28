@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -21,18 +22,49 @@ import {
   hasRole,
   teamScope,
 } from "@/lib/permissions";
+import { Pagination } from "../assignments/Pagination";
 
 export const metadata = { title: "Teams" };
 
 const SORT_FIELDS = ["name", "members", "assignments"] as const;
 type SortField = (typeof SORT_FIELDS)[number];
 
+// v1 parity: Platform/app/Livewire/TeamsList.php:83 paginates 20/page.
+const PAGE_SIZE = 20;
+
 type SearchParams = Promise<{
   q?: string;
   sort?: string;
   dir?: string;
+  page?: string;
   needs_team?: string;
 }>;
+
+type FilterState = {
+  q: string;
+  sort: SortField;
+  dir: "asc" | "desc";
+  page: number;
+};
+
+/**
+ * Build a URL preserving active filters while overriding one field. `page` is
+ * 1-indexed; page 1 is the implicit default and never serialized — keeps the
+ * unfiltered list URL clean. `sort` and `dir` are always emitted to match the
+ * pre-pagination link convention (the e2e test asserts on `sort=name` even
+ * when name is the default). `needs_team` is intentionally not threaded —
+ * it's a one-shot flag from the soft-gate redirect that should drop on the
+ * first interaction.
+ */
+function buildUrl(current: FilterState, patch: Partial<FilterState>): string {
+  const next = { ...current, ...patch };
+  const sp = new URLSearchParams();
+  if (next.q) sp.set("q", next.q);
+  sp.set("sort", next.sort);
+  sp.set("dir", next.dir);
+  if (next.page > 1) sp.set("page", String(next.page));
+  return `/dashboard/teams?${sp.toString()}`;
+}
 
 export default async function TeamsPage({
   searchParams,
@@ -53,24 +85,18 @@ export default async function TeamsPage({
     ? (params.sort as SortField)
     : "name";
   const dir: "asc" | "desc" = params.dir === "desc" ? "desc" : "asc";
+  // 1-indexed; clamp to ≥ 1. Anything non-numeric / ≤ 0 falls back to 1, just
+  // like Laravel's `Paginator::resolveCurrentPage()`.
+  const requestedPage = Number.parseInt(params.page ?? "1", 10);
+  const page = Number.isFinite(requestedPage) && requestedPage >= 1 ? requestedPage : 1;
 
   // Realtors with no team get the founder banner. Detected by actual state,
   // not the URL flag — the flag only suppresses the "you tried to access X"
   // prefix when arriving via the soft-gate redirect.
-  // Also doubles as the input for `canEdit` below — getUserTeamIds is
-  // React-cache()'d so calling it once and reusing is the same cost as
-  // calling twice.
   const isAdmin = hasRole(session, "admin");
   const userTeamIds = isAdmin ? null : await getUserTeamIds(session.user.id);
-  const ownedTeamIds = new Set(userTeamIds?.owned ?? []);
   const isRealtorWithoutTeam =
     hasRole(session, "realtor") && (userTeamIds?.all.length ?? 0) === 0;
-  // v1 parity: clicking a team row goes to /edit when the user can edit,
-  // else to the read-only detail view (Platform's teams-list.blade.php:150
-  // `onclick="window.location='{{ route('admin.teams.edit', $team) }}'"`).
-  // Mirrors canEditTeam(): admin always; realtor iff they own the team;
-  // staff falls through to detail (canEditTeam returns false for staff).
-  const canEdit = (teamId: string) => isAdmin || ownedTeamIds.has(teamId);
   const showFounderBanner = isRealtorWithoutTeam;
   const canFound = showFounderBanner && (await canCreateFirstTeam(session));
   const fromGate = params.needs_team === "1";
@@ -113,32 +139,41 @@ export default async function TeamsPage({
         ? { assignments: { _count: dir } }
         : { name: dir };
 
-  const teams = await prisma.team.findMany({
-    where,
-    orderBy,
-    include: {
-      _count: { select: { members: true, assignments: true } },
-      members: {
-        where: { teamRole: "owner" },
-        take: 1,
-        include: {
-          user: { select: { firstName: true, lastName: true, email: true } },
+  const [filteredCount, teams] = await Promise.all([
+    prisma.team.count({ where }),
+    prisma.team.findMany({
+      where,
+      orderBy,
+      include: {
+        _count: { select: { members: true, assignments: true } },
+        members: {
+          where: { teamRole: "owner" },
+          take: 1,
+          include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+          },
         },
       },
-    },
-  });
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+  ]);
 
-  const totals = {
-    teams: teams.length,
-    members: teams.reduce((s, t) => s + t._count.members, 0),
-    assignments: teams.reduce((s, t) => s + t._count.assignments, 0),
-  };
+  const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
+  // Out-of-range page on a non-empty list → bounce to the last page so users
+  // who linger on a deep page after filters narrow the result still land
+  // somewhere sensible. Empty result sets stay on page 1 (renders the empty
+  // state) instead of redirecting to itself. Mirrors the assignments page.
+  if (page > totalPages && filteredCount > 0) {
+    redirect(buildUrl({ q, sort, dir, page }, { page: totalPages }));
+  }
 
+  const currentState: FilterState = { q, sort, dir, page };
   const hasActiveSearch = q.length > 0;
 
   return (
     <>
-      <Topbar title="Teams" subtitle={`${totals.teams} offices`} />
+      <Topbar title="Teams" subtitle={`${filteredCount} offices`} />
 
       <div className="p-8 max-w-[1400px] space-y-6">
         {showFounderBanner && (
@@ -185,14 +220,9 @@ export default async function TeamsPage({
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-[var(--color-ink)]">
-              {totals.teams} partner{" "}
-              {totals.teams === 1 ? "office" : "offices"} across Belgium
+              {filteredCount} partner{" "}
+              {filteredCount === 1 ? "office" : "offices"} across Belgium
             </h2>
-            <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-              {totals.members} total member{totals.members === 1 ? "" : "s"} ·{" "}
-              {totals.assignments} total assignment
-              {totals.assignments === 1 ? "" : "s"}
-            </p>
           </div>
           {(canCreateTeam(session) || canFound) && (
             <Button href="/dashboard/teams/new" size="md">
@@ -235,8 +265,16 @@ export default async function TeamsPage({
           )
         ) : (
           <>
-            <DesktopTable teams={teams} q={q} sort={sort} dir={dir} canEdit={canEdit} />
-            <MobileList teams={teams} canEdit={canEdit} />
+            <DesktopTable teams={teams} currentState={currentState} />
+            <MobileList teams={teams} />
+            {filteredCount > PAGE_SIZE && (
+              <Pagination
+                current={page}
+                total={filteredCount}
+                pageSize={PAGE_SIZE}
+                buildUrl={(p) => buildUrl(currentState, { page: p })}
+              />
+            )}
           </>
         )}
       </div>
@@ -259,16 +297,10 @@ type TeamRow = Prisma.TeamGetPayload<{
 
 function DesktopTable({
   teams,
-  q,
-  sort,
-  dir,
-  canEdit,
+  currentState,
 }: {
   teams: TeamRow[];
-  canEdit: (teamId: string) => boolean;
-  q: string;
-  sort: SortField;
-  dir: "asc" | "desc";
+  currentState: FilterState;
 }) {
   return (
     <div className="hidden overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] shadow-[var(--shadow-sm)] sm:block">
@@ -279,26 +311,20 @@ function DesktopTable({
               <SortHeader
                 label="Office"
                 field="name"
-                q={q}
-                currentSort={sort}
-                currentDir={dir}
+                currentState={currentState}
                 className="px-6 py-3 text-left font-medium"
               />
               <th className="px-6 py-3 text-left font-medium">Owner</th>
               <SortHeader
                 label="Members"
                 field="members"
-                q={q}
-                currentSort={sort}
-                currentDir={dir}
+                currentState={currentState}
                 className="px-6 py-3 text-left font-medium"
               />
               <SortHeader
                 label="Assignments"
                 field="assignments"
-                q={q}
-                currentSort={sort}
-                currentDir={dir}
+                currentState={currentState}
                 className="px-6 py-3 text-left font-medium"
               />
               <th className="px-6 py-3" aria-hidden />
@@ -314,7 +340,7 @@ function DesktopTable({
                 >
                   <td className="px-6 py-4">
                     <Link
-                      href={`/dashboard/teams/${team.id}${canEdit(team.id) ? "/edit" : ""}`}
+                      href={`/dashboard/teams/${team.id}`}
                       className="flex items-center gap-3 text-[var(--color-ink)]"
                     >
                       <span
@@ -374,7 +400,7 @@ function DesktopTable({
   );
 }
 
-function MobileList({ teams, canEdit }: { teams: TeamRow[]; canEdit: (teamId: string) => boolean }) {
+function MobileList({ teams }: { teams: TeamRow[] }) {
   return (
     <div className="space-y-3 sm:hidden">
       {teams.map((team) => {
@@ -382,7 +408,7 @@ function MobileList({ teams, canEdit }: { teams: TeamRow[]; canEdit: (teamId: st
         return (
           <Card key={team.id} className="overflow-hidden">
             <Link
-              href={`/dashboard/teams/${team.id}${canEdit(team.id) ? "/edit" : ""}`}
+              href={`/dashboard/teams/${team.id}`}
               className="block px-4 py-3"
             >
               <div className="flex items-center gap-3">
@@ -445,26 +471,20 @@ function MobileList({ teams, canEdit }: { teams: TeamRow[]; canEdit: (teamId: st
 function SortHeader({
   label,
   field,
-  q,
-  currentSort,
-  currentDir,
+  currentState,
   className,
 }: {
   label: string;
   field: SortField;
-  q: string;
-  currentSort: SortField;
-  currentDir: "asc" | "desc";
+  currentState: FilterState;
   className?: string;
 }) {
-  const isActive = currentSort === field;
-  const nextDir = isActive && currentDir === "asc" ? "desc" : "asc";
-
-  const sp = new URLSearchParams();
-  if (q) sp.set("q", q);
-  sp.set("sort", field);
-  sp.set("dir", nextDir);
-  const href = `/dashboard/teams?${sp.toString()}`;
+  const isActive = currentState.sort === field;
+  const nextDir = isActive && currentState.dir === "asc" ? "desc" : "asc";
+  // Re-sorting resets to page 1, mirroring the assignments page — sitting on
+  // page 4 of an old sort would otherwise land on a different slice of the
+  // new ordering.
+  const href = buildUrl(currentState, { sort: field, dir: nextDir, page: 1 });
 
   return (
     <th scope="col" className={className}>
@@ -473,14 +493,14 @@ function SortHeader({
         className="inline-flex items-center gap-1 hover:text-[var(--color-ink)]"
         aria-sort={
           isActive
-            ? currentDir === "asc"
+            ? currentState.dir === "asc"
               ? "ascending"
               : "descending"
             : "none"
         }
       >
         <span>{label}</span>
-        <SortArrow active={isActive} dir={currentDir} />
+        <SortArrow active={isActive} dir={currentState.dir} />
       </Link>
     </th>
   );
