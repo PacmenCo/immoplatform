@@ -171,7 +171,8 @@ ssh root@178.128.246.222
 - **Env vars on droplet:** `STORAGE_PROVIDER=do-spaces`, `S3_BUCKET=immoplatform-real-storage`, `S3_REGION=ams3`, `S3_ENDPOINT=https://ams3.digitaloceanspaces.com` (region-level URL — the SDK prepends the bucket name automatically; do NOT use the bucket-prefixed URL here).
 - **Code path:** `src/lib/storage/index.ts` switches on `STORAGE_PROVIDER`; `s3-storage.ts` is the active backend. `local-storage.ts` is the dev / fallback.
 - **Object layout:** `avatars/{userId}/{version}.{ext}` · `teams/{teamId}/{logo|signature}/{version}.{ext}` · `assignments/{assignmentId}/{lane}/{fileId}_{originalName}`.
-- **Debugging:** the bucket Files tab in DO panel shows uploads in real time. If an upload appears to succeed in the UI but the bucket stays empty, check `journalctl -u immoplatform | grep -iE "s3|storage"` for the SDK error.
+- **CORS (one-time, per bucket):** assignment-file uploads use direct browser → Spaces PUT, which triggers a CORS preflight. The bucket needs a rule allowing `PUT/GET/HEAD` from the app origin or every upload silently fails with `No 'Access-Control-Allow-Origin' header is present`. The granular S3 key on the droplet has data-plane scope only (no `s3:PutBucketCors`), so apply the rule via the **DO panel** (Spaces → bucket → Settings → CORS Configurations → Add). Rule: Origin=`https://immoplatform.be`, Methods=`GET, PUT, HEAD`, Allowed Headers=`*`, MaxAge=`3000`. Downloads, avatars, team logos, team signatures don't need CORS — they're top-level navigations or `<img>` requests. Repeat this on any new bucket (staging, branch deploy, region split).
+- **Debugging:** the bucket Files tab in DO panel shows uploads in real time. If an upload appears to succeed in the UI but the bucket stays empty, check `journalctl -u immoplatform | grep -iE "s3|storage"` for the SDK error. If the upload errors out in the **browser console** with a CORS message, the bucket CORS rule above is missing.
 
 ### Email (Postmark)
 
@@ -228,8 +229,3 @@ Upserts on email — safe to re-run. Bypasses Zod's 10-char minimum (writes dire
 ## Commit + push discipline
 
 Never run `git commit` / `git push` / Command Center writes without an explicit user OK in the current turn. The sandbox enforces this with a block; in your own workflow, finish the code, run typecheck + build + seed, report what's staged, and wait for approval before touching origin or the board. See memory file `feedback_git_commit_confirmation.md`.
-
-## Open questions (blockers)
-
-- Final brand name for the merged entity (placeholder: "Immo").
-- Real names + scope for the 4 services (placeholders: EPC, Asbestos, Electrical, Fuel Tank).

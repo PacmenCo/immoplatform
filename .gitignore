@@ -60,3 +60,6 @@ next-env.d.ts
 # QA screenshots dropped at repo root by ad-hoc playwright/test sessions
 # (root-only — keeps public/*.png and src/**/*.png trackable)
 /*.png
+
+# Local secrets backup files — never commit (see CLAUDE.md secrets section).
+immo-secrets*
