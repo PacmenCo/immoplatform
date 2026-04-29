@@ -856,10 +856,16 @@ function PricelistItemPicker({
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = items.filter((it) => {
+  // Category-scoped rules can't be invoiced as a specific product, so
+  // they're filtered out at the picker boundary — submitting one would
+  // give us nothing to write to `odooProductTemplateId`.
+  const selectable = items.filter((it) => it.productTemplateId !== null);
+  const filtered = selectable.filter((it) => {
     if (!query) return true;
     return it.productName.toLowerCase().includes(query.toLowerCase());
   });
+  const selectedItem =
+    selectedId !== null ? selectable.find((it) => it.id === selectedId) ?? null : null;
 
   function pick(item: PricelistItemOption) {
     setSelectedId(item.id);
@@ -908,10 +914,24 @@ function PricelistItemPicker({
             ×
           </button>
         )}
+        {/* The action consumes BOTH fields. `_product` carries the Odoo
+            `product.template.id` (drives invoicing); `_price` carries the
+            picked rule's fixed price in cents (becomes the assignment-line
+            snapshot, overriding the team-level override / base price). */}
         <input
           type="hidden"
           name={`service_${serviceKey}_product`}
-          value={selectedId ?? ""}
+          value={selectedItem?.productTemplateId ?? ""}
+        />
+        <input
+          type="hidden"
+          name={`service_${serviceKey}_price`}
+          value={
+            selectedItem?.computePrice === "fixed" &&
+            selectedItem.fixedPriceCents !== null
+              ? selectedItem.fixedPriceCents
+              : ""
+          }
         />
         {open && filtered.length > 0 && (
           <ul

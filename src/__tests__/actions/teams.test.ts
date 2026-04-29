@@ -209,6 +209,42 @@ describe("createTeamInner — validation", () => {
     });
     expect(team).toEqual({ commissionType: "percentage", commissionValue: 1500 });
   });
+
+  // Badge derivation: an empty submission used to fail native HTML5
+  // `required` validation silently. Action now derives a 2-letter
+  // initialism from the team name when the field is blank.
+  it("empty badge → derived from team name initials", async () => {
+    const { admin } = await seedBaseline();
+    const res = await createTeamInner(
+      admin,
+      undefined,
+      teamForm({ name: "Brugge Test Realty", logo: "" }),
+    );
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.data) throw new Error("expected data");
+    const team = await prisma.team.findUniqueOrThrow({
+      where: { id: res.data.id },
+      select: { logo: true },
+    });
+    expect(team.logo).toBe("BT");
+  });
+
+  it("explicit badge wins over derivation", async () => {
+    const { admin } = await seedBaseline();
+    const res = await createTeamInner(
+      admin,
+      undefined,
+      teamForm({ name: "Brugge Test Realty", logo: "xyz" }),
+    );
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.data) throw new Error("expected data");
+    const team = await prisma.team.findUniqueOrThrow({
+      where: { id: res.data.id },
+      select: { logo: true },
+    });
+    // Schema uppercases.
+    expect(team.logo).toBe("XYZ");
+  });
 });
 
 describe("updateTeamInner", () => {

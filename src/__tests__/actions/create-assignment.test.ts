@@ -551,6 +551,45 @@ describe("createAssignmentInner — pricelist item picker", () => {
     void teams;
   });
 
+  // The picker submits `service_<k>_price` alongside `_product`. The price
+  // is the picked rule's `fixedPriceCents` and MUST become the assignment-
+  // line snapshot — without this, the user picks "EPC-Certificaat €200" but
+  // the line stores Service.unitPrice (e.g. €245). Silently wrong invoicing.
+  it("service_<key>_price overrides Service.unitPrice on the line snapshot", async () => {
+    const { admin } = await seedBaseline();
+    const fd = buildCreateForm();
+    fd.set("service_asbestos_product", "105");
+    fd.set("service_asbestos_price", "20000");
+
+    const res = await createAssignmentInner(admin, undefined, fd);
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.data) throw new Error("expected ok + data");
+
+    const line = await prisma.assignmentService.findFirstOrThrow({
+      where: { assignmentId: res.data.id, serviceKey: "asbestos" },
+    });
+    expect(line.unitPriceCents).toBe(20000);
+    expect(line.odooProductTemplateId).toBe(105);
+  });
+
+  it("missing _price (only _product set) falls back to resolved unit price", async () => {
+    const { admin } = await seedBaseline();
+    const fd = buildCreateForm();
+    fd.set("service_asbestos_product", "105");
+    // No `_price` field — exercises the fallback path.
+
+    const res = await createAssignmentInner(admin, undefined, fd);
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.data) throw new Error("expected ok + data");
+
+    const line = await prisma.assignmentService.findFirstOrThrow({
+      where: { assignmentId: res.data.id, serviceKey: "asbestos" },
+    });
+    // Falls through to Service.unitPrice (25000 per the seed) since no
+    // team override exists.
+    expect(line.unitPriceCents).toBe(25000);
+  });
+
   it("missing picker field → odooProductTemplateId is null (back-compat)", async () => {
     const { admin } = await seedBaseline();
     const res = await createAssignmentInner(admin, undefined, buildCreateForm());

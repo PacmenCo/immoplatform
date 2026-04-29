@@ -75,6 +75,35 @@ import { withSession, type ActionResult } from "./_types";
 
 // ─── Helpers ───────────────────────────────────────────────────────
 
+/**
+ * Read the inline pricelist-picker companions for a service key:
+ *   - `service_<k>_product` — Odoo `product.template.id`
+ *   - `service_<k>_price`   — fixed price cents (snapshot)
+ *
+ * Distinguishes three states per field:
+ *   - field absent       → undefined  (preserve prior on update)
+ *   - field present ""   → null       (explicit clear)
+ *   - field present numeric → parsed positive int (or null on parse fail)
+ */
+function readPickerFields(
+  formData: FormData,
+  serviceKey: string,
+): {
+  productTemplateId: number | null | undefined;
+  priceCents: number | null | undefined;
+} {
+  const parse = (raw: FormDataEntryValue | null): number | null | undefined => {
+    if (typeof raw !== "string") return undefined;
+    if (raw === "") return null;
+    const n = Number.parseInt(raw, 10);
+    return Number.isInteger(n) && n > 0 ? n : null;
+  };
+  return {
+    productTemplateId: parse(formData.get(`service_${serviceKey}_product`)),
+    priceCents: parse(formData.get(`service_${serviceKey}_price`)),
+  };
+}
+
 async function nextReference(): Promise<string> {
   const year = new Date().getFullYear();
   const last = await prisma.assignment.findFirst({
@@ -421,18 +450,13 @@ export async function createAssignmentInner(
   // setTeamServiceOverride fires between service keys.
   const priceMap = await resolveUnitPrices(teamId, d.services);
   const serviceLines = d.services.map((k) => {
-    // Optional Odoo product picked from the team's bound pricelist (only
-    // surfaces when the team has a per-service pricelist binding). Form
-    // submits the raw template id; we coerce + null-check at the edge.
-    const raw = formData.get(`service_${k}_product`);
-    const parsed =
-      typeof raw === "string" && raw !== "" ? Number.parseInt(raw, 10) : null;
-    const odooProductTemplateId =
-      parsed !== null && Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    // When the inline pricelist picker is filled, its price is the
+    // authoritative snapshot — beats the team override / Service.unitPrice.
+    const picker = readPickerFields(formData, k);
     return {
       serviceKey: k,
-      unitPriceCents: priceMap.get(k) ?? 0,
-      odooProductTemplateId,
+      unitPriceCents: picker.priceCents ?? priceMap.get(k) ?? 0,
+      odooProductTemplateId: picker.productTemplateId ?? null,
     };
   });
 
@@ -1101,24 +1125,21 @@ export async function updateAssignmentInner(
     : new Map<string, number>();
   const nextLines = d.services.map((k) => {
     const prior = existingByKey.get(k);
-    // Read the picker's hidden field; explicit empty / unset clears the
-    // binding so the user can remove a stale stick.
-    const raw = formData.get(`service_${k}_product`);
-    let odooProductTemplateId: number | null;
-    if (typeof raw === "string") {
-      if (raw === "") odooProductTemplateId = null;
-      else {
-        const parsed = Number.parseInt(raw, 10);
-        odooProductTemplateId =
-          Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-      }
-    } else {
-      // No field on the form (service has no pricelist binding) — keep prior.
-      odooProductTemplateId = prior?.odooProductTemplateId ?? null;
-    }
+    // Three-state picker semantics: undefined = no field rendered →
+    // preserve prior; null = explicit clear; number = new pick (also
+    // updates the price snapshot). Picker price always wins when set.
+    const picker = readPickerFields(formData, k);
+    const odooProductTemplateId =
+      picker.productTemplateId === undefined
+        ? prior?.odooProductTemplateId ?? null
+        : picker.productTemplateId;
+    const unitPriceCents =
+      picker.priceCents != null
+        ? picker.priceCents
+        : prior?.unitPriceCents ?? newPrices.get(k) ?? 0;
     return {
       serviceKey: k,
-      unitPriceCents: prior?.unitPriceCents ?? newPrices.get(k) ?? 0,
+      unitPriceCents,
       odooProductTemplateId,
     };
   });

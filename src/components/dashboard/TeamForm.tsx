@@ -135,7 +135,7 @@ export function TeamForm({
             </Field>
           </div>
           <div className="sm:col-span-6">
-            <Field label="Badge" id="logo" hint="1–3 letters shown on team cards until a logo image is uploaded.">
+            <Field label="Badge" id="logo" hint="1–3 letters shown on team cards until a logo image is uploaded. Leave blank to derive from the team name.">
               <div className="flex items-center gap-4">
                 <LogoPreview logo={logo} color={logoColor} />
                 <Input
@@ -146,7 +146,6 @@ export function TeamForm({
                   placeholder="VA"
                   value={logo}
                   onChange={(e) => setLogo(e.target.value)}
-                  required
                 />
                 <label className="flex items-center gap-2 text-sm text-[var(--color-ink-soft)]">
                   Color

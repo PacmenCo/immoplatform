@@ -49,6 +49,7 @@ import {
 import { audit } from "./auth";
 import { odooSyncFailedEmail, sendEmail } from "./email";
 import { assignmentUrl } from "./urls";
+import { PRICELIST_ENABLED_SERVICES } from "./mockData";
 
 export type SyncTrigger = "create" | "retry";
 
@@ -299,16 +300,33 @@ export async function syncAssignmentToOdoo(
     if (!odooOrderId) {
       let pricelistId: number | null = null;
       if (assignment.teamId) {
-        const override = await prisma.teamServiceOverride.findUnique({
-          where: {
-            teamId_serviceKey: {
+        // Pick the first pricelist binding among the assignment's eligible
+        // services. Odoo SOs carry a single pricelist; ordering follows
+        // the assignment's `services` order so the resolution is stable
+        // across reruns. As soon as a new service joins
+        // PRICELIST_ENABLED_SERVICES (e.g. EK / EPC), this loop picks it
+        // up automatically — no edit here.
+        const eligible = assignment.services
+          .map((s) => s.serviceKey)
+          .filter((k) => PRICELIST_ENABLED_SERVICES.has(k));
+        if (eligible.length > 0) {
+          const overrides = await prisma.teamServiceOverride.findMany({
+            where: {
               teamId: assignment.teamId,
-              serviceKey: "asbestos",
+              serviceKey: { in: eligible },
+              odooPricelistId: { not: null },
             },
-          },
-          select: { odooPricelistId: true },
-        });
-        pricelistId = override?.odooPricelistId ?? null;
+            select: { serviceKey: true, odooPricelistId: true },
+          });
+          // Honour assignment.services order for determinism.
+          for (const k of eligible) {
+            const hit = overrides.find((o) => o.serviceKey === k);
+            if (hit?.odooPricelistId != null) {
+              pricelistId = hit.odooPricelistId;
+              break;
+            }
+          }
+        }
       }
       if (pricelistId === null) {
         pricelistId = await getDefaultPricelistId();

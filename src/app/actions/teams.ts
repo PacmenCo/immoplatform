@@ -7,7 +7,14 @@ import { prisma } from "@/lib/db";
 import { audit, type SessionWithUser } from "@/lib/auth";
 import { canCreateFirstTeam, canCreateTeam, canEditTeam, hasRole } from "@/lib/permissions";
 import { storage } from "@/lib/storage";
+import { initialsFromName } from "@/lib/format";
 import { withSession, type ActionResult } from "./_types";
+
+/** Empty badge → derive from name initials so a blank submit never silently
+ *  no-ops on the required HTML5 attribute (we drop that attribute too). */
+function resolveBadge(badge: string, name: string): string {
+  return badge || initialsFromName(name);
+}
 
 // ─── Schemas ───────────────────────────────────────────────────────
 
@@ -17,11 +24,15 @@ const hexColor = z
   .regex(/^#?[0-9a-fA-F]{3,8}$/, "Use a valid hex color, e.g. #0f172a.")
   .transform((s) => (s.startsWith("#") ? s : `#${s}`));
 
-/** 2-letter display badge used on the team card when there's no logo image. */
+/**
+ * 2-letter display badge used on the team card when there's no logo image.
+ * Empty submissions are accepted at the schema layer — the action derives
+ * a fallback from the team name's initials so the form never silently
+ * no-ops on a blank input.
+ */
 const logoBadge = z
   .string()
   .trim()
-  .min(1, "Pick a 1–3 character badge.")
   .max(3, "Badges are at most 3 characters.")
   .transform((s) => s.toUpperCase());
 
@@ -147,7 +158,7 @@ export async function createTeamInner(
         city: d.city ?? null,
         email: d.email ?? null,
         description: d.description ?? null,
-        logo: d.logo,
+        logo: resolveBadge(d.logo, d.name),
         logoColor: d.logoColor,
         legalName: d.legalName ?? null,
         vatNumber: d.vatNumber ?? null,
@@ -234,7 +245,7 @@ export async function updateTeamInner(
       city: d.city ?? null,
       email: d.email ?? null,
       description: d.description ?? null,
-      logo: d.logo,
+      logo: resolveBadge(d.logo, d.name),
       logoColor: d.logoColor,
       legalName: d.legalName ?? null,
       vatNumber: d.vatNumber ?? null,

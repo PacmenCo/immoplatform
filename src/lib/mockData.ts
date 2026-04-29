@@ -1,6 +1,18 @@
 export const SERVICE_KEYS = ["epc", "asbestos", "electrical", "fuel"] as const;
 export type ServiceKey = (typeof SERVICE_KEYS)[number];
 
+/**
+ * Services for which the team-edit page exposes an Odoo pricelist binding
+ * (and the assignment-create form renders an inline product typeahead).
+ * Two consumers must keep in sync:
+ *   - `TeamPriceOverrides` (UI gate — renders the picker)
+ *   - `odoo-sync` (sale-order creation — looks up the bound pricelist)
+ * Add a service key here once its Odoo product mappings are confirmed.
+ */
+export const PRICELIST_ENABLED_SERVICES: ReadonlySet<string> = new Set([
+  "asbestos" satisfies ServiceKey,
+]);
+
 export const SERVICES: Record<
   ServiceKey,
   { label: string; short: string; color: string; description: string }

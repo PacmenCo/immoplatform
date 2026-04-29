@@ -182,8 +182,15 @@ export async function listPricelists(opts: {
 }
 
 export type OdooPricelistItem = {
+  /** `product.pricelist.item.id` — the rule row's id. Used for React keys
+   *  and dedup; not what gets persisted on an assignment line (use
+   *  `productTemplateId` for that — it's what the SO expects). */
   id: number;
   pricelistId: number;
+  /** `product.template.id` extracted from the rule's `product_tmpl_id`.
+   *  Null on category-scoped rules — those can't be invoiced as a specific
+   *  product, so the picker filters them out. */
+  productTemplateId: number | null;
   /** Falls back to `display_name` when there's no underlying product (rule
    *  applies on a category, not a specific product). */
   productName: string;
@@ -256,6 +263,7 @@ export async function listPricelistItems(pricelistIds: number[]): Promise<OdooPr
     return {
       id: r.id,
       pricelistId: Array.isArray(r.pricelist_id) ? r.pricelist_id[0] : 0,
+      productTemplateId: Array.isArray(r.product_tmpl_id) ? r.product_tmpl_id[0] : null,
       productName: product,
       computePrice: r.compute_price,
       fixedPriceCents:

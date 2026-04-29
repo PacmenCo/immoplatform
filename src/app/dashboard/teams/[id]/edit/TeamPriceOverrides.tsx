@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/teams";
 import { formatEuros, formatPricelistItemPrice } from "@/lib/format";
 import type { OdooPricelistItem } from "@/lib/odoo";
+import { PRICELIST_ENABLED_SERVICES } from "@/lib/mockData";
 
 type ServiceRow = {
   key: string;
@@ -25,10 +26,6 @@ type ServiceRow = {
 export type PricelistOption = { id: number; name: string };
 
 export type PricelistItem = OdooPricelistItem;
-
-/** Service keys that get an Odoo pricelist binding. Asbestos first; EK and
- *  EPC will be added once their Odoo product mappings are confirmed. */
-const PRICELIST_ENABLED_SERVICES = new Set(["asbestos"]);
 
 export function TeamPriceOverrides({
   teamId,
