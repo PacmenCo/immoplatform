@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { Dropzone } from "@/components/ui/Dropzone";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { useToast } from "@/components/ui/Toast";
@@ -47,17 +46,20 @@ export function FileUploadForm({
     };
   }, []);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (pending || files.length === 0) return;
+  // v1 parity: FilePond auto-uploads on file selection (no separate confirm
+  // button). Triggered from Dropzone's onChange the moment the user picks or
+  // drops files. Takes the batch as a parameter rather than reading `files`
+  // state so the closure isn't racing the setFiles update.
+  async function runUpload(batch: File[]) {
+    if (pending || batch.length === 0) return;
     setError(null);
     setPending(true);
-    setProgress(new Array(files.length).fill(0));
+    setProgress(new Array(batch.length).fill(0));
 
     try {
       // 1) Presign — server validates lane, terminal status, MIME, size cap,
       //    count cap; returns a PUT URL per file plus the storage key + fileId.
-      const meta = files.map((f) => ({
+      const meta = batch.map((f) => ({
         name: f.name,
         mimeType: f.type,
         sizeBytes: f.size,
@@ -70,7 +72,7 @@ export function FileUploadForm({
       }
 
       const uploads = pres.data!.uploads;
-      if (uploads.length !== files.length) {
+      if (uploads.length !== batch.length) {
         const msg = "Mismatched upload tickets — try again.";
         setError(msg);
         toast.error(msg);
@@ -82,7 +84,7 @@ export function FileUploadForm({
       const completed: PresignedUpload[] = [];
       const failed: PresignedUpload[] = [];
       let firstError: string | null = null;
-      const queue = uploads.map((u, i) => ({ u, file: files[i], index: i }));
+      const queue = uploads.map((u, i) => ({ u, file: batch[i], index: i }));
       const workers = Array.from({ length: Math.min(UPLOAD_CONCURRENCY, queue.length) }, async () => {
         while (queue.length > 0) {
           const next = queue.shift();
@@ -130,7 +132,7 @@ export function FileUploadForm({
         storageKey: u.storageKey,
         originalName: u.originalName,
         mimeType: u.mimeType,
-        sizeBytes: files[i].size,
+        sizeBytes: batch[i].size,
       }));
       const fin = await finalizeAssignmentFileUpload(assignmentId, lane, items);
       if (!fin.ok) {
@@ -139,7 +141,7 @@ export function FileUploadForm({
         return;
       }
 
-      const n = files.length;
+      const n = batch.length;
       toast.success(`Uploaded ${n} file${n === 1 ? "" : "s"}.`);
       setFiles([]);
       setProgress([]);
@@ -156,7 +158,7 @@ export function FileUploadForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <div className="space-y-4">
       {error && <ErrorAlert>{error}</ErrorAlert>}
 
       <Dropzone
@@ -164,12 +166,14 @@ export function FileUploadForm({
         files={files}
         onChange={(next) => {
           setFiles(next);
-          setProgress((prev) =>
-            // Trim the progress array if files were removed; reset everything
-            // else when the picked set changes (a new batch starts at 0).
-            prev.length === next.length ? prev.slice() : new Array(next.length).fill(0),
-          );
           setError(null);
+          // The Dropzone is disabled while pending, so onChange can only
+          // fire with a fresh batch (or with [] when the user removes a
+          // post-success row before refresh lands). Empty batches no-op.
+          const newOnes = next.filter((f) => !files.includes(f));
+          if (newOnes.length > 0) {
+            void runUpload(newOnes);
+          }
         }}
         accept={constraints.allowedMimes.join(",")}
         hint={constraints.acceptHint}
@@ -187,23 +191,7 @@ export function FileUploadForm({
         uploading={pending}
         progress={pending ? progress : undefined}
       />
-
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-[var(--color-ink-muted)]">
-          {files.length === 0
-            ? "No files picked yet."
-            : `${files.length} file${files.length === 1 ? "" : "s"} ready to upload.`}
-        </p>
-        <Button
-          type="submit"
-          size="sm"
-          loading={pending}
-          disabled={files.length === 0 || pending}
-        >
-          Upload
-        </Button>
-      </div>
-    </form>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
@@ -60,6 +60,7 @@ function LogoSection({
     ActionResult | undefined,
     FormData
   >(boundRemove, undefined);
+  const uploadFormRef = useRef<HTMLFormElement>(null);
 
   return (
     <Card>
@@ -72,21 +73,24 @@ function LogoSection({
       <CardBody className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <LogoPreview src={logoUrl} teamName={teamName} />
-          <form action={uploadAction} className="flex-1">
+          <form ref={uploadFormRef} action={uploadAction} className="flex-1">
             <input
               type="file"
               name="logo"
               accept={TEAM_LOGO_ACCEPT_ATTR}
-              className="block w-full max-w-sm text-sm text-[var(--color-ink-soft)] file:mr-3 file:rounded-md file:border file:border-[var(--color-border-strong)] file:bg-[var(--color-bg)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--color-ink)] hover:file:bg-[var(--color-bg-muted)]"
+              disabled={uploading}
+              onChange={(e) => {
+                if (e.currentTarget.files && e.currentTarget.files.length > 0) {
+                  uploadFormRef.current?.requestSubmit();
+                }
+              }}
+              className="block w-full max-w-sm text-sm text-[var(--color-ink-soft)] file:mr-3 file:rounded-md file:border file:border-[var(--color-border-strong)] file:bg-[var(--color-bg)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--color-ink)] hover:file:bg-[var(--color-bg-muted)] disabled:cursor-not-allowed disabled:opacity-60"
             />
-            <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
-              PNG, JPG, WebP or GIF — max {LOGO_MAX_MB} MB.
+            <p className="mt-2 text-xs text-[var(--color-ink-muted)]" aria-live="polite">
+              {uploading
+                ? "Uploading…"
+                : `PNG, JPG, WebP or GIF — max ${LOGO_MAX_MB} MB.`}
             </p>
-            <div className="mt-3">
-              <Button type="submit" variant="secondary" size="sm" loading={uploading}>
-                Upload logo
-              </Button>
-            </div>
           </form>
           {logoUrl && (
             <form action={removeAction}>
@@ -149,6 +153,7 @@ function SignatureSection({
     ActionResult | undefined,
     FormData
   >(boundRemove, undefined);
+  const uploadFormRef = useRef<HTMLFormElement>(null);
 
   return (
     <Card>
@@ -162,21 +167,24 @@ function SignatureSection({
       <CardBody className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <SignaturePreview src={signatureUrl} teamName={teamName} />
-          <form action={uploadAction} className="flex-1">
+          <form ref={uploadFormRef} action={uploadAction} className="flex-1">
             <input
               type="file"
               name="signature"
               accept={TEAM_SIGNATURE_ACCEPT_ATTR}
-              className="block w-full max-w-sm text-sm text-[var(--color-ink-soft)] file:mr-3 file:rounded-md file:border file:border-[var(--color-border-strong)] file:bg-[var(--color-bg)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--color-ink)] hover:file:bg-[var(--color-bg-muted)]"
+              disabled={uploading}
+              onChange={(e) => {
+                if (e.currentTarget.files && e.currentTarget.files.length > 0) {
+                  uploadFormRef.current?.requestSubmit();
+                }
+              }}
+              className="block w-full max-w-sm text-sm text-[var(--color-ink-soft)] file:mr-3 file:rounded-md file:border file:border-[var(--color-border-strong)] file:bg-[var(--color-bg)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--color-ink)] hover:file:bg-[var(--color-bg-muted)] disabled:cursor-not-allowed disabled:opacity-60"
             />
-            <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
-              PNG or JPG — max {SIGNATURE_MAX_MB} MB. SVG not supported — PDFs stamp raster.
+            <p className="mt-2 text-xs text-[var(--color-ink-muted)]" aria-live="polite">
+              {uploading
+                ? "Uploading…"
+                : `PNG or JPG — max ${SIGNATURE_MAX_MB} MB. SVG not supported — PDFs stamp raster.`}
             </p>
-            <div className="mt-3">
-              <Button type="submit" variant="secondary" size="sm" loading={uploading}>
-                Upload signature
-              </Button>
-            </div>
           </form>
           {signatureUrl && (
             <form action={removeAction}>
