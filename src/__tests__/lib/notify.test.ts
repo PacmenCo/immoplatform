@@ -11,7 +11,7 @@ vi.mock("@/lib/email", () => ({
 }));
 
 import { notify } from "@/lib/notify";
-import type { EmailEventKey } from "@/lib/email-events";
+import { EMAIL_EVENTS, type EmailEventKey } from "@/lib/email-events";
 
 // Key contracts:
 //   1. Opt-out → sendEmail NOT called + console.debug with "suppressed"
@@ -125,6 +125,49 @@ describe("notify — sendEmail payload plumbing", () => {
     });
     // html was not passed — should reflect that.
     expect(call.html).toBeUndefined();
+  });
+});
+
+// Parametric proof that the gate works for every event in the catalog —
+// the test that replaced scripts/verify-notification-toggles.ts. Adding a
+// new key to EMAIL_EVENTS automatically extends this suite, so a future
+// regression where someone forgets to wire a key through `notify()` (or
+// names it differently from the catalog) gets caught here.
+describe("notify — gate works for every EMAIL_EVENTS key", () => {
+  const allKeys = Object.keys(EMAIL_EVENTS) as EmailEventKey[];
+
+  beforeEach(() => {
+    sendEmailSpy.mockReset();
+    sendEmailSpy.mockResolvedValue(undefined);
+  });
+
+  it.each(allKeys)("'%s' — pref=true sends, pref=false suppresses", async (event) => {
+    // ON: default-enabled (no prefs) → sendEmail fires once.
+    sendEmailSpy.mockReset();
+    sendEmailSpy.mockResolvedValue(undefined);
+    await notify({
+      to: { email: "to@test.local", emailPrefs: null },
+      event,
+      subject: `[on] ${event}`,
+      text: "on",
+    });
+    expect(sendEmailSpy, `${event} ON should call sendEmail`).toHaveBeenCalledTimes(1);
+
+    // OFF: explicit false → gate suppresses.
+    sendEmailSpy.mockReset();
+    sendEmailSpy.mockResolvedValue(undefined);
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
+    await notify({
+      to: { email: "to@test.local", emailPrefs: JSON.stringify({ [event]: false }) },
+      event,
+      subject: `[off] ${event}`,
+      text: "off",
+    });
+    expect(sendEmailSpy, `${event} OFF should NOT call sendEmail`).not.toHaveBeenCalled();
+    const dbg = String(debugSpy.mock.calls[0]?.[0] ?? "");
+    expect(dbg).toContain("suppressed");
+    expect(dbg).toContain(event);
+    debugSpy.mockRestore();
   });
 });
 
