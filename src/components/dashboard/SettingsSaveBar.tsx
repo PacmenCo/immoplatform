@@ -11,8 +11,12 @@ import { useUnsavedChanges } from "./UnsavedChangesProvider";
  * Design:
  * - Sits inside a `<form>` as its terminal element, so the inner submit
  *   button triggers the form's action (keeps React 19 form-action semantics).
- * - Only appears once the form is dirty — quieter UI, and avoids showing a
- *   save prompt on read-only visits.
+ * - Always mounted so React 19 can resolve the submit button as a stable
+ *   form-owned element. Visibility is gated by CSS via `hidden` — earlier
+ *   versions returned `null` while clean, which made `new FormData(form, btn)`
+ *   throw "The specified element is not owned by this form element" the
+ *   first time the user clicked Save (the button had just remounted and
+ *   React's submitter resolution couldn't find it).
  * - Registers with `UnsavedChangesProvider` so in-app nav and tab-close both
  *   prompt before discarding edits.
  *
@@ -63,8 +67,7 @@ export function SettingsSaveBar({
     lastPending.current = pending;
   }, [pending]);
 
-  const visible = forceVisible || dirty || pending;
-  if (!visible && !justReset) return null;
+  const visible = forceVisible || dirty || pending || justReset;
 
   function reset() {
     formRef.current?.reset();
@@ -74,6 +77,7 @@ export function SettingsSaveBar({
     <div
       role="region"
       aria-label="Save changes"
+      hidden={!visible}
       className="sticky bottom-0 z-20 -mx-6 mt-4 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-bg)]/80"
     >
       <div className="flex items-center justify-between gap-3">

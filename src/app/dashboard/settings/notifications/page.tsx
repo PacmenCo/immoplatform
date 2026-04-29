@@ -31,8 +31,8 @@ export default async function NotificationsSettingsPage() {
   const eventKeys = eventsForRole(myRole);
 
   // Group rows by category. Iterate EMAIL_CATEGORIES so render order matches
-  // Platform's (assignments → team → user → system); skip categories the
-  // viewer's role doesn't have any events in.
+  // Platform's (assignments → team → user); skip categories the viewer's
+  // role doesn't have any events in.
   const groups: PrefGroup[] = EMAIL_CATEGORIES.map((cat) => {
     const rows: PrefRow[] = eventKeys
       .filter((key: EmailEventKey) => EMAIL_EVENTS[key].category === cat.key)

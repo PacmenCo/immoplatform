@@ -16,6 +16,7 @@ import {
 } from "@/lib/auth";
 import { canActOnInvite } from "@/lib/permissions";
 import { addedToTeamEmail, inviteEmail, sendEmail } from "@/lib/email";
+import { notify } from "@/lib/notify";
 import { inviteAcceptUrl, loginUrl } from "@/lib/urls";
 import { withSession, type ActionResult } from "./_types";
 
@@ -143,7 +144,16 @@ export async function createInviteInner(
       teamRole,
       loginUrl: loginUrl(),
     });
-    await sendEmail({ to: email, ...tpl });
+    // Route through notify() so the recipient's `team.member_added` opt-out
+    // is honoured. The recipient is the existing user being added (we
+    // already loaded their emailPrefs above as part of the User row).
+    await notify({
+      to: { email, emailPrefs: existing.emailPrefs },
+      event: "team.member_added",
+      subject: tpl.subject,
+      text: tpl.text,
+      html: tpl.html,
+    });
     await audit({
       actorId: session.user.id,
       verb: "team.member_added",

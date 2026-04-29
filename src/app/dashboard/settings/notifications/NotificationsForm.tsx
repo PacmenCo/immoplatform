@@ -28,7 +28,6 @@ const CATEGORY_DOT: Record<EmailCategoryKey, string> = {
   assignment: "var(--color-epc)",
   team: "var(--color-brand)",
   user: "var(--color-electrical)",
-  system: "var(--color-asbestos)",
 };
 
 export function NotificationsForm({ groups }: { groups: PrefGroup[] }) {

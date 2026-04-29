@@ -14,12 +14,14 @@ import {
 // - forRoles per event gates who sees the toggle
 
 describe("EMAIL_CATEGORIES", () => {
-  it("ordered: assignment → team → user → system (Platform Livewire order)", () => {
+  it("ordered: assignment → team → user (Platform Livewire order, no system since 2026-04-29)", () => {
+    // The "system" category was dropped along with the three system.* events
+    // (invoice-reminder, odoo_sync_failed, error) — none had a real per-user
+    // gate. Re-add when a system event grows real notify()-driven fan-out.
     expect(EMAIL_CATEGORIES.map((c) => c.key)).toEqual([
       "assignment",
       "team",
       "user",
-      "system",
     ]);
   });
 
@@ -37,7 +39,7 @@ describe("EMAIL_EVENTS registry", () => {
       expect(ev.label, `${key}.label`).toBeTruthy();
       expect(ev.description, `${key}.description`).toBeTruthy();
       expect(ev.forRoles.length, `${key}.forRoles`).toBeGreaterThan(0);
-      expect(["assignment", "team", "user", "system"]).toContain(ev.category);
+      expect(["assignment", "team", "user"]).toContain(ev.category);
     }
   });
 
@@ -57,28 +59,33 @@ describe("EMAIL_EVENTS registry", () => {
     "assignment.comment_posted",
     "team.member_added",
     "user.registered",
+  ])("contains %s", (k) => {
+    expect(EMAIL_EVENTS).toHaveProperty(k);
+  });
+
+  // The three system.* events were removed: none had a real per-user gate.
+  it.each([
     "billing.monthly_invoice_reminder",
     "system.odoo_sync_failed",
     "system.error",
-  ])("contains %s", (k) => {
-    expect(EMAIL_EVENTS).toHaveProperty(k);
+  ])("does NOT contain decorative event %s", (k) => {
+    expect(EMAIL_EVENTS).not.toHaveProperty(k);
   });
 });
 
 describe("eventsForRole", () => {
-  it("admin sees every event (admin is in every forRoles list or has system-only events)", () => {
+  it("admin sees admin-scoped events", () => {
     const adminEvents = eventsForRole("admin");
-    // Admins see at least the system.* events that other roles can't.
-    expect(adminEvents).toContain("system.error");
-    expect(adminEvents).toContain("system.odoo_sync_failed");
     expect(adminEvents).toContain("user.registered");
+    expect(adminEvents).toContain("assignment.created");
   });
 
   it("freelancer does NOT see admin-only events", () => {
     const freelancerEvents = eventsForRole("freelancer");
-    expect(freelancerEvents).not.toContain("system.error");
     expect(freelancerEvents).not.toContain("user.registered");
-    expect(freelancerEvents).not.toContain("billing.monthly_invoice_reminder");
+    // team.member_added is hidden from freelancers — they're platform-global
+    // and can't be team members (v1 parity, enforced in invites schema).
+    expect(freelancerEvents).not.toContain("team.member_added");
   });
 
   it("freelancer sees assignment-lifecycle events relevant to them", () => {

@@ -35,11 +35,9 @@ export const EMAIL_CATEGORIES = [
     label: "Your account",
     description: "Emails about your own account activity.",
   },
-  {
-    key: "system",
-    label: "System",
-    description: "Operational and platform-level emails — admin only.",
-  },
+  // "system" category was removed alongside the three system.* events
+  // (invoice-reminder, odoo_sync_failed, error) — none had a real per-user
+  // gate. Re-add when there's a system event with notify()-driven fan-out.
 ] as const;
 
 export type EmailCategoryKey = (typeof EMAIL_CATEGORIES)[number]["key"];
@@ -116,10 +114,10 @@ export const EMAIL_EVENTS = {
     category: "assignment",
   },
   "team.member_added": {
-    label: "When a new member joins my team",
+    label: "When I'm added to a team",
     description:
-      "Sent to existing team admins when someone new accepts an invite or is added to the office. Platform parity: team_member_added.",
-    forRoles: ["admin", "realtor"] as const,
+      "Sent to you when an admin or realtor adds you to one of their teams. Doesn't fire on first-time invite acceptance — that path uses the invite email instead. Freelancers are platform-global and never team members, so this toggle is hidden for them.",
+    forRoles: ["admin", "staff", "realtor"] as const,
     category: "team",
   },
   "user.registered": {
@@ -129,27 +127,15 @@ export const EMAIL_EVENTS = {
     forRoles: ["admin"] as const,
     category: "user",
   },
-  "billing.monthly_invoice_reminder": {
-    label: "Monthly invoice reminder",
-    description:
-      "End-of-month nudge to generate invoices for completed work. Fires from the billing cron. Platform parity: MonthlyInvoiceReminder.",
-    forRoles: ["admin", "staff"] as const,
-    category: "system",
-  },
-  "system.odoo_sync_failed": {
-    label: "When an Odoo sync fails",
-    description:
-      "Sent when an assignment fails to sync to Odoo so someone can resolve it. Platform parity: OdooSyncFailedMail.",
-    forRoles: ["admin"] as const,
-    category: "system",
-  },
-  "system.error": {
-    label: "Critical system errors",
-    description:
-      "Sent to admins on unrecoverable backend errors. Platform parity: system_error.",
-    forRoles: ["admin"] as const,
-    category: "system",
-  },
+  // Removed (decorative toggles with no per-user gate):
+  //   billing.monthly_invoice_reminder — fires from cron to a single
+  //     INVOICE_REMINDER_EMAIL env address, not per-user. Same pattern v1
+  //     uses; the toggle was theatre.
+  //   system.odoo_sync_failed — no template, no sender wired in v2. v1
+  //     hardcodes recipient.
+  //   system.error — no template, no sender. Pure UI placeholder.
+  // If/when any of these gain a real per-user fan-out (notify() to all
+  // admins) re-add the entry and wire the gate at the call site.
 } as const satisfies Record<string, EmailEventDefinition>;
 
 export type EmailEventKey = keyof typeof EMAIL_EVENTS;
