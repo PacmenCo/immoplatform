@@ -6,10 +6,15 @@
  * internal try/catch swallows everything, never throws. Callers `await` it
  * without their own error handling.
  *
- * Triggered from three places:
+ * Triggered from two places:
  *   - inline after assignment create (createAssignmentInner)
  *   - manual retry server action (retryAssignmentOdooSync)
- *   - cron sweep (/api/cron/odoo-sync-retry)
+ *
+ * v1 parity note: v1 uses Laravel's queue worker (2 retries × 30s backoff)
+ * for transient-failure auto-recovery. v2 has no equivalent always-running
+ * worker, so failed syncs sit red until an admin clicks Retry — the same
+ * recovery path v1 admins use beyond the 60s queue window. Failure email
+ * is the operator's signal that intervention is needed.
  *
  * Per-assignment state lives in 6 Assignment columns:
  *   odooContactId, odooOrderId, odooLinesSyncedAt, odooSyncedAt,
@@ -45,7 +50,7 @@ import { audit } from "./auth";
 import { odooSyncFailedEmail, sendEmail } from "./email";
 import { assignmentUrl } from "./urls";
 
-export type SyncTrigger = "create" | "retry" | "cron";
+export type SyncTrigger = "create" | "retry";
 
 const ERROR_MAX_LEN = 1000;
 
