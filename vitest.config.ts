@@ -35,20 +35,12 @@ export default defineConfig({
     include: ["src/__tests__/**/*.test.ts", "src/__tests__/**/*.test.tsx"],
     exclude: ["**/node_modules/**", "**/.next/**", "**/dist/**"],
     setupFiles: ["src/__tests__/_helpers/env.ts"],
-    // Tests share the `immo_test` Postgres DB and TRUNCATE between cases
-    // (see `setupTestDb`). Two test files running concurrently would
-    // truncate each other's seed data mid-flight. `fileParallelism: false`
-    // is the user-facing knob; vitest 4 also needs `poolOptions.forks.singleFork`
-    // to actually pin every file to one fork (otherwise it spawns multiple
-    // forks that each receive a sequential subset, but the forks themselves
-    // run in parallel against the same Postgres DB → FK violations on the
-    // shared seed ids `u_admin`/`u_staff`/etc).
+    // Forks pool with one Postgres SCHEMA per worker (see env.ts +
+    // _helpers/db.ts). Worker 1 lands in `public` so a serial single-fork
+    // run / CI works unchanged; workers >1 use `test_wN`. Each worker
+    // runs migrate deploy against its own schema on first call and
+    // TRUNCATEs only its own tables between tests — cross-worker
+    // isolation is total, so file-level parallelism is safe.
     pool: "forks",
-    fileParallelism: false,
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
   },
 });

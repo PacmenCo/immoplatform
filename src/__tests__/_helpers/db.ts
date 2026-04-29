@@ -22,12 +22,28 @@ export const prisma = new PrismaClient({
 let schemaApplied = false;
 let cachedTables: string[] | null = null;
 
+// Per-worker schema name (set in env.ts). Worker 1 → "public"; workers >1
+// → "test_wN". TRUNCATE + table discovery is scoped to this schema so
+// parallel workers can't see each other's rows.
+const TEST_SCHEMA = process.env.TEST_DB_SCHEMA ?? "public";
+
+// Postgres identifiers must be double-quoted in DDL when interpolated.
+// We control the value (env.ts builds it from VITEST_POOL_ID), so a basic
+// shape check is enough — refuse anything that isn't a-z0-9_ to keep the
+// `TRUNCATE ... ${quoted}` raw-SQL path safe.
+if (!/^[a-z_][a-z0-9_]*$/i.test(TEST_SCHEMA)) {
+  throw new Error(`Invalid TEST_DB_SCHEMA: ${TEST_SCHEMA}`);
+}
+const QUOTED_SCHEMA = `"${TEST_SCHEMA}"`;
+
 async function fetchTableNames(): Promise<string[]> {
   // pg_catalog query — skip Prisma's own `_prisma_migrations` table.
-  // Returns ordinary user tables in the `public` schema.
+  // Scoped to the worker's schema so the TRUNCATE list is exactly the
+  // rows this worker owns.
   const rows = await prisma.$queryRawUnsafe<Array<{ tablename: string }>>(
     `SELECT tablename FROM pg_tables
-     WHERE schemaname = 'public' AND tablename NOT LIKE '_prisma_%'`,
+     WHERE schemaname = $1 AND tablename NOT LIKE '_prisma_%'`,
+    TEST_SCHEMA,
   );
   return rows.map((r) => r.tablename);
 }
@@ -39,17 +55,25 @@ export async function resetDb(opts?: { force?: boolean }): Promise<void> {
   if (schemaApplied && !opts?.force) {
     if (!cachedTables) cachedTables = await fetchTableNames();
     if (cachedTables.length === 0) return;
-    const quoted = cachedTables.map((t) => `"${t}"`).join(", ");
+    const quoted = cachedTables
+      .map((t) => `${QUOTED_SCHEMA}."${t}"`)
+      .join(", ");
     await prisma.$executeRawUnsafe(
       `TRUNCATE TABLE ${quoted} RESTART IDENTITY CASCADE`,
     );
     return;
   }
 
-  // First call this fork: apply pending migrations. The CI workflow also
-  // runs `prisma migrate deploy` before test — redundant but idempotent.
-  // On a dev box with an already-migrated `immo_test` DB, this is a no-op
-  // that takes ~200ms (Prisma checks + prints "No pending migrations").
+  // First call this fork: ensure the worker's schema exists, then apply
+  // pending migrations. CREATE SCHEMA is idempotent and runs on the
+  // existing connection (schemas are just namespaces; the DB itself must
+  // already exist — see env.ts comment). Then `prisma migrate deploy`
+  // targets the schema named in DATABASE_URL's `?schema=` param.
+  // On a dev box with an already-migrated schema, migrate is a no-op that
+  // takes ~200ms (Prisma checks + prints "No pending migrations").
+  await prisma.$executeRawUnsafe(
+    `CREATE SCHEMA IF NOT EXISTS ${QUOTED_SCHEMA}`,
+  );
   await prisma.$disconnect();
   execFileSync(
     "npx",
@@ -58,10 +82,12 @@ export async function resetDb(opts?: { force?: boolean }): Promise<void> {
   );
   await prisma.$connect();
   cachedTables = await fetchTableNames();
-  // Make sure the DB is empty before the first test (leftovers from a
+  // Make sure the schema is empty before the first test (leftovers from a
   // prior run shouldn't leak into assertions).
   if (cachedTables.length > 0) {
-    const quoted = cachedTables.map((t) => `"${t}"`).join(", ");
+    const quoted = cachedTables
+      .map((t) => `${QUOTED_SCHEMA}."${t}"`)
+      .join(", ");
     await prisma.$executeRawUnsafe(
       `TRUNCATE TABLE ${quoted} RESTART IDENTITY CASCADE`,
     );

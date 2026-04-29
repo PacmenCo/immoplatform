@@ -8,9 +8,19 @@
 // `docker compose up -d`). The harness in db.ts runs `prisma migrate
 // deploy` on first use, then TRUNCATE between tests — no per-run
 // schema push, so the connection string is stable across runs.
-// CI overrides this via its own env in .github/workflows/test.yml.
+//
+// Worker isolation: with vitest's forks pool we run multiple test files in
+// parallel. Each worker gets its own Postgres SCHEMA inside the same
+// `immo_test` database — schemas are cheap, and Prisma migrate deploy
+// targets whatever `?schema=` says in DATABASE_URL. Worker 1 keeps the
+// `public` schema (so a single-fork local run / CI works unchanged); higher
+// pool ids land in `test_wN`. db.ts CREATEs the schema on first call.
+// CI overrides DATABASE_URL via .github/workflows/test.yml.
+const poolId = process.env.VITEST_POOL_ID ?? "1";
+const schema = poolId === "1" ? "public" : `test_w${poolId}`;
+process.env.TEST_DB_SCHEMA = schema;
 process.env.DATABASE_URL ??=
-  "postgresql://rl@localhost:5432/immo_test?schema=public";
+  `postgresql://rl@localhost:5432/immo_test?schema=${schema}`;
 
 // Local storage provider: tests exercise the real upload path (bytes land on
 // disk, storage keys get signed). A separate tmp dir per fork gives each
@@ -58,3 +68,9 @@ process.env.NEXT_PUBLIC_APP_URL ??= "http://localhost:3000";
 
 // NODE_ENV is set to "test" by Vitest automatically — don't reassign here,
 // Next's TS types mark it read-only.
+
+// bcrypt cost knob — production runs at 12, but tests churn through hundreds of
+// hashes (every realtor/admin/freelancer fixture, every login/change-password
+// path). Cost 4 is roughly 80× faster than 12 and shaves >10s off the suite.
+// `hashPassword` in src/lib/auth.ts only honors this when NODE_ENV === "test".
+process.env.BCRYPT_COST ??= "4";

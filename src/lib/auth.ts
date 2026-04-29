@@ -15,9 +15,20 @@ const SESSION_DAYS = 30;
 
 // ─── password hashing ──────────────────────────────────────────────
 
+// Cost 12 is the OWASP-acceptable default until we move to argon2id. The env
+// override exists ONLY so the test suite can drop to cost 4 (~80× faster) —
+// a 4-round bcrypt hash would be unacceptable in production. We refuse the
+// override outside NODE_ENV=test to make accidental misconfiguration loud.
+function bcryptCost(): number {
+  if (process.env.NODE_ENV === "test" && process.env.BCRYPT_COST) {
+    const n = Number.parseInt(process.env.BCRYPT_COST, 10);
+    if (Number.isFinite(n) && n >= 4 && n <= 15) return n;
+  }
+  return 12;
+}
+
 export async function hashPassword(password: string): Promise<string> {
-  // bcrypt with cost 12 — OWASP-acceptable fallback until we move to argon2id.
-  return bcrypt.hash(password, 12);
+  return bcrypt.hash(password, bcryptCost());
 }
 
 export async function verifyPassword(
