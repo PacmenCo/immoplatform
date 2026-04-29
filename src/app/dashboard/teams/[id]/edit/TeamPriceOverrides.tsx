@@ -32,24 +32,39 @@ export function TeamPriceOverrides({
   rows,
   pricelists,
   pricelistItems,
+  odooError,
 }: {
   teamId: string;
   rows: ServiceRow[];
   pricelists?: PricelistOption[];
   pricelistItems?: PricelistItem[];
+  /** Set when the server-side Odoo fetch threw — surfaces a banner so an
+   *  empty picker doesn't get mistaken for "no pricelists configured". */
+  odooError?: string | null;
 }) {
   return (
-    <ul className="divide-y divide-[var(--color-border)]">
-      {rows.map((row) => (
-        <ServiceOverrideRow
-          key={row.key}
-          teamId={teamId}
-          row={row}
-          pricelists={pricelists}
-          pricelistItems={pricelistItems}
-        />
-      ))}
-    </ul>
+    <>
+      {odooError && (
+        <p
+          role="status"
+          className="m-6 mb-0 rounded-md border border-[var(--color-electrical)]/30 bg-[color-mix(in_srgb,var(--color-electrical)_6%,var(--color-bg))] px-3 py-2 text-xs text-[var(--color-electrical)]"
+        >
+          Odoo is unreachable — pricelist bindings can&apos;t be loaded or
+          changed right now. Existing bindings are still in effect.
+        </p>
+      )}
+      <ul className="divide-y divide-[var(--color-border)]">
+        {rows.map((row) => (
+          <ServiceOverrideRow
+            key={row.key}
+            teamId={teamId}
+            row={row}
+            pricelists={pricelists}
+            pricelistItems={pricelistItems}
+          />
+        ))}
+      </ul>
+    </>
   );
 }
 

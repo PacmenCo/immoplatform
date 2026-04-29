@@ -123,7 +123,7 @@ export default async function EditAssignment({
 
   const boundUpdate = updateAssignment.bind(null, id);
   const discountEditor = canSetDiscount(session);
-  const pricelistItemsByService = await pricelistItemsByServicePromise;
+  const pricelistData = await pricelistItemsByServicePromise;
 
   return (
     <>
@@ -159,7 +159,8 @@ export default async function EditAssignment({
           canSetFreelancer={canFreelancer}
           freelancers={freelancers}
           loadedAt={assignment.updatedAt.toISOString()}
-          pricelistItemsByService={pricelistItemsByService}
+          pricelistItemsByService={pricelistData.byService}
+          odooError={pricelistData.odooError}
         />
       )}
     </>

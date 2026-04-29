@@ -251,7 +251,10 @@ export async function listPricelistItems(pricelistIds: number[]): Promise<OdooPr
         "date_end",
       ],
     ],
-    { order: "id desc" },
+    // Defensive cap — a tenant with thousands of items per pricelist would
+    // otherwise blow up page-render budgets. 1000 is well above the
+    // ~5–20 typical per pricelist; if we ever need more we can paginate.
+    { order: "id desc", limit: 1000 },
   );
   return rows.map((r) => {
     const product =

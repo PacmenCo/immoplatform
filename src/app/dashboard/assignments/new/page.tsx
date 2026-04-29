@@ -36,7 +36,7 @@ export default async function NewAssignmentPage() {
     if (!teamId) teamId = owned[0] ?? null;
   }
 
-  const [services, freelancers, pricelistItemsByService] = await Promise.all([
+  const [services, freelancers, pricelistData] = await Promise.all([
     prisma.service.findMany({ where: { active: true }, orderBy: { key: "asc" } }),
     canFreelancer
       ? prisma.user.findMany({
@@ -60,7 +60,8 @@ export default async function NewAssignmentPage() {
         canSetFreelancer={canFreelancer}
         canUploadFiles={canUploadFiles}
         freelancers={freelancers}
-        pricelistItemsByService={pricelistItemsByService}
+        pricelistItemsByService={pricelistData.byService}
+        odooError={pricelistData.odooError}
       />
     </>
   );

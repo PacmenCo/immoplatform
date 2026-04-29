@@ -71,14 +71,20 @@ export default async function EditTeamPage({
             items: pl.length
               ? await listPricelistItems(pl.map((p) => p.id)).catch(() => [])
               : [],
+            error: null as string | null,
           }))
-          .catch(() => ({ pricelists: [], items: [] }))
-      : Promise.resolve({ pricelists: undefined, items: [] }),
+          .catch((e: unknown) => ({
+            pricelists: [],
+            items: [],
+            error: e instanceof Error ? e.message : "Odoo unreachable",
+          }))
+      : Promise.resolve({ pricelists: undefined, items: [], error: null }),
   ]);
   if (!team) notFound();
 
   const pricelists = odooData.pricelists;
   const pricelistItems = odooData.items;
+  const odooError = odooData.error;
 
   const initial: TeamFormInitial = team;
   const boundUpdate = updateTeam.bind(null, id);
@@ -143,6 +149,7 @@ export default async function EditTeamPage({
                     rows={priceRows}
                     pricelists={pricelists?.map((p) => ({ id: p.id, name: p.name }))}
                     pricelistItems={pricelistItems}
+                    odooError={odooError}
                   />
                 </CardBody>
               </Card>

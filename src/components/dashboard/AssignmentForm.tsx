@@ -121,6 +121,13 @@ type Props = {
    * picker, fall back to the team's flat override / base price.
    */
   pricelistItemsByService?: Record<string, PricelistItemOption[]>;
+  /**
+   * When the team has bindings but the Odoo round-trip failed, the page
+   * passes the error message down so the form can surface a banner —
+   * otherwise an "Odoo unreachable" admin sees no picker and assumes the
+   * team simply isn't bound. Null = no error (or no bindings to begin with).
+   */
+  odooError?: string | null;
 };
 
 export type PricelistItemOption = OdooPricelistItem;
@@ -137,6 +144,7 @@ export function AssignmentForm({
   canUploadFiles,
   loadedAt,
   pricelistItemsByService,
+  odooError,
 }: Props) {
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
@@ -299,6 +307,15 @@ export function AssignmentForm({
           </p>
         </CardHeader>
         <CardBody>
+          {odooError && (
+            <div
+              role="status"
+              className="mb-4 rounded-md border border-[var(--color-electrical)]/30 bg-[color-mix(in_srgb,var(--color-electrical)_6%,var(--color-bg))] px-3 py-2 text-xs text-[var(--color-electrical)]"
+            >
+              Odoo is unreachable — pricelist pickers won&apos;t load. New
+              assignments will use the team&apos;s base price as a fallback.
+            </div>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             {services.map((svc) => {
               const items = pricelistItemsByService?.[svc.key];
