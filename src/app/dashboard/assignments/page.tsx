@@ -25,6 +25,7 @@ import { initials } from "@/lib/format";
 import { StatusPicker } from "./StatusPicker";
 import { FiltersBar } from "./FiltersBar";
 import { AssignmentFilesButton } from "./AssignmentFilesButton";
+import { OdooSyncCell } from "./OdooSyncCell";
 import { Pagination } from "./Pagination";
 import type { Prisma } from "@prisma/client";
 
@@ -347,6 +348,11 @@ export default async function AssignmentsList({
                     <th scope="col" className="hidden md:table-cell text-left font-semibold px-6 py-3">Freelancer</th>
                     <SortHeader current={currentState} id="date" label="Preferred date" hideBelow="sm" />
                     <SortHeader current={currentState} id="status" label="Status" />
+                    {isAdminOrStaff && (
+                      <th scope="col" className="hidden md:table-cell text-center font-semibold px-3 py-3">
+                        <span title="Odoo sync status" className="inline-block">Odoo</span>
+                      </th>
+                    )}
                     <th scope="col" className="hidden lg:table-cell text-left font-semibold px-6 py-3"><span className="sr-only">Files</span></th>
                   </tr>
                 </thead>
@@ -431,6 +437,17 @@ export default async function AssignmentsList({
                             role={r}
                           />
                         </td>
+                        {isAdminOrStaff && (
+                          <td className="hidden md:table-cell px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <OdooSyncCell
+                              assignmentId={a.id}
+                              odooSyncedAt={a.odooSyncedAt}
+                              odooSyncError={a.odooSyncError}
+                              odooContactId={a.odooContactId}
+                              odooOrderId={a.odooOrderId}
+                            />
+                          </td>
+                        )}
                         <td className="hidden lg:table-cell px-2 py-3">
                           <AssignmentFilesButton
                             assignmentId={a.id}

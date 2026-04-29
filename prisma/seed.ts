@@ -320,6 +320,38 @@ async function main() {
     });
   }
 
+  // Default Odoo product-name mappings (teamId=null). Mirrors v1's hardcoded
+  // OdooService::mapPropertyTypeToProduct (asbestos only — v1 has no
+  // hardcoded EPC fallback either). Admins extend per-team via
+  // /dashboard/admin/odoo-products. v1 had no electrical/fuel — those default
+  // to MANUAL_QUOTE. Keep idempotent: upsert by the unique compound key.
+  // teamId is part of the unique index; Prisma maps null teamId to a literal
+  // NULL in the index, so the upsert key requires a non-null sentinel — use
+  // findFirst+create/update for null-team rows.
+  const defaultMappings: Array<{ serviceKey: string; propertyType: string; odooProductName: string }> = [
+    { serviceKey: "asbestos", propertyType: "apartment",   odooProductName: "Niet-destructieve Asbestinventaris Appartement" },
+    { serviceKey: "asbestos", propertyType: "studio",      odooProductName: "Niet-destructieve Asbestinventaris Appartement" },
+    { serviceKey: "asbestos", propertyType: "studio_room", odooProductName: "Niet-destructieve Asbestinventaris Appartement" },
+    { serviceKey: "asbestos", propertyType: "house",       odooProductName: "Niet-destructieve Asbestinventaris Woning" },
+    // commercial → no default (parity: v1 returned MANUAL_QUOTE for unmapped types).
+  ];
+  for (const m of defaultMappings) {
+    const existing = await prisma.odooProductMapping.findFirst({
+      where: { teamId: null, serviceKey: m.serviceKey, propertyType: m.propertyType },
+      select: { id: true },
+    });
+    if (existing) {
+      await prisma.odooProductMapping.update({
+        where: { id: existing.id },
+        data: { odooProductName: m.odooProductName },
+      });
+    } else {
+      await prisma.odooProductMapping.create({
+        data: { teamId: null, ...m },
+      });
+    }
+  }
+
   // Freelancer specialties
   const specialties: Array<{ userId: string; serviceKey: string }> = [
     { userId: "u_3", serviceKey: "asbestos" },

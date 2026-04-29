@@ -244,7 +244,12 @@ export type AuditVerb =
   | "contact.submitted"
   | "contact.handled"
   | "contact.unhandled"
-  | "contact.notes_updated";
+  | "contact.notes_updated"
+  | "assignment.odoo_synced"
+  | "assignment.odoo_sync_failed"
+  | "assignment.odoo_sync_retried"
+  | "odoo_product_mapping.set"
+  | "odoo_product_mapping.deleted";
 
 export async function audit(opts: {
   actorId?: string | null;

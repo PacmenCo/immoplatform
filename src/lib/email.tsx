@@ -87,6 +87,10 @@ import CommentPosted, {
   subject as commentPostedSubject,
   type CommentPostedEmailProps,
 } from "@/emails/CommentPosted";
+import OdooSyncFailed, {
+  subject as odooSyncFailedSubject,
+  type OdooSyncFailedEmailProps,
+} from "@/emails/OdooSyncFailed";
 
 import type { AssignmentEmailCtx as _AssignmentEmailCtxFromTpl } from "@/emails/_assignment";
 
@@ -371,4 +375,17 @@ export async function contactSubmissionEmail(
 ): Promise<RenderedEmail> {
   const { html, text } = await renderTemplate(<ContactSubmission {...props} />);
   return { subject: contactSubmissionSubject(props), html, text };
+}
+
+/**
+ * Operational alert — Odoo sync failed for an assignment. Sent direct via
+ * `sendEmail` (not `notify`) since this is a system event with a single
+ * configured recipient list, not a per-user opt-out-able notification.
+ * Mirrors v1's OdooSyncFailedMail.
+ */
+export async function odooSyncFailedEmail(
+  props: OdooSyncFailedEmailProps,
+): Promise<RenderedEmail> {
+  const { html, text } = await renderTemplate(<OdooSyncFailed {...props} />);
+  return { subject: odooSyncFailedSubject(props), html, text };
 }

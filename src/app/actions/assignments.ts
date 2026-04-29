@@ -45,6 +45,7 @@ import {
 import { applyCommission } from "@/lib/commission";
 import { quarterOf } from "@/lib/period";
 import { syncAssignmentToCalendars } from "@/lib/calendar/sync";
+import { syncAssignmentToOdoo } from "@/lib/odoo-sync";
 import {
   assignmentCancelledEmail,
   assignmentCompletedEmail,
@@ -309,7 +310,10 @@ export async function createAssignmentInner(
   const services = Array.from(
     new Set(
       Array.from(formData.entries())
-        .filter(([k, v]) => k.startsWith("service_") && v)
+        // Only `service_<key>` checkboxes — exclude `service_<key>_product`
+        // and any other `service_<key>_*` companions written by inline
+        // pickers (those are read separately, per service line, below).
+        .filter(([k, v]) => /^service_[^_]+$/.test(k) && v)
         .map(([k]) => k.replace("service_", "")),
     ),
   );
@@ -416,10 +420,21 @@ export async function createAssignmentInner(
   // resolver keeps the snapshot internally consistent if a concurrent
   // setTeamServiceOverride fires between service keys.
   const priceMap = await resolveUnitPrices(teamId, d.services);
-  const serviceLines = d.services.map((k) => ({
-    serviceKey: k,
-    unitPriceCents: priceMap.get(k) ?? 0,
-  }));
+  const serviceLines = d.services.map((k) => {
+    // Optional Odoo product picked from the team's bound pricelist (only
+    // surfaces when the team has a per-service pricelist binding). Form
+    // submits the raw template id; we coerce + null-check at the edge.
+    const raw = formData.get(`service_${k}_product`);
+    const parsed =
+      typeof raw === "string" && raw !== "" ? Number.parseInt(raw, 10) : null;
+    const odooProductTemplateId =
+      parsed !== null && Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    return {
+      serviceKey: k,
+      unitPriceCents: priceMap.get(k) ?? 0,
+      odooProductTemplateId,
+    };
+  });
 
   // Platform parity (AssignmentController.php:218-219, 129): create-time
   // defaults pull from session.user (contact email/phone) and the team's
@@ -581,6 +596,12 @@ export async function createAssignmentInner(
   );
 
   await syncAssignmentToCalendars(created.id, "create");
+
+  // Platform parity (SyncAssignmentToOdoo job): create the res.partner +
+  // sale.order + lines in Odoo. Best-effort, never throws — own try/catch
+  // mirroring the calendar sync pattern. Failures land in
+  // assignment.odooSyncError + email ODOO_SYNC_FAILURE_EMAIL.
+  await syncAssignmentToOdoo(created.id, { trigger: "create" });
 
   // Platform parity (AssignmentScheduledMail): the assignment lands in the
   // "scheduled" state with a date — notify the agency so the realtor + team
@@ -993,7 +1014,10 @@ export async function updateAssignmentInner(
   const services = Array.from(
     new Set(
       Array.from(formData.entries())
-        .filter(([k, v]) => k.startsWith("service_") && v)
+        // Only `service_<key>` checkboxes — exclude `service_<key>_product`
+        // and any other `service_<key>_*` companions written by inline
+        // pickers (those are read separately, per service line, below).
+        .filter(([k, v]) => /^service_[^_]+$/.test(k) && v)
         .map(([k]) => k.replace("service_", "")),
     ),
   );
@@ -1068,7 +1092,7 @@ export async function updateAssignmentInner(
   // already-in-flight job. Only fetch new prices for newly-added services.
   const existingSvc = await prisma.assignmentService.findMany({
     where: { assignmentId: id },
-    select: { serviceKey: true, unitPriceCents: true },
+    select: { serviceKey: true, unitPriceCents: true, odooProductTemplateId: true },
   });
   const existingByKey = new Map(existingSvc.map((s) => [s.serviceKey, s]));
   const newlyAdded = d.services.filter((k) => !existingByKey.has(k));
@@ -1077,9 +1101,25 @@ export async function updateAssignmentInner(
     : new Map<string, number>();
   const nextLines = d.services.map((k) => {
     const prior = existingByKey.get(k);
+    // Read the picker's hidden field; explicit empty / unset clears the
+    // binding so the user can remove a stale stick.
+    const raw = formData.get(`service_${k}_product`);
+    let odooProductTemplateId: number | null;
+    if (typeof raw === "string") {
+      if (raw === "") odooProductTemplateId = null;
+      else {
+        const parsed = Number.parseInt(raw, 10);
+        odooProductTemplateId =
+          Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+      }
+    } else {
+      // No field on the form (service has no pricelist binding) — keep prior.
+      odooProductTemplateId = prior?.odooProductTemplateId ?? null;
+    }
     return {
       serviceKey: k,
       unitPriceCents: prior?.unitPriceCents ?? newPrices.get(k) ?? 0,
+      odooProductTemplateId,
     };
   });
 
@@ -1188,6 +1228,7 @@ export async function updateAssignmentInner(
         assignmentId: id,
         serviceKey: l.serviceKey,
         unitPriceCents: l.unitPriceCents,
+        odooProductTemplateId: l.odooProductTemplateId,
       })),
     });
     return true as const;
@@ -2044,6 +2085,77 @@ export async function changeAssignmentStatusInner(
 }
 
 export const changeAssignmentStatus = withSession(changeAssignmentStatusInner);
+
+// ─── Odoo retry ────────────────────────────────────────────────────
+
+/**
+ * Manually re-trigger Odoo sync for an assignment. Mirrors v1's
+ * `AssignmentsList::retryOdooSync` (Platform/app/Livewire/AssignmentsList.php:203).
+ *
+ * Clears `odooSyncedAt`, `odooSyncError`, `odooLinesSyncedAt`, and resets
+ * `odooSyncAttempts` so the cron attempt cap doesn't gate manual retry —
+ * humans can always poke a stuck row. Re-reads row state after the sync
+ * to return an honest result (don't always claim ok=true when the
+ * underlying sync may have failed).
+ */
+export const retryAssignmentOdooSync = withSession(async (
+  session,
+  assignmentId: string,
+): Promise<ActionResult<{ warning?: string }>> => {
+  if (!hasRole(session, "admin", "staff")) {
+    return { ok: false, error: "Admins or staff only." };
+  }
+  const assignment = await prisma.assignment.findUnique({
+    where: { id: assignmentId },
+    select: { id: true },
+  });
+  if (!assignment) {
+    return { ok: false, error: "Assignment not found." };
+  }
+  await prisma.assignment.update({
+    where: { id: assignmentId },
+    data: {
+      odooSyncError: null,
+      odooSyncedAt: null,
+      odooLinesSyncedAt: null,
+      odooSyncAttempts: 0,
+    },
+  });
+  // The orchestrator catches its own errors and stamps `odooSyncError` on
+  // the row; it shouldn't throw. Defense-in-depth try/catch in case a
+  // future refactor lets a Prisma error escape — we don't want that to
+  // crash the action and leave the user with a generic 500.
+  try {
+    await syncAssignmentToOdoo(assignmentId, { force: true, trigger: "retry" });
+  } catch (err) {
+    console.error(`[odoo-sync-retry] orchestrator threw unexpectedly for ${assignmentId}:`, err);
+  }
+  await audit({
+    actorId: session.user.id,
+    verb: "assignment.odoo_sync_retried",
+    objectType: "assignment",
+    objectId: assignmentId,
+    metadata: { trigger: "manual" },
+  });
+  // Honest result: re-read after sync. The orchestrator swallows errors
+  // internally; a green return here only proves it ran, not that it
+  // succeeded. The row state is the source of truth.
+  const after = await prisma.assignment.findUnique({
+    where: { id: assignmentId },
+    select: { odooSyncedAt: true, odooSyncError: true },
+  });
+  revalidatePath("/dashboard/assignments");
+  if (after?.odooSyncedAt && !after.odooSyncError) {
+    return { ok: true };
+  }
+  if (after?.odooSyncedAt && after.odooSyncError) {
+    return { ok: true, data: { warning: after.odooSyncError } };
+  }
+  return {
+    ok: false,
+    error: after?.odooSyncError ?? "Sync did not complete.",
+  };
+});
 
 // ─── Delete ────────────────────────────────────────────────────────
 

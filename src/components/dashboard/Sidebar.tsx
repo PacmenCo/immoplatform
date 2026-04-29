@@ -16,6 +16,7 @@ import {
   IconWallet,
   IconLogout,
   IconMail,
+  IconPlug,
 } from "@/components/ui/Icons";
 import { logout } from "@/app/actions/auth";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -84,6 +85,12 @@ const sections: Array<{ heading?: string; headingHref?: string; items: NavItem[]
         href: "/dashboard/announcements",
         label: "Announcements",
         icon: IconMegaphone,
+        visibleFor: ["admin"],
+      },
+      {
+        href: "/dashboard/admin/odoo-products",
+        label: "Odoo products",
+        icon: IconPlug,
         visibleFor: ["admin"],
       },
     ],

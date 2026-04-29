@@ -224,6 +224,7 @@ model Team {
   commissionLines    AssignmentCommission[]
   commissionPayouts  CommissionPayout[]
   revenueAdjustments RevenueAdjustment[]
+  odooProductMappings OdooProductMapping[]
 
   @@map("teams")
 }
@@ -392,8 +393,38 @@ model Service {
   assignments   AssignmentService[]
   specialties   UserSpecialty[]
   teamOverrides TeamServiceOverride[]
+  odooProductMappings OdooProductMapping[]
 
   @@map("services")
+}
+
+/// Per-(team, service, propertyType) Odoo product-name override. Ports v1's
+/// TeamPriceListItem.odoo_product_name + odoo_epc_product_name shape into a
+/// narrower row. teamId=null = global default (v1's TeamPriceList.is_default
+/// fallback). Falls behind v2's AssignmentService.odooProductTemplateId
+/// (set by the create form when the team has a pricelist binding) — only
+/// consulted when no per-line product was pre-picked.
+///
+/// Resolution order at sync time (src/lib/odoo-sync.ts):
+///   tier 0: AssignmentService.odooProductTemplateId (v2 form selection)
+///   tier 1: this table, teamId = assignment.teamId
+///   tier 2: this table, teamId = null
+///   tier 3: hardcoded asbestos map (also seeded into this table as tier-2)
+model OdooProductMapping {
+  id              String   @id @default(cuid())
+  teamId          String?
+  serviceKey      String
+  propertyType    String
+  odooProductName String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  team    Team?   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceKey], references: [key], onDelete: Cascade)
+
+  @@unique([teamId, serviceKey, propertyType])
+  @@index([serviceKey, propertyType])
+  @@map("odoo_product_mappings")
 }
 
 model UserSpecialty {
@@ -502,6 +533,19 @@ model Assignment {
   outlookCalendarAccountId String?
   calendarDate             DateTime?
   calendarAccountEmail     String?
+
+  // Odoo sync state — Platform parity (assignments.odoo_*).
+  // Sync runs after assignment create + on manual retry + via cron sweep.
+  // odooSyncedAt non-null + odooSyncError null = green ("synced").
+  // odooSyncedAt non-null + odooSyncError set = amber ("warning" — manual quote needed).
+  // odooSyncedAt null + odooSyncError set = red ("failed" — eligible for retry).
+  // odooLinesSyncedAt gates step-4 idempotency — once lines created, retries skip.
+  odooContactId      Int?
+  odooOrderId        Int?
+  odooLinesSyncedAt  DateTime?
+  odooSyncedAt       DateTime?
+  odooSyncAttempts   Int       @default(0)
+  odooSyncError      String?
 
   team                   Team?                     @relation(fields: [teamId], references: [id], onDelete: SetNull)
   freelancer             User?                     @relation("AssignedFreelancer", fields: [freelancerId], references: [id], onDelete: SetNull)

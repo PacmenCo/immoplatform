@@ -85,6 +85,11 @@ import CommentPosted, {
   previewProps as commentPostedProps,
   type CommentPostedEmailProps,
 } from "./CommentPosted";
+import OdooSyncFailed, {
+  subject as odooSyncFailedSubject,
+  previewProps as odooSyncFailedProps,
+  type OdooSyncFailedEmailProps,
+} from "./OdooSyncFailed";
 
 type AnyTemplate = {
   slug: string;
@@ -248,6 +253,15 @@ export const EMAIL_TEMPLATES: AnyTemplate[] = [
     element: (p) => <CommentPosted {...(p as CommentPostedEmailProps)} />,
     subject: (p) => commentPostedSubject(p as CommentPostedEmailProps),
     previewProps: commentPostedProps,
+  },
+  {
+    slug: "odoo-sync-failed",
+    label: "Odoo sync failed",
+    description:
+      "Operational alert when Odoo synchronization for an assignment fails. Sent to ODOO_SYNC_FAILURE_EMAIL.",
+    element: (p) => <OdooSyncFailed {...(p as OdooSyncFailedEmailProps)} />,
+    subject: (p) => odooSyncFailedSubject(p as OdooSyncFailedEmailProps),
+    previewProps: odooSyncFailedProps,
   },
 ];
 

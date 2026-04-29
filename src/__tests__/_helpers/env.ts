@@ -46,6 +46,12 @@ process.env.EMAIL_FROM ??= "noreply@immo.test";
 // Gate is implemented at the top of src/lib/calendar/sync.ts.
 process.env.SKIP_CALENDAR_SYNC ??= "1";
 
+// Same short-circuit for Odoo sync — assignment-create tests exercise the
+// Prisma path; a real Odoo round-trip would slow them down + flake on
+// network. Individual tests opt back in by setting this to "0" + mocking
+// `executeKw` from src/lib/odoo.
+process.env.SKIP_ODOO_SYNC ??= "1";
+
 // AES-256-GCM key for the calendar-token cipher (src/lib/calendar/crypto.ts)
 // AND the HMAC secret for OAuth state cookies (src/lib/calendar/oauth.ts).
 // requireEncryptionKey() decodes base64 → 32 bytes; this is
