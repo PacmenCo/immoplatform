@@ -511,3 +511,117 @@ describe("createAssignmentInner — realtor-lane file attach", () => {
     expect(fileCount).toBe(0);
   });
 });
+
+// ─── Inline pricelist-item picker (`service_<key>_product`) ────────
+//
+// When a team is bound to an Odoo pricelist for a service, the create form
+// renders a typeahead under the service checkbox that submits a hidden
+// `service_<key>_product` field carrying the chosen Odoo product template
+// id. The action snapshots that id onto the matching AssignmentService row
+// so later invoicing knows which exact SKU was sold.
+//
+// Critical regression guard: the service-extraction filter must NOT include
+// the picker's hidden field as a fake service key (would land as
+// "asbestos_product" in the parsed list and fail Zod's enum check).
+describe("createAssignmentInner — pricelist item picker", () => {
+  it("service_<key>_product writes odooProductTemplateId on the matching line", async () => {
+    const { admin, teams } = await seedBaseline();
+    const fd = buildCreateForm();
+    fd.set("service_asbestos_product", "105");
+
+    const res = await createAssignmentInner(admin, undefined, fd);
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.data) throw new Error("expected ok + data");
+
+    const lines = await prisma.assignmentService.findMany({
+      where: { assignmentId: res.data.id },
+      select: { serviceKey: true, odooProductTemplateId: true },
+    });
+    expect(lines).toEqual([
+      { serviceKey: "asbestos", odooProductTemplateId: 105 },
+    ]);
+
+    // The team for an admin without an activeTeamId is null; teamId on the
+    // assignment row reflects that — but the line still carries the snapshot.
+    const asg = await prisma.assignment.findUniqueOrThrow({
+      where: { id: res.data.id },
+      select: { teamId: true },
+    });
+    void asg.teamId;
+    void teams;
+  });
+
+  it("missing picker field → odooProductTemplateId is null (back-compat)", async () => {
+    const { admin } = await seedBaseline();
+    const res = await createAssignmentInner(admin, undefined, buildCreateForm());
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.data) throw new Error("expected ok + data");
+    const line = await prisma.assignmentService.findFirstOrThrow({
+      where: { assignmentId: res.data.id, serviceKey: "asbestos" },
+    });
+    expect(line.odooProductTemplateId).toBeNull();
+  });
+
+  it("non-numeric picker value → coerced to null (defensive parse)", async () => {
+    const { admin } = await seedBaseline();
+    const fd = buildCreateForm();
+    fd.set("service_asbestos_product", "not-a-number");
+    const res = await createAssignmentInner(admin, undefined, fd);
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.data) throw new Error("expected ok + data");
+    const line = await prisma.assignmentService.findFirstOrThrow({
+      where: { assignmentId: res.data.id, serviceKey: "asbestos" },
+    });
+    expect(line.odooProductTemplateId).toBeNull();
+  });
+
+  it("zero / negative picker value → coerced to null", async () => {
+    const { admin } = await seedBaseline();
+    const fd = buildCreateForm();
+    fd.set("service_asbestos_product", "0");
+    const r1 = await createAssignmentInner(admin, undefined, fd);
+    expect(r1.ok).toBe(true);
+    if (!r1.ok || !r1.data) throw new Error("expected ok + data");
+    let line = await prisma.assignmentService.findFirstOrThrow({
+      where: { assignmentId: r1.data.id, serviceKey: "asbestos" },
+    });
+    expect(line.odooProductTemplateId).toBeNull();
+
+    const fd2 = buildCreateForm({ address: "13 Rue de la Test" });
+    fd2.set("service_asbestos_product", "-5");
+    const r2 = await createAssignmentInner(admin, undefined, fd2);
+    expect(r2.ok).toBe(true);
+    if (!r2.ok || !r2.data) throw new Error("expected ok + data");
+    line = await prisma.assignmentService.findFirstOrThrow({
+      where: { assignmentId: r2.data.id, serviceKey: "asbestos" },
+    });
+    expect(line.odooProductTemplateId).toBeNull();
+  });
+
+  // The original filter was `k.startsWith("service_")` — too greedy. It
+  // pulled `service_asbestos_product=105` into the parsed services list as
+  // `"asbestos_product"`, which Zod rejects (not in SERVICE_KEYS). This
+  // test pins the tightened filter so the bug can't sneak back.
+  it("picker hidden field does not leak into the parsed services list", async () => {
+    const { admin } = await seedBaseline();
+    // Submit the picker BUT leave the asbestos checkbox unchecked AND check
+    // a different service. If the filter regresses, "asbestos_product"
+    // will land in `services`, fail Zod, and the action will return ok:false.
+    const fd = new FormData();
+    fd.set("address", "1 Filterstraat");
+    fd.set("city", "Brussels");
+    fd.set("postal", "1000");
+    fd.set("owner-name", "Bob Owner");
+    fd.set("type", "apartment");
+    fd.set("service_epc", "on");
+    fd.set("service_asbestos_product", "105");
+    const res = await createAssignmentInner(admin, undefined, fd);
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.data) throw new Error("expected ok + data");
+    const lines = await prisma.assignmentService.findMany({
+      where: { assignmentId: res.data.id },
+      select: { serviceKey: true },
+    });
+    expect(lines.map((l) => l.serviceKey).sort()).toEqual(["epc"]);
+  });
+});

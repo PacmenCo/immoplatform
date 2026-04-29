@@ -30,7 +30,7 @@ type NavItem = {
   visibleFor?: NavRole[]; // omitted = everyone
 };
 
-const sections: Array<{ heading?: string; items: NavItem[] }> = [
+const sections: Array<{ heading?: string; headingHref?: string; items: NavItem[] }> = [
   {
     items: [
       { href: "/dashboard/assignments", label: "Assignments", icon: IconList },
@@ -60,6 +60,7 @@ const sections: Array<{ heading?: string; items: NavItem[] }> = [
   },
   {
     heading: "Admin",
+    headingHref: "/dashboard/admin",
     items: [
       {
         href: "/dashboard/overview",
@@ -167,11 +168,19 @@ export function Sidebar({ user, unreadContactCount }: SidebarProps) {
                   : ""
               }
             >
-              {section.heading && (
-                <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-                  {section.heading}
-                </div>
-              )}
+              {section.heading &&
+                (section.headingHref ? (
+                  <Link
+                    href={section.headingHref}
+                    className="block px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]"
+                  >
+                    {section.heading}
+                  </Link>
+                ) : (
+                  <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
+                    {section.heading}
+                  </div>
+                ))}
               <ul className="flex flex-col gap-1">
                 {section.items.map((item) => {
                   const active = isActive(pathname, item.href);

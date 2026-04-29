@@ -16,6 +16,7 @@ import {
 } from "@/lib/permissions";
 import { isDiscountType } from "@/lib/pricing";
 import { updateAssignment } from "@/app/actions/assignments";
+import { getTeamPricelistItemsByService } from "@/lib/teamPricelistItems";
 
 export default async function EditAssignment({
   params,
@@ -43,6 +44,13 @@ export default async function EditAssignment({
   ]);
 
   if (!assignment) notFound();
+
+  // Live pricelist items for any service this team has bound to an Odoo
+  // pricelist (currently only `asbestos`). Kicked off in parallel with the
+  // permission-gate awaits below; falls back to {} if Odoo is unreachable.
+  const pricelistItemsByServicePromise = getTeamPricelistItemsByService(
+    assignment.teamId,
+  );
   // canEditAssignment is the wider gate that includes freelancers on their
   // own rows. canUpdateAssignmentFields is the narrower gate that excludes
   // freelancer (used for the wide-edit form). v1 parity: Platform exposes
@@ -64,6 +72,9 @@ export default async function EditAssignment({
     quantity: assignment.quantity,
     isLargeProperty: assignment.isLargeProperty,
     services: assignment.services.map((s) => s.serviceKey),
+    serviceProducts: Object.fromEntries(
+      assignment.services.map((s) => [s.serviceKey, s.odooProductTemplateId]),
+    ),
     owner: {
       name: assignment.ownerName,
       email: assignment.ownerEmail,
@@ -112,6 +123,7 @@ export default async function EditAssignment({
 
   const boundUpdate = updateAssignment.bind(null, id);
   const discountEditor = canSetDiscount(session);
+  const pricelistItemsByService = await pricelistItemsByServicePromise;
 
   return (
     <>
@@ -147,6 +159,7 @@ export default async function EditAssignment({
           canSetFreelancer={canFreelancer}
           freelancers={freelancers}
           loadedAt={assignment.updatedAt.toISOString()}
+          pricelistItemsByService={pricelistItemsByService}
         />
       )}
     </>

@@ -30,8 +30,10 @@ const LOGO_MAX_MB = Math.round(TEAM_LOGO_MAX_BYTES / (1024 * 1024));
 const SIGNATURE_MAX_MB = Math.round(TEAM_SIGNATURE_MAX_BYTES / (1024 * 1024));
 
 export function BrandingCard({ teamId, teamName, logoUrl, signatureUrl }: Props) {
+  // `@container` lets inner sections reflow based on this card's width
+  // (e.g. narrow when stacked into a side panel) rather than the viewport.
   return (
-    <div className="space-y-6">
+    <div className="@container space-y-6">
       <LogoSection teamId={teamId} teamName={teamName} logoUrl={logoUrl} />
       <SignatureSection teamId={teamId} teamName={teamName} signatureUrl={signatureUrl} />
     </div>
@@ -67,11 +69,11 @@ function LogoSection({
       <CardHeader>
         <CardTitle>Team logo</CardTitle>
         <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
-          Appears next to the team name on dashboards, assignments, and team cards.
+          Used in the opdrachtformulier header and on the team detail page.
         </p>
       </CardHeader>
       <CardBody className="space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="flex flex-col gap-4 @md:flex-row @md:items-start">
           <LogoPreview src={logoUrl} teamName={teamName} />
           <form ref={uploadFormRef} action={uploadAction} className="flex-1">
             <input
@@ -160,12 +162,12 @@ function SignatureSection({
       <CardHeader>
         <CardTitle>Signature image</CardTitle>
         <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
-          Stamped on certificates and signed assignment forms. PNG with a transparent
-          background renders cleanest on PDFs.
+          Stamped into the signature box on the opdrachtformulier PDF. PNG with a
+          transparent background renders cleanest.
         </p>
       </CardHeader>
       <CardBody className="space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="flex flex-col gap-4 @md:flex-row @md:items-start">
           <SignaturePreview src={signatureUrl} teamName={teamName} />
           <form ref={uploadFormRef} action={uploadAction} className="flex-1">
             <input

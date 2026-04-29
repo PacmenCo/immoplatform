@@ -5,6 +5,7 @@ import {
   deleteTeamInner,
   removeTeamMemberInner,
   setTeamServiceOverrideInner,
+  setTeamServicePricelistInner,
   transferTeamOwnershipInner,
 } from "@/app/actions/teams";
 import { makeTeamBrandingKey, storage } from "@/lib/storage";
@@ -504,6 +505,141 @@ describe("setTeamServiceOverrideInner — money path", () => {
     expect(audit.objectId).toBe(teams.t1.id);
     const meta = auditMeta(audit.metadata);
     expect(meta).toEqual({ serviceKey: "epc", priceCents: 19_999 });
+  });
+
+  // The TeamServiceOverride row carries TWO independent columns now —
+  // priceCents (manual override) and odooPricelistId (Odoo binding). The
+  // row should only be deleted when BOTH are null. Clearing one column
+  // while the other holds a value must leave the row alive.
+  it("clearing priceCents preserves an existing pricelist binding", async () => {
+    const { admin, teams } = await seedBaseline();
+    await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", 16);
+    await setTeamServiceOverrideInner(admin, teams.t1.id, "asbestos", 12_345);
+
+    const cleared = await setTeamServiceOverrideInner(admin, teams.t1.id, "asbestos", null);
+    expect(cleared).toEqual({ ok: true });
+
+    const row = await prisma.teamServiceOverride.findUnique({
+      where: { teamId_serviceKey: { teamId: teams.t1.id, serviceKey: "asbestos" } },
+    });
+    expect(row).not.toBeNull();
+    expect(row!.priceCents).toBeNull();
+    expect(row!.odooPricelistId).toBe(16);
+  });
+});
+
+// ─── setTeamServicePricelistInner ─────────────────────────────────
+//
+// Twin to setTeamServiceOverride, but writes the `odooPricelistId` column
+// instead of `priceCents`. Same admin-only gate, same "row deletes only
+// when both columns end up null" lifecycle.
+describe("setTeamServicePricelistInner", () => {
+  it("positive id → upserts the binding", async () => {
+    const { admin, teams } = await seedBaseline();
+    const res = await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", 16);
+    expect(res).toEqual({ ok: true });
+    const row = await prisma.teamServiceOverride.findUniqueOrThrow({
+      where: { teamId_serviceKey: { teamId: teams.t1.id, serviceKey: "asbestos" } },
+    });
+    expect(row.odooPricelistId).toBe(16);
+    expect(row.priceCents).toBeNull();
+  });
+
+  it("changing the binding overwrites the pricelist id", async () => {
+    const { admin, teams } = await seedBaseline();
+    await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", 16);
+    await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", 22);
+    const row = await prisma.teamServiceOverride.findUniqueOrThrow({
+      where: { teamId_serviceKey: { teamId: teams.t1.id, serviceKey: "asbestos" } },
+    });
+    expect(row.odooPricelistId).toBe(22);
+  });
+
+  it("null → deletes the row when no priceCents is set", async () => {
+    const { admin, teams } = await seedBaseline();
+    await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", 16);
+    const res = await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", null);
+    expect(res).toEqual({ ok: true });
+    const row = await prisma.teamServiceOverride.findUnique({
+      where: { teamId_serviceKey: { teamId: teams.t1.id, serviceKey: "asbestos" } },
+    });
+    expect(row).toBeNull();
+  });
+
+  it("null → updates (keeps row) when a priceCents override is also set", async () => {
+    const { admin, teams } = await seedBaseline();
+    await setTeamServiceOverrideInner(admin, teams.t1.id, "asbestos", 33_000);
+    await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", 16);
+
+    const res = await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", null);
+    expect(res).toEqual({ ok: true });
+
+    const row = await prisma.teamServiceOverride.findUniqueOrThrow({
+      where: { teamId_serviceKey: { teamId: teams.t1.id, serviceKey: "asbestos" } },
+    });
+    expect(row.odooPricelistId).toBeNull();
+    expect(row.priceCents).toBe(33_000);
+  });
+
+  it("clearing a non-existent binding is a no-op (ok)", async () => {
+    const { admin, teams } = await seedBaseline();
+    const res = await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", null);
+    expect(res).toEqual({ ok: true });
+  });
+
+  it("zero id → rejected", async () => {
+    const { admin, teams } = await seedBaseline();
+    const res = await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", 0);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/Invalid pricelist id/);
+  });
+
+  it("negative id → rejected", async () => {
+    const { admin, teams } = await seedBaseline();
+    const res = await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", -3);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/Invalid pricelist id/);
+  });
+
+  it("unknown serviceKey → 'Unknown service.'", async () => {
+    const { admin, teams } = await seedBaseline();
+    const res = await setTeamServicePricelistInner(admin, teams.t1.id, "bogus", 16);
+    expect(res).toEqual({ ok: false, error: "Unknown service." });
+  });
+
+  it("permissions — realtor rejected (admin-only, parity with override action)", async () => {
+    const { realtor, teams } = await seedBaseline();
+    const res = await setTeamServicePricelistInner(realtor, teams.t1.id, "asbestos", 16);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/Only admins/);
+    const row = await prisma.teamServiceOverride.findUnique({
+      where: { teamId_serviceKey: { teamId: teams.t1.id, serviceKey: "asbestos" } },
+    });
+    expect(row).toBeNull();
+  });
+
+  it("emits team.service_pricelist_set audit with serviceKey + odooPricelistId", async () => {
+    const { admin, teams } = await seedBaseline();
+    await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", 16);
+    const audit = await prisma.auditLog.findFirstOrThrow({
+      where: { actorId: admin.user.id, verb: "team.service_pricelist_set" },
+      select: { metadata: true, objectId: true },
+    });
+    expect(audit.objectId).toBe(teams.t1.id);
+    const meta = auditMeta(audit.metadata);
+    expect(meta).toEqual({ serviceKey: "asbestos", odooPricelistId: 16 });
+  });
+
+  it("emits team.service_pricelist_removed audit on clear", async () => {
+    const { admin, teams } = await seedBaseline();
+    await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", 16);
+    await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", null);
+    const audit = await prisma.auditLog.findFirstOrThrow({
+      where: { actorId: admin.user.id, verb: "team.service_pricelist_removed" },
+      select: { metadata: true, objectId: true },
+    });
+    expect(audit.objectId).toBe(teams.t1.id);
+    expect(auditMeta(audit.metadata)).toEqual({ serviceKey: "asbestos" });
   });
 });
 

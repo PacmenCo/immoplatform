@@ -75,6 +75,27 @@ export function formatEuros(cents: number): string {
 }
 
 /**
+ * Format an Odoo pricelist item's effective price for display. Handles all
+ * three Odoo `compute_price` modes; returns "—" for rules we can't render
+ * (e.g. formula). Defined here, not in `src/lib/odoo.ts`, so client
+ * components can import it without pulling the server-only Odoo module.
+ */
+export function formatPricelistItemPrice(item: {
+  computePrice: string;
+  fixedPriceCents: number | null;
+  priceDiscount: number | null;
+}): string {
+  if (item.computePrice === "fixed" && item.fixedPriceCents !== null) {
+    return formatEuros(item.fixedPriceCents);
+  }
+  if (item.computePrice === "percentage" && item.priceDiscount !== null) {
+    return `${item.priceDiscount}% off list`;
+  }
+  if (item.computePrice === "formula") return "Formula (see Odoo)";
+  return "—";
+}
+
+/**
  * Display a commission rate the way it was stored: percentage values are in
  * basis-points (1_000 → "10%", 1_050 → "10.5%"); fixed values are raw cents.
  * `type` is `string | null` so callers can pass a DB column without narrowing.

@@ -94,25 +94,25 @@ model User {
   lastSeenAt      DateTime?
   lastLoginAt     DateTime?
   deletedAt       DateTime?
-  emailPrefs      Json?     // { eventKey: boolean } — absent key or absent column = default-enabled
+  emailPrefs      Json? // { eventKey: boolean } — absent key or absent column = default-enabled
 
-  sessions            Session[]
-  memberships         TeamMember[]
-  sentInvites         Invite[]              @relation("InvitedBy")
-  passwordResets      PasswordReset[]
-  auditEntries        AuditLog[]            @relation("AuditActor")
-  specialties         UserSpecialty[]
-  freelancerAssignments Assignment[]        @relation("AssignedFreelancer")
-  createdAssignments  Assignment[]          @relation("CreatedAssignment")
-  comments            AssignmentComment[]
-  uploadedFiles       AssignmentFile[]
-  commissionPayoutsMarked CommissionPayout[]
-  revenueAdjustmentsCreated RevenueAdjustment[] @relation("RevenueAdjustmentCreator")
-  calendarAccounts    CalendarAccount[]
-  createdAnnouncements   Announcement[]          @relation("AnnouncementCreator")
-  announcementDismissals AnnouncementDismissal[] @relation("AnnouncementDismissals")
-  emailVerifications     EmailVerification[]
-  handledContactSubmissions ContactSubmission[]  @relation("ContactHandledBy")
+  sessions                  Session[]
+  memberships               TeamMember[]
+  sentInvites               Invite[]                @relation("InvitedBy")
+  passwordResets            PasswordReset[]
+  auditEntries              AuditLog[]              @relation("AuditActor")
+  specialties               UserSpecialty[]
+  freelancerAssignments     Assignment[]            @relation("AssignedFreelancer")
+  createdAssignments        Assignment[]            @relation("CreatedAssignment")
+  comments                  AssignmentComment[]
+  uploadedFiles             AssignmentFile[]
+  commissionPayoutsMarked   CommissionPayout[]
+  revenueAdjustmentsCreated RevenueAdjustment[]     @relation("RevenueAdjustmentCreator")
+  calendarAccounts          CalendarAccount[]
+  createdAnnouncements      Announcement[]          @relation("AnnouncementCreator")
+  announcementDismissals    AnnouncementDismissal[] @relation("AnnouncementDismissals")
+  emailVerifications        EmailVerification[]
+  handledContactSubmissions ContactSubmission[]     @relation("ContactHandledBy")
 
   @@index([role, deletedAt])
   @@map("users")
@@ -137,7 +137,7 @@ model ContactSubmission {
   handledAt   DateTime?
   notes       String?
 
-  handledBy   User?     @relation("ContactHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
+  handledBy User? @relation("ContactHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([handledAt])
@@ -145,20 +145,20 @@ model ContactSubmission {
 }
 
 model AssignmentCommission {
-  id                    String   @id @default(cuid())
-  assignmentId          String   @unique
+  id                    String         @id @default(cuid())
+  assignmentId          String         @unique
   teamId                String
   // Snapshots captured at compute time so later Team.commissionValue
   // edits don't rewrite historical lines.
   assignmentTotalCents  Int
   commissionType        CommissionType
-  commissionValue       Int      // bps for percentage, cents for fixed
+  commissionValue       Int // bps for percentage, cents for fixed
   commissionAmountCents Int
-  computedAt            DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  computedAt            DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
   assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  team       Team       @relation(fields: [teamId],       references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId, computedAt])
   @@map("assignment_commissions")
@@ -168,12 +168,12 @@ model CommissionPayout {
   id          String   @id @default(cuid())
   teamId      String
   year        Int
-  quarter     Int      // 1-4
-  amountCents Int      // snapshot of the quarter total at mark-paid time
+  quarter     Int // 1-4
+  amountCents Int // snapshot of the quarter total at mark-paid time
   paidAt      DateTime @default(now())
   paidById    String?
 
-  team   Team  @relation(fields: [teamId],   references: [id], onDelete: Cascade)
+  team   Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
   paidBy User? @relation(fields: [paidById], references: [id], onDelete: SetNull)
 
   @@unique([teamId, year, quarter])
@@ -182,48 +182,48 @@ model CommissionPayout {
 }
 
 model Team {
-  id         String   @id @default(cuid())
-  name       String
-  city       String?
-  logo       String?  // 2-letter display
-  logoColor  String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  name      String
+  city      String?
+  logo      String? // 2-letter display
+  logoColor String?
+  createdAt DateTime @default(now())
 
   // Contact + descriptor
-  email             String?   // team-wide contact email (separate from individual members)
-  description       String?   // free-form notes
+  email       String? // team-wide contact email (separate from individual members)
+  description String? // free-form notes
 
   // Legal / billing (used on invoices)
-  legalName         String?
-  vatNumber         String?
-  kboNumber         String?   // KBO / Chamber of Commerce
-  iban              String?
-  billingEmail      String?
-  billingPhone      String?
-  billingAddress    String?
-  billingPostal     String?
-  billingCity       String?
-  billingCountry    String?   @default("Belgium")
+  legalName      String?
+  vatNumber      String?
+  kboNumber      String? // KBO / Chamber of Commerce
+  iban           String?
+  billingEmail   String?
+  billingPhone   String?
+  billingAddress String?
+  billingPostal  String?
+  billingCity    String?
+  billingCountry String? @default("Belgium")
 
   // Branding
-  logoUrl              String?
-  signatureUrl         String?
-  prefersLogoOnPhotos  Boolean @default(false)
+  logoUrl             String?
+  signatureUrl        String?
+  prefersLogoOnPhotos Boolean @default(false)
 
   // Invoicing defaults
-  defaultClientType ClientType?      // invoice recipient default
+  defaultClientType ClientType? // invoice recipient default
 
   // Commission config
-  commissionType    CommissionType?  // null = no commission
-  commissionValue   Int?             // For percentage: basis points (1500 = 15%); for fixed: cents
+  commissionType  CommissionType? // null = no commission
+  commissionValue Int? // For percentage: basis points (1500 = 15%); for fixed: cents
 
-  members             TeamMember[]
-  invites             Invite[]
-  assignments         Assignment[]
-  serviceOverrides    TeamServiceOverride[]
-  commissionLines     AssignmentCommission[]
-  commissionPayouts   CommissionPayout[]
-  revenueAdjustments  RevenueAdjustment[]
+  members            TeamMember[]
+  invites            Invite[]
+  assignments        Assignment[]
+  serviceOverrides   TeamServiceOverride[]
+  commissionLines    AssignmentCommission[]
+  commissionPayouts  CommissionPayout[]
+  revenueAdjustments RevenueAdjustment[]
 
   @@map("teams")
 }
@@ -235,9 +235,9 @@ model RevenueAdjustment {
   id          String   @id @default(cuid())
   teamId      String
   year        Int
-  month       Int      // 1-12
+  month       Int // 1-12
   description String
-  amountCents Int      // signed — negative = deduction
+  amountCents Int // signed — negative = deduction
   createdById String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -251,25 +251,33 @@ model RevenueAdjustment {
 }
 
 model TeamServiceOverride {
-  teamId      String
-  serviceKey  String
-  priceCents  Int       // overrides Service.unitPrice for this team
+  teamId          String
+  serviceKey      String
+  /// Fixed-price override (overrides Service.unitPrice for this team).
+  /// Null when only the pricelist binding is set — pricing falls through
+  /// to the bound pricelist (or Service.unitPrice if neither is set).
+  priceCents      Int?
+  /// Odoo `product.pricelist.id` (read live via src/lib/odoo.ts). Null
+  /// when no pricelist is bound. Not a Prisma FK — Odoo lives elsewhere.
+  /// Currently surfaced in the team edit UI for the asbestos service only;
+  /// EK / EPC will follow the same pattern.
+  odooPricelistId Int?
 
-  team     Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  service  Service @relation(fields: [serviceKey], references: [key], onDelete: Cascade)
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceKey], references: [key], onDelete: Cascade)
 
   @@id([teamId, serviceKey])
   @@map("team_service_overrides")
 }
 
 model TeamMember {
-  teamId    String
-  userId    String
-  teamRole  TeamRole
-  joinedAt  DateTime @default(now())
+  teamId   String
+  userId   String
+  teamRole TeamRole
+  joinedAt DateTime @default(now())
 
-  team      Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([teamId, userId])
   @@index([userId])
@@ -277,23 +285,23 @@ model TeamMember {
 }
 
 model Invite {
-  id            String    @id @default(cuid())
-  email         String
-  role          Role
-  teamId        String?
-  teamRole      TeamRole? // required if teamId set
-  tokenHash     String    @unique
-  invitedById   String
-  note          String?
-  createdAt     DateTime  @default(now())
-  expiresAt     DateTime
-  acceptedAt    DateTime?
-  revokedAt     DateTime?
-  resendCount   Int       @default(0)
-  lastResentAt  DateTime?
+  id           String    @id @default(cuid())
+  email        String
+  role         Role
+  teamId       String?
+  teamRole     TeamRole? // required if teamId set
+  tokenHash    String    @unique
+  invitedById  String
+  note         String?
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  revokedAt    DateTime?
+  resendCount  Int       @default(0)
+  lastResentAt DateTime?
 
-  team          Team?     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  invitedBy     User      @relation("InvitedBy", fields: [invitedById], references: [id])
+  team      Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy User  @relation("InvitedBy", fields: [invitedById], references: [id])
 
   @@index([email])
   @@index([tokenHash])
@@ -301,17 +309,17 @@ model Invite {
 }
 
 model Session {
-  id            String    @id           // random 32-byte url-safe string
-  userId        String
-  activeTeamId  String?
-  userAgent     String?
-  ip            String?
-  createdAt     DateTime  @default(now())
-  lastSeenAt    DateTime  @default(now())
-  expiresAt     DateTime
-  revokedAt     DateTime?
+  id           String    @id // random 32-byte url-safe string
+  userId       String
+  activeTeamId String?
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
 
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
@@ -319,14 +327,14 @@ model Session {
 }
 
 model PasswordReset {
-  id         String    @id @default(cuid())
-  userId     String
-  tokenHash  String    @unique
-  createdAt  DateTime  @default(now())
-  expiresAt  DateTime
-  usedAt     DateTime?
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
 
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tokenHash])
   @@map("password_resets")
@@ -338,15 +346,15 @@ model PasswordReset {
 /// snapshotted so a second email change before clicking the first link makes
 /// the stale token refuse to verify.
 model EmailVerification {
-  id         String    @id @default(cuid())
-  userId     String
-  email      String
-  tokenHash  String    @unique
-  createdAt  DateTime  @default(now())
-  expiresAt  DateTime
-  usedAt     DateTime?
+  id        String    @id @default(cuid())
+  userId    String
+  email     String
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
 
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([tokenHash])
@@ -354,15 +362,15 @@ model EmailVerification {
 }
 
 model AuditLog {
-  id          String    @id @default(cuid())
-  at          DateTime  @default(now())
-  actorId     String?
-  verb        String    // created | updated | signed_in | invite.sent | etc.
-  objectType  String?
-  objectId    String?
-  metadata    Json?     // structured event payload — JSONB on Postgres
+  id         String   @id @default(cuid())
+  at         DateTime @default(now())
+  actorId    String?
+  verb       String // created | updated | signed_in | invite.sent | etc.
+  objectType String?
+  objectId   String?
+  metadata   Json? // structured event payload — JSONB on Postgres
 
-  actor       User?     @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([at])
   @@index([actorId])
@@ -373,16 +381,16 @@ model AuditLog {
 // ─── Services catalog ──────────────────────────────────────────────
 
 model Service {
-  key         String  @id           // 'epc' | 'asbestos' | 'electrical' | 'fuel'
-  label       String                 // 'Energy Performance Certificate'
-  short       String                 // 'EPC' | 'AIV' | 'EK' | 'TK'
-  color       String                 // CSS variable name, e.g. 'var(--color-epc)'
+  key         String  @id // 'epc' | 'asbestos' | 'electrical' | 'fuel'
+  label       String // 'Energy Performance Certificate'
+  short       String // 'EPC' | 'AIV' | 'EK' | 'TK'
+  color       String // CSS variable name, e.g. 'var(--color-epc)'
   description String
-  unitPrice   Int                    // cents (euros * 100)
+  unitPrice   Int // cents (euros * 100)
   active      Boolean @default(true)
 
-  assignments  AssignmentService[]
-  specialties  UserSpecialty[]
+  assignments   AssignmentService[]
+  specialties   UserSpecialty[]
   teamOverrides TeamServiceOverride[]
 
   @@map("services")
@@ -402,23 +410,23 @@ model UserSpecialty {
 // ─── Assignments ───────────────────────────────────────────────────
 
 model Assignment {
-  id               String    @id @default(cuid())
-  reference        String    @unique           // 'ASG-2026-1001'
-  status           AssignmentStatus
+  id        String           @id @default(cuid())
+  reference String           @unique // 'ASG-2026-1001'
+  status    AssignmentStatus
 
   // Property
   address          String
   city             String
   postal           String
-  propertyType     String?                     // 'house' | 'apartment' | ...
+  propertyType     String? // 'house' | 'apartment' | ...
   constructionYear Int?
   areaM2           Int?
   // Package quantity — Platform parity (AssignmentController.php:155,215).
   // 1..10 enforced at the action layer; Platform also defaults to 1 when omitted.
-  quantity         Int       @default(1)
+  quantity         Int     @default(1)
 
   // Scheduling
-  preferredDate    DateTime?
+  preferredDate         DateTime?
   // Key-pickup triple — Platform parity
   // (add_photographer_contact_and_key_fields_to_assignments_table.php:22-35,
   // AssignmentController.php:175-177, edit.blade.php:778-825).
@@ -426,58 +434,58 @@ model Assignment {
   // ('office' = pick up at agency, 'other' = custom address → fill
   // `keyPickupAddress`). Calendar event renders "Sleutel ophalen" when
   // `requiresKeyPickup` is true (GoogleCalendarService.php:344-353).
-  requiresKeyPickup      Boolean @default(false)
-  keyPickupLocationType  KeyPickupLocation?
-  keyPickupAddress       String?
-  notes            String?
+  requiresKeyPickup     Boolean            @default(false)
+  keyPickupLocationType KeyPickupLocation?
+  keyPickupAddress      String?
+  notes                 String?
 
   // Contacts
-  ownerName        String
-  ownerEmail       String?
-  ownerPhone       String?
+  ownerName                 String
+  ownerEmail                String?
+  ownerPhone                String?
   // Owner invoicing address — Platform parity (AssignmentController.php:162-164).
   // Separate from the property address above; used on invoices + certificate PDFs.
-  ownerAddress     String?
-  ownerPostal      String?
-  ownerCity        String?
+  ownerAddress              String?
+  ownerPostal               String?
+  ownerCity                 String?
   // Owner VAT number for B2B invoicing. Required when clientType='firm' by
   // downstream invoicing (not enforced at the schema layer).
-  ownerVatNumber   String?
+  ownerVatNumber            String?
   // Invoice recipient: 'owner' (particulier) vs 'firm' (bedrijf). Decides which
   // contact + VAT block prints on the invoice. Null = use team default.
-  clientType       ClientType?
-  tenantName       String?
-  tenantEmail      String?
-  tenantPhone      String?
+  clientType                ClientType?
+  tenantName                String?
+  tenantEmail               String?
+  tenantPhone               String?
   // Realtor-side contact details rendered on the calendar event's
   // "Makelaar" block and referenced by photographerContactPerson.
-  contactEmail     String?
-  contactPhone     String?
+  contactEmail              String?
+  contactPhone              String?
   // Tags one of the contact blocks as "(Jouw contactpersoon)" in the
   // calendar event description.
   photographerContactPerson PhotographerContactPerson?
   // Large-property flag — drives the Oppervlakte line in the calendar
   // event ("Groot pand (> 300m²)" vs "Standaard (~ XXX m²)"). Area itself
   // stays in `areaM2`.
-  isLargeProperty  Boolean @default(false)
+  isLargeProperty           Boolean                    @default(false)
 
   // Relations
-  teamId           String?
-  freelancerId     String?
-  createdById      String?
+  teamId       String?
+  freelancerId String?
+  createdById  String?
 
   // Discount — admin/staff only. Percentage stored as basis points
   // (1500 = 15%); fixed stored as cents.
-  discountType        DiscountType?
-  discountValue       Int?
-  discountReason      String?
+  discountType   DiscountType?
+  discountValue  Int?
+  discountReason String?
 
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  deliveredAt         DateTime?
-  completedAt         DateTime?
-  cancelledAt         DateTime?
-  cancellationReason  String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deliveredAt        DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  cancellationReason String?
 
   // Calendar sync (Platform parity).
   //   googleCalendarEventId  — event on the agency-shared Google calendar
@@ -495,15 +503,15 @@ model Assignment {
   calendarDate             DateTime?
   calendarAccountEmail     String?
 
-  team             Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  freelancer       User?                @relation("AssignedFreelancer", fields: [freelancerId], references: [id], onDelete: SetNull)
-  createdBy        User?                @relation("CreatedAssignment", fields: [createdById], references: [id], onDelete: SetNull)
-  services         AssignmentService[]
-  comments         AssignmentComment[]
-  files            AssignmentFile[]
-  commission       AssignmentCommission?
-  outlookCalendarAccount  CalendarAccount? @relation("OutlookAssignment", fields: [outlookCalendarAccountId], references: [id], onDelete: SetNull)
-  personalCalendarEvents  AssignmentCalendarEvent[]
+  team                   Team?                     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  freelancer             User?                     @relation("AssignedFreelancer", fields: [freelancerId], references: [id], onDelete: SetNull)
+  createdBy              User?                     @relation("CreatedAssignment", fields: [createdById], references: [id], onDelete: SetNull)
+  services               AssignmentService[]
+  comments               AssignmentComment[]
+  files                  AssignmentFile[]
+  commission             AssignmentCommission?
+  outlookCalendarAccount CalendarAccount?          @relation("OutlookAssignment", fields: [outlookCalendarAccountId], references: [id], onDelete: SetNull)
+  personalCalendarEvents AssignmentCalendarEvent[]
 
   @@index([status])
   @@index([teamId])
@@ -521,7 +529,7 @@ model Assignment {
 ///   access + refresh tokens internally).
 /// All ciphertext columns use AES-GCM with `CALENDAR_ENCRYPTION_KEY`.
 model CalendarAccount {
-  id                   String   @id @default(cuid())
+  id                   String           @id @default(cuid())
   userId               String
   provider             CalendarProvider
   providerAccountEmail String
@@ -531,12 +539,12 @@ model CalendarAccount {
   expiresAt            DateTime?
   scope                String
   disconnectedAt       DateTime?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
-  user                 User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  outlookAssignments   Assignment[]              @relation("OutlookAssignment")
-  personalEvents       AssignmentCalendarEvent[]
+  user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outlookAssignments Assignment[]              @relation("OutlookAssignment")
+  personalEvents     AssignmentCalendarEvent[]
 
   @@unique([userId, provider])
   @@index([provider, disconnectedAt])
@@ -554,8 +562,8 @@ model AssignmentCalendarEvent {
   lastSyncedAt      DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  assignment        Assignment      @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  calendarAccount   CalendarAccount @relation(fields: [calendarAccountId], references: [id], onDelete: Cascade)
+  assignment      Assignment      @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  calendarAccount CalendarAccount @relation(fields: [calendarAccountId], references: [id], onDelete: Cascade)
 
   @@unique([assignmentId, calendarAccountId])
   @@index([assignmentId])
@@ -563,13 +571,18 @@ model AssignmentCalendarEvent {
 }
 
 model AssignmentService {
-  assignmentId    String
-  serviceKey      String
+  assignmentId          String
+  serviceKey            String
   // Price snapshot taken at the moment the assignment was created so
   // retroactive price list changes don't alter in-flight invoices.
   // Backfill migration seeds existing rows from TeamServiceOverride
   // falling back to Service.unitPrice.
-  unitPriceCents  Int      @default(0)
+  unitPriceCents        Int    @default(0)
+  /// Odoo `product.template.id` — the specific product/SKU the user picked
+  /// from the team's bound pricelist. Drives Odoo invoicing; null when the
+  /// service has no pricelist binding (the team-level override price is
+  /// used instead). Not a Prisma FK — Odoo lives in a separate database.
+  odooProductTemplateId Int?
 
   assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   service    Service    @relation(fields: [serviceKey], references: [key])
@@ -581,8 +594,8 @@ model AssignmentService {
 model AssignmentComment {
   id           String   @id @default(cuid())
   assignmentId String
-  authorId     String?                // null = system comment
-  authorLabel  String?                // 'System' display when authorId null
+  authorId     String? // null = system comment
+  authorLabel  String? // 'System' display when authorId null
   body         String
   createdAt    DateTime @default(now())
 
@@ -596,9 +609,9 @@ model AssignmentComment {
 model AssignmentFile {
   id           String    @id @default(cuid())
   assignmentId String
-  uploaderId   String?   // SetNull on user delete — preserve history
+  uploaderId   String? // SetNull on user delete — preserve history
   lane         FileLane
-  storageKey   String    // opaque, owned by Storage impl
+  storageKey   String // opaque, owned by Storage impl
   originalName String
   mimeType     String
   sizeBytes    Int
@@ -620,20 +633,20 @@ model AssignmentFile {
 // mutate the announcement itself.
 
 model Announcement {
-  id             String   @id @default(cuid())
-  title          String
-  body           String
-  type           AnnouncementType @default(info)
-  isActive       Boolean  @default(true)
-  isDismissible  Boolean  @default(true)
-  startsAt       DateTime
-  endsAt         DateTime
-  createdById    String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String           @id @default(cuid())
+  title         String
+  body          String
+  type          AnnouncementType @default(info)
+  isActive      Boolean          @default(true)
+  isDismissible Boolean          @default(true)
+  startsAt      DateTime
+  endsAt        DateTime
+  createdById   String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
-  createdBy   User?                    @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  dismissals  AnnouncementDismissal[]
+  createdBy  User?                   @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  dismissals AnnouncementDismissal[]
 
   @@index([isActive, startsAt, endsAt])
   @@map("announcements")

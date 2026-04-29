@@ -9,6 +9,8 @@ import { Dropzone } from "@/components/ui/Dropzone";
 import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
 import { useFormDirty } from "@/lib/useFormDirty";
 import { FILE_CONSTRAINTS, MAX_REALTOR_FILES_AT_CREATE } from "@/lib/file-constraints";
+import { formatPricelistItemPrice } from "@/lib/format";
+import type { OdooPricelistItem } from "@/lib/odoo";
 import type { ActionResult } from "@/app/actions/_types";
 
 type ServiceRow = {
@@ -46,6 +48,9 @@ export type AssignmentFormInitial = {
   quantity: number;
   isLargeProperty: boolean;
   services: string[];
+  /** Previously-picked Odoo product id per service (asbestos for now). Keys
+   *  are service keys. Used to default the typeahead selection on edit. */
+  serviceProducts?: Record<string, number | null>;
   owner: OwnerContact;
   /** 'owner' (particulier) vs 'firm' (bedrijf). Drives invoice routing. */
   clientType: "owner" | "firm" | null;
@@ -108,7 +113,17 @@ type Props = {
    * form only — omit on the create form, where there's no row yet to lock.
    */
   loadedAt?: string;
+  /**
+   * Live Odoo pricelist items per service — only services bound to a
+   * pricelist appear as keys (currently `asbestos`). When a service in this
+   * map is checked, a typeahead picker reveals below it so the user can
+   * choose the specific Odoo product/SKU. Empty / missing service ⇒ no
+   * picker, fall back to the team's flat override / base price.
+   */
+  pricelistItemsByService?: Record<string, PricelistItemOption[]>;
 };
+
+export type PricelistItemOption = OdooPricelistItem;
 
 export function AssignmentForm({
   services,
@@ -121,6 +136,7 @@ export function AssignmentForm({
   freelancers,
   canUploadFiles,
   loadedAt,
+  pricelistItemsByService,
 }: Props) {
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
@@ -284,40 +300,56 @@ export function AssignmentForm({
         </CardHeader>
         <CardBody>
           <div className="grid gap-3 sm:grid-cols-2">
-            {services.map((svc) => (
-              <label
-                key={svc.key}
-                className="group relative flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border bg-[var(--color-bg)] p-4 transition-all has-[:checked]:shadow-[var(--shadow-md)] has-[:checked]:bg-[color-mix(in_srgb,var(--color-brand)_3%,var(--color-bg))]"
-                style={{
-                  borderColor: "var(--color-border)",
-                  borderLeftWidth: "4px",
-                  borderLeftColor: svc.color,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  name={`service_${svc.key}`}
-                  defaultChecked={initial?.services.includes(svc.key) ?? false}
-                  className="peer mt-0.5 h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-brand)]"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="inline-flex h-5 items-center justify-center rounded px-1.5 text-[10px] font-bold tracking-wider text-white"
-                      style={{ backgroundColor: svc.color }}
-                    >
-                      {svc.short}
-                    </span>
-                    <span className="text-sm font-semibold text-[var(--color-ink)]">
-                      {svc.label}
-                    </span>
-                  </div>
-                  <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-ink-soft)]">
-                    {svc.description}
-                  </p>
+            {services.map((svc) => {
+              const items = pricelistItemsByService?.[svc.key];
+              const hasPicker = !!items && items.length > 0;
+              return (
+                // `group` + `has-[:checked]` reveals the picker via CSS so we
+                // don't carry a parallel React Set for checkbox state.
+                <div key={svc.key} className="group/svc space-y-3">
+                  <label
+                    className="relative flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border bg-[var(--color-bg)] p-4 transition-all has-[:checked]:shadow-[var(--shadow-md)] has-[:checked]:bg-[color-mix(in_srgb,var(--color-brand)_3%,var(--color-bg))]"
+                    style={{
+                      borderColor: "var(--color-border)",
+                      borderLeftWidth: "4px",
+                      borderLeftColor: svc.color,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      name={`service_${svc.key}`}
+                      defaultChecked={initial?.services.includes(svc.key) ?? false}
+                      className="peer mt-0.5 h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-brand)]"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-flex h-5 items-center justify-center rounded px-1.5 text-[10px] font-bold tracking-wider text-white"
+                          style={{ backgroundColor: svc.color }}
+                        >
+                          {svc.short}
+                        </span>
+                        <span className="text-sm font-semibold text-[var(--color-ink)]">
+                          {svc.label}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-ink-soft)]">
+                        {svc.description}
+                      </p>
+                    </div>
+                  </label>
+                  {hasPicker && (
+                    <div className="hidden group-has-[:checked]/svc:block">
+                      <PricelistItemPicker
+                        serviceKey={svc.key}
+                        items={items}
+                        initialId={initial?.serviceProducts?.[svc.key] ?? null}
+                      />
+                    </div>
+                  )}
                 </div>
-              </label>
-            ))}
+              );
+            })}
           </div>
         </CardBody>
       </Card>
@@ -796,5 +828,128 @@ export function AssignmentForm({
         </div>
       </div>
     </form>
+  );
+}
+
+// ─── Pricelist item typeahead ─────────────────────────────────────
+
+/**
+ * Searchable picker for a service's bound pricelist. The selection is
+ * surfaced via a hidden `service_<key>_product` form field; submission stays
+ * in the host form. Blur is delayed by a tick so onMouseDown on a list row
+ * fires before the popover unmounts.
+ */
+function PricelistItemPicker({
+  serviceKey,
+  items,
+  initialId,
+}: {
+  serviceKey: string;
+  items: PricelistItemOption[];
+  initialId: number | null;
+}) {
+  const [selectedId, setSelectedId] = useState<number | null>(initialId);
+  const [query, setQuery] = useState<string>(() => {
+    const initial = items.find((it) => it.id === initialId);
+    return initial?.productName ?? "";
+  });
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = items.filter((it) => {
+    if (!query) return true;
+    return it.productName.toLowerCase().includes(query.toLowerCase());
+  });
+
+  function pick(item: PricelistItemOption) {
+    setSelectedId(item.id);
+    setQuery(item.productName);
+    setOpen(false);
+  }
+
+  function clear() {
+    setSelectedId(null);
+    setQuery("");
+    inputRef.current?.focus();
+  }
+
+  return (
+    <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-bg-alt)] p-3">
+      <label
+        htmlFor={`product-${serviceKey}`}
+        className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]"
+      >
+        Product from team pricelist
+      </label>
+      <div className="relative">
+        <input
+          id={`product-${serviceKey}`}
+          ref={inputRef}
+          type="text"
+          autoComplete="off"
+          value={query}
+          placeholder="Type to search…"
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setSelectedId(null);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          className="block h-9 w-full rounded-md border border-[var(--color-border-strong)] bg-[var(--color-bg)] px-2 pr-8 text-sm focus:border-[var(--color-brand)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15"
+        />
+        {selectedId !== null && (
+          <button
+            type="button"
+            onClick={clear}
+            aria-label="Clear pricelist selection"
+            className="absolute inset-y-0 right-1 grid w-7 place-items-center text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+          >
+            ×
+          </button>
+        )}
+        <input
+          type="hidden"
+          name={`service_${serviceKey}_product`}
+          value={selectedId ?? ""}
+        />
+        {open && filtered.length > 0 && (
+          <ul
+            role="listbox"
+            className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] shadow-[var(--shadow-md)]"
+          >
+            {filtered.map((it) => {
+              const price = formatPricelistItemPrice(it);
+              return (
+                <li key={it.id}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault(); // keep focus on input so blur fires after pick
+                      pick(it);
+                    }}
+                    className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-[var(--color-bg-muted)] ${
+                      selectedId === it.id ? "bg-[var(--color-bg-muted)]" : ""
+                    }`}
+                  >
+                    <span className="truncate text-[var(--color-ink)]">
+                      {it.productName}
+                    </span>
+                    <span className="shrink-0 text-xs tabular-nums text-[var(--color-ink-muted)]">
+                      {price}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {open && filtered.length === 0 && (
+          <div className="absolute z-20 mt-1 w-full rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-xs text-[var(--color-ink-muted)]">
+            No matching products.
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

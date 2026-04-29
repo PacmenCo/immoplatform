@@ -7,8 +7,10 @@ import {
   canReassignFreelancer,
   canSetDiscount,
   eligibleFreelancerWhere,
+  getUserTeamIds,
   hasRole,
 } from "@/lib/permissions";
+import { getTeamPricelistItemsByService } from "@/lib/teamPricelistItems";
 
 export default async function NewAssignmentPage() {
   const session = await requireRoleOrRedirect(
@@ -23,7 +25,18 @@ export default async function NewAssignmentPage() {
   // expose the dropzone.
   const canUploadFiles = hasRole(session, "admin", "staff", "realtor");
 
-  const [services, freelancers] = await Promise.all([
+  // Mirror the team-resolution logic in `createAssignmentInner` so we can
+  // surface the matching team's per-service pricelist items at render time.
+  // Admin/staff: rely on activeTeamId. Realtor: validate ownership, fall
+  // back to first owned. Null teamId → no pricelist picker rendered.
+  let teamId: string | null = session.activeTeamId ?? null;
+  if (hasRole(session, "realtor")) {
+    const { owned } = await getUserTeamIds(session.user.id);
+    if (teamId && !owned.includes(teamId)) teamId = null;
+    if (!teamId) teamId = owned[0] ?? null;
+  }
+
+  const [services, freelancers, pricelistItemsByService] = await Promise.all([
     prisma.service.findMany({ where: { active: true }, orderBy: { key: "asc" } }),
     canFreelancer
       ? prisma.user.findMany({
@@ -33,6 +46,7 @@ export default async function NewAssignmentPage() {
           select: { id: true, firstName: true, lastName: true, region: true },
         })
       : Promise.resolve([]),
+    getTeamPricelistItemsByService(teamId),
   ]);
 
   return (
@@ -46,6 +60,7 @@ export default async function NewAssignmentPage() {
         canSetFreelancer={canFreelancer}
         canUploadFiles={canUploadFiles}
         freelancers={freelancers}
+        pricelistItemsByService={pricelistItemsByService}
       />
     </>
   );

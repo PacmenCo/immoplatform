@@ -423,3 +423,132 @@ describe("updateAssignmentInner — wide-edit write semantics", () => {
     expect(after.status).toBe("scheduled");
   });
 });
+
+// ─── Inline pricelist-item picker (`service_<key>_product`) ────────
+//
+// Mirror of the create-assignment tests, on the update path. The picker
+// is rendered inline under each service checkbox; its hidden field carries
+// the chosen Odoo product template id forward across edits. When the
+// picker isn't rendered for a service (no team binding), the prior id
+// must be preserved — the action only overwrites when the field appears
+// in the submitted FormData.
+describe("updateAssignmentInner — pricelist item picker", () => {
+  it("submitting service_<key>_product updates odooProductTemplateId", async () => {
+    const { admin, teams } = await seedBaseline();
+    const asg = await seedAssignment({
+      id: "a_picker_set",
+      status: "scheduled",
+      teamId: teams.t1.id,
+      services: [{ serviceKey: "asbestos", unitPriceCents: 25_000 }],
+    });
+
+    const fd = buildUpdateForm();
+    fd.set("service_asbestos_product", "105");
+
+    const res = await updateAssignmentInner(admin, asg.id, undefined, fd);
+    expect(res).toEqual({ ok: true });
+
+    const line = await prisma.assignmentService.findUniqueOrThrow({
+      where: { assignmentId_serviceKey: { assignmentId: asg.id, serviceKey: "asbestos" } },
+    });
+    expect(line.odooProductTemplateId).toBe(105);
+  });
+
+  it("submitting empty service_<key>_product clears a previously-set id", async () => {
+    const { admin, teams } = await seedBaseline();
+    const asg = await seedAssignment({
+      id: "a_picker_clear",
+      status: "scheduled",
+      teamId: teams.t1.id,
+      services: [{ serviceKey: "asbestos", unitPriceCents: 25_000 }],
+    });
+    // Seed a non-null pre-pick directly (mirrors what the create path would do).
+    await prisma.assignmentService.update({
+      where: { assignmentId_serviceKey: { assignmentId: asg.id, serviceKey: "asbestos" } },
+      data: { odooProductTemplateId: 42 },
+    });
+
+    const fd = buildUpdateForm();
+    fd.set("service_asbestos_product", "");
+
+    const res = await updateAssignmentInner(admin, asg.id, undefined, fd);
+    expect(res).toEqual({ ok: true });
+
+    const line = await prisma.assignmentService.findUniqueOrThrow({
+      where: { assignmentId_serviceKey: { assignmentId: asg.id, serviceKey: "asbestos" } },
+    });
+    expect(line.odooProductTemplateId).toBeNull();
+  });
+
+  it("MISSING service_<key>_product field preserves the prior value (no picker rendered)", async () => {
+    const { admin, teams } = await seedBaseline();
+    const asg = await seedAssignment({
+      id: "a_picker_missing",
+      status: "scheduled",
+      teamId: teams.t1.id,
+      services: [{ serviceKey: "asbestos", unitPriceCents: 25_000 }],
+    });
+    await prisma.assignmentService.update({
+      where: { assignmentId_serviceKey: { assignmentId: asg.id, serviceKey: "asbestos" } },
+      data: { odooProductTemplateId: 42 },
+    });
+
+    // No `service_asbestos_product` key in form data — simulates a save
+    // from a form variant where the picker wasn't rendered (no binding).
+    const fd = buildUpdateForm();
+
+    const res = await updateAssignmentInner(admin, asg.id, undefined, fd);
+    expect(res).toEqual({ ok: true });
+
+    const line = await prisma.assignmentService.findUniqueOrThrow({
+      where: { assignmentId_serviceKey: { assignmentId: asg.id, serviceKey: "asbestos" } },
+    });
+    expect(line.odooProductTemplateId).toBe(42);
+  });
+
+  it("non-numeric / negative picker value → coerced to null", async () => {
+    const { admin, teams } = await seedBaseline();
+    const asg = await seedAssignment({
+      id: "a_picker_garbage",
+      status: "scheduled",
+      teamId: teams.t1.id,
+      services: [{ serviceKey: "asbestos", unitPriceCents: 25_000 }],
+    });
+
+    const fd = buildUpdateForm();
+    fd.set("service_asbestos_product", "not-a-number");
+    const res = await updateAssignmentInner(admin, asg.id, undefined, fd);
+    expect(res).toEqual({ ok: true });
+
+    const line = await prisma.assignmentService.findUniqueOrThrow({
+      where: { assignmentId_serviceKey: { assignmentId: asg.id, serviceKey: "asbestos" } },
+    });
+    expect(line.odooProductTemplateId).toBeNull();
+  });
+
+  // Filter-regression guard: same as the create-side test. If the service
+  // extraction filter ever regresses to `k.startsWith("service_")` again,
+  // the picker's hidden field would inflate the parsed services list and
+  // fail Zod's enum check.
+  it("picker hidden field does not leak into the parsed services list", async () => {
+    const { admin, teams } = await seedBaseline();
+    const asg = await seedAssignment({
+      id: "a_picker_filter",
+      status: "scheduled",
+      teamId: teams.t1.id,
+      services: [{ serviceKey: "asbestos", unitPriceCents: 25_000 }],
+    });
+
+    const fd = buildUpdateForm();
+    fd.set("service_asbestos_product", "105");
+
+    const res = await updateAssignmentInner(admin, asg.id, undefined, fd);
+    expect(res).toEqual({ ok: true });
+
+    const lines = await prisma.assignmentService.findMany({
+      where: { assignmentId: asg.id },
+      select: { serviceKey: true },
+    });
+    expect(lines.map((l) => l.serviceKey).sort()).toEqual(["asbestos"]);
+  });
+});

@@ -61,7 +61,7 @@ export async function resolveUnitPrices(
           where: { teamId, serviceKey: { in: serviceKeys } },
           select: { serviceKey: true, priceCents: true },
         })
-      : Promise.resolve([] as Array<{ serviceKey: string; priceCents: number }>),
+      : Promise.resolve([] as Array<{ serviceKey: string; priceCents: number | null }>),
     prisma.service.findMany({
       where: { key: { in: serviceKeys } },
       select: { key: true, unitPrice: true },
@@ -69,7 +69,9 @@ export async function resolveUnitPrices(
   ]);
   const byKey = new Map<string, number>();
   for (const s of services) byKey.set(s.key, s.unitPrice);
-  for (const o of overrides) byKey.set(o.serviceKey, o.priceCents);
+  // Pricelist-only rows have a null `priceCents` — skip them, the team
+  // doesn't override the unit price (the bound pricelist drives invoicing).
+  for (const o of overrides) if (o.priceCents !== null) byKey.set(o.serviceKey, o.priceCents);
   for (const k of serviceKeys) if (!byKey.has(k)) byKey.set(k, 0);
   return byKey;
 }

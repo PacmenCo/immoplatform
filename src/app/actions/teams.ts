@@ -561,10 +561,25 @@ export async function setTeamServiceOverrideInner(
   //   null   → clear existing override (revert to base price)
   //   0 / <0 → reject (misread as "set override to €0", likely a typo)
   //   > 0    → upsert
+  // The row may also hold an `odooPricelistId` binding. We only delete the
+  // whole row when neither column has a value — clearing only `priceCents`
+  // leaves the pricelist binding intact.
+  const existing = await prisma.teamServiceOverride.findUnique({
+    where: { teamId_serviceKey: { teamId, serviceKey } },
+    select: { odooPricelistId: true },
+  });
+
   if (priceCents === null) {
-    await prisma.teamServiceOverride
-      .delete({ where: { teamId_serviceKey: { teamId, serviceKey } } })
-      .catch(() => {}); // no-op if the override never existed
+    if (existing?.odooPricelistId == null) {
+      await prisma.teamServiceOverride
+        .delete({ where: { teamId_serviceKey: { teamId, serviceKey } } })
+        .catch(() => {}); // no-op if the override never existed
+    } else {
+      await prisma.teamServiceOverride.update({
+        where: { teamId_serviceKey: { teamId, serviceKey } },
+        data: { priceCents: null },
+      });
+    }
     await audit({
       actorId: session.user.id,
       verb: "team.service_override_removed",
@@ -603,6 +618,82 @@ export async function setTeamServiceOverrideInner(
 }
 
 export const setTeamServiceOverride = withSession(setTeamServiceOverrideInner);
+
+/**
+ * Bind a single (team, service) to an Odoo pricelist. Mirrors
+ * `setTeamServiceOverride` but writes the `odooPricelistId` column instead
+ * of `priceCents`. Passing `null` clears the binding; the row is deleted
+ * only if no `priceCents` override is set either.
+ *
+ * Admin-only — pricing source of truth, same gating as override prices.
+ */
+export async function setTeamServicePricelistInner(
+  session: SessionWithUser,
+  teamId: string,
+  serviceKey: string,
+  odooPricelistId: number | null,
+): Promise<ActionResult> {
+  if (!hasRole(session, "admin")) {
+    return { ok: false, error: "Only admins can change team pricelist bindings." };
+  }
+
+  const service = await prisma.service.findUnique({
+    where: { key: serviceKey },
+    select: { key: true },
+  });
+  if (!service) return { ok: false, error: "Unknown service." };
+
+  if (
+    odooPricelistId !== null &&
+    (!Number.isInteger(odooPricelistId) || odooPricelistId <= 0)
+  ) {
+    return { ok: false, error: "Invalid pricelist id." };
+  }
+
+  const existing = await prisma.teamServiceOverride.findUnique({
+    where: { teamId_serviceKey: { teamId, serviceKey } },
+    select: { priceCents: true },
+  });
+
+  if (odooPricelistId === null) {
+    if (existing?.priceCents == null) {
+      await prisma.teamServiceOverride
+        .delete({ where: { teamId_serviceKey: { teamId, serviceKey } } })
+        .catch(() => {});
+    } else {
+      await prisma.teamServiceOverride.update({
+        where: { teamId_serviceKey: { teamId, serviceKey } },
+        data: { odooPricelistId: null },
+      });
+    }
+    await audit({
+      actorId: session.user.id,
+      verb: "team.service_pricelist_removed",
+      objectType: "team",
+      objectId: teamId,
+      metadata: { serviceKey },
+    });
+  } else {
+    await prisma.teamServiceOverride.upsert({
+      where: { teamId_serviceKey: { teamId, serviceKey } },
+      create: { teamId, serviceKey, odooPricelistId },
+      update: { odooPricelistId },
+    });
+    await audit({
+      actorId: session.user.id,
+      verb: "team.service_pricelist_set",
+      objectType: "team",
+      objectId: teamId,
+      metadata: { serviceKey, odooPricelistId },
+    });
+  }
+
+  revalidatePath(`/dashboard/teams/${teamId}`);
+  revalidatePath(`/dashboard/teams/${teamId}/edit`);
+  return { ok: true };
+}
+
+export const setTeamServicePricelist = withSession(setTeamServicePricelistInner);
 
 // ─── Ownership transfer ────────────────────────────────────────────
 

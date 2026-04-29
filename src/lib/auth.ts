@@ -203,6 +203,8 @@ export type AuditVerb =
   | "team.updated"
   | "team.service_override_set"
   | "team.service_override_removed"
+  | "team.service_pricelist_set"
+  | "team.service_pricelist_removed"
   | "assignment.commission_applied"
   | "commission.quarter_paid"
   | "commission.quarter_unpaid"
