@@ -5,6 +5,7 @@ import {
   updateUserByAdminInner,
 } from "@/app/actions/users";
 import { verifyPassword } from "@/lib/auth";
+import { makeAvatarKey, storage } from "@/lib/storage";
 import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedBaseline } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
@@ -468,5 +469,35 @@ describe("deleteUserByAdminInner", () => {
       where: { id: realtor.user.id },
     });
     expect(after.deletedAt).toBeNull();
+  });
+
+  it("v1 parity: drops the avatar bytes + nulls avatarUrl on delete", async () => {
+    const { admin } = await seedBaseline();
+    const victim = await makeSession({ role: "freelancer", userId: "u_victim_avatar" });
+    // Stage a file at a valid avatar key + point the user row at it.
+    const key = makeAvatarKey({ userId: victim.user.id, version: "v0", ext: "png" });
+    await storage().put(key, Buffer.from("fake-png"), { mimeType: "image/png" });
+    await prisma.user.update({
+      where: { id: victim.user.id },
+      data: { avatarUrl: key },
+    });
+    expect(await storage().exists(key)).toBe(true);
+
+    const res = await deleteUserByAdminInner(admin, victim.user.id);
+    expect(res).toEqual({ ok: true });
+
+    const after = await prisma.user.findUniqueOrThrow({
+      where: { id: victim.user.id },
+    });
+    expect(after.deletedAt).toBeInstanceOf(Date);
+    expect(after.avatarUrl).toBeNull();
+    expect(await storage().exists(key)).toBe(false);
+  });
+
+  it("delete on a user with no avatar still succeeds (no storage call needed)", async () => {
+    const { admin } = await seedBaseline();
+    const victim = await makeSession({ role: "freelancer", userId: "u_victim_no_avatar" });
+    const res = await deleteUserByAdminInner(admin, victim.user.id);
+    expect(res).toEqual({ ok: true });
   });
 });

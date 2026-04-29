@@ -218,6 +218,7 @@ export type AuditVerb =
   | "assignment.reassigned"
   | "assignment.file_uploaded"
   | "assignment.file_deleted"
+  | "assignment.files_reaped"
   | "revenue_adjustment.created"
   | "revenue_adjustment.deleted"
   | "calendar.connected"

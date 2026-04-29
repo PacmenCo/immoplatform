@@ -7,6 +7,7 @@ import {
   setTeamServiceOverrideInner,
   transferTeamOwnershipInner,
 } from "@/app/actions/teams";
+import { makeTeamBrandingKey, storage } from "@/lib/storage";
 import { prisma, setupTestDb, auditMeta } from "../_helpers/db";
 import { seedAssignment, seedBaseline, seedTeam } from "../_helpers/fixtures";
 import { makeSession } from "../_helpers/session";
@@ -307,6 +308,37 @@ describe("deleteTeamInner", () => {
       ok: false,
       error: "Only admins can delete teams.",
     });
+  });
+
+  it("drops logo + signature bytes from storage on successful delete", async () => {
+    const { admin } = await seedBaseline();
+    await seedTeam("t_branded", "Branded Team");
+    const logoKey = makeTeamBrandingKey({
+      teamId: "t_branded",
+      kind: "logo",
+      version: "v0",
+      ext: "png",
+    });
+    const sigKey = makeTeamBrandingKey({
+      teamId: "t_branded",
+      kind: "signature",
+      version: "v0",
+      ext: "png",
+    });
+    await storage().put(logoKey, Buffer.from("fake-logo"), { mimeType: "image/png" });
+    await storage().put(sigKey, Buffer.from("fake-sig"), { mimeType: "image/png" });
+    await prisma.team.update({
+      where: { id: "t_branded" },
+      data: { logoUrl: logoKey, signatureUrl: sigKey },
+    });
+    expect(await storage().exists(logoKey)).toBe(true);
+    expect(await storage().exists(sigKey)).toBe(true);
+
+    const res = await deleteTeamInner(admin, "t_branded");
+    expect(res).toEqual({ ok: true });
+
+    expect(await storage().exists(logoKey)).toBe(false);
+    expect(await storage().exists(sigKey)).toBe(false);
   });
 });
 

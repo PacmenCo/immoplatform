@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { audit, hashPassword, type SessionWithUser } from "@/lib/auth";
 import { canAdminUsers } from "@/lib/permissions";
+import { storage } from "@/lib/storage";
 import { withSession, type ActionResult } from "./_types";
 
 /**
@@ -237,7 +238,14 @@ export async function deleteUserByAdminInner(
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, deletedAt: true, firstName: true, lastName: true },
+    select: {
+      id: true,
+      role: true,
+      deletedAt: true,
+      firstName: true,
+      lastName: true,
+      avatarUrl: true,
+    },
   });
   if (!target || target.deletedAt) return { ok: false, error: "User not found." };
 
@@ -272,13 +280,29 @@ export async function deleteUserByAdminInner(
   await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
-      data: { deletedAt: new Date() },
+      data: { deletedAt: new Date(), avatarUrl: null },
     }),
     prisma.session.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     }),
   ]);
+
+  // v1 parity (Platform/UserController.php:282-292): drop the avatar bytes
+  // when an admin deletes the user. Keeps the bucket lean and answers a
+  // GDPR right-to-erasure cleanly. Best-effort — a transient S3 failure
+  // shouldn't block the delete; the row is already soft-deleted and the
+  // avatar column is nulled, so a stragglers-only orphan is the worst case.
+  if (target.avatarUrl) {
+    await storage()
+      .delete(target.avatarUrl)
+      .catch((err) => {
+        console.warn(
+          `avatar cleanup failed for deleted user ${userId} (${target.avatarUrl}):`,
+          err,
+        );
+      });
+  }
 
   await audit({
     actorId: session.user.id,

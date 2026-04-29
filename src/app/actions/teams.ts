@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { audit, type SessionWithUser } from "@/lib/auth";
 import { canCreateFirstTeam, canCreateTeam, canEditTeam, hasRole } from "@/lib/permissions";
+import { storage } from "@/lib/storage";
 import { withSession, type ActionResult } from "./_types";
 
 // ─── Schemas ───────────────────────────────────────────────────────
@@ -419,7 +420,7 @@ export async function deleteTeamInner(
   const [team, assignmentCount] = await Promise.all([
     prisma.team.findUnique({
       where: { id: teamId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, logoUrl: true, signatureUrl: true },
     }),
     prisma.assignment.count({ where: { teamId } }),
   ]);
@@ -432,6 +433,25 @@ export async function deleteTeamInner(
   }
 
   await prisma.team.delete({ where: { id: teamId } });
+
+  // Drop the branding bytes after the row is gone — orphaned logos and
+  // signatures pile up otherwise (we hard-delete the team so there's no
+  // path to recover them anyway). Best-effort: a transient S3 failure
+  // shouldn't block the delete-confirm UI. Stragglers leak; we'll sweep
+  // them via a bucket lifecycle rule once one is configured.
+  const brandingKeys = [team.logoUrl, team.signatureUrl].filter(
+    (k): k is string => typeof k === "string" && k.length > 0,
+  );
+  if (brandingKeys.length > 0) {
+    await storage()
+      .deleteMany(brandingKeys)
+      .catch((err) => {
+        console.warn(
+          `branding cleanup failed for deleted team ${teamId}:`,
+          err,
+        );
+      });
+  }
 
   await audit({
     actorId: session.user.id,
