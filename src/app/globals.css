@@ -127,3 +127,9 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Admin-only Odoo sync column on the assignments list. Markup is only
+ * emitted server-side when the viewer is admin; CSS hides it by default
+ * and OdooColumnToggle (client) flips data-show-odoo on <html> to reveal. */
+.odoo-col { display: none; }
+:root[data-show-odoo="1"] .odoo-col { display: table-cell; }

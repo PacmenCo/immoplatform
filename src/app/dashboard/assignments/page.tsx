@@ -26,6 +26,7 @@ import { StatusPicker } from "./StatusPicker";
 import { FiltersBar } from "./FiltersBar";
 import { AssignmentFilesButton } from "./AssignmentFilesButton";
 import { OdooSyncCell } from "./OdooSyncCell";
+import { OdooColumnToggle } from "./OdooColumnToggle";
 import { Pagination } from "./Pagination";
 import type { Prisma } from "@prisma/client";
 
@@ -123,6 +124,9 @@ export default async function AssignmentsList({
   // owned-team ids once so the inline canEdit() check below stays sync
   // across all rows; getUserTeamIds is React-cache()'d either way.
   const isAdminOrStaff = hasRole(session, "admin", "staff");
+  // Odoo sync column is admin-only and hidden by default; OdooColumnToggle
+  // (client island, localStorage-backed) reveals it via a CSS rule.
+  const isAdmin = hasRole(session, "admin");
   const isRealtor = hasRole(session, "realtor");
   const ownedTeamIds = isAdminOrStaff || !isRealtor
     ? new Set<string>()
@@ -300,12 +304,15 @@ export default async function AssignmentsList({
             resetHref="/dashboard/assignments"
             showReset={anyFilterActive}
           />
-          {!isFreelancer && (
-            <Button href="/dashboard/assignments/new" size="sm">
-              <IconPlus size={14} />
-              New
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {isAdmin && <OdooColumnToggle />}
+            {!isFreelancer && (
+              <Button href="/dashboard/assignments/new" size="sm">
+                <IconPlus size={14} />
+                New
+              </Button>
+            )}
+          </div>
         </div>
 
         {assignments.length === 0 ? (
@@ -348,8 +355,8 @@ export default async function AssignmentsList({
                     <th scope="col" className="hidden md:table-cell text-left font-semibold px-6 py-3">Freelancer</th>
                     <SortHeader current={currentState} id="date" label="Preferred date" hideBelow="sm" />
                     <SortHeader current={currentState} id="status" label="Status" />
-                    {isAdminOrStaff && (
-                      <th scope="col" className="hidden md:table-cell text-center font-semibold px-3 py-3">
+                    {isAdmin && (
+                      <th scope="col" className="odoo-col text-center font-semibold px-3 py-3">
                         <span title="Odoo sync status" className="inline-block">Odoo</span>
                       </th>
                     )}
@@ -437,8 +444,8 @@ export default async function AssignmentsList({
                             role={r}
                           />
                         </td>
-                        {isAdminOrStaff && (
-                          <td className="hidden md:table-cell px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        {isAdmin && (
+                          <td className="odoo-col px-3 py-3 text-center">
                             <OdooSyncCell
                               assignmentId={a.id}
                               odooSyncedAt={a.odooSyncedAt}
