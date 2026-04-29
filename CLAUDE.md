@@ -156,6 +156,7 @@ ssh root@178.128.246.222
 - **Env:** `/opt/immoplatform/app/.env.production` (mode 600, owner `immo`)
 - **Service:** `systemctl {status|restart|stop} immoplatform` · logs via `journalctl -u immoplatform -f`
 - **Listening on:** `127.0.0.1:3000` only (nginx reverse-proxies from `:80`/`:443`)
+- **nginx → app headers** (`/etc/nginx/sites-enabled/immoplatform`): `X-Real-IP $remote_addr` and **`X-Forwarded-For $remote_addr`** (NOT `$proxy_add_x_forwarded_for` — that one appends to client-supplied XFF, which would let any client spoof their IP and bypass per-IP rate limits since the app reads the leftmost XFF entry). Single-hop deployment: replacing is correct. If we ever add a fronting proxy (Cloudflare, LB), flip back to `$proxy_add_x_forwarded_for` so the trusted hop's IP gets appended.
 - **Storage:** DO Spaces (`immoplatform-real-storage` bucket in AMS3). Bytes survive droplet wipe. See dedicated section below.
 
 ### Database
