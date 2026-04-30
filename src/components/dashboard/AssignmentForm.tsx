@@ -167,6 +167,14 @@ export function AssignmentForm({
   const [requiresKeyPickup, setRequiresKeyPickup] = useState(
     initial?.requiresKeyPickup ?? false,
   );
+
+  // Owner type drives the conditional VAT field. "owner" = Particulier
+  // (private individual), "firm" = Bedrijf (company). Defaults to "owner"
+  // per product call — most assignments are private property owners. Only
+  // firms need the BTW (VAT) number, so we hide it when "owner" is picked.
+  const [clientType, setClientType] = useState<"owner" | "firm">(
+    initial?.clientType ?? "owner",
+  );
   const [keyPickupLocationType, setKeyPickupLocationType] = useState<
     "office" | "other"
   >(initial?.keyPickupLocationType ?? "office");
@@ -381,96 +389,113 @@ export function AssignmentForm({
             The person signing the assignment form.
           </p>
         </CardHeader>
-        <CardBody className="grid gap-5 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Field label="Full name" id="owner-name" required>
-              <Input
-                id="owner-name"
-                name="owner-name"
-                placeholder="Els Vermeulen"
-                defaultValue={initial?.owner.name ?? ""}
-                autoComplete="off"
-                required
-              />
-            </Field>
-          </div>
-          <Field label="Email" id="owner-email">
-            <Input
-              id="owner-email"
-              name="owner-email"
-              type="email"
-              placeholder="els@example.com"
-              defaultValue={initial?.owner.email ?? ""}
-              autoComplete="off"
-            />
-          </Field>
-          <Field label="Phone" id="owner-phone">
-            <Input
-              id="owner-phone"
-              name="owner-phone"
-              placeholder="+32 476 12 34 56"
-              defaultValue={initial?.owner.phone ?? ""}
-              autoComplete="off"
-            />
-          </Field>
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Invoicing details</CardTitle>
-          <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-            Used on the invoice PDF. Leave blank to use the property address.
-          </p>
-        </CardHeader>
-        <CardBody className="grid gap-5 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Field
-              label="Invoice recipient"
-              id="client-type"
-              hint="Particulier = billed to the owner personally. Firm = billed to the company (VAT required)."
-            >
-              <Select
-                id="client-type"
+        <CardBody className="space-y-5">
+          {/* Particulier vs Bedrijf radio. Drives invoice routing AND the
+              conditional VAT field below. Submitted under name="client-type"
+              (same key as before — the old Select dropdown is gone). */}
+          <div
+            className="flex items-center gap-6"
+            role="radiogroup"
+            aria-label="Owner type"
+          >
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+              <input
+                type="radio"
                 name="client-type"
-                defaultValue={initial?.clientType ?? ""}
-              >
-                <option value="">Use team default</option>
-                <option value="owner">Particulier (owner)</option>
-                <option value="firm">Firm (bedrijf)</option>
-              </Select>
-            </Field>
+                value="owner"
+                checked={clientType === "owner"}
+                onChange={() => setClientType("owner")}
+                className="h-4 w-4 accent-[var(--color-brand)]"
+              />
+              <span className="font-medium text-[var(--color-ink)]">
+                Particulier
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+              <input
+                type="radio"
+                name="client-type"
+                value="firm"
+                checked={clientType === "firm"}
+                onChange={() => setClientType("firm")}
+                className="h-4 w-4 accent-[var(--color-brand)]"
+              />
+              <span className="font-medium text-[var(--color-ink)]">
+                Bedrijf
+              </span>
+            </label>
           </div>
-          <div className="sm:col-span-2">
-            <Field label="Owner invoicing address" id="owner-address">
+
+          <Field label="Full name" id="owner-name" required>
+            <Input
+              id="owner-name"
+              name="owner-name"
+              placeholder="Els Vermeulen"
+              defaultValue={initial?.owner.name ?? ""}
+              autoComplete="off"
+              required
+            />
+          </Field>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Email" id="owner-email">
               <Input
-                id="owner-address"
-                name="owner-address"
-                placeholder="Meir 42"
-                defaultValue={initial?.owner.address ?? ""}
+                id="owner-email"
+                name="owner-email"
+                type="email"
+                placeholder="els@example.com"
+                defaultValue={initial?.owner.email ?? ""}
+                autoComplete="off"
+              />
+            </Field>
+            <Field label="Phone" id="owner-phone">
+              <Input
+                id="owner-phone"
+                name="owner-phone"
+                placeholder="+32 476 12 34 56"
+                defaultValue={initial?.owner.phone ?? ""}
                 autoComplete="off"
               />
             </Field>
           </div>
-          <Field label="Postal code" id="owner-postal">
+
+          <Field label="Address" id="owner-address">
             <Input
-              id="owner-postal"
-              name="owner-postal"
-              placeholder="2000"
-              defaultValue={initial?.owner.postal ?? ""}
+              id="owner-address"
+              name="owner-address"
+              placeholder="Meir 42"
+              defaultValue={initial?.owner.address ?? ""}
               autoComplete="off"
             />
           </Field>
-          <Field label="City" id="owner-city">
-            <Input
-              id="owner-city"
-              name="owner-city"
-              placeholder="Antwerpen"
-              defaultValue={initial?.owner.city ?? ""}
-              autoComplete="off"
-            />
-          </Field>
-          <div className="sm:col-span-2">
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="City" id="owner-city">
+              <Input
+                id="owner-city"
+                name="owner-city"
+                placeholder="Antwerpen"
+                defaultValue={initial?.owner.city ?? ""}
+                autoComplete="off"
+              />
+            </Field>
+            <Field label="Postal code" id="owner-postal">
+              <Input
+                id="owner-postal"
+                name="owner-postal"
+                placeholder="2000"
+                defaultValue={initial?.owner.postal ?? ""}
+                autoComplete="off"
+              />
+            </Field>
+          </div>
+
+          {/* VAT only relevant when the owner is a Bedrijf (company).
+              Hidden when Particulier — the field is uncontrolled (defaultValue),
+              so a previously-set BTW value is preserved on the row when the
+              user toggles back to Bedrijf, and is silently dropped from the
+              submitted FormData when Particulier (we omit the input). */}
+          {clientType === "firm" && (
             <Field
               label="VAT number"
               id="owner-vat"
@@ -484,7 +509,7 @@ export function AssignmentForm({
                 autoComplete="off"
               />
             </Field>
-          </div>
+          )}
         </CardBody>
       </Card>
 
@@ -516,23 +541,40 @@ export function AssignmentForm({
               autoComplete="off"
             />
           </Field>
-          <div className="sm:col-span-2">
-            <Field
-              label="Primary contact for the inspector"
-              id="photographer-contact-person"
-              hint="Which contact gets tagged (Jouw contactpersoon) on the calendar event."
+          <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            <span
+              id="photographer-contact-person-label"
+              className="text-sm font-medium text-[var(--color-ink)]"
             >
-              <Select
-                id="photographer-contact-person"
-                name="photographerContactPerson"
-                defaultValue={initial?.photographerContactPerson ?? ""}
-              >
-                <option value="">— Pick later —</option>
-                <option value="realtor">Agency / realtor</option>
-                <option value="owner">Owner</option>
-                <option value="tenant">Tenant</option>
-              </Select>
-            </Field>
+              Contact person for photographer
+            </span>
+            <div
+              role="radiogroup"
+              aria-labelledby="photographer-contact-person-label"
+              className="flex flex-wrap items-center gap-x-6 gap-y-2"
+            >
+              {(
+                [
+                  ["realtor", "Realtor"],
+                  ["owner", "Owner"],
+                  ["tenant", "Tenant"],
+                ] as const
+              ).map(([value, label]) => (
+                <label
+                  key={value}
+                  className="inline-flex items-center gap-2 text-sm text-[var(--color-ink)]"
+                >
+                  <input
+                    type="radio"
+                    name="photographerContactPerson"
+                    value={value}
+                    defaultChecked={initial?.photographerContactPerson === value}
+                    className="h-4 w-4 accent-[var(--color-brand)]"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
           </div>
         </CardBody>
       </Card>
