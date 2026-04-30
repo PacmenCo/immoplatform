@@ -607,6 +607,14 @@ describe("register — form value preservation", () => {
     }
   });
 
+  it("rejects @immo.test emails (reserves the domain for the dev account-switcher group)", async () => {
+    const res = await register(undefined, regForm({ email: "attacker@immo.test" }));
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toMatch(/email|reserved|allowed/i);
+    }
+  });
+
   it("emits user.registered notification to platform admins (Platform parity)", async () => {
     // Seed an admin who'll receive the fan-out + a staff user (admin-only
     // event so staff is filtered out by `eventsForRole` inside notify).

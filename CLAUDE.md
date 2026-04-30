@@ -100,6 +100,16 @@ Always pair `onMouseEnter` with `onFocus` — keyboard users should get the same
 - Put `prefetch={false}` on a link without a hover handler — that disables both viewport AND hover prefetch entirely.
 - Wrap a static page in `'use client'` just to add a prefetch handler — keep the page server-rendered and put the client handler on the link component only.
 
+## Account switcher (dev-only)
+
+Fast role-testing tool. Group of pre-defined accounts that can hot-swap into each other from a topbar dropdown — a real logout-and-login between predefined accounts (not impersonation).
+
+- **Where:** `src/lib/account-switcher.ts` exports `SWITCHER_GROUP` (the founder's email + 6 `@immo.test` test fixtures). Server action at `src/app/actions/account-switcher.ts`. UI dropdown at `src/components/dashboard/AccountSwitcher.tsx`, mounted in `Topbar`.
+- **Production behavior:** dormant. The action returns `{ ok: false, error: "...disabled outside of development." }` when `NODE_ENV !== "development" | "test"`, the dropdown doesn't render, and the `@immo.test` test users only exist in dev/staging seeds. The seed itself hard-throws on `NODE_ENV === "production"`.
+- **Audit:** every switch writes one `user.account_switched` row with `actorId = original user`, `metadata = { fromEmail, toEmail }`. Single causal event, not a sign-out + orphan sign-in pair.
+- **Re-seed after schema changes** to re-create the test users (`npx prisma db seed`). The seed is idempotent and the env-guard prevents running it on prod by accident.
+- **Registration blocks `@immo.test`**: `registerSchema` in `src/app/actions/auth.ts` refuses the domain at signup, so no public user can game the allowlist.
+
 ## Command Center
 
 Kanban board used to track work across projects. This project lives under the `immo` project id.

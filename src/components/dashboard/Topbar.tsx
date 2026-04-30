@@ -1,7 +1,7 @@
 import { IconPlus } from "@/components/ui/Icons";
 import { Button } from "@/components/ui/Button";
 import { TeamSwitcher, type SwitcherTeam } from "./TeamSwitcher";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { AccountSwitcher, type SwitcherAccount } from "./AccountSwitcher";
 import { getSession } from "@/lib/auth";
 import {
   canCreateAssignment,
@@ -10,6 +10,8 @@ import {
   hasRole,
 } from "@/lib/permissions";
 import { initialsFromName } from "@/lib/format";
+import { isSwitcherMember, SWITCHER_GROUP } from "@/lib/account-switcher";
+import { prisma } from "@/lib/db";
 
 export async function Topbar({
   title,
@@ -37,6 +39,30 @@ export async function Topbar({
     }));
   }
 
+  // Account switcher: only renders when (a) the current user is in the
+  // hardcoded SWITCHER_GROUP AND (b) we're not in production. The action
+  // refuses in production regardless, but skipping the UI avoids confusing
+  // operators with a button that would error.
+  const inDev =
+    process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
+  let switcherAccounts: SwitcherAccount[] = [];
+  if (inDev && session && isSwitcherMember(session.user.email)) {
+    const others = SWITCHER_GROUP.filter(
+      (e) => e !== session.user.email.toLowerCase().trim(),
+    );
+    const rows = await prisma.user.findMany({
+      where: { email: { in: others }, deletedAt: null },
+      select: { email: true, firstName: true, lastName: true, role: true },
+      orderBy: [{ role: "asc" }, { firstName: "asc" }],
+    });
+    switcherAccounts = rows.map((r) => ({
+      email: r.email,
+      firstName: r.firstName,
+      lastName: r.lastName,
+      role: r.role,
+    }));
+  }
+
   return (
     <header className="hidden md:flex items-center justify-between gap-4 xl:gap-6 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-6 xl:px-8 h-16 sticky top-0 z-40">
       <div className="flex min-w-0 items-center gap-4">
@@ -57,7 +83,12 @@ export async function Topbar({
       </div>
 
       <div className="flex items-center gap-1.5">
-        <ThemeToggle />
+        {switcherAccounts.length > 0 && session && (
+          <AccountSwitcher
+            currentEmail={session.user.email}
+            accounts={switcherAccounts}
+          />
+        )}
         {canCreate && (
           <Button href="/dashboard/assignments/new" size="sm" className="ml-1.5">
             <IconPlus size={16} />

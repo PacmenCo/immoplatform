@@ -188,6 +188,7 @@ export type AuditVerb =
   | "auth.login_failed"
   | "user.signed_in"
   | "user.signed_out"
+  | "user.account_switched"
   | "user.created"
   | "user.password_changed"
   | "user.profile_updated"

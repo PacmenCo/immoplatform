@@ -144,7 +144,14 @@ const registerSchema = z.object({
     .string()
     .email("Enter a valid email address.")
     .max(255)
-    .transform((s) => s.toLowerCase().trim()),
+    .transform((s) => s.toLowerCase().trim())
+    // The `@immo.test` domain is reserved server-side for the dev
+    // account-switcher group (`src/lib/account-switcher.ts`). Refusing it at
+    // registration prevents anyone from gaming the allowlist by claiming a
+    // `@immo.test` email through the public flow.
+    .refine((e) => !e.endsWith("@immo.test"), {
+      message: "This email domain is not allowed.",
+    }),
   password: z.string().min(10, "Password must be at least 10 characters."),
   confirm: z.string(),
   agency: z.string().trim().max(120).optional().or(z.literal("")),

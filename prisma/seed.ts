@@ -24,6 +24,32 @@ const prisma = new PrismaClient();
 
 const DEV_PASSWORD = "Jordan1234"; // for quick dev login — DO NOT reuse in prod
 
+/**
+ * Hard refusal to run in production. The seed creates dummy users with
+ * a published password, so running it on the live droplet would mint live
+ * accounts anyone could log into. The deploy command in CLAUDE.md does NOT
+ * run this script — but `npm run seed` is one ssh-and-typo away. Better to
+ * fail closed at the file boundary than rely on operator discipline.
+ *
+ * Belt-and-suspenders: also bail if DATABASE_URL doesn't look dev-shaped.
+ * Local dev URL is `postgresql://...@localhost:5432/immo_dev`; prod is
+ * `postgresql://...@127.0.0.1:5432/immo` per CLAUDE.md.
+ */
+if (process.env.NODE_ENV === "production") {
+  throw new Error(
+    "prisma/seed.ts refuses to run in production. The dummy users it creates have a published password.",
+  );
+}
+if (
+  process.env.DATABASE_URL &&
+  !/\b(immo_dev|immo_test|localhost|127\.0\.0\.1)\b/.test(process.env.DATABASE_URL) &&
+  !process.env.DATABASE_URL.startsWith("file:")
+) {
+  throw new Error(
+    "prisma/seed.ts refuses: DATABASE_URL doesn't look like a dev/test target.",
+  );
+}
+
 async function main() {
   console.log("🌱 seeding…");
 
@@ -139,6 +165,17 @@ async function main() {
       commissionType: CommissionType.percentage,
       commissionValue: 1500,
     },
+    {
+      // Account-switcher fixture team. Hosts the two `@immo.test` realtor
+      // users so they pass `gateRealtorRequiresTeam` and can render any
+      // dashboard page. test-realtor-creator is owner; test-realtor-member
+      // is plain member — exercises the readOnly form path.
+      id: "t_test", name: "Test Switcher Team", city: "Test City", logo: "TS", logoColor: "#475569",
+      legalName: "Test Switcher Team BV",
+      defaultClientType: ClientType.owner,
+      commissionType: CommissionType.percentage,
+      commissionValue: 1500,
+    },
   ];
   for (const t of teamData) {
     await prisma.team.upsert({
@@ -227,6 +264,32 @@ async function main() {
       role: Role.realtor, phone: "+32 471 55 66 77", region: "Brugge",
       bio: "Owner — Brugge Vastgoed.",
     },
+
+    // ─── Account-switcher test fixtures ─────────────────────────────────
+    // The `@immo.test` TLD is RFC 6761-reserved (no public DNS). These rows
+    // exist only in dev/staging seeds; the registration flow blocks the
+    // domain so no real user can claim one. Membership in the
+    // SWITCHER_GROUP (src/lib/account-switcher.ts) MUST stay in lockstep
+    // with this list — both sides reference these emails by hand.
+    // One fixture per non-admin role (Jordan covers admin himself).
+    {
+      id: "u_test_staff", email: "test-staff@immo.test",
+      firstName: "Test", lastName: "Staff",
+      role: Role.staff, phone: null, region: "Belgium",
+      bio: "Switcher fixture — staff role.",
+    },
+    {
+      id: "u_test_realtor", email: "test-realtor@immo.test",
+      firstName: "Test", lastName: "Realtor",
+      role: Role.realtor, phone: null, region: "Antwerp",
+      bio: "Switcher fixture — realtor on the test switcher team.",
+    },
+    {
+      id: "u_test_freelancer", email: "test-freelancer@immo.test",
+      firstName: "Test", lastName: "Freelancer",
+      role: Role.freelancer, phone: null, region: "Antwerp",
+      bio: "Switcher fixture — freelancer role.",
+    },
   ];
 
   for (const u of users) {
@@ -259,6 +322,11 @@ async function main() {
     { teamId: "t_06", userId: "u_15", teamRole: TeamRole.owner },     // Anouk — Brugge Vastgoed owner
     { teamId: "t_03", userId: "u_2", teamRole: TeamRole.member },     // Els also runs ops in Gent
     { teamId: "t_04", userId: "u_8", teamRole: TeamRole.member },     // Marie (staff) sits with Mechelen team
+
+    // Account-switcher realtor fixture needs a team so the realtor pages
+    // don't bounce via `gateRealtorRequiresTeam`. Make them owner so they
+    // can fully edit + delete their own assignments.
+    { teamId: "t_test", userId: "u_test_realtor", teamRole: TeamRole.owner },
   ];
   for (const m of memberships) {
     const userId = aid(m.userId);
