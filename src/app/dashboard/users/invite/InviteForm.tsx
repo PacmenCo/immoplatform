@@ -13,6 +13,7 @@ import { useFormDirty } from "@/lib/useFormDirty";
 import type { ActionResult } from "@/app/actions/_types";
 import type { Role } from "@/lib/permissions.types";
 import { BrandName } from "@/components/BrandName";
+import { LegalBillingFields } from "@/components/dashboard/LegalBillingFields";
 
 type RoleOption = {
   value: Role;
@@ -215,6 +216,10 @@ export function InviteForm({
               </div>
             </CardBody>
           </Card>
+
+          {role === "freelancer" && (
+            <LegalBillingFields defaultEmail={email} />
+          )}
 
           {showTeam && (
             <Card>

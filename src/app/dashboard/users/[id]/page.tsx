@@ -23,6 +23,25 @@ import { avatarImageUrl } from "@/lib/avatar";
 import { BE_DATE_FULL, initials } from "@/lib/format";
 import { STATUS_META, type Status } from "@/lib/mockData";
 import { DeleteUserButton } from "../DeleteUserButton";
+import { LegalBillingDisplay, type LegalBillingData } from "@/components/dashboard/LegalBillingDisplay";
+
+// PLACEHOLDER — populated demo so we can preview the populated UI before the
+// `companyInfo` columns land on the User schema. Swap to `user.companyInfo`
+// (or wherever they end up) once wired. Set to `null` to preview the empty
+// state instead.
+const MOCK_FREELANCER_BILLING: LegalBillingData = {
+  entityType: "sole_trader",
+  legalName: null,
+  vatNumber: "BE0712345678",
+  kboNumber: "0712345678",
+  iban: "BE68539007547034",
+  billingEmail: "billing@inspector.be",
+  billingPhone: "+32 3 234 56 78",
+  billingAddress: "Lange Nieuwstraat 12",
+  billingPostal: "2000",
+  billingCity: "Antwerpen",
+  billingCountry: "Belgium",
+};
 
 type AuditRow = {
   at: Date;
@@ -291,6 +310,14 @@ export default async function UserDetail({
                   </div>
                 </CardBody>
               </Card>
+            )}
+
+            {user.role === "freelancer" && (
+              <LegalBillingDisplay
+                data={MOCK_FREELANCER_BILLING}
+                editHref={`/dashboard/users/${user.id}/edit`}
+                canEdit={canAdminUsers(session)}
+              />
             )}
 
             <Card>
