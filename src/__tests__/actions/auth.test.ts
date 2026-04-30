@@ -73,13 +73,13 @@ function form(data: Record<string, string>): FormData {
 }
 
 describe("login", () => {
-  it("valid credentials → session created, redirect to /dashboard, lastLoginAt stamped", async () => {
+  it("valid credentials → session created, redirect to /dashboard/assignments, lastLoginAt stamped", async () => {
     await seedUserWithPassword("alice@test.local", "correct-horse-battery-staple");
 
     const redirectUrl = await captureRedirect(() =>
       login(undefined, form({ email: "alice@test.local", password: "correct-horse-battery-staple" })),
     );
-    expect(redirectUrl).toBe("/dashboard");
+    expect(redirectUrl).toBe("/dashboard/assignments");
 
     const user = await prisma.user.findUniqueOrThrow({
       where: { email: "alice@test.local" },
@@ -215,7 +215,7 @@ describe("login", () => {
     expect(target).toBe("/dashboard/assignments/abc123");
   });
 
-  it("ignores ?next= protocol-relative URLs (//evil.example) — falls back to /dashboard", async () => {
+  it("ignores ?next= protocol-relative URLs (//evil.example) — falls back to /dashboard/assignments", async () => {
     await seedUserWithPassword("alice@test.local", "password123");
     const target = await captureRedirect(() =>
       login(
@@ -227,10 +227,10 @@ describe("login", () => {
         }),
       ),
     );
-    expect(target).toBe("/dashboard");
+    expect(target).toBe("/dashboard/assignments");
   });
 
-  it("ignores ?next= absolute URLs — falls back to /dashboard", async () => {
+  it("ignores ?next= absolute URLs — falls back to /dashboard/assignments", async () => {
     await seedUserWithPassword("alice@test.local", "password123");
     const target = await captureRedirect(() =>
       login(
@@ -242,7 +242,7 @@ describe("login", () => {
         }),
       ),
     );
-    expect(target).toBe("/dashboard");
+    expect(target).toBe("/dashboard/assignments");
   });
 });
 
@@ -352,7 +352,7 @@ describe("resetPassword", () => {
         confirm: "new-password-that-is-long",
       })),
     );
-    expect(redirectUrl).toBe("/dashboard");
+    expect(redirectUrl).toBe("/dashboard/assignments");
 
     // Old sessions revoked.
     const oldSession = await prisma.session.findUniqueOrThrow({ where: { id: prior.id } });

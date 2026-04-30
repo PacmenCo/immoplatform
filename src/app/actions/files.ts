@@ -264,7 +264,7 @@ async function applyUploadBookkeeping(
     }
   }
 
-  revalidatePath(`/dashboard/assignments/${assignmentId}/files`);
+  revalidatePath(`/dashboard/assignments/${assignmentId}/edit`);
   revalidatePath(`/dashboard/assignments/${assignmentId}`);
   return { ok: true };
 }
@@ -732,7 +732,7 @@ export async function deleteAssignmentFileInner(
     },
   });
 
-  revalidatePath(`/dashboard/assignments/${file.assignmentId}/files`);
+  revalidatePath(`/dashboard/assignments/${file.assignmentId}/edit`);
   revalidatePath(`/dashboard/assignments/${file.assignmentId}`);
   return { ok: true };
 }

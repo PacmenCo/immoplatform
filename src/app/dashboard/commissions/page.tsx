@@ -5,7 +5,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { IconChart, IconCheck } from "@/components/ui/Icons";
 import { requireSession } from "@/lib/auth";
-import { canMarkCommissionPaid, hasRole } from "@/lib/permissions";
+import { buildCanEditAssignment, canMarkCommissionPaid, hasRole } from "@/lib/permissions";
 import { formatCommissionRate, formatEuros } from "@/lib/format";
 import {
   quarterOf,
@@ -31,6 +31,7 @@ export default async function CommissionsPage({
   if (!hasRole(session, "admin")) {
     redirect("/no-access?section=commissions");
   }
+  const canEdit = await buildCanEditAssignment(session);
 
   const params = await searchParams;
   const now = new Date();
@@ -272,7 +273,7 @@ export default async function CommissionsPage({
                       <tr key={l.id} className="hover:bg-[var(--color-bg-alt)]">
                         <td className="px-6 py-3">
                           <Link
-                            href={`/dashboard/assignments/${l.assignment.id}`}
+                            href={`/dashboard/assignments/${l.assignment.id}${canEdit(l.assignment) ? "/edit" : ""}`}
                             className="font-mono text-xs font-medium text-[var(--color-ink)] hover:underline"
                           >
                             {l.assignment.reference}

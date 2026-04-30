@@ -117,12 +117,15 @@ export async function login(
   });
 
   // Platform parity (`Login.php` `redirect()->intended()`): if the form
-  // posts a `next` URL, route there instead of /dashboard. Validate it's a
-  // same-origin path (starts with `/` and not `//` — the latter is a
-  // protocol-relative URL that would jump origins). Fallback: /dashboard.
+  // posts a `next` URL, route there instead. Validate it's a same-origin
+  // path (starts with `/` and not `//` — the latter is a protocol-relative
+  // URL that would jump origins). Fallback: assignments list, matching v1's
+  // `route('assignments.index')`.
   const rawNext = String(formData.get("next") ?? "");
   const target =
-    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
+    rawNext.startsWith("/") && !rawNext.startsWith("//")
+      ? rawNext
+      : "/dashboard/assignments";
   redirect(target);
 }
 
@@ -264,10 +267,8 @@ export async function register(
     objectId: user.id,
   });
 
-  // v1 redirects to assignments.index; v2 has /dashboard as the role-
-  // landing equivalent (which then routes to /freelancer for freelancers,
-  // etc.). Realtors land on the dashboard home.
-  redirect("/dashboard");
+  // v1 parity: redirect to assignments.index after auto-login.
+  redirect("/dashboard/assignments");
 }
 
 // ─── LOGOUT ────────────────────────────────────────────────────────
@@ -427,7 +428,7 @@ export async function resetPassword(
     metadata: { via: "reset" },
   });
 
-  redirect("/dashboard");
+  redirect("/dashboard/assignments");
 }
 
 // ─── SWITCH ACTIVE TEAM ────────────────────────────────────────────

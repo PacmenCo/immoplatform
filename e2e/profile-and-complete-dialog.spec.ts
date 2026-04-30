@@ -106,8 +106,10 @@ test.describe("Inline complete dialog", () => {
     const href = await referenceLink.getAttribute("href");
     const id = href?.match(/\/dashboard\/assignments\/([^/?#]+)/)?.[1];
     if (!id) throw new Error(`Could not extract assignment id from ${href}`);
+    // The legacy /dashboard/assignments/{id} route now redirects to /edit
+    // (the merged page). Either URL is acceptable as a destination.
     await page.goto(`/dashboard/assignments/${id}`);
-    await page.waitForURL(new RegExp(`/dashboard/assignments/${id}$`));
+    await page.waitForURL(new RegExp(`/dashboard/assignments/${id}(/edit)?$`));
 
     // Wait for the action panel to render — `goto` only waits for `load`,
     // and the assignment detail page fetches via Suspense. Without waiting,

@@ -14,6 +14,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import {
   assignmentScope,
+  buildCanEditAssignment,
   canCreateAssignment,
   composeWhere,
   gateRealtorRequiresTeam,
@@ -54,6 +55,7 @@ export default async function DashboardHome() {
   // v1 parity: invite is admin + realtor only — staff is excluded.
   const canInvite = hasRole(session, "admin", "realtor");
   const isFreelancer = hasRole(session, "freelancer");
+  const canEdit = await buildCanEditAssignment(session);
 
   // Privacy: admin/staff see the global feed; others see only their own
   // actions so realtors + freelancers can't spy on each other's activity.
@@ -205,7 +207,7 @@ export default async function DashboardHome() {
                     return (
                       <li key={a.id}>
                         <Link
-                          href={`/dashboard/assignments/${a.id}`}
+                          href={`/dashboard/assignments/${a.id}${canEdit(a) ? "/edit" : ""}`}
                           className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-6 py-4 transition-colors hover:bg-[var(--color-bg-alt)]"
                         >
                           <div className="min-w-0">

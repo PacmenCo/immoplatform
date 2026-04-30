@@ -21,7 +21,7 @@ import {
 import { STATUS_META, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { canEditTeam, getUserTeamIds, hasRole } from "@/lib/permissions";
+import { buildCanEditAssignment, canEditTeam, getUserTeamIds, hasRole } from "@/lib/permissions";
 import { formatCommissionRate, formatEuros, initials } from "@/lib/format";
 import { quarterOf, quarterRange } from "@/lib/commission";
 import { roleBadge } from "@/lib/roleColors";
@@ -57,6 +57,7 @@ export default async function TeamDetailPage({
 }) {
   const { id } = await params;
   const session = await requireSession();
+  const canEdit = await buildCanEditAssignment(session);
 
   // Non-privileged users can only view teams they're a member of.
   if (!hasRole(session, "admin", "staff")) {
@@ -412,7 +413,7 @@ export default async function TeamDetailPage({
                       return (
                         <li key={a.id}>
                           <Link
-                            href={`/dashboard/assignments/${a.id}`}
+                            href={`/dashboard/assignments/${a.id}${canEdit(a) ? "/edit" : ""}`}
                             className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-6 py-3 transition-colors hover:bg-[var(--color-bg-alt)]"
                           >
                             <div className="min-w-0">
@@ -749,7 +750,7 @@ export default async function TeamDetailPage({
                         >
                           <td className="px-6 py-3">
                             <Link
-                              href={`/dashboard/assignments/${a.id}`}
+                              href={`/dashboard/assignments/${a.id}${canEdit(a) ? "/edit" : ""}`}
                               className="font-mono text-xs font-medium text-[var(--color-ink)] hover:underline"
                             >
                               {a.reference}
@@ -818,28 +819,28 @@ export default async function TeamDetailPage({
               <CardBody className="space-y-5">
                 <div className="grid gap-5 sm:grid-cols-2">
                   <Field label="Legal name" id="legal-name" hint="Official entity name on invoices">
-                    <Input id="legal-name" name="legalName" defaultValue={team.legalName ?? ""} placeholder="e.g. Vastgoed Antwerp BVBA" disabled={!canTransfer} />
+                    <Input id="legal-name" name="legalName" defaultValue={team.legalName ?? ""} placeholder="e.g. Vastgoed Antwerp BVBA" disabled={!canTransfer} autoComplete="off" />
                   </Field>
                   <Field label="Contact email" id="team-email" hint="Team-wide inbox for notifications">
-                    <Input id="team-email" name="email" type="email" defaultValue={team.email ?? ""} placeholder="contact@team.be" disabled={!canTransfer} />
+                    <Input id="team-email" name="email" type="email" defaultValue={team.email ?? ""} placeholder="contact@team.be" disabled={!canTransfer} autoComplete="off" />
                   </Field>
                   <Field label="VAT number" id="vat" hint="Belgian format: BE 0xxx.xxx.xxx">
-                    <Input id="vat" name="vatNumber" defaultValue={team.vatNumber ?? ""} placeholder="BE 0xxx.xxx.xxx" disabled={!canTransfer} />
+                    <Input id="vat" name="vatNumber" defaultValue={team.vatNumber ?? ""} placeholder="BE 0xxx.xxx.xxx" disabled={!canTransfer} autoComplete="off" />
                   </Field>
                   <Field label="KBO / Chamber of Commerce" id="kbo">
-                    <Input id="kbo" name="kboNumber" defaultValue={team.kboNumber ?? ""} placeholder="0xxxxxxxxx" disabled={!canTransfer} />
+                    <Input id="kbo" name="kboNumber" defaultValue={team.kboNumber ?? ""} placeholder="0xxxxxxxxx" disabled={!canTransfer} autoComplete="off" />
                   </Field>
                   <Field label="IBAN" id="iban">
-                    <Input id="iban" name="iban" defaultValue={team.iban ?? ""} placeholder="BE68 5390 0754 7034" disabled={!canTransfer} />
+                    <Input id="iban" name="iban" defaultValue={team.iban ?? ""} placeholder="BE68 5390 0754 7034" disabled={!canTransfer} autoComplete="off" />
                   </Field>
                   <Field label="Billing email" id="bill-email" hint="Invoice delivery address">
-                    <Input id="bill-email" name="billingEmail" type="email" defaultValue={team.billingEmail ?? ""} placeholder="billing@team.be" disabled={!canTransfer} />
+                    <Input id="bill-email" name="billingEmail" type="email" defaultValue={team.billingEmail ?? ""} placeholder="billing@team.be" disabled={!canTransfer} autoComplete="off" />
                   </Field>
                 </div>
 
                 <div className="grid gap-5 sm:grid-cols-2">
                   <Field label="Billing phone" id="bill-phone">
-                    <Input id="bill-phone" name="billingPhone" defaultValue={team.billingPhone ?? ""} placeholder="+32 …" disabled={!canTransfer} />
+                    <Input id="bill-phone" name="billingPhone" defaultValue={team.billingPhone ?? ""} placeholder="+32 …" disabled={!canTransfer} autoComplete="off" />
                   </Field>
                   <Field label="Default invoice recipient" id="client-type" hint="Fallback when creating assignments">
                     <Select id="client-type" name="defaultClientType" defaultValue={team.defaultClientType ?? ""} disabled={!canTransfer}>
@@ -852,16 +853,16 @@ export default async function TeamDetailPage({
 
                 <div className="grid gap-5 sm:grid-cols-[2fr_1fr_2fr_1fr]">
                   <Field label="Address" id="billing-address">
-                    <Input id="billing-address" name="billingAddress" defaultValue={team.billingAddress ?? ""} placeholder="Street + number" disabled={!canTransfer} />
+                    <Input id="billing-address" name="billingAddress" defaultValue={team.billingAddress ?? ""} placeholder="Street + number" disabled={!canTransfer} autoComplete="off" />
                   </Field>
                   <Field label="Postal" id="billing-postal">
-                    <Input id="billing-postal" name="billingPostal" defaultValue={team.billingPostal ?? ""} placeholder="2000" disabled={!canTransfer} />
+                    <Input id="billing-postal" name="billingPostal" defaultValue={team.billingPostal ?? ""} placeholder="2000" disabled={!canTransfer} autoComplete="off" />
                   </Field>
                   <Field label="City" id="billing-city">
-                    <Input id="billing-city" name="billingCity" defaultValue={team.billingCity ?? ""} placeholder="Antwerpen" disabled={!canTransfer} />
+                    <Input id="billing-city" name="billingCity" defaultValue={team.billingCity ?? ""} placeholder="Antwerpen" disabled={!canTransfer} autoComplete="off" />
                   </Field>
                   <Field label="Country" id="billing-country">
-                    <Input id="billing-country" name="billingCountry" defaultValue={team.billingCountry ?? "Belgium"} disabled={!canTransfer} />
+                    <Input id="billing-country" name="billingCountry" defaultValue={team.billingCountry ?? "Belgium"} disabled={!canTransfer} autoComplete="off" />
                   </Field>
                 </div>
 

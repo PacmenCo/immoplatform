@@ -45,7 +45,6 @@ export type AssignmentFormInitial = {
   propertyType: string | null;
   constructionYear: number | null;
   areaM2: number | null;
-  quantity: number;
   isLargeProperty: boolean;
   services: string[];
   /** Previously-picked Odoo product id per service (asbestos for now). Keys
@@ -128,6 +127,13 @@ type Props = {
    * team simply isn't bound. Null = no error (or no bindings to begin with).
    */
   odooError?: string | null;
+  /**
+   * Render every input as disabled and hide the Save/Cancel footer. Used by
+   * the merged assignment page for view-only realtors (team members who
+   * pass canViewAssignment but not canEditAssignment) — they see the same
+   * card layout as editors but can't change anything.
+   */
+  readOnly?: boolean;
 };
 
 export type PricelistItemOption = OdooPricelistItem;
@@ -145,6 +151,7 @@ export function AssignmentForm({
   loadedAt,
   pricelistItemsByService,
   odooError,
+  readOnly = false,
 }: Props) {
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
@@ -178,15 +185,26 @@ export function AssignmentForm({
     submitLabel ?? (initial ? "Save changes" : "Create assignment");
 
   return (
-    <form ref={formRef} action={formAction} className="max-w-[960px] p-8 pb-28 space-y-8">
+    <form
+      ref={formRef}
+      action={readOnly ? undefined : formAction}
+      className="max-w-[960px] p-8 pb-28 space-y-8"
+    >
+      {/* `<fieldset disabled>` cascades the disabled state to every input,
+          select, textarea, and button inside — native HTML behavior, no
+          per-input prop plumbing needed. `display: contents` (Tailwind
+          `contents`) hides the fieldset's box from layout so the cards
+          render identically to the editable form. */}
+      <fieldset disabled={readOnly} className="contents">
       {/*
         Optimistic-lock witness — the server action reads this back as the
         `where: { updatedAt }` predicate so a concurrent save (another tab /
         admin) gets rejected with a "Someone else just edited" error instead
         of silently overwriting the other side's fields. Only rendered when
         the parent passes a value (edit page); the create form omits it.
+        Skipped in read-only render — there's no submit to lock.
       */}
-      {loadedAt && (
+      {loadedAt && !readOnly && (
         <input type="hidden" name="loaded-at" value={loadedAt} />
       )}
       {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
@@ -206,6 +224,7 @@ export function AssignmentForm({
                 name="address"
                 placeholder="Meir 34"
                 defaultValue={initial?.address ?? ""}
+                autoComplete="off"
                 required
               />
             </Field>
@@ -217,6 +236,7 @@ export function AssignmentForm({
                 name="postal"
                 placeholder="2000"
                 defaultValue={initial?.postal ?? ""}
+                autoComplete="off"
                 required
               />
             </Field>
@@ -228,6 +248,7 @@ export function AssignmentForm({
                 name="city"
                 placeholder="Antwerpen"
                 defaultValue={initial?.city ?? ""}
+                autoComplete="off"
                 required
               />
             </Field>
@@ -266,18 +287,6 @@ export function AssignmentForm({
                 type="number"
                 placeholder="120"
                 defaultValue={initial?.areaM2 ?? ""}
-              />
-            </Field>
-          </div>
-          <div className="sm:col-span-2">
-            <Field label="Packages" id="quantity">
-              <Input
-                id="quantity"
-                name="quantity"
-                type="number"
-                min={1}
-                max={10}
-                defaultValue={initial?.quantity ?? 1}
               />
             </Field>
           </div>
@@ -386,6 +395,7 @@ export function AssignmentForm({
                 name="owner-name"
                 placeholder="Els Vermeulen"
                 defaultValue={initial?.owner.name ?? ""}
+                autoComplete="off"
                 required
               />
             </Field>
@@ -397,6 +407,7 @@ export function AssignmentForm({
               type="email"
               placeholder="els@example.com"
               defaultValue={initial?.owner.email ?? ""}
+              autoComplete="off"
             />
           </Field>
           <Field label="Phone" id="owner-phone">
@@ -405,6 +416,7 @@ export function AssignmentForm({
               name="owner-phone"
               placeholder="+32 476 12 34 56"
               defaultValue={initial?.owner.phone ?? ""}
+              autoComplete="off"
             />
           </Field>
         </CardBody>
@@ -442,6 +454,7 @@ export function AssignmentForm({
                 name="owner-address"
                 placeholder="Meir 42"
                 defaultValue={initial?.owner.address ?? ""}
+                autoComplete="off"
               />
             </Field>
           </div>
@@ -451,6 +464,7 @@ export function AssignmentForm({
               name="owner-postal"
               placeholder="2000"
               defaultValue={initial?.owner.postal ?? ""}
+              autoComplete="off"
             />
           </Field>
           <Field label="City" id="owner-city">
@@ -459,6 +473,7 @@ export function AssignmentForm({
               name="owner-city"
               placeholder="Antwerpen"
               defaultValue={initial?.owner.city ?? ""}
+              autoComplete="off"
             />
           </Field>
           <div className="sm:col-span-2">
@@ -472,6 +487,7 @@ export function AssignmentForm({
                 name="owner-vat"
                 placeholder="BE 0712.345.678"
                 defaultValue={initial?.owner.vatNumber ?? ""}
+                autoComplete="off"
               />
             </Field>
           </div>
@@ -494,6 +510,7 @@ export function AssignmentForm({
               type="email"
               placeholder="info@vastgoedantwerp.be"
               defaultValue={initial?.contactEmail ?? ""}
+              autoComplete="off"
             />
           </Field>
           <Field label="Phone" id="contact-phone">
@@ -502,6 +519,7 @@ export function AssignmentForm({
               name="contactPhone"
               placeholder="+32 3 123 45 67"
               defaultValue={initial?.contactPhone ?? ""}
+              autoComplete="off"
             />
           </Field>
           <div className="sm:col-span-2">
@@ -560,6 +578,7 @@ export function AssignmentForm({
                 name="tenant-name"
                 placeholder="Marc De Smet"
                 defaultValue={initial?.tenant.name ?? ""}
+                autoComplete="off"
               />
             </Field>
           </div>
@@ -570,6 +589,7 @@ export function AssignmentForm({
               type="email"
               placeholder="marc@example.com"
               defaultValue={initial?.tenant.email ?? ""}
+              autoComplete="off"
             />
           </Field>
           <Field label="Phone" id="tenant-phone">
@@ -578,6 +598,7 @@ export function AssignmentForm({
               name="tenant-phone"
               placeholder="+32 479 98 76 54"
               defaultValue={initial?.tenant.phone ?? ""}
+              autoComplete="off"
             />
           </Field>
         </div>
@@ -829,21 +850,24 @@ export function AssignmentForm({
         </details>
       )}
 
-      <div className="sticky bottom-0 z-30 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
-        <div className="flex items-center justify-between gap-3 px-8 py-4">
-          <p className="text-xs text-[var(--color-ink-muted)]">
-            <span aria-hidden className="text-[var(--color-asbestos)]">*</span> Required
-          </p>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="md" href={cancelHref}>
-              Cancel
-            </Button>
-            <Button type="submit" size="md" loading={pending}>
-              {submitCopy}
-            </Button>
+      {!readOnly && (
+        <div className="sticky bottom-0 z-30 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
+          <div className="flex items-center justify-between gap-3 px-8 py-4">
+            <p className="text-xs text-[var(--color-ink-muted)]">
+              <span aria-hidden className="text-[var(--color-asbestos)]">*</span> Required
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="md" href={cancelHref}>
+                Cancel
+              </Button>
+              <Button type="submit" size="md" loading={pending}>
+                {submitCopy}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+      </fieldset>
     </form>
   );
 }

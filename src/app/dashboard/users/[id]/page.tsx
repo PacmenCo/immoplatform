@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/Icons";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { canAdminUsers, canViewUser } from "@/lib/permissions";
+import { buildCanEditAssignment, canAdminUsers, canViewUser } from "@/lib/permissions";
 import { roleBadge } from "@/lib/roleColors";
 import { isOnline } from "@/lib/userStatus";
 import { avatarImageUrl } from "@/lib/avatar";
@@ -38,6 +38,7 @@ export default async function UserDetail({
   params: Promise<{ id: string }>;
 }) {
   const session = await requireSession();
+  const canEdit = await buildCanEditAssignment(session);
   const { id } = await params;
 
   // Single query for the user + everything we render: memberships (with team),
@@ -317,7 +318,7 @@ export default async function UserDetail({
                       return (
                         <li key={a.id}>
                           <Link
-                            href={`/dashboard/assignments/${a.id}`}
+                            href={`/dashboard/assignments/${a.id}${canEdit(a) ? "/edit" : ""}`}
                             className="group flex items-center justify-between gap-3 px-6 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--color-brand)_3%,var(--color-bg))]"
                           >
                             <div className="min-w-0 flex-1">

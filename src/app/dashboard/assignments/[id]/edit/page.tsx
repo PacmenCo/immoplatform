@@ -1,66 +1,221 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { Topbar } from "@/components/dashboard/Topbar";
-import { Tabs } from "@/components/ui/Tabs";
+import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Badge, ServicePill } from "@/components/ui/Badge";
+import { Avatar } from "@/components/ui/Avatar";
+import { FileList, type FileRow } from "@/components/ui/FileList";
+import {
+  IconFileText,
+  IconMail,
+  IconPhone,
+} from "@/components/ui/Icons";
 import { AssignmentForm } from "@/components/dashboard/AssignmentForm";
 import type { AssignmentFormInitial } from "@/components/dashboard/AssignmentForm";
+import { PricingCard } from "@/components/dashboard/PricingCard";
 import { FreelancerEditForm } from "./FreelancerEditForm";
+import { CalendarChips } from "../CalendarChips";
+import { CommentForm } from "../CommentForm";
+import { AssignmentActions } from "../AssignmentActions";
+import { DeleteAssignmentButton } from "../DeleteAssignmentButton";
+import { DownloadAssignmentPdfButton } from "../DownloadAssignmentPdfButton";
+import { Notice } from "../Notice";
+import { ReassignFreelancerButton } from "../ReassignFreelancerButton";
+import { FileUploadForm } from "../files/FileUploadForm";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import {
+  canCancelAssignment,
+  canCompleteAssignment,
+  canDeleteAssignment,
+  canDeleteAssignmentFile,
   canEditAssignment,
   canReassignFreelancer,
   canSetDiscount,
   canUpdateAssignmentFields,
+  canUploadToFreelancerLane,
+  canUploadToRealtorLane,
+  canViewAssignment,
+  canViewAssignmentPricing,
+  canViewCommission,
   eligibleFreelancerWhere,
   hasRole,
+  role,
 } from "@/lib/permissions";
-import { isDiscountType } from "@/lib/pricing";
+import { canRoleTransitionTo } from "@/lib/assignmentStatus";
+import { STATUS_META, Status, isTerminalStatus } from "@/lib/mockData";
+import { formatCommissionRate, formatEuros, initials } from "@/lib/format";
+import { isDiscountType, loadAssignmentPricing } from "@/lib/pricing";
+import { loadAssignmentCommission } from "@/lib/commission";
 import { updateAssignment } from "@/app/actions/assignments";
 import { getTeamPricelistItemsByService } from "@/lib/teamPricelistItems";
 
-export default async function EditAssignment({
+function timeAgo(date: Date): string {
+  const diff = Date.now() - date.getTime();
+  const m = Math.floor(diff / 60_000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} hr ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d} day${d === 1 ? "" : "s"} ago`;
+  return date.toISOString().slice(0, 10);
+}
+
+export const metadata = { title: "Assignment" };
+
+export default async function AssignmentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ notice?: string }>;
 }) {
   const { id } = await params;
-  const session = await requireSession();
+  const sp = await searchParams;
+  const notice = typeof sp.notice === "string" ? sp.notice : null;
 
+  const session = await requireSession();
+  const isFreelancer = hasRole(session, "freelancer");
   const canFreelancer = canReassignFreelancer(session);
+
+  // Single-pass fetch of everything the page might render.
   const [assignment, services, freelancers] = await Promise.all([
     prisma.assignment.findUnique({
       where: { id },
-      include: { services: true },
+      include: {
+        team: true,
+        freelancer: true,
+        services: true,
+        comments: { include: { author: true }, orderBy: { createdAt: "asc" } },
+      },
     }),
-    prisma.service.findMany({ where: { active: true }, orderBy: { key: "asc" } }),
+    prisma.service.findMany({ orderBy: { key: "asc" } }),
     canFreelancer
       ? prisma.user.findMany({
           where: eligibleFreelancerWhere(),
           orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
           take: 500,
-          select: { id: true, firstName: true, lastName: true, region: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            region: true,
+          },
         })
       : Promise.resolve([]),
   ]);
 
   if (!assignment) notFound();
+  // Page is reachable to anyone who can view — view-only realtors land here
+  // and see the form rendered with `readOnly` (inputs disabled, no Save).
+  // Stricter gates (canEdit, canUpload*) drive what each section renders.
+  if (!(await canViewAssignment(session, assignment))) notFound();
 
-  // Live pricelist items for any service this team has bound to an Odoo
-  // pricelist (currently only `asbestos`). Kicked off in parallel with the
-  // permission-gate awaits below; falls back to {} if Odoo is unreachable.
-  const pricelistItemsByServicePromise = getTeamPricelistItemsByService(
+  const [
+    canEdit,
+    canUpdateFields,
+    canComplete,
+    canCancel,
+    canPricing,
+    canDelete,
+    canUploadFreelancer,
+    canUploadRealtor,
+  ] = await Promise.all([
+    canEditAssignment(session, assignment),
+    canUpdateAssignmentFields(session, assignment),
+    canCompleteAssignment(session, assignment),
+    canCancelAssignment(session, assignment),
+    canViewAssignmentPricing(session, assignment),
+    canDeleteAssignment(session, assignment),
+    canUploadToFreelancerLane(session, assignment),
+    canUploadToRealtorLane(session, assignment),
+  ]);
+  const canCommission = assignment.teamId
+    ? await canViewCommission(session, assignment.teamId)
+    : false;
+
+  // View-only flag: viewer can see this assignment but isn't an editor and
+  // isn't a freelancer. Drives the readOnly form render.
+  const isViewOnly = !canEdit && !isFreelancer;
+
+  // Pricing + commission gated by their own flags so we don't pay for the
+  // load when the viewer can't see the cards.
+  const pricing = canPricing ? await loadAssignmentPricing(id) : null;
+  const commission = canCommission ? await loadAssignmentCommission(id) : null;
+
+  // Files (anyone who can view the page can see file metadata; uploads are
+  // gated separately).
+  const fileRows = await prisma.assignmentFile.findMany({
+    where: { assignmentId: id, deletedAt: null },
+    orderBy: { createdAt: "desc" },
+    include: {
+      uploader: { select: { firstName: true, lastName: true } },
+    },
+  });
+  const terminal = isTerminalStatus(assignment.status);
+  const toRow = async (f: (typeof fileRows)[number]): Promise<FileRow> => ({
+    id: f.id,
+    originalName: f.originalName,
+    sizeBytes: f.sizeBytes,
+    mimeType: f.mimeType,
+    createdAt: f.createdAt,
+    uploaderName: f.uploader
+      ? `${f.uploader.firstName} ${f.uploader.lastName}`
+      : null,
+    canDelete: !terminal && (await canDeleteAssignmentFile(session, f)),
+  });
+  const freelancerFileRows = await Promise.all(
+    fileRows.filter((f) => f.lane === "freelancer").map(toRow),
+  );
+  const realtorFileRows = await Promise.all(
+    fileRows.filter((f) => f.lane === "realtor").map(toRow),
+  );
+
+  // Calendar chip state — per-viewer.
+  const viewerGoogleAccount = await prisma.calendarAccount.findUnique({
+    where: {
+      userId_provider: { userId: session.user.id, provider: "google" },
+    },
+  });
+  const canAddPersonalGoogle =
+    !!viewerGoogleAccount && !viewerGoogleAccount.disconnectedAt;
+  const personalGoogleAdded = canAddPersonalGoogle
+    ? !!(await prisma.assignmentCalendarEvent.findUnique({
+        where: {
+          assignmentId_calendarAccountId: {
+            assignmentId: id,
+            calendarAccountId: viewerGoogleAccount!.id,
+          },
+        },
+        select: { id: true },
+      }))
+    : false;
+  const ownOutlook = !!(
+    assignment.outlookCalendarEventId &&
+    assignment.createdById === session.user.id
+  );
+
+  // Live Odoo pricelist items (only matters when the form is editable).
+  const pricelistData = await getTeamPricelistItemsByService(
     assignment.teamId,
   );
-  // canEditAssignment is the wider gate that includes freelancers on their
-  // own rows. canUpdateAssignmentFields is the narrower gate that excludes
-  // freelancer (used for the wide-edit form). v1 parity: Platform exposes
-  // a freelancer-restricted edit form (date-only) at the same route via
-  // role-aware validation in AssignmentController::update. v2 splits the
-  // form rendering by role here.
-  if (!(await canEditAssignment(session, assignment))) notFound();
-  const isFreelancer = hasRole(session, "freelancer");
-  const canWideEdit = await canUpdateAssignmentFields(session, assignment);
-  if (!isFreelancer && !canWideEdit) notFound();
+
+  // Pre-shape the data the inline complete dialog needs — keeps the
+  // AssignmentActions client component free of DB access.
+  const completeServices =
+    canComplete && assignment.status === "delivered"
+      ? assignment.services
+          .map((as) => services.find((s) => s.key === as.serviceKey))
+          .filter((s): s is (typeof services)[number] => !!s)
+          .map((s) => ({ key: s.key, short: s.short, color: s.color }))
+      : [];
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const defaultFinishedAt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+    now.getDate(),
+  )}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
   const initial: AssignmentFormInitial = {
     address: assignment.address,
@@ -69,7 +224,6 @@ export default async function EditAssignment({
     propertyType: assignment.propertyType,
     constructionYear: assignment.constructionYear,
     areaM2: assignment.areaM2,
-    quantity: assignment.quantity,
     isLargeProperty: assignment.isLargeProperty,
     services: assignment.services.map((s) => s.serviceKey),
     serviceProducts: Object.fromEntries(
@@ -123,46 +277,489 @@ export default async function EditAssignment({
 
   const boundUpdate = updateAssignment.bind(null, id);
   const discountEditor = canSetDiscount(session);
-  const pricelistData = await pricelistItemsByServicePromise;
+  const servicesByKey = Object.fromEntries(services.map((s) => [s.key, s]));
+  const meta = STATUS_META[assignment.status as Status] ?? STATUS_META.draft;
 
   return (
     <>
+      <Notice notice={notice} />
       <Topbar
-        title={`Edit ${assignment.reference}`}
+        title={assignment.reference}
         subtitle={`${assignment.address}, ${assignment.postal} ${assignment.city}`}
       />
 
-      <div className="px-8 pt-6">
-        <Tabs
-          tabs={[
-            { label: "Details", href: `/dashboard/assignments/${id}` },
-            { label: "Edit", href: `/dashboard/assignments/${id}/edit`, active: true },
-            { label: "Files", href: `/dashboard/assignments/${id}/files` },
-          ]}
-        />
-      </div>
+      <div className="p-8 max-w-[1400px]">
+        {/* Status + services + calendar chips on the left, action buttons on
+            the right. Action buttons are role-gated client components. */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge bg={meta.bg} fg={meta.fg}>
+              {meta.label}
+            </Badge>
+            {assignment.services.map((s) => {
+              const svc = servicesByKey[s.serviceKey];
+              return svc ? (
+                <ServicePill
+                  key={s.serviceKey}
+                  color={svc.color}
+                  label={svc.short}
+                />
+              ) : null;
+            })}
+            <CalendarChips
+              assignmentId={assignment.id}
+              agencyGoogle={!!assignment.googleCalendarEventId}
+              ownOutlook={ownOutlook}
+              personalGoogleAdded={personalGoogleAdded}
+              canAddPersonalGoogle={canAddPersonalGoogle}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <AssignmentActions
+              assignmentId={assignment.id}
+              reference={assignment.reference}
+              status={assignment.status}
+              canStart={
+                canEdit &&
+                canRoleTransitionTo(
+                  role(session),
+                  assignment.status as Status,
+                  "in_progress",
+                )
+              }
+              canDeliver={canEdit}
+              canUpdateFields={canUpdateFields}
+              canComplete={canComplete}
+              canCancel={canCancel}
+              completeServices={completeServices}
+              defaultFinishedAt={defaultFinishedAt}
+            />
+            {canDelete && (
+              <DeleteAssignmentButton
+                assignmentId={assignment.id}
+                reference={assignment.reference}
+              />
+            )}
+          </div>
+        </div>
 
-      {isFreelancer ? (
-        <FreelancerEditForm
-          action={boundUpdate}
-          initialDate={initial.preferredDate}
-          loadedAt={assignment.updatedAt.toISOString()}
-          cancelHref={`/dashboard/assignments/${id}`}
-        />
-      ) : (
-        <AssignmentForm
-          services={services}
-          action={boundUpdate}
-          initial={initial}
-          cancelHref={`/dashboard/assignments/${id}`}
-          canSetDiscount={discountEditor}
-          canSetFreelancer={canFreelancer}
-          freelancers={freelancers}
-          loadedAt={assignment.updatedAt.toISOString()}
-          pricelistItemsByService={pricelistData.byService}
-          odooError={pricelistData.odooError}
-        />
-      )}
+        {assignment.status === "cancelled" && assignment.cancellationReason && (
+          <Card className="mb-6 border-[var(--color-asbestos)]/30 bg-[color-mix(in_srgb,var(--color-asbestos)_4%,var(--color-bg))]">
+            <CardBody>
+              <p className="text-xs uppercase tracking-wider text-[var(--color-asbestos)]">
+                Cancellation reason
+              </p>
+              <p className="mt-1 text-sm text-[var(--color-ink)]">
+                {assignment.cancellationReason}
+              </p>
+              {assignment.cancelledAt && (
+                <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
+                  {assignment.cancelledAt.toISOString().slice(0, 10)}
+                </p>
+              )}
+            </CardBody>
+          </Card>
+        )}
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6 min-w-0">
+            {/* The form. Three rendering modes:
+                - freelancer (assigned): narrow date-only form
+                - editor (admin/staff/realtor with edit perms): wide editable form
+                - view-only (realtor team-member): wide form, all inputs disabled, no Save */}
+            {isFreelancer ? (
+              <FreelancerEditForm
+                action={boundUpdate}
+                initialDate={initial.preferredDate}
+                loadedAt={assignment.updatedAt.toISOString()}
+                cancelHref="/dashboard/assignments"
+              />
+            ) : (
+              <AssignmentForm
+                services={services}
+                action={boundUpdate}
+                initial={initial}
+                cancelHref="/dashboard/assignments"
+                canSetDiscount={discountEditor}
+                canSetFreelancer={canFreelancer}
+                freelancers={freelancers}
+                loadedAt={assignment.updatedAt.toISOString()}
+                pricelistItemsByService={pricelistData.byService}
+                odooError={pricelistData.odooError}
+                readOnly={isViewOnly}
+              />
+            )}
+
+            {/* Files — both lanes. Visibility = anyone who can view the page;
+                upload = role-gated; delete = per-row. */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Freelancer deliverables</CardTitle>
+                <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                  Certificate PDFs and photos from the assigned inspector.
+                </p>
+              </CardHeader>
+              <CardBody className="space-y-5">
+                <FileList
+                  files={freelancerFileRows}
+                  emptyMessage="The inspector hasn't uploaded a deliverable yet."
+                />
+                {canUploadFreelancer && !terminal && (
+                  <div className="border-t border-[var(--color-border)] pt-5">
+                    <FileUploadForm assignmentId={id} lane="freelancer" />
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Realtor uploads</CardTitle>
+                <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                  Floor plans, access notes, photos provided by the agency.
+                </p>
+              </CardHeader>
+              <CardBody className="space-y-5">
+                <FileList
+                  files={realtorFileRows}
+                  emptyMessage="No supporting documents uploaded yet."
+                />
+                {canUploadRealtor && !terminal && (
+                  <div className="border-t border-[var(--color-border)] pt-5">
+                    <FileUploadForm assignmentId={id} lane="realtor" />
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+
+            {terminal && (
+              <p className="text-xs text-[var(--color-ink-muted)]">
+                This assignment is {assignment.status}. Uploads and deletions are closed.
+              </p>
+            )}
+
+            {/* Comments — anyone who can view the assignment can comment.
+                postComment server action enforces canViewAssignment. */}
+            <Card>
+              <CardHeader className="flex items-center justify-between">
+                <CardTitle>Comments</CardTitle>
+                <span className="text-xs text-[var(--color-ink-muted)]">
+                  {assignment.comments.length} comment
+                  {assignment.comments.length === 1 ? "" : "s"}
+                </span>
+              </CardHeader>
+              <CardBody className="space-y-5">
+                {assignment.comments.length === 0 ? (
+                  <p className="text-sm text-[var(--color-ink-muted)]">
+                    No comments yet. Start the conversation.
+                  </p>
+                ) : (
+                  assignment.comments.map((c) => {
+                    const authorName = c.author
+                      ? `${c.author.firstName} ${c.author.lastName}`
+                      : c.authorLabel ?? "System";
+                    const authorInitials = c.author
+                      ? initials(c.author.firstName, c.author.lastName)
+                      : "SY";
+                    return (
+                      <div key={c.id} className="flex gap-3">
+                        <Avatar initials={authorInitials} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-sm font-medium text-[var(--color-ink)]">
+                              {authorName}
+                            </span>
+                            <span className="text-xs text-[var(--color-ink-muted)]">
+                              {timeAgo(c.createdAt)}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                            {c.body}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+
+                <div className="pt-4 border-t border-[var(--color-border)]">
+                  <CommentForm
+                    assignmentId={assignment.id}
+                    authorInitials={initials(
+                      session.user.firstName,
+                      session.user.lastName,
+                    )}
+                  />
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+
+          <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start min-w-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Scheduling</CardTitle>
+              </CardHeader>
+              <CardBody className="space-y-4 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-[var(--color-ink-muted)]">
+                    Preferred date
+                  </span>
+                  <span className="font-medium text-[var(--color-ink)] tabular-nums">
+                    {assignment.preferredDate?.toISOString().slice(0, 10) ?? "—"}
+                  </span>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-[var(--color-ink-muted)]">Key pickup</span>
+                  <span className="text-right font-medium text-[var(--color-ink)]">
+                    {assignment.requiresKeyPickup
+                      ? assignment.keyPickupLocationType === "other"
+                        ? assignment.keyPickupAddress
+                          ? assignment.keyPickupAddress
+                          : "Other address"
+                        : "At office"
+                      : "Not required"}
+                  </span>
+                </div>
+              </CardBody>
+            </Card>
+
+            {pricing && (
+              <PricingCard
+                breakdown={pricing}
+                servicesByKey={servicesByKey}
+                discountMeta={{
+                  type: isDiscountType(assignment.discountType)
+                    ? assignment.discountType
+                    : null,
+                  value: assignment.discountValue,
+                  reason: assignment.discountReason,
+                }}
+                areaM2={assignment.areaM2}
+              />
+            )}
+
+            {commission && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Commission</CardTitle>
+                  <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
+                    Applied at completion. Snapshotted — retroactive rate
+                    changes don&apos;t rewrite this line.
+                  </p>
+                </CardHeader>
+                <CardBody className="space-y-2 text-sm">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--color-ink-soft)]">Rate</span>
+                    <span className="font-medium text-[var(--color-ink)] tabular-nums">
+                      {formatCommissionRate(
+                        commission.commissionType,
+                        commission.commissionValue,
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 border-t border-[var(--color-border)] pt-2">
+                    <span className="text-sm font-semibold text-[var(--color-ink)]">
+                      Earned
+                    </span>
+                    <span className="text-base font-semibold text-[var(--color-ink)] tabular-nums">
+                      {formatEuros(commission.commissionAmountCents)}
+                    </span>
+                  </div>
+                </CardBody>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Assignment form</CardTitle>
+                <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
+                  PDF opdrachtformulier.
+                </p>
+              </CardHeader>
+              <CardBody className="space-y-3 text-sm">
+                <div className="flex items-center gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-[var(--color-bg)] text-[var(--color-asbestos)]">
+                    <IconFileText size={18} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-[var(--color-ink)]">
+                      {assignment.reference}.pdf
+                    </p>
+                    <p className="text-xs text-[var(--color-ink-muted)]">
+                      Generate when ready
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <DownloadAssignmentPdfButton assignmentId={assignment.id} />
+                </div>
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex items-center justify-between">
+                <CardTitle>Assigned to</CardTitle>
+                {canFreelancer && !terminal && assignment.freelancer && (
+                  <ReassignFreelancerButton
+                    assignmentId={assignment.id}
+                    currentFreelancerId={assignment.freelancer.id}
+                    freelancers={freelancers}
+                    triggerLabel="reassign"
+                  />
+                )}
+              </CardHeader>
+              <CardBody>
+                {assignment.freelancer ? (
+                  <Link
+                    href={`/dashboard/users/${assignment.freelancer.id}`}
+                    className="group block -m-2 rounded-md p-2 transition-colors hover:bg-[var(--color-bg-alt)]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar
+                        initials={initials(
+                          assignment.freelancer.firstName,
+                          assignment.freelancer.lastName,
+                        )}
+                        size="md"
+                      />
+                      <div>
+                        <p className="font-medium text-[var(--color-ink)] group-hover:underline">
+                          {assignment.freelancer.firstName}{" "}
+                          {assignment.freelancer.lastName}
+                        </p>
+                        <p className="text-xs text-[var(--color-ink-muted)]">
+                          Inspector
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                ) : canFreelancer && !terminal ? (
+                  <ReassignFreelancerButton
+                    assignmentId={assignment.id}
+                    currentFreelancerId={null}
+                    freelancers={freelancers}
+                    triggerLabel="assign"
+                  />
+                ) : (
+                  <p className="text-sm text-[var(--color-ink-muted)]">
+                    No freelancer assigned yet.
+                  </p>
+                )}
+              </CardBody>
+            </Card>
+
+            {assignment.team && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Team</CardTitle>
+                </CardHeader>
+                <CardBody className="text-sm">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-xs font-bold text-white"
+                      style={{
+                        backgroundColor: assignment.team.logoColor ?? "#0f172a",
+                      }}
+                      aria-hidden
+                    >
+                      {assignment.team.logo ??
+                        assignment.team.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      {isFreelancer ? (
+                        <span className="block truncate font-medium text-[var(--color-ink)]">
+                          {assignment.team.name}
+                        </span>
+                      ) : (
+                        <Link
+                          href={`/dashboard/teams/${assignment.team.id}`}
+                          className="block truncate font-medium text-[var(--color-ink)] hover:underline"
+                        >
+                          {assignment.team.name}
+                        </Link>
+                      )}
+                      {assignment.team.legalName &&
+                        assignment.team.legalName !== assignment.team.name && (
+                          <span className="block truncate text-xs text-[var(--color-ink-muted)]">
+                            {assignment.team.legalName}
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-[var(--color-ink-muted)]">
+                    Created {assignment.createdAt.toISOString().slice(0, 10)}
+                  </p>
+                </CardBody>
+              </Card>
+            )}
+
+            {/* Owner + tenant cards under the form would feel duplicative
+                (the form already shows them, editable or disabled). Keep
+                them as a quick-glance summary card next to scheduling for
+                anyone navigating the sidebar. */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Owner</CardTitle>
+              </CardHeader>
+              <CardBody className="space-y-2 text-sm">
+                <p className="font-medium text-[var(--color-ink)]">
+                  {assignment.ownerName}
+                </p>
+                {assignment.ownerEmail && (
+                  <a
+                    href={`mailto:${assignment.ownerEmail}`}
+                    className="flex items-center gap-2 text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
+                  >
+                    <IconMail size={14} />
+                    {assignment.ownerEmail}
+                  </a>
+                )}
+                {assignment.ownerPhone && (
+                  <a
+                    href={`tel:${assignment.ownerPhone}`}
+                    className="flex items-center gap-2 text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
+                  >
+                    <IconPhone size={14} />
+                    {assignment.ownerPhone}
+                  </a>
+                )}
+              </CardBody>
+            </Card>
+
+            {assignment.tenantName && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tenant</CardTitle>
+                </CardHeader>
+                <CardBody className="space-y-2 text-sm">
+                  <p className="font-medium text-[var(--color-ink)]">
+                    {assignment.tenantName}
+                  </p>
+                  {assignment.tenantEmail && (
+                    <a
+                      href={`mailto:${assignment.tenantEmail}`}
+                      className="flex items-center gap-2 text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
+                    >
+                      <IconMail size={14} />
+                      {assignment.tenantEmail}
+                    </a>
+                  )}
+                  {assignment.tenantPhone && (
+                    <a
+                      href={`tel:${assignment.tenantPhone}`}
+                      className="flex items-center gap-2 text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
+                    >
+                      <IconPhone size={14} />
+                      {assignment.tenantPhone}
+                    </a>
+                  )}
+                </CardBody>
+              </Card>
+            )}
+          </aside>
+        </div>
+      </div>
     </>
   );
 }

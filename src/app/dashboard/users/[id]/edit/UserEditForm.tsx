@@ -53,7 +53,7 @@ export function UserEditForm({ initial }: { initial: UserEditInitial }) {
                   id="firstName"
                   name="firstName"
                   defaultValue={initial.firstName}
-                  autoComplete="given-name"
+                  autoComplete="off"
                   required
                 />
               </Field>
@@ -62,7 +62,7 @@ export function UserEditForm({ initial }: { initial: UserEditInitial }) {
                   id="lastName"
                   name="lastName"
                   defaultValue={initial.lastName}
-                  autoComplete="family-name"
+                  autoComplete="off"
                   required
                 />
               </Field>
@@ -72,7 +72,7 @@ export function UserEditForm({ initial }: { initial: UserEditInitial }) {
                   name="email"
                   type="email"
                   defaultValue={initial.email}
-                  autoComplete="email"
+                  autoComplete="off"
                   required
                 />
               </Field>

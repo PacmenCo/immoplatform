@@ -106,7 +106,7 @@ Kanban board used to track work across projects. This project lives under the `i
 
 - **UI:** https://masterplan.templus.be/command-center/
 - **API base:** `https://masterplan.templus.be/command-center/api`
-- **Login:** `pacmenco@gmail.com` / `baldr123` (staff account — has read/write)
+- **Login:** `pacmenco@gmail.com` / `Baldr1234` (staff account — has read/write)
 - **Full API reference:** `/Users/rl/.claude/plans/command-center-api-reference.md` — read this before making API calls; covers auth, every endpoint, valid statuses/priorities, ID formats, gotchas.
 
 ### Quick token + board fetch
@@ -114,7 +114,7 @@ Kanban board used to track work across projects. This project lives under the `i
 ```bash
 TOKEN=$(curl -s -X POST https://masterplan.templus.be/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"username":"pacmenco@gmail.com","password":"baldr123"}' \
+  -d '{"username":"pacmenco@gmail.com","password":"Baldr1234"}' \
   | python3 -c "import json,sys; print(json.load(sys.stdin)['token'])")
 
 curl -s https://masterplan.templus.be/command-center/api/data \

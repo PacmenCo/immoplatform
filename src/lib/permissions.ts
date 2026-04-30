@@ -160,6 +160,30 @@ export async function canEditAssignment(
 }
 
 /**
+ * List-page variant of `canEditAssignment`: resolves the user's owned-team
+ * set once and returns a sync closure for cheap per-row checks. Use when
+ * rendering many assignment rows (lists, dashboards) so each row's link can
+ * point at `/edit` (when allowed) or the read-only detail view (when not)
+ * without awaiting per-row.
+ */
+export async function buildCanEditAssignment(
+  s: SessionWithUser,
+): Promise<(a: AssignmentPolicyInput) => boolean> {
+  const isAdminOrStaff = hasRole(s, "admin", "staff");
+  const isFreelancer = hasRole(s, "freelancer");
+  const isRealtor = hasRole(s, "realtor");
+  const ownedTeamIds = isRealtor
+    ? new Set((await getUserTeamIds(s.user.id)).owned)
+    : new Set<string>();
+  return (a) => {
+    if (isAdminOrStaff) return true;
+    if (isFreelancer) return a.freelancerId === s.user.id;
+    if (!isRealtor) return false;
+    return a.createdById === s.user.id || (!!a.teamId && ownedTeamIds.has(a.teamId));
+  };
+}
+
+/**
  * Narrow edit — rewrites to property address, contacts, services, scheduling.
  * Freelancers cannot modify these fields on their own assigned rows; they
  * only transition state. Prevents a freelancer from tampering with the
@@ -462,8 +486,8 @@ export function userListRoleFilter(
 // ─── File policies ─────────────────────────────────────────────────
 
 /**
- * Upload the final deliverable (certificate PDFs) to the freelancer lane.
- * Only the assigned freelancer, plus admin/staff overrides.
+ * Upload final deliverables (certificate PDFs and on-site photos) to the
+ * freelancer lane. Only the assigned freelancer, plus admin/staff overrides.
  */
 export async function canUploadToFreelancerLane(
   s: SessionWithUser,

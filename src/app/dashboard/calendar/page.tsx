@@ -3,7 +3,7 @@ import { Topbar } from "@/components/dashboard/Topbar";
 import { Card } from "@/components/ui/Card";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { assignmentScope, composeWhere, gateRealtorRequiresTeam } from "@/lib/permissions";
+import { assignmentScope, buildCanEditAssignment, composeWhere, gateRealtorRequiresTeam } from "@/lib/permissions";
 import { STATUS_META, type Status } from "@/lib/mockData";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -25,6 +25,9 @@ type CalendarAssignment = {
   status: string;
   preferredDate: Date | null;
   calendarDate: Date | null;
+  teamId: string | null;
+  freelancerId: string | null;
+  createdById: string | null;
   services: Array<{ serviceKey: string }>;
 };
 
@@ -86,6 +89,7 @@ export const metadata = { title: "Calendar" };
 export default async function CalendarPage({ searchParams }: { searchParams: SearchParams }) {
   const session = await requireSession();
   await gateRealtorRequiresTeam(session);
+  const canEdit = await buildCanEditAssignment(session);
   const params = await searchParams;
   const view: View = params.view === "week" ? "week" : "month";
   const cursor = parseDateParam(params.date);
@@ -131,6 +135,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
         status: true,
         preferredDate: true,
         calendarDate: true,
+        teamId: true,
+        freelancerId: true,
+        createdById: true,
         services: { select: { serviceKey: true } },
       },
       orderBy: [{ calendarDate: "asc" }, { preferredDate: "asc" }],
@@ -227,6 +234,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
             today={today}
             byDay={byDay}
             servicesByKey={servicesByKey}
+            canEdit={canEdit}
           />
         ) : (
           <MonthGrid
@@ -234,6 +242,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
             today={today}
             byDay={byDay}
             servicesByKey={servicesByKey}
+            canEdit={canEdit}
           />
         )}
       </div>
@@ -259,11 +268,13 @@ function MonthGrid({
   today,
   byDay,
   servicesByKey,
+  canEdit,
 }: {
   cursor: Date;
   today: Date;
   byDay: Map<string, CalendarAssignment[]>;
   servicesByKey: Record<string, { key: string; color: string; short: string }>;
+  canEdit: (a: CalendarAssignment) => boolean;
 }) {
   const first = startOfMonth(cursor);
   const last = endOfMonth(cursor);
@@ -308,7 +319,7 @@ function MonthGrid({
               )}
               <div className="mt-1 space-y-1">
                 {events.map((e) => (
-                  <EventChip key={e.id} event={e} servicesByKey={servicesByKey} />
+                  <EventChip key={e.id} event={e} servicesByKey={servicesByKey} canEdit={canEdit} />
                 ))}
               </div>
             </div>
@@ -326,11 +337,13 @@ function WeekGrid({
   today,
   byDay,
   servicesByKey,
+  canEdit,
 }: {
   rangeStart: Date;
   today: Date;
   byDay: Map<string, CalendarAssignment[]>;
   servicesByKey: Record<string, { key: string; color: string; short: string }>;
+  canEdit: (a: CalendarAssignment) => boolean;
 }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(rangeStart, i));
 
@@ -370,6 +383,7 @@ function WeekGrid({
                       key={e.id}
                       event={e}
                       servicesByKey={servicesByKey}
+                      canEdit={canEdit}
                     />
                   ))
                 )}
@@ -424,6 +438,7 @@ function WeekGrid({
                       key={e.id}
                       event={e}
                       servicesByKey={servicesByKey}
+                      canEdit={canEdit}
                     />
                   ))
                 )}
@@ -462,16 +477,18 @@ function eventColors(
 function EventChip({
   event,
   servicesByKey,
+  canEdit,
 }: {
   event: CalendarAssignment;
   servicesByKey: Record<string, { key: string; color: string; short: string }>;
+  canEdit: (a: CalendarAssignment) => boolean;
 }) {
   const colors = eventColors(event, servicesByKey);
   const primaryColor = colors[0].color;
   const tooltip = `${event.reference} — ${event.address}, ${event.city} (${colors.map((c) => c.short).join(" + ")})`;
   return (
     <Link
-      href={`/dashboard/assignments/${event.id}`}
+      href={`/dashboard/assignments/${event.id}${canEdit(event) ? "/edit" : ""}`}
       className="relative block truncate rounded px-1.5 py-0.5 pl-2 text-[11px] font-medium hover:underline"
       style={{
         color: primaryColor,
@@ -488,9 +505,11 @@ function EventChip({
 function WeekEventCard({
   event,
   servicesByKey,
+  canEdit,
 }: {
   event: CalendarAssignment;
   servicesByKey: Record<string, { key: string; color: string; short: string }>;
+  canEdit: (a: CalendarAssignment) => boolean;
 }) {
   const colors = eventColors(event, servicesByKey);
   const primaryColor = colors[0].color;
@@ -500,7 +519,7 @@ function WeekEventCard({
   const allShorts = colors.map((c) => c.short).join(" + ");
   return (
     <Link
-      href={`/dashboard/assignments/${event.id}`}
+      href={`/dashboard/assignments/${event.id}${canEdit(event) ? "/edit" : ""}`}
       className="relative block rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 pl-3 py-1.5 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-bg-alt)]"
       title={`${event.reference} — ${event.address}, ${event.postal} ${event.city} (${allShorts})`}
     >

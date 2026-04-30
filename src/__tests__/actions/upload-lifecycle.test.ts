@@ -255,7 +255,7 @@ describe("uploadAssignmentFilesInner — freelancer lane", () => {
     expect(res).toEqual({ ok: false, error: "Invalid file lane." });
   });
 
-  it("rejects non-allowlisted MIME types on the freelancer lane (PDF only)", async () => {
+  it("rejects non-allowlisted MIME types on the freelancer lane", async () => {
     const { freelancer, teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_upload_mime",
@@ -264,18 +264,20 @@ describe("uploadAssignmentFilesInner — freelancer lane", () => {
       freelancerId: freelancer.user.id,
     });
 
-    const img = makeUploadFile("photo.jpg", "image/jpeg", "fakejpegbytes");
+    // Freelancer lane accepts PDF + common images (JPEG/PNG/WebP).
+    // Anything outside that allowlist (e.g. HTML, video) must still bounce.
+    const html = makeUploadFile("malicious.html", "text/html", "<html></html>");
     const res = await uploadAssignmentFilesInner(
       freelancer,
       asg.id,
       "freelancer",
       undefined,
-      uploadForm(img),
+      uploadForm(html),
     );
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.error).toMatch(/isn't an allowed file type/);
-      expect(res.error).toMatch(/photo\.jpg/);
+      expect(res.error).toMatch(/malicious\.html/);
     }
   });
 

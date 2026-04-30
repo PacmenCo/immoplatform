@@ -12,10 +12,10 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import {
   assignmentScope,
+  buildCanEditAssignment,
   composeWhere,
   eligibleFreelancerWhere,
   gateRealtorRequiresTeam,
-  getUserTeamIds,
   hasRole,
   role,
   teamScope,
@@ -120,23 +120,11 @@ export default async function AssignmentsList({
 
   // v1 parity: clicking a row goes to /edit when the user can edit, else
   // to the read-only detail view (Platform's assignments-list.blade.php
-  // line 432: `@if($canEdit) ...edit @else ...show @endif`). Pre-fetch
-  // owned-team ids once so the inline canEdit() check below stays sync
-  // across all rows; getUserTeamIds is React-cache()'d either way.
-  const isAdminOrStaff = hasRole(session, "admin", "staff");
+  // line 432: `@if($canEdit) ...edit @else ...show @endif`).
   // Odoo sync column is admin-only and hidden by default; OdooColumnToggle
   // (client island, localStorage-backed) reveals it via a CSS rule.
   const isAdmin = hasRole(session, "admin");
-  const isRealtor = hasRole(session, "realtor");
-  const ownedTeamIds = isAdminOrStaff || !isRealtor
-    ? new Set<string>()
-    : new Set((await getUserTeamIds(session.user.id)).owned);
-  const canEdit = (a: { teamId: string | null; freelancerId: string | null; createdById: string | null }) => {
-    if (isAdminOrStaff) return true;
-    if (isFreelancer) return a.freelancerId === session.user.id;
-    if (!isRealtor) return false;
-    return a.createdById === session.user.id || (!!a.teamId && ownedTeamIds.has(a.teamId));
-  };
+  const canEdit = await buildCanEditAssignment(session);
 
   const params = await searchParams;
   const activeStatus: Status | null = (STATUS_ORDER as readonly Status[]).includes(params.status as Status)

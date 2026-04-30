@@ -99,6 +99,7 @@ export function TeamForm({
                 name="name"
                 placeholder="Vastgoed Antwerp"
                 defaultValue={initial?.name ?? ""}
+                autoComplete="off"
                 required
               />
             </Field>
@@ -110,6 +111,7 @@ export function TeamForm({
                 name="city"
                 placeholder="Antwerpen"
                 defaultValue={initial?.city ?? ""}
+                autoComplete="off"
               />
             </Field>
           </div>
@@ -121,6 +123,7 @@ export function TeamForm({
                 type="email"
                 placeholder="contact@agency.be"
                 defaultValue={initial?.email ?? ""}
+                autoComplete="off"
               />
             </Field>
           </div>
@@ -191,22 +194,22 @@ export function TeamForm({
         </summary>
         <div className="grid gap-5 border-t border-[var(--color-border)] p-6 sm:grid-cols-2">
           <Field label="Legal name" id="legalName">
-            <Input id="legalName" name="legalName" placeholder="Vastgoed Antwerp BV" defaultValue={initial?.legalName ?? ""} />
+            <Input id="legalName" name="legalName" placeholder="Vastgoed Antwerp BV" defaultValue={initial?.legalName ?? ""} autoComplete="off" />
           </Field>
           <Field label="VAT number" id="vatNumber">
-            <Input id="vatNumber" name="vatNumber" placeholder="BE 0712.345.678" defaultValue={initial?.vatNumber ?? ""} />
+            <Input id="vatNumber" name="vatNumber" placeholder="BE 0712.345.678" defaultValue={initial?.vatNumber ?? ""} autoComplete="off" />
           </Field>
           <Field label="Chamber of Commerce (KBO)" id="kboNumber">
-            <Input id="kboNumber" name="kboNumber" placeholder="0712345678" defaultValue={initial?.kboNumber ?? ""} />
+            <Input id="kboNumber" name="kboNumber" placeholder="0712345678" defaultValue={initial?.kboNumber ?? ""} autoComplete="off" />
           </Field>
           <Field label="IBAN" id="iban">
-            <Input id="iban" name="iban" placeholder="BE68 5390 0754 7034" defaultValue={initial?.iban ?? ""} />
+            <Input id="iban" name="iban" placeholder="BE68 5390 0754 7034" defaultValue={initial?.iban ?? ""} autoComplete="off" />
           </Field>
           <Field label="Billing email" id="billingEmail">
-            <Input id="billingEmail" name="billingEmail" type="email" placeholder="billing@agency.be" defaultValue={initial?.billingEmail ?? ""} />
+            <Input id="billingEmail" name="billingEmail" type="email" placeholder="billing@agency.be" defaultValue={initial?.billingEmail ?? ""} autoComplete="off" />
           </Field>
           <Field label="Billing phone" id="billingPhone">
-            <Input id="billingPhone" name="billingPhone" placeholder="+32 3 234 56 78" defaultValue={initial?.billingPhone ?? ""} />
+            <Input id="billingPhone" name="billingPhone" placeholder="+32 3 234 56 78" defaultValue={initial?.billingPhone ?? ""} autoComplete="off" />
           </Field>
           <div className="sm:col-span-2">
             <Field label="Billing address" id="billingAddress">
@@ -216,17 +219,18 @@ export function TeamForm({
                 rows={2}
                 placeholder="Street + number"
                 defaultValue={initial?.billingAddress ?? ""}
+                autoComplete="off"
               />
             </Field>
           </div>
           <Field label="Postal code" id="billingPostal">
-            <Input id="billingPostal" name="billingPostal" placeholder="2000" defaultValue={initial?.billingPostal ?? ""} />
+            <Input id="billingPostal" name="billingPostal" placeholder="2000" defaultValue={initial?.billingPostal ?? ""} autoComplete="off" />
           </Field>
           <Field label="Billing city" id="billingCity">
-            <Input id="billingCity" name="billingCity" placeholder="Antwerpen" defaultValue={initial?.billingCity ?? ""} />
+            <Input id="billingCity" name="billingCity" placeholder="Antwerpen" defaultValue={initial?.billingCity ?? ""} autoComplete="off" />
           </Field>
           <Field label="Country" id="billingCountry">
-            <Input id="billingCountry" name="billingCountry" placeholder="Belgium" defaultValue={initial?.billingCountry ?? "Belgium"} />
+            <Input id="billingCountry" name="billingCountry" placeholder="Belgium" defaultValue={initial?.billingCountry ?? "Belgium"} autoComplete="off" />
           </Field>
           <Field
             label="Invoice recipient default"

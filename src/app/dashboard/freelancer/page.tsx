@@ -12,12 +12,14 @@ import {
 } from "@/components/ui/Icons";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
+import { buildCanEditAssignment } from "@/lib/permissions";
 import { STATUS_META, type Status } from "@/lib/mockData";
 import { BE_DATE_FULL, BE_DATE_SHORT } from "@/lib/format";
 import { dayRange, weekRange, monthRange } from "@/lib/period";
 
 export default async function FreelancerDashboard() {
   const session = await requireSession();
+  const canEdit = await buildCanEditAssignment(session);
   const now = new Date();
   const today = dayRange(now);
   const week = weekRange(now);
@@ -160,7 +162,7 @@ export default async function FreelancerDashboard() {
                 {todaySchedule.map((a) => (
                   <li key={a.id}>
                     <Link
-                      href={`/dashboard/assignments/${a.id}`}
+                      href={`/dashboard/assignments/${a.id}${canEdit(a) ? "/edit" : ""}`}
                       className="grid grid-cols-[1fr_auto] items-center gap-6 px-6 py-5 transition-colors hover:bg-[var(--color-bg-alt)]"
                     >
                       <div className="min-w-0">
@@ -234,7 +236,7 @@ export default async function FreelancerDashboard() {
                 return (
                   <Link
                     key={a.id}
-                    href={`/dashboard/assignments/${a.id}`}
+                    href={`/dashboard/assignments/${a.id}${canEdit(a) ? "/edit" : ""}`}
                     className="block"
                   >
                     <Card className="h-full p-5 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">

@@ -2,9 +2,9 @@
  * Upload constraints per file lane. The client uses these to reject before
  * submit; the server re-validates before writing to storage.
  *
- * Freelancer lane = final deliverables (certificate PDFs). PDF-only.
+ * Freelancer lane = final deliverables — certificate PDFs and on-site photos.
  * Realtor lane    = supporting docs (floor plans, photos, key notes).
- *                   PDF + common images.
+ * Both lanes accept PDF + common images.
  */
 
 export type FileLane = "freelancer" | "realtor";
@@ -28,8 +28,8 @@ export interface LaneConstraints {
 export const FILE_CONSTRAINTS: Record<FileLane, LaneConstraints> = {
   freelancer: {
     maxMB: 500,
-    allowedMimes: ["application/pdf"],
-    acceptHint: "PDF only · up to 500 MB · up to 20 files per upload",
+    allowedMimes: ["application/pdf", "image/jpeg", "image/png", "image/webp"],
+    acceptHint: "PDF, JPG, PNG, WebP · up to 500 MB each · up to 20 files per upload",
   },
   realtor: {
     maxMB: 100,
