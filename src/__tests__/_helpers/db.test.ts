@@ -37,7 +37,7 @@ describe("test infrastructure", () => {
     const baseline = await seedBaseline();
     expect(await prisma.user.count()).toBe(4);
     expect(await prisma.team.count()).toBe(2);
-    expect(await prisma.service.count()).toBe(4);
+    expect(await prisma.service.count()).toBe(6);
     expect(baseline.realtor.user.role).toBe("realtor");
     expect(baseline.realtor.activeTeamId).toBe(baseline.teams.t1.id);
   });

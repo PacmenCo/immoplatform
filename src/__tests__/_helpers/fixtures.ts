@@ -44,6 +44,8 @@ export async function seedServices() {
     { key: "asbestos", label: "Asbestos Inventory Attest", short: "AIV", color: "var(--color-asbestos)", description: "AIV", unitPrice: 25000, active: true },
     { key: "electrical", label: "Electrical Inspection", short: "EK", color: "var(--color-electrical)", description: "EK", unitPrice: 20000, active: true },
     { key: "fuel", label: "Fuel Tank Check", short: "TK", color: "var(--color-fuel)", description: "TK", unitPrice: 12000, active: true },
+    { key: "photos", label: "Property Photography", short: "PH", color: "var(--color-photos)", description: "PH", unitPrice: 15000, active: true },
+    { key: "signage", label: "On-site Signage", short: "SG", color: "var(--color-signage)", description: "SG", unitPrice: 7500, active: true },
   ];
   await prisma.service.createMany({ data: svcs });
 }
