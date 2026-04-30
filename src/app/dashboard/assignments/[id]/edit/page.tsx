@@ -35,7 +35,9 @@ import {
   canViewCommission,
   eligibleFreelancerWhere,
   hasRole,
+  role,
 } from "@/lib/permissions";
+import { StatusPicker } from "../../StatusPicker";
 import { STATUS_META, Status, isTerminalStatus } from "@/lib/mockData";
 import { formatCommissionRate, formatEuros, initials } from "@/lib/format";
 import { isDiscountType, loadAssignmentPricing } from "@/lib/pricing";
@@ -261,13 +263,12 @@ export default async function AssignmentPage({
       />
 
       <div className="p-8 max-w-[1400px]">
-        {/* Status + services + calendar chips on the left, action buttons on
-            the right. Action buttons are role-gated client components. */}
+        {/* Service pills + calendar chips on the left, action buttons on the
+            right. Status moved into the Scheduling card below — it groups
+            naturally with planned date + key pickup, and removing it here
+            de-clutters the top row. */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Badge bg={meta.bg} fg={meta.fg}>
-              {meta.label}
-            </Badge>
             {assignment.services.map((s) => {
               const svc = servicesByKey[s.serviceKey];
               return svc ? (
@@ -455,15 +456,33 @@ export default async function AssignmentPage({
 
           {/* `lg:mt-8` compensates for the AssignmentForm's internal `p-8`
               top-padding so the aside's first card aligns with the Property
-              card across the column gap. Margin (not padding) keeps the
-              sticky offset clean — when the aside sticks at top-20, there's
-              no extra empty space above the first card. */}
-          <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start min-w-0 lg:mt-8">
+              card across the column gap. Aside scrolls with the page (no
+              sticky) — user wants to skim sidebar cards quickly without them
+              pinning to the viewport top. */}
+          <aside className="space-y-6 lg:self-start min-w-0 lg:mt-8">
             <Card className="lg:min-h-[391px]">
               <CardHeader>
                 <CardTitle>Scheduling</CardTitle>
               </CardHeader>
               <CardBody className="space-y-4 text-sm">
+                {/* Status — picker for editors, static badge for view-only.
+                    The picker filters menu options client-side via
+                    allowedTargetsForRole; the server re-checks the role ×
+                    target gate AND the per-row edit gate before persisting. */}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[var(--color-ink-muted)]">Status</span>
+                  {canEdit ? (
+                    <StatusPicker
+                      assignmentId={assignment.id}
+                      status={assignment.status as Status}
+                      role={role(session)}
+                    />
+                  ) : (
+                    <Badge bg={meta.bg} fg={meta.fg}>
+                      {meta.label}
+                    </Badge>
+                  )}
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[var(--color-ink-muted)]">
                     Planned date
