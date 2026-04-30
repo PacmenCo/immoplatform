@@ -19,9 +19,22 @@
  * privacy disclosure — see the spec under docs/ when that lands.
  */
 
+/**
+ * The founder email — the only account permitted to *initiate* a switch
+ * when running in production. Test users (`@immo.test`) can be the
+ * destination of a switch but never the origin, even though the action
+ * still admits them as group members for `isSwitcherMember` purposes.
+ *
+ * On dev/test environments, every group member can switch to every other
+ * group member — losing that constraint would force a `/logout`/login
+ * cycle to get back to Jordan's admin session, defeating the whole point
+ * of the dev tool.
+ */
+export const FOUNDER_EMAIL = "jordan@asbestexperts.be";
+
 const RAW_GROUP = [
   // Founder admin.
-  "jordan@asbestexperts.be",
+  FOUNDER_EMAIL,
 
   // @immo.test reserves an IANA special-use TLD (RFC 6761) — the domain
   // physically cannot resolve on the public internet, so no attacker can

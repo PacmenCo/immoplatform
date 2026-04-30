@@ -59,6 +59,24 @@ export async function login(
     return { ok: false, error: "Enter your email and password.", formValues };
   }
 
+  // Defense-in-depth for the prod account switcher. The 3 `@immo.test` test
+  // users (created by scripts/bootstrap-test-users.ts) hold unguessable
+  // bcrypt hashes — `bcrypt.compare` returns false for any input — so
+  // direct login is already impossible. Refusing the domain here makes that
+  // intent explicit AND avoids burning a bcrypt round on every probe of
+  // these emails. Returns the same generic error as a wrong-password to
+  // keep the response indistinguishable from a real failure.
+  if (
+    process.env.NODE_ENV === "production" &&
+    parsed.data.email.endsWith("@immo.test")
+  ) {
+    await audit({
+      verb: "auth.login_failed",
+      metadata: { email: parsed.data.email, reason: "immo_test_domain_refused" },
+    });
+    return { ok: false, error: "Invalid email or password.", formValues };
+  }
+
   // Platform parity: 5 attempts per (email, ip) per 60s. IP-awareness stops
   // one attacker from locking a victim out by guessing their email + wrong
   // password from a different machine. The per-email cap is defense-in-depth

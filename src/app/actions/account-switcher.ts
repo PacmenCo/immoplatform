@@ -8,8 +8,18 @@ import {
   createSession,
   getSession,
 } from "@/lib/auth";
-import { isSwitcherMember } from "@/lib/account-switcher";
+import { FOUNDER_EMAIL, isSwitcherMember } from "@/lib/account-switcher";
 import type { ActionResult } from "./_types";
+
+/**
+ * Whether the switcher feature is allowed to run in the current environment.
+ * Always on in dev/test; on prod gated behind the `ALLOW_PROD_SWITCHER` env
+ * var so the feature can be killed instantly without a redeploy.
+ */
+function switcherEnabled(): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  return process.env.ALLOW_PROD_SWITCHER === "true";
+}
 
 /**
  * Hot-swap the current session into another switcher-group account. This is
@@ -19,14 +29,19 @@ import type { ActionResult } from "./_types";
  * all run as the new user from the next request onward.
  *
  * Hard-gates (in order):
- *   1. Refuses in `NODE_ENV === "production"`. The seed that creates the
- *      `@immo.test` test users has its own production refusal, so prod has
- *      nothing to switch *to* — but defense in depth at the action layer
- *      means even an accidentally-seeded prod row is unreachable.
- *   2. Requires the current session-holder's email to be in SWITCHER_GROUP.
- *   3. Requires the target email to be in SWITCHER_GROUP.
- *   4. Refuses self-targeting (already that user — no-op redirect).
- *   5. Requires the target user row to exist and not be soft-deleted.
+ *   1. Refuses unless `switcherEnabled()` is true — always-on in dev/test,
+ *      gated behind `ALLOW_PROD_SWITCHER=true` on prod. The kill-switch
+ *      lives in the env file so the feature can be flipped off in seconds
+ *      without a redeploy.
+ *   2. On prod *only*, requires the current session-holder to be the
+ *      founder (FOUNDER_EMAIL). Test users in the group are valid
+ *      destinations but never valid origins on prod — closes the
+ *      privilege-escalation path where a leaked test-user password would
+ *      let an attacker swap into Jordan's admin session.
+ *   3. Requires the current session-holder's email to be in SWITCHER_GROUP.
+ *   4. Requires the target email to be in SWITCHER_GROUP.
+ *   5. Refuses self-targeting (already that user — no-op redirect).
+ *   6. Requires the target user row to exist and not be soft-deleted.
  *
  * Audit: writes `user.account_switched` with `actorId` = the *original*
  * (pre-switch) user, plus metadata `{ fromEmail, toEmail }`. Keeps the
@@ -40,11 +55,11 @@ import type { ActionResult } from "./_types";
 export async function switchToAccount(
   targetEmail: string,
 ): Promise<ActionResult> {
-  // 1. Production hard-gate. Single source of truth for "this is a dev
-  //    tool only." Prefer a positive allowlist over `!== "production"`
-  //    so an unset NODE_ENV (rare but possible) fails closed.
-  if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
-    return { ok: false, error: "Account switching is disabled outside of development." };
+  // 1. Environment kill-switch. Always-on in dev/test; on prod gated behind
+  //    `ALLOW_PROD_SWITCHER=true`. Lets ops drop the feature instantly
+  //    without a redeploy.
+  if (!switcherEnabled()) {
+    return { ok: false, error: "Account switching is disabled in this environment." };
   }
 
   // 2. Must have a current session.
@@ -59,7 +74,15 @@ export async function switchToAccount(
     return { ok: false, error: "Your account is not authorised to switch." };
   }
 
-  // 4. Target must be in the group. Check string-membership BEFORE the DB
+  // 4. On prod, only the founder may *initiate* a switch. Test users are
+  //    valid destinations but not valid origins — even if their passwordHash
+  //    leaked, the attacker can't pivot to admin. In dev we keep the
+  //    any-to-any behaviour so the workflow stays fluid.
+  if (process.env.NODE_ENV === "production" && fromEmail !== FOUNDER_EMAIL) {
+    return { ok: false, error: "Only the founder may initiate switches in production." };
+  }
+
+  // 5. Target must be in the group. Check string-membership BEFORE the DB
   //    lookup — otherwise this becomes a user-existence oracle for any
   //    email an attacker wants to probe.
   const toEmail = targetEmail.toLowerCase().trim();

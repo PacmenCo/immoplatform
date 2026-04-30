@@ -39,14 +39,18 @@ export async function Topbar({
     }));
   }
 
-  // Account switcher: only renders when (a) the current user is in the
-  // hardcoded SWITCHER_GROUP AND (b) we're not in production. The action
-  // refuses in production regardless, but skipping the UI avoids confusing
-  // operators with a button that would error.
-  const inDev =
-    process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
+  // Account switcher: renders when (a) the current user is in the hardcoded
+  // SWITCHER_GROUP AND (b) the feature is enabled in this environment.
+  // Always-on in dev/test; on prod gated behind `ALLOW_PROD_SWITCHER=true`
+  // so the feature can be flipped off without a redeploy. Test users on
+  // prod can't reach this branch anyway — they have unguessable bcrypt
+  // hashes from `bootstrap-test-users.ts` and login refuses `@immo.test`
+  // on prod — so in practice only Jordan ever sees the dropdown there.
+  const switcherEnabled =
+    process.env.NODE_ENV !== "production" ||
+    process.env.ALLOW_PROD_SWITCHER === "true";
   let switcherAccounts: SwitcherAccount[] = [];
-  if (inDev && session && isSwitcherMember(session.user.email)) {
+  if (switcherEnabled && session && isSwitcherMember(session.user.email)) {
     const others = SWITCHER_GROUP.filter(
       (e) => e !== session.user.email.toLowerCase().trim(),
     );

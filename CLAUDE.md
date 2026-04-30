@@ -100,15 +100,27 @@ Always pair `onMouseEnter` with `onFocus` — keyboard users should get the same
 - Put `prefetch={false}` on a link without a hover handler — that disables both viewport AND hover prefetch entirely.
 - Wrap a static page in `'use client'` just to add a prefetch handler — keep the page server-rendered and put the client handler on the link component only.
 
-## Account switcher (dev-only)
+## Account switcher
 
-Fast role-testing tool. Group of pre-defined accounts that can hot-swap into each other from a topbar dropdown — a real logout-and-login between predefined accounts (not impersonation).
+Fast role-testing tool. Closed group of accounts (the founder + 3 `@immo.test` test fixtures) that can hot-swap into each other from a topbar dropdown — a real logout-and-login between predefined accounts (not impersonation).
 
-- **Where:** `src/lib/account-switcher.ts` exports `SWITCHER_GROUP` (the founder's email + 6 `@immo.test` test fixtures). Server action at `src/app/actions/account-switcher.ts`. UI dropdown at `src/components/dashboard/AccountSwitcher.tsx`, mounted in `Topbar`.
-- **Production behavior:** dormant. The action returns `{ ok: false, error: "...disabled outside of development." }` when `NODE_ENV !== "development" | "test"`, the dropdown doesn't render, and the `@immo.test` test users only exist in dev/staging seeds. The seed itself hard-throws on `NODE_ENV === "production"`.
+- **Where:** `src/lib/account-switcher.ts` exports `SWITCHER_GROUP` and `FOUNDER_EMAIL`. Server action at `src/app/actions/account-switcher.ts`. UI dropdown at `src/components/dashboard/AccountSwitcher.tsx`, mounted in `Topbar`.
+- **Dev/test behaviour:** any group member can swap to any other. Every test user has a known seeded password (`Jordan1234`) so the workflow stays fluid.
+- **Production behaviour:** opt-in, locked-down.
+  - Gated behind `ALLOW_PROD_SWITCHER=true` in `.env.production`. Unset = feature dormant; flip + `systemctl restart immoplatform` to enable. The kill-switch is the env, not a code change.
+  - **Origin restriction:** only the founder (`FOUNDER_EMAIL`) may *initiate* a switch on prod. Test users are valid destinations but never origins, so even a leaked test-user password can't pivot to admin via the switcher.
+  - **Test users are not directly loginable:** `scripts/bootstrap-test-users.ts` mints each one with a freshly-generated random bcrypt hash (the plaintext is discarded). `loginInner` also refuses any `@immo.test` email on prod as defense-in-depth.
+  - Net: the 3 test rows on prod can be *reached only* via `switchToAccount` from Jordan's session.
 - **Audit:** every switch writes one `user.account_switched` row with `actorId = original user`, `metadata = { fromEmail, toEmail }`. Single causal event, not a sign-out + orphan sign-in pair.
-- **Re-seed after schema changes** to re-create the test users (`npx prisma db seed`). The seed is idempotent and the env-guard prevents running it on prod by accident.
+- **Bootstrapping the test users on prod:** runs as a one-off after deploy.
+  ```bash
+  cd /opt/immoplatform/app
+  sudo -u immo bash -c 'set -a; source .env.production; set +a; \
+    npx tsx scripts/bootstrap-test-users.ts'
+  ```
+  Idempotent — safe to re-run; rotates each test user's hash to a fresh unguessable value but leaves Jordan and any real users untouched. Prefer this over `prisma db seed`, which still hard-throws on `NODE_ENV === "production"` (it would create demo teams/assignments/comments — way too much for prod).
 - **Registration blocks `@immo.test`**: `registerSchema` in `src/app/actions/auth.ts` refuses the domain at signup, so no public user can game the allowlist.
+- **Caveat — actions on prod are real:** while switched, you're acting against prod systems (Postmark sends real emails, Odoo writes real invoices, agency Google calendar gets real events). Use the switcher to inspect role-specific UI, not to create demo data.
 
 ## Command Center
 
