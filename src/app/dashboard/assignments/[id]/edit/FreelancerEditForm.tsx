@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Input";
@@ -22,6 +22,7 @@ export function FreelancerEditForm({
   initialDate,
   loadedAt,
   cancelHref,
+  readOnly = false,
 }: {
   action: (
     prev: ActionResult | undefined,
@@ -30,6 +31,9 @@ export function FreelancerEditForm({
   initialDate: string | null;
   loadedAt: string;
   cancelHref: string;
+  /** Render the date field disabled and hide the Save button — used on
+   *  terminal assignments where the action would reject any change. */
+  readOnly?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
@@ -37,35 +41,52 @@ export function FreelancerEditForm({
   >(action, undefined);
 
   return (
-    <form className="px-8 py-6 max-w-xl space-y-5" action={formAction}>
-      <input type="hidden" name="loaded-at" value={loadedAt} />
+    <form
+      className="px-8 py-6 max-w-xl space-y-5"
+      onSubmit={
+        readOnly
+          ? undefined
+          : (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              startTransition(() => {
+                formAction(fd);
+              });
+            }
+      }
+    >
+      <fieldset disabled={readOnly} className="contents">
+        <input type="hidden" name="loaded-at" value={loadedAt} />
 
-      {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
+        {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
 
-      <Field
-        label="Planned date"
-        id="preferred-date"
-        hint="Set or change the appointment date. Saving with a date promotes an awaiting assignment to scheduled; clearing it on a scheduled row reverts to awaiting."
-      >
-        <Input
+        <Field
+          label="Planned date"
           id="preferred-date"
-          name="preferred-date"
-          type="date"
-          defaultValue={initialDate ?? ""}
-        />
-      </Field>
-
-      <div className="flex items-center justify-end gap-2 pt-2">
-        <Link
-          href={cancelHref}
-          className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+          hint="Set or change the appointment date. Saving with a date promotes an awaiting assignment to scheduled; clearing it on a scheduled row reverts to awaiting."
         >
-          Cancel
-        </Link>
-        <Button type="submit" loading={pending}>
-          Save
-        </Button>
-      </div>
+          <Input
+            id="preferred-date"
+            name="preferred-date"
+            type="date"
+            defaultValue={initialDate ?? ""}
+          />
+        </Field>
+
+        {!readOnly && (
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Link
+              href={cancelHref}
+              className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+            >
+              Cancel
+            </Link>
+            <Button type="submit" loading={pending}>
+              Save
+            </Button>
+          </div>
+        )}
+      </fieldset>
     </form>
   );
 }

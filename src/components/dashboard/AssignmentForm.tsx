@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { startTransition, useActionState, useRef, useState } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
@@ -193,10 +193,28 @@ export function AssignmentForm({
   const submitCopy =
     submitLabel ?? (initial ? "Save changes" : "Create assignment");
 
+  // Submit via `onSubmit` rather than `<form action={formAction}>`. React 19
+  // automatically calls `requestFormReset` whenever a form's `action` prop is
+  // a function, which restores every uncontrolled input to its original
+  // `defaultValue` when the action returns. On a validation failure (e.g.
+  // "Planned date can't be in the past") the user would see the form bounce
+  // back to the as-loaded values and lose every edit they just made. By
+  // handling submit manually and dispatching `formAction` inside a transition,
+  // we keep `useActionState`'s pending/error state but skip the auto-reset.
   return (
     <form
       ref={formRef}
-      action={readOnly ? undefined : formAction}
+      onSubmit={
+        readOnly
+          ? undefined
+          : (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              startTransition(() => {
+                formAction(fd);
+              });
+            }
+      }
       className="max-w-[960px] p-8 pb-28 space-y-8"
     >
       {/* `<fieldset disabled>` cascades the disabled state to every input,
@@ -217,6 +235,81 @@ export function AssignmentForm({
         <input type="hidden" name="loaded-at" value={loadedAt} />
       )}
       {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            Services
+            <span aria-hidden className="ml-0.5 text-[var(--color-asbestos)]">*</span>
+          </CardTitle>
+          <p className="text-sm text-[var(--color-ink-soft)] mt-1">
+            Pick one or more. We handle scheduling and delivery.
+          </p>
+        </CardHeader>
+        <CardBody>
+          {odooError && (
+            <div
+              role="status"
+              className="mb-4 rounded-md border border-[var(--color-electrical)]/30 bg-[color-mix(in_srgb,var(--color-electrical)_6%,var(--color-bg))] px-3 py-2 text-xs text-[var(--color-electrical)]"
+            >
+              Odoo is unreachable — pricelist pickers won&apos;t load. New
+              assignments will use the team&apos;s base price as a fallback.
+            </div>
+          )}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {services.map((svc) => {
+              const items = pricelistItemsByService?.[svc.key];
+              const hasPicker = !!items && items.length > 0;
+              return (
+                // `group` + `has-[:checked]` reveals the picker via CSS so we
+                // don't carry a parallel React Set for checkbox state.
+                <div key={svc.key} className="group/svc space-y-3">
+                  <label
+                    className="relative flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border bg-[var(--color-bg)] p-4 transition-all has-[:checked]:shadow-[var(--shadow-md)] has-[:checked]:bg-[color-mix(in_srgb,var(--color-brand)_3%,var(--color-bg))]"
+                    style={{
+                      borderColor: "var(--color-border)",
+                      borderLeftWidth: "4px",
+                      borderLeftColor: svc.color,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      name={`service_${svc.key}`}
+                      defaultChecked={initial?.services.includes(svc.key) ?? false}
+                      className="peer mt-0.5 h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-brand)]"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-flex h-5 items-center justify-center rounded px-1.5 text-[10px] font-bold tracking-wider text-white"
+                          style={{ backgroundColor: svc.color }}
+                        >
+                          {svc.short}
+                        </span>
+                        <span className="text-sm font-semibold text-[var(--color-ink)]">
+                          {svc.label}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-ink-soft)]">
+                        {svc.description}
+                      </p>
+                    </div>
+                  </label>
+                  {hasPicker && (
+                    <div className="hidden group-has-[:checked]/svc:block">
+                      <PricelistItemPicker
+                        serviceKey={svc.key}
+                        items={items}
+                        initialId={initial?.serviceProducts?.[svc.key] ?? null}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -304,81 +397,6 @@ export function AssignmentForm({
               surcharge logic stay intact; the form submits without the field
               and the server defaults it to false. Re-render the <div> block
               to expose it again. */}
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Services
-            <span aria-hidden className="ml-0.5 text-[var(--color-asbestos)]">*</span>
-          </CardTitle>
-          <p className="text-sm text-[var(--color-ink-soft)] mt-1">
-            Pick one or more. We handle scheduling and delivery.
-          </p>
-        </CardHeader>
-        <CardBody>
-          {odooError && (
-            <div
-              role="status"
-              className="mb-4 rounded-md border border-[var(--color-electrical)]/30 bg-[color-mix(in_srgb,var(--color-electrical)_6%,var(--color-bg))] px-3 py-2 text-xs text-[var(--color-electrical)]"
-            >
-              Odoo is unreachable — pricelist pickers won&apos;t load. New
-              assignments will use the team&apos;s base price as a fallback.
-            </div>
-          )}
-          <div className="grid gap-3 sm:grid-cols-2">
-            {services.map((svc) => {
-              const items = pricelistItemsByService?.[svc.key];
-              const hasPicker = !!items && items.length > 0;
-              return (
-                // `group` + `has-[:checked]` reveals the picker via CSS so we
-                // don't carry a parallel React Set for checkbox state.
-                <div key={svc.key} className="group/svc space-y-3">
-                  <label
-                    className="relative flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border bg-[var(--color-bg)] p-4 transition-all has-[:checked]:shadow-[var(--shadow-md)] has-[:checked]:bg-[color-mix(in_srgb,var(--color-brand)_3%,var(--color-bg))]"
-                    style={{
-                      borderColor: "var(--color-border)",
-                      borderLeftWidth: "4px",
-                      borderLeftColor: svc.color,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      name={`service_${svc.key}`}
-                      defaultChecked={initial?.services.includes(svc.key) ?? false}
-                      className="peer mt-0.5 h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-brand)]"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="inline-flex h-5 items-center justify-center rounded px-1.5 text-[10px] font-bold tracking-wider text-white"
-                          style={{ backgroundColor: svc.color }}
-                        >
-                          {svc.short}
-                        </span>
-                        <span className="text-sm font-semibold text-[var(--color-ink)]">
-                          {svc.label}
-                        </span>
-                      </div>
-                      <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-ink-soft)]">
-                        {svc.description}
-                      </p>
-                    </div>
-                  </label>
-                  {hasPicker && (
-                    <div className="hidden group-has-[:checked]/svc:block">
-                      <PricelistItemPicker
-                        serviceKey={svc.key}
-                        items={items}
-                        initialId={initial?.serviceProducts?.[svc.key] ?? null}
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
         </CardBody>
       </Card>
 

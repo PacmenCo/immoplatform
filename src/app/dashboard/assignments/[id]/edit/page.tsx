@@ -18,7 +18,7 @@ import { CommentForm } from "../CommentForm";
 import { DeleteAssignmentButton } from "../DeleteAssignmentButton";
 import { DownloadAssignmentPdfButton } from "../DownloadAssignmentPdfButton";
 import { Notice } from "../Notice";
-import { ReassignFreelancerButton } from "../ReassignFreelancerButton";
+import { AssignedToCard } from "../AssignedToCard";
 import { FileUploadForm } from "../files/FileUploadForm";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
@@ -114,12 +114,18 @@ export default async function AssignmentPage({
     canDelete,
     canUploadFreelancer,
     canUploadRealtor,
+    pricelistData,
   ] = await Promise.all([
     canEditAssignment(session, assignment),
     canViewAssignmentPricing(session, assignment),
     canDeleteAssignment(session, assignment),
     canUploadToFreelancerLane(session, assignment),
     canUploadToRealtorLane(session, assignment),
+    // Freelancers see FreelancerEditForm, never AssignmentForm — skip the
+    // Odoo round-trip whose result they'd never consume.
+    isFreelancer
+      ? Promise.resolve({ byService: {}, odooError: null })
+      : getTeamPricelistItemsByService(assignment.teamId),
   ]);
   const canCommission = assignment.teamId
     ? await canViewCommission(session, assignment.teamId)
@@ -186,10 +192,6 @@ export default async function AssignmentPage({
     assignment.createdById === session.user.id
   );
 
-  // Live Odoo pricelist items (only matters when the form is editable).
-  const pricelistData = await getTeamPricelistItemsByService(
-    assignment.teamId,
-  );
 
   const initial: AssignmentFormInitial = {
     address: assignment.address,
@@ -332,6 +334,7 @@ export default async function AssignmentPage({
                 initialDate={initial.preferredDate}
                 loadedAt={assignment.updatedAt.toISOString()}
                 cancelHref="/dashboard/assignments"
+                readOnly={terminal}
               />
             ) : (
               <AssignmentForm
@@ -345,7 +348,7 @@ export default async function AssignmentPage({
                 loadedAt={assignment.updatedAt.toISOString()}
                 pricelistItemsByService={pricelistData.byService}
                 odooError={pricelistData.odooError}
-                readOnly={isViewOnly}
+                readOnly={isViewOnly || terminal}
               />
             )}
 
@@ -460,18 +463,63 @@ export default async function AssignmentPage({
               sticky) — user wants to skim sidebar cards quickly without them
               pinning to the viewport top. */}
           <aside className="space-y-6 lg:self-start min-w-0 lg:mt-8">
+            {assignment.team && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Team</CardTitle>
+                </CardHeader>
+                <CardBody className="text-sm">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-xs font-bold text-white"
+                      style={{
+                        backgroundColor: assignment.team.logoColor ?? "#0f172a",
+                      }}
+                      aria-hidden
+                    >
+                      {assignment.team.logo ??
+                        assignment.team.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      {isFreelancer ? (
+                        <span className="block truncate font-medium text-[var(--color-ink)]">
+                          {assignment.team.name}
+                        </span>
+                      ) : (
+                        <Link
+                          href={`/dashboard/teams/${assignment.team.id}`}
+                          className="block truncate font-medium text-[var(--color-ink)] hover:underline"
+                        >
+                          {assignment.team.name}
+                        </Link>
+                      )}
+                      {assignment.team.legalName &&
+                        assignment.team.legalName !== assignment.team.name && (
+                          <span className="block truncate text-xs text-[var(--color-ink-muted)]">
+                            {assignment.team.legalName}
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-[var(--color-ink-muted)]">
+                    Created {assignment.createdAt.toISOString().slice(0, 10)}
+                  </p>
+                </CardBody>
+              </Card>
+            )}
+
             <Card className="lg:min-h-[391px]">
               <CardHeader>
                 <CardTitle>Scheduling</CardTitle>
               </CardHeader>
               <CardBody className="space-y-4 text-sm">
-                {/* Status — picker for editors, static badge for view-only.
-                    The picker filters menu options client-side via
-                    allowedTargetsForRole; the server re-checks the role ×
-                    target gate AND the per-row edit gate before persisting. */}
+                {/* Terminal rows render a static badge even for admin —
+                    matches the action's refusal to mutate completed/cancelled
+                    so the UI doesn't dangle an interactive picker that always
+                    errors. */}
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[var(--color-ink-muted)]">Status</span>
-                  {canEdit ? (
+                  {canEdit && !terminal ? (
                     <StatusPicker
                       assignmentId={assignment.id}
                       status={assignment.status as Status}
@@ -564,102 +612,20 @@ export default async function AssignmentPage({
               </CardBody>
             </Card>
 
-            <Card>
-              <CardHeader className="flex items-center justify-between">
-                <CardTitle>Assigned to</CardTitle>
-                {canFreelancer && !terminal && assignment.freelancer && (
-                  <ReassignFreelancerButton
-                    assignmentId={assignment.id}
-                    currentFreelancerId={assignment.freelancer.id}
-                    freelancers={freelancers}
-                    triggerLabel="reassign"
-                  />
-                )}
-              </CardHeader>
-              <CardBody>
-                {assignment.freelancer ? (
-                  <Link
-                    href={`/dashboard/users/${assignment.freelancer.id}`}
-                    className="group block -m-2 rounded-md p-2 transition-colors hover:bg-[var(--color-bg-alt)]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar
-                        initials={initials(
-                          assignment.freelancer.firstName,
-                          assignment.freelancer.lastName,
-                        )}
-                        size="md"
-                      />
-                      <div>
-                        <p className="font-medium text-[var(--color-ink)] group-hover:underline">
-                          {assignment.freelancer.firstName}{" "}
-                          {assignment.freelancer.lastName}
-                        </p>
-                        <p className="text-xs text-[var(--color-ink-muted)]">
-                          Inspector
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                ) : canFreelancer && !terminal ? (
-                  <ReassignFreelancerButton
-                    assignmentId={assignment.id}
-                    currentFreelancerId={null}
-                    freelancers={freelancers}
-                    triggerLabel="assign"
-                  />
-                ) : (
-                  <p className="text-sm text-[var(--color-ink-muted)]">
-                    No freelancer assigned yet.
-                  </p>
-                )}
-              </CardBody>
-            </Card>
-
-            {assignment.team && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Team</CardTitle>
-                </CardHeader>
-                <CardBody className="text-sm">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-xs font-bold text-white"
-                      style={{
-                        backgroundColor: assignment.team.logoColor ?? "#0f172a",
-                      }}
-                      aria-hidden
-                    >
-                      {assignment.team.logo ??
-                        assignment.team.name.slice(0, 2).toUpperCase()}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      {isFreelancer ? (
-                        <span className="block truncate font-medium text-[var(--color-ink)]">
-                          {assignment.team.name}
-                        </span>
-                      ) : (
-                        <Link
-                          href={`/dashboard/teams/${assignment.team.id}`}
-                          className="block truncate font-medium text-[var(--color-ink)] hover:underline"
-                        >
-                          {assignment.team.name}
-                        </Link>
-                      )}
-                      {assignment.team.legalName &&
-                        assignment.team.legalName !== assignment.team.name && (
-                          <span className="block truncate text-xs text-[var(--color-ink-muted)]">
-                            {assignment.team.legalName}
-                          </span>
-                        )}
-                    </div>
-                  </div>
-                  <p className="mt-3 text-xs text-[var(--color-ink-muted)]">
-                    Created {assignment.createdAt.toISOString().slice(0, 10)}
-                  </p>
-                </CardBody>
-              </Card>
-            )}
+            <AssignedToCard
+              services={services.map((svc) => ({
+                key: svc.key,
+                label: svc.label,
+                short: svc.short,
+                color: svc.color,
+              }))}
+              initialSelectedServiceKeys={assignment.services.map(
+                (s) => s.serviceKey,
+              )}
+              freelancers={freelancers}
+              initialFreelancerId={assignment.freelancer?.id ?? null}
+              canEdit={canFreelancer && !terminal}
+            />
 
             {/* Owner + tenant cards under the form would feel duplicative
                 (the form already shows them, editable or disabled). Keep
