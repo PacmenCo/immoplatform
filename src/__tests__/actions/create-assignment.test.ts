@@ -88,7 +88,8 @@ describe("createAssignmentInner — field validation", () => {
     const fd = buildCreateForm();
     fd.set("address", "");
     const res = await createAssignmentInner(admin, undefined, fd);
-    expect(res).toEqual({ ok: false, error: "Address is required." });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.fields?.address).toBe("Address is required.");
   });
 
   it("no services selected → zod error (min 1)", async () => {
@@ -100,7 +101,8 @@ describe("createAssignmentInner — field validation", () => {
     fd.set("owner-name", "x");
     // no service_* keys
     const res = await createAssignmentInner(admin, undefined, fd);
-    expect(res).toEqual({ ok: false, error: "Pick at least one service." });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.fields?.services).toBe("Pick at least one service.");
   });
 
   it("construction-year out of bounds → zod error", async () => {
@@ -108,7 +110,7 @@ describe("createAssignmentInner — field validation", () => {
     const fd = buildCreateForm({ year: "1500" });
     const res = await createAssignmentInner(admin, undefined, fd);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/Construction year must be 1800/);
+    if (!res.ok) expect(res.fields?.constructionYear).toMatch(/Construction year must be 1800/);
   });
 
   it("preferred-date in the past → rejected (Platform parity: before:today rule)", async () => {
@@ -116,7 +118,7 @@ describe("createAssignmentInner — field validation", () => {
     const fd = buildCreateForm({ "preferred-date": "1990-01-01" });
     const res = await createAssignmentInner(admin, undefined, fd);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/Planned date can't be in the past/);
+    if (!res.ok) expect(res.fields?.preferredDate).toMatch(/Planned date can't be in the past/);
   });
 
   it("preferred-date today is allowed (boundary)", async () => {
@@ -132,7 +134,7 @@ describe("createAssignmentInner — field validation", () => {
     const fd = buildCreateForm({ "owner-phone": "+32 470 12 34 56 ext 12345" });
     const res = await createAssignmentInner(admin, undefined, fd);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/Phone number is too long/);
+    if (!res.ok) expect(res.fields?.ownerPhone).toMatch(/Phone number is too long/);
   });
 
   it("owner-phone within 20 chars accepted (Belgian formats)", async () => {

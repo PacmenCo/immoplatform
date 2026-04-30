@@ -159,6 +159,13 @@ export function AssignmentForm({
   const formRef = useRef<HTMLFormElement>(null);
   useUnsavedChanges(useFormDirty(formRef));
 
+  // Per-field validation errors keyed by Zod schema field name (camelCase).
+  // Threaded into <Field error={…}> so the offending input gets a red border
+  // + inline message instead of the user having to hunt for it via the
+  // single banner copy.
+  const fieldErrors =
+    state && !state.ok && state.fields ? state.fields : undefined;
+
   // Key-pickup triple state — drives the conditional reveals. Mirror of
   // Platform's Alpine.js block in edit.blade.php:778-824: checkbox toggles
   // the whole section, location_type radio toggles the address textarea.
@@ -317,7 +324,7 @@ export function AssignmentForm({
         </CardHeader>
         <CardBody className="grid gap-5 sm:grid-cols-6">
           <div className="sm:col-span-6">
-            <Field label="Street + number" id="address" required>
+            <Field label="Street + number" id="address" required error={fieldErrors?.address}>
               <Input
                 id="address"
                 name="address"
@@ -329,7 +336,7 @@ export function AssignmentForm({
             </Field>
           </div>
           <div className="sm:col-span-2">
-            <Field label="Postal code" id="postal" required>
+            <Field label="Postal code" id="postal" required error={fieldErrors?.postal}>
               <Input
                 id="postal"
                 name="postal"
@@ -341,7 +348,7 @@ export function AssignmentForm({
             </Field>
           </div>
           <div className="sm:col-span-4">
-            <Field label="City" id="city" required>
+            <Field label="City" id="city" required error={fieldErrors?.city}>
               <Input
                 id="city"
                 name="city"
@@ -353,7 +360,7 @@ export function AssignmentForm({
             </Field>
           </div>
           <div className="sm:col-span-2">
-            <Field label="Property type" id="type">
+            <Field label="Property type" id="type" error={fieldErrors?.propertyType}>
               <Select
                 id="type"
                 name="type"
@@ -368,7 +375,7 @@ export function AssignmentForm({
             </Field>
           </div>
           <div className="sm:col-span-2">
-            <Field label="Construction year" id="year">
+            <Field label="Construction year" id="year" error={fieldErrors?.constructionYear}>
               <Input
                 id="year"
                 name="year"
@@ -379,7 +386,7 @@ export function AssignmentForm({
             </Field>
           </div>
           <div className="sm:col-span-2">
-            <Field label="Living area (m²)" id="area">
+            <Field label="Living area (m²)" id="area" error={fieldErrors?.areaM2}>
               <Input
                 id="area"
                 name="area"
@@ -398,34 +405,8 @@ export function AssignmentForm({
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Contact person</CardTitle>
-          <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-            The realtor or agency person the inspector should contact. Shown on
-            the calendar event under "Makelaar".
-          </p>
-        </CardHeader>
-        <CardBody className="grid gap-5 sm:grid-cols-2">
-          <Field label="Email" id="contact-email">
-            <Input
-              id="contact-email"
-              name="contactEmail"
-              type="email"
-              placeholder="info@vastgoedantwerp.be"
-              defaultValue={initial?.contactEmail ?? ""}
-              autoComplete="off"
-            />
-          </Field>
-          <Field label="Phone" id="contact-phone">
-            <Input
-              id="contact-phone"
-              name="contactPhone"
-              placeholder="+32 3 123 45 67"
-              defaultValue={initial?.contactPhone ?? ""}
-              autoComplete="off"
-            />
-          </Field>
-          <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <CardBody>
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
             <span
               id="photographer-contact-person-label"
               className="text-sm font-medium text-[var(--color-ink)]"
@@ -460,6 +441,37 @@ export function AssignmentForm({
               ))}
             </div>
           </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Contact person</CardTitle>
+          <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+            The realtor or agency person the inspector should contact. Shown on
+            the calendar event under "Makelaar".
+          </p>
+        </CardHeader>
+        <CardBody className="grid gap-5 sm:grid-cols-2">
+          <Field label="Email" id="contact-email" error={fieldErrors?.contactEmail}>
+            <Input
+              id="contact-email"
+              name="contactEmail"
+              type="email"
+              placeholder="info@vastgoedantwerp.be"
+              defaultValue={initial?.contactEmail ?? ""}
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="Phone" id="contact-phone" error={fieldErrors?.contactPhone}>
+            <Input
+              id="contact-phone"
+              name="contactPhone"
+              placeholder="+32 3 123 45 67"
+              defaultValue={initial?.contactPhone ?? ""}
+              autoComplete="off"
+            />
+          </Field>
         </CardBody>
       </Card>
 
@@ -507,7 +519,7 @@ export function AssignmentForm({
             </label>
           </div>
 
-          <Field label="Full name" id="owner-name" required>
+          <Field label="Full name" id="owner-name" required error={fieldErrors?.ownerName}>
             <Input
               id="owner-name"
               name="owner-name"
@@ -519,7 +531,7 @@ export function AssignmentForm({
           </Field>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Email" id="owner-email">
+            <Field label="Email" id="owner-email" error={fieldErrors?.ownerEmail}>
               <Input
                 id="owner-email"
                 name="owner-email"
@@ -529,7 +541,7 @@ export function AssignmentForm({
                 autoComplete="off"
               />
             </Field>
-            <Field label="Phone" id="owner-phone">
+            <Field label="Phone" id="owner-phone" error={fieldErrors?.ownerPhone}>
               <Input
                 id="owner-phone"
                 name="owner-phone"
@@ -540,7 +552,7 @@ export function AssignmentForm({
             </Field>
           </div>
 
-          <Field label="Address" id="owner-address">
+          <Field label="Address" id="owner-address" error={fieldErrors?.ownerAddress}>
             <Input
               id="owner-address"
               name="owner-address"
@@ -551,7 +563,7 @@ export function AssignmentForm({
           </Field>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="City" id="owner-city">
+            <Field label="City" id="owner-city" error={fieldErrors?.ownerCity}>
               <Input
                 id="owner-city"
                 name="owner-city"
@@ -560,7 +572,7 @@ export function AssignmentForm({
                 autoComplete="off"
               />
             </Field>
-            <Field label="Postal code" id="owner-postal">
+            <Field label="Postal code" id="owner-postal" error={fieldErrors?.ownerPostal}>
               <Input
                 id="owner-postal"
                 name="owner-postal"
@@ -581,6 +593,7 @@ export function AssignmentForm({
               label="VAT number"
               id="owner-vat"
               hint="Required for firm invoices (e.g. BE 0712.345.678)."
+              error={fieldErrors?.ownerVatNumber}
             >
               <Input
                 id="owner-vat"
@@ -623,7 +636,7 @@ export function AssignmentForm({
         </summary>
         <div className="grid gap-5 border-t border-[var(--color-border)] p-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Field label="Full name" id="tenant-name">
+            <Field label="Full name" id="tenant-name" error={fieldErrors?.tenantName}>
               <Input
                 id="tenant-name"
                 name="tenant-name"
@@ -633,7 +646,7 @@ export function AssignmentForm({
               />
             </Field>
           </div>
-          <Field label="Email" id="tenant-email">
+          <Field label="Email" id="tenant-email" error={fieldErrors?.tenantEmail}>
             <Input
               id="tenant-email"
               name="tenant-email"
@@ -643,7 +656,7 @@ export function AssignmentForm({
               autoComplete="off"
             />
           </Field>
-          <Field label="Phone" id="tenant-phone">
+          <Field label="Phone" id="tenant-phone" error={fieldErrors?.tenantPhone}>
             <Input
               id="tenant-phone"
               name="tenant-phone"
@@ -664,6 +677,7 @@ export function AssignmentForm({
             label="Planned date"
             id="preferred-date"
             hint="We confirm within 24 hours by email."
+            error={fieldErrors?.preferredDate}
           >
             <Input
               id="preferred-date"
@@ -719,6 +733,7 @@ export function AssignmentForm({
                     label="Pickup address"
                     id="key-pickup-address"
                     hint="Full address where the inspector can pick up the key."
+                    error={fieldErrors?.keyPickupAddress}
                   >
                     <Textarea
                       id="key-pickup-address"
@@ -761,6 +776,7 @@ export function AssignmentForm({
                 label="Internal calendar date"
                 id="calendar-date"
                 hint="Overrides the planned date when pushing to calendars. Customer's date stays untouched."
+                error={fieldErrors?.calendarDate}
               >
                 <Input
                   id="calendar-date"
@@ -773,6 +789,7 @@ export function AssignmentForm({
                 label="Calendar account (for email CTA)"
                 id="calendar-account-email"
                 hint="The Google account the email's 'Add to my calendar' button targets."
+                error={fieldErrors?.calendarAccountEmail}
               >
                 <Input
                   id="calendar-account-email"
@@ -785,7 +802,7 @@ export function AssignmentForm({
             </>
           )}
           <div className="sm:col-span-2">
-            <Field label="Notes for the inspector" id="notes">
+            <Field label="Notes for the inspector" id="notes" error={fieldErrors?.notes}>
               <Textarea
                 id="notes"
                 name="notes"
@@ -797,7 +814,7 @@ export function AssignmentForm({
           </div>
           {!initial && (
             <div className="sm:col-span-2">
-              <Field label="Initial comment" id="initial-comment">
+              <Field label="Initial comment" id="initial-comment" error={fieldErrors?.initialComment}>
                 <Textarea
                   id="initial-comment"
                   name="initial-comment"

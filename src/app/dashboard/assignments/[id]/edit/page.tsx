@@ -507,7 +507,7 @@ export default async function AssignmentPage({
               </Card>
             )}
 
-            <Card className="lg:min-h-[391px]">
+            <Card>
               <CardHeader>
                 <CardTitle>Scheduling</CardTitle>
               </CardHeader>
@@ -550,6 +550,20 @@ export default async function AssignmentPage({
                       : "Not required"}
                   </span>
                 </div>
+
+                <AssignedToCard
+                  services={services.map((svc) => ({
+                    key: svc.key,
+                    label: svc.label,
+                    short: svc.short,
+                    color: svc.color,
+                  }))}
+                  initialSelectedServiceKeys={assignment.services.map(
+                    (s) => s.serviceKey,
+                  )}
+                  freelancers={freelancers}
+                  canEdit={canFreelancer && !terminal}
+                />
               </CardBody>
             </Card>
 
@@ -610,21 +624,6 @@ export default async function AssignmentPage({
                 </div>
               </CardBody>
             </Card>
-
-            <AssignedToCard
-              services={services.map((svc) => ({
-                key: svc.key,
-                label: svc.label,
-                short: svc.short,
-                color: svc.color,
-              }))}
-              initialSelectedServiceKeys={assignment.services.map(
-                (s) => s.serviceKey,
-              )}
-              freelancers={freelancers}
-              initialFreelancerId={assignment.freelancer?.id ?? null}
-              canEdit={canFreelancer && !terminal}
-            />
 
             {/* Owner + tenant cards under the form would feel duplicative
                 (the form already shows them, editable or disabled). Keep

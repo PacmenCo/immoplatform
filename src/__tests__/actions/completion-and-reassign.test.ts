@@ -177,7 +177,7 @@ describe("markAssignmentCompletedInner — guard clauses", () => {
       form({ finishedAt: future }),
     );
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/Finished-at can't be in the future/);
+    if (!res.ok) expect(res.fields?.finishedAt).toMatch(/Finished-at can't be in the future/);
   });
 
   it("realtor NOT on the team → 'no permission' error", async () => {

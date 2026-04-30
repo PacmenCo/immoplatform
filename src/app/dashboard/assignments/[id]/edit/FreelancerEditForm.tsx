@@ -40,6 +40,9 @@ export function FreelancerEditForm({
     FormData
   >(action, undefined);
 
+  const fieldErrors =
+    state && !state.ok && state.fields ? state.fields : undefined;
+
   return (
     <form
       className="px-8 py-6 max-w-xl space-y-5"
@@ -64,6 +67,7 @@ export function FreelancerEditForm({
           label="Planned date"
           id="preferred-date"
           hint="Set or change the appointment date. Saving with a date promotes an awaiting assignment to scheduled; clearing it on a scheduled row reverts to awaiting."
+          error={fieldErrors?.preferredDate}
         >
           <Input
             id="preferred-date"

@@ -46,6 +46,7 @@ import { applyCommission } from "@/lib/commission";
 import { quarterOf } from "@/lib/period";
 import { syncAssignmentToCalendars } from "@/lib/calendar/sync";
 import { syncAssignmentToOdoo } from "@/lib/odoo-sync";
+import { flattenZodErrors } from "@/lib/validation";
 import {
   assignmentCancelledEmail,
   assignmentCompletedEmail,
@@ -402,8 +403,12 @@ export async function createAssignmentInner(
 
   const parsed = createSchema.safeParse(raw);
   if (!parsed.success) {
-    const err = parsed.error.issues[0];
-    return { ok: false, error: err?.message ?? "Check the form and try again." };
+    const { topLevel, fields } = flattenZodErrors(parsed.error);
+    return {
+      ok: false,
+      error: topLevel || "Check the form and try again.",
+      fields,
+    };
   }
 
   const d = parsed.data;
@@ -887,7 +892,12 @@ async function applyFreelancerUpdate(
     .object({ preferredDate: futureDateSchema })
     .safeParse({ preferredDate: rawDate || undefined });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid date." };
+    const { topLevel, fields } = flattenZodErrors(parsed.error);
+    return {
+      ok: false,
+      error: topLevel || "Invalid date.",
+      fields,
+    };
   }
 
   const previousDate = existing.preferredDate;
@@ -1083,8 +1093,12 @@ export async function updateAssignmentInner(
 
   const parsed = updateSchema.safeParse(raw);
   if (!parsed.success) {
-    const err = parsed.error.issues[0];
-    return { ok: false, error: err?.message ?? "Check the form and try again." };
+    const { topLevel, fields } = flattenZodErrors(parsed.error);
+    return {
+      ok: false,
+      error: topLevel || "Check the form and try again.",
+      fields,
+    };
   }
   const d = parsed.data;
 
@@ -1618,9 +1632,11 @@ export async function markAssignmentCompletedInner(
     finishedAt: (formData.get("finishedAt") as string) || undefined,
   });
   if (!parsed.success) {
+    const { topLevel, fields } = flattenZodErrors(parsed.error);
     return {
       ok: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid completion details.",
+      error: topLevel || "Invalid completion details.",
+      fields,
     };
   }
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { IconPlus, IconSearch, IconUserSwap, IconX } from "@/components/ui/Icons";
 import { initials } from "@/lib/format";
@@ -10,6 +9,10 @@ import type { EligibleFreelancer } from "./ReassignFreelancerButton";
 // UI-only prototype. Per-service freelancer assignments are kept in local
 // state — nothing is persisted yet. When the schema lands, swap the local
 // `setByService` calls for a server action and remove the local map.
+//
+// Rendered embedded inside the Scheduling card body — the outer card shell
+// is the parent's responsibility. Uses `-mx-6` to bleed the row list past
+// the parent CardBody's `p-6`.
 
 type ServiceMeta = {
   key: string;
@@ -27,20 +30,15 @@ type Props = {
    *  form's checkboxes have fired any events. */
   initialSelectedServiceKeys: string[];
   freelancers: EligibleFreelancer[];
-  initialFreelancerId: string | null;
   canEdit: boolean;
 };
 
-type EditState =
-  | { kind: "single"; serviceKey: string }
-  | { kind: "all" }
-  | null;
+type EditState = { kind: "single"; serviceKey: string } | null;
 
 export function AssignedToCard({
   services,
   initialSelectedServiceKeys,
   freelancers,
-  initialFreelancerId,
   canEdit,
 }: Props) {
   // Which services are currently checked on the form. Seeded from the page
@@ -53,12 +51,13 @@ export function AssignedToCard({
   // Per-service freelancer map. Survives un-checks: if you assign Alice to
   // EPC, uncheck EPC, then re-check EPC, Alice is still there. The map only
   // gets reset by an explicit pick, never by a service toggle.
-  const [byService, setByService] = useState<Record<string, string>>(() => {
-    const seed = initialFreelancerId ?? "";
-    const map: Record<string, string> = {};
-    for (const k of initialSelectedServiceKeys) map[k] = seed;
-    return map;
-  });
+  //
+  // Manual assign is mandatory — we deliberately do NOT seed the row-level
+  // `initialFreelancerId` onto every service. Doing so would imply the
+  // platform "auto-assigned" that freelancer to each service line, when in
+  // fact the user never confirmed it per-service. Every row starts as
+  // "Tap to assign" until a human picks.
+  const [byService, setByService] = useState<Record<string, string>>({});
   const [edit, setEdit] = useState<EditState>(null);
 
   // Listen to the form's service checkboxes (name="service_<key>") so the
@@ -116,14 +115,6 @@ export function AssignedToCard({
     setByService((prev) => ({ ...prev, [serviceKey]: freelancerId }));
     setEdit(null);
   }
-  function applyToAll(freelancerId: string) {
-    setByService((prev) => {
-      const next = { ...prev };
-      for (const s of visibleServices) next[s.key] = freelancerId;
-      return next;
-    });
-    setEdit(null);
-  }
 
   // Esc closes any open inline picker.
   useEffect(() => {
@@ -138,59 +129,28 @@ export function AssignedToCard({
   const assignedCount = visibleServices.filter((s) => byService[s.key]).length;
 
   return (
-    <Card>
-      <CardHeader className="flex items-start justify-between gap-3">
+    <div className="-mx-6 border-t border-[var(--color-border)] pt-4">
+      <div className="flex items-start justify-between gap-3 px-6">
         <div>
-          <CardTitle>Assigned to</CardTitle>
+          <h4 className="text-sm font-semibold text-[var(--color-ink)]">
+            Assigned to
+          </h4>
           {visibleServices.length > 1 && (
             <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
               {assignedCount} of {visibleServices.length} assigned
             </p>
           )}
         </div>
-        {canEdit && visibleServices.length > 1 && (
-          <button
-            type="button"
-            onClick={() =>
-              setEdit((e) => (e?.kind === "all" ? null : { kind: "all" }))
-            }
-            className={
-              "inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors " +
-              (edit?.kind === "all"
-                ? "bg-[color-mix(in_srgb,var(--color-brand)_10%,var(--color-bg))] text-[var(--color-brand)]"
-                : "text-[var(--color-ink-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]")
-            }
-            title="Apply one freelancer to every service"
-          >
-            <IconUserSwap size={12} />
-            Set all
-          </button>
-        )}
-      </CardHeader>
+      </div>
 
-      <CardBody className="p-0">
-        {/* "Set all" inline picker — appears above the rows when active. */}
-        {edit?.kind === "all" && (
-          <div className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)] px-6 py-4">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
-              Set the same freelancer for every service
-            </p>
-            <FreelancerPicker
-              freelancers={freelancers}
-              currentId=""
-              onPick={(id) => applyToAll(id)}
-              onCancel={() => setEdit(null)}
-            />
-          </div>
-        )}
-
+      <div className="mt-3">
         {visibleServices.length === 0 ? (
-          <div className="px-6 py-5 text-sm text-[var(--color-ink-muted)]">
+          <div className="px-6 py-3 text-sm text-[var(--color-ink-muted)]">
             Pick at least one service in the form — an assignment row will
             appear here for each.
           </div>
         ) : (
-          <ul className="divide-y divide-[var(--color-border)]">
+          <ul className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
             {visibleServices.map((svc) => {
               const fid = byService[svc.key] ?? "";
               const f = freelancers.find((x) => x.id === fid) ?? null;
@@ -297,8 +257,8 @@ export function AssignedToCard({
             })}
           </ul>
         )}
-      </CardBody>
-    </Card>
+      </div>
+    </div>
   );
 }
 

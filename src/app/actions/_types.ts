@@ -13,7 +13,19 @@ export type ActionResult<T = undefined> =
        */
       warning?: string;
     }
-  | { ok: false; error: string; formValues?: Record<string, string> };
+  | {
+      ok: false;
+      error: string;
+      formValues?: Record<string, string>;
+      /**
+       * Per-field validation errors keyed by Zod schema field name (camelCase),
+       * e.g. `{ ownerEmail: "Invalid email", preferredDate: "Planned date can't…" }`.
+       * Forms read these per <Field error={state?.fields?.ownerEmail} /> and
+       * the existing `error` field carries either the first issue's message or
+       * a synthesized "Check the highlighted fields" banner.
+       */
+      fields?: Record<string, string>;
+    };
 
 /**
  * Wraps a server action with session-required plumbing.
