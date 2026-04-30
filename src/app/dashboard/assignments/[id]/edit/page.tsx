@@ -513,13 +513,13 @@ export default async function AssignmentPage({
                 <CardTitle>Scheduling</CardTitle>
               </CardHeader>
               <CardBody className="space-y-4 text-sm">
-                {/* Terminal rows render a static badge even for admin —
-                    matches the action's refusal to mutate completed/cancelled
-                    so the UI doesn't dangle an interactive picker that always
-                    errors. */}
+                {/* Status stays interactive even on terminal rows — the
+                    changeAssignmentStatus action permits reversing an
+                    accidental complete/cancel back into the active flow.
+                    Field edits are still locked (form readOnly above). */}
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[var(--color-ink-muted)]">Status</span>
-                  {canEdit && !terminal ? (
+                  {canEdit ? (
                     <StatusPicker
                       assignmentId={assignment.id}
                       status={assignment.status as Status}

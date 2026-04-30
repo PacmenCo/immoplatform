@@ -402,6 +402,72 @@ export function AssignmentForm({
 
       <Card>
         <CardHeader>
+          <CardTitle>Contact person</CardTitle>
+          <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+            The realtor or agency person the inspector should contact. Shown on
+            the calendar event under "Makelaar".
+          </p>
+        </CardHeader>
+        <CardBody className="grid gap-5 sm:grid-cols-2">
+          <Field label="Email" id="contact-email">
+            <Input
+              id="contact-email"
+              name="contactEmail"
+              type="email"
+              placeholder="info@vastgoedantwerp.be"
+              defaultValue={initial?.contactEmail ?? ""}
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="Phone" id="contact-phone">
+            <Input
+              id="contact-phone"
+              name="contactPhone"
+              placeholder="+32 3 123 45 67"
+              defaultValue={initial?.contactPhone ?? ""}
+              autoComplete="off"
+            />
+          </Field>
+          <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            <span
+              id="photographer-contact-person-label"
+              className="text-sm font-medium text-[var(--color-ink)]"
+            >
+              Contact person for photographer
+            </span>
+            <div
+              role="radiogroup"
+              aria-labelledby="photographer-contact-person-label"
+              className="flex flex-wrap items-center gap-x-6 gap-y-2"
+            >
+              {(
+                [
+                  ["realtor", "Realtor"],
+                  ["owner", "Owner"],
+                  ["tenant", "Tenant"],
+                ] as const
+              ).map(([value, label]) => (
+                <label
+                  key={value}
+                  className="inline-flex items-center gap-2 text-sm text-[var(--color-ink)]"
+                >
+                  <input
+                    type="radio"
+                    name="photographerContactPerson"
+                    value={value}
+                    defaultChecked={initial?.photographerContactPerson === value}
+                    className="h-4 w-4 accent-[var(--color-brand)]"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Owner</CardTitle>
           <p className="text-sm text-[var(--color-ink-soft)] mt-1">
             The person signing the assignment form.
@@ -528,72 +594,6 @@ export function AssignmentForm({
               />
             </Field>
           )}
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Contact person</CardTitle>
-          <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-            The realtor or agency person the inspector should contact. Shown on
-            the calendar event under "Makelaar".
-          </p>
-        </CardHeader>
-        <CardBody className="grid gap-5 sm:grid-cols-2">
-          <Field label="Email" id="contact-email">
-            <Input
-              id="contact-email"
-              name="contactEmail"
-              type="email"
-              placeholder="info@vastgoedantwerp.be"
-              defaultValue={initial?.contactEmail ?? ""}
-              autoComplete="off"
-            />
-          </Field>
-          <Field label="Phone" id="contact-phone">
-            <Input
-              id="contact-phone"
-              name="contactPhone"
-              placeholder="+32 3 123 45 67"
-              defaultValue={initial?.contactPhone ?? ""}
-              autoComplete="off"
-            />
-          </Field>
-          <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-            <span
-              id="photographer-contact-person-label"
-              className="text-sm font-medium text-[var(--color-ink)]"
-            >
-              Contact person for photographer
-            </span>
-            <div
-              role="radiogroup"
-              aria-labelledby="photographer-contact-person-label"
-              className="flex flex-wrap items-center gap-x-6 gap-y-2"
-            >
-              {(
-                [
-                  ["realtor", "Realtor"],
-                  ["owner", "Owner"],
-                  ["tenant", "Tenant"],
-                ] as const
-              ).map(([value, label]) => (
-                <label
-                  key={value}
-                  className="inline-flex items-center gap-2 text-sm text-[var(--color-ink)]"
-                >
-                  <input
-                    type="radio"
-                    name="photographerContactPerson"
-                    value={value}
-                    defaultChecked={initial?.photographerContactPerson === value}
-                    className="h-4 w-4 accent-[var(--color-brand)]"
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </div>
         </CardBody>
       </Card>
 
