@@ -39,7 +39,7 @@ const PAGE_SIZE = 20;
 const SORTS = [
   { id: "created", label: "Created", column: "createdAt" as const },
   { id: "address", label: "Property", column: "address" as const },
-  { id: "date", label: "Preferred date", column: "preferredDate" as const },
+  { id: "date", label: "Planned date", column: "preferredDate" as const },
   { id: "status", label: "Status", column: "status" as const },
 ] as const;
 type SortId = (typeof SORTS)[number]["id"];
@@ -341,7 +341,8 @@ export default async function AssignmentsList({
                     <th scope="col" className="hidden sm:table-cell text-left font-semibold px-6 py-3">Services</th>
                     <th scope="col" className="hidden md:table-cell text-left font-semibold px-6 py-3">Team</th>
                     <th scope="col" className="hidden md:table-cell text-left font-semibold px-6 py-3">Freelancer</th>
-                    <SortHeader current={currentState} id="date" label="Preferred date" hideBelow="sm" />
+                    <SortHeader current={currentState} id="created" label="Created" hideBelow="md" />
+                    <SortHeader current={currentState} id="date" label="Planned date" hideBelow="sm" />
                     <SortHeader current={currentState} id="status" label="Status" />
                     {isAdmin && (
                       <th scope="col" className="odoo-col text-center font-semibold px-3 py-3">
@@ -421,6 +422,9 @@ export default async function AssignmentsList({
                               Unassigned
                             </span>
                           )}
+                        </td>
+                        <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-sm text-[var(--color-ink-soft)] tabular-nums">
+                          {a.createdAt.toISOString().slice(0, 10)}
                         </td>
                         <td className="hidden sm:table-cell px-6 py-3 whitespace-nowrap text-sm text-[var(--color-ink-soft)] tabular-nums">
                           {a.preferredDate?.toISOString().slice(0, 10) ?? "—"}

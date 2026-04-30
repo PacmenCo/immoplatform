@@ -1,19 +1,11 @@
-// Inline script that runs before React hydrates, so dark mode is applied on
-// first paint (no flash). Reads the stored preference, falls back to the OS
-// preference, and sets data-theme on the <html> element.
-//
-// Safety: the script source is a hardcoded string constant with no user input,
-// so dangerouslySetInnerHTML is safe here. It's the standard Next.js pattern
-// for pre-hydration theme scripts (see next-themes, shadcn/ui, etc).
+// Dark mode is hidden from the UI. Force light on first paint so any stored
+// 'dark' preference from before the toggle was hidden is ignored.
 const themeInitScript = `
 (function() {
   try {
-    var pref = localStorage.getItem('theme-pref') || 'light';
-    var sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    var effective = pref === 'dark' || pref === 'light' ? pref : sys;
     var root = document.documentElement;
-    root.setAttribute('data-theme', effective);
-    root.setAttribute('data-theme-pref', pref);
+    root.setAttribute('data-theme', 'light');
+    root.setAttribute('data-theme-pref', 'light');
   } catch (e) {}
 })();
 `.trim();

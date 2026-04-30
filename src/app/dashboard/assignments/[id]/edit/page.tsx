@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/Icons";
 import { AssignmentForm } from "@/components/dashboard/AssignmentForm";
 import type { AssignmentFormInitial } from "@/components/dashboard/AssignmentForm";
-import { PricingCard } from "@/components/dashboard/PricingCard";
 import { FreelancerEditForm } from "./FreelancerEditForm";
 import { CalendarChips } from "../CalendarChips";
 import { CommentForm } from "../CommentForm";
@@ -353,7 +352,7 @@ export default async function AssignmentPage({
                 upload = role-gated; delete = per-row. */}
             <Card>
               <CardHeader>
-                <CardTitle>Freelancer deliverables</CardTitle>
+                <CardTitle>Deliverables</CardTitle>
                 <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
                   Certificate PDFs and photos from the assigned inspector.
                 </p>
@@ -482,21 +481,6 @@ export default async function AssignmentPage({
                 </div>
               </CardBody>
             </Card>
-
-            {pricing && (
-              <PricingCard
-                breakdown={pricing}
-                servicesByKey={servicesByKey}
-                discountMeta={{
-                  type: isDiscountType(assignment.discountType)
-                    ? assignment.discountType
-                    : null,
-                  value: assignment.discountValue,
-                  reason: assignment.discountReason,
-                }}
-                areaM2={assignment.areaM2}
-              />
-            )}
 
             {commission && (
               <Card>
