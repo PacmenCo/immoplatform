@@ -690,6 +690,44 @@ async function main() {
       teamId: "t_02", freelancerId: "u_4", createdById: "u_6",
       services: ["epc", "asbestos", "electrical", "fuel"],
     },
+
+    // ─── Account-switcher fixtures: shared work between test accounts ────
+    // Three assignments owned by `t_test` so the test-realtor (team owner)
+    // creates them, the test-freelancer is assigned, and test-staff can
+    // see/edit them via the global staff scope. One per workflow state so
+    // every UI path is exercised.
+    {
+      id: "a_test_001", reference: "ASG-2026-9001", status: AssignmentStatus.scheduled,
+      address: "Test Street 1", city: "Test City", postal: "1000",
+      propertyType: "apartment", constructionYear: 1995, areaM2: 90,
+      preferredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // a week from now
+      requiresKeyPickup: false,
+      ownerName: "Test Owner Alpha", ownerEmail: "owner-a@example.test", ownerPhone: "+32 470 00 00 01",
+      teamId: "t_test", freelancerId: "u_test_freelancer", createdById: "u_test_realtor",
+      services: ["epc"],
+    },
+    {
+      id: "a_test_002", reference: "ASG-2026-9002", status: AssignmentStatus.in_progress,
+      address: "Test Avenue 2", city: "Test City", postal: "1000",
+      propertyType: "house", constructionYear: 1978, areaM2: 140,
+      preferredDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // yesterday
+      requiresKeyPickup: true, keyPickupLocationType: KeyPickupLocation.office,
+      ownerName: "Test Owner Beta", ownerEmail: "owner-b@example.test", ownerPhone: "+32 470 00 00 02",
+      tenantName: "Test Tenant Beta", tenantEmail: "tenant-b@example.test", tenantPhone: "+32 470 00 00 22",
+      teamId: "t_test", freelancerId: "u_test_freelancer", createdById: "u_test_realtor",
+      services: ["asbestos", "electrical"],
+    },
+    {
+      id: "a_test_003", reference: "ASG-2026-9003", status: AssignmentStatus.delivered,
+      address: "Test Square 3", city: "Test City", postal: "1000",
+      propertyType: "apartment", constructionYear: 2005, areaM2: 75,
+      preferredDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // a week ago
+      requiresKeyPickup: false,
+      ownerName: "Test Owner Gamma", ownerEmail: "owner-c@example.test", ownerPhone: "+32 470 00 00 03",
+      teamId: "t_test", freelancerId: "u_test_freelancer", createdById: "u_test_realtor",
+      services: ["epc", "fuel"],
+      deliveredAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    },
   ];
 
   for (const a of assignments) {
@@ -736,6 +774,30 @@ async function main() {
           authorLabel: "System",
           body: "Calendar event pushed to Sofie's Google Calendar.",
           createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+        },
+      ],
+    });
+  }
+
+  // Comments on the test-account in_progress assignment so the test
+  // realtor + freelancer can see a real conversation when they log in.
+  const testCommentCount = await prisma.assignmentComment.count({
+    where: { assignmentId: "a_test_002" },
+  });
+  if (testCommentCount === 0) {
+    await prisma.assignmentComment.createMany({
+      data: [
+        {
+          assignmentId: "a_test_002",
+          authorId: "u_test_realtor",
+          body: "Tenant will be home from 14:00 onwards. Front door bell is broken — please knock.",
+          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        },
+        {
+          assignmentId: "a_test_002",
+          authorId: "u_test_freelancer",
+          body: "Got it. Started the asbestos sampling this morning, electrical inspection scheduled for tomorrow.",
+          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
         },
       ],
     });
