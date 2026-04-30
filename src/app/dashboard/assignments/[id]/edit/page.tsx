@@ -16,7 +16,6 @@ import { PricingCard } from "@/components/dashboard/PricingCard";
 import { FreelancerEditForm } from "./FreelancerEditForm";
 import { CalendarChips } from "../CalendarChips";
 import { CommentForm } from "../CommentForm";
-import { AssignmentActions } from "../AssignmentActions";
 import { DeleteAssignmentButton } from "../DeleteAssignmentButton";
 import { DownloadAssignmentPdfButton } from "../DownloadAssignmentPdfButton";
 import { Notice } from "../Notice";
@@ -25,14 +24,11 @@ import { FileUploadForm } from "../files/FileUploadForm";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import {
-  canCancelAssignment,
-  canCompleteAssignment,
   canDeleteAssignment,
   canDeleteAssignmentFile,
   canEditAssignment,
   canReassignFreelancer,
   canSetDiscount,
-  canUpdateAssignmentFields,
   canUploadToFreelancerLane,
   canUploadToRealtorLane,
   canViewAssignment,
@@ -40,9 +36,7 @@ import {
   canViewCommission,
   eligibleFreelancerWhere,
   hasRole,
-  role,
 } from "@/lib/permissions";
-import { canRoleTransitionTo } from "@/lib/assignmentStatus";
 import { STATUS_META, Status, isTerminalStatus } from "@/lib/mockData";
 import { formatCommissionRate, formatEuros, initials } from "@/lib/format";
 import { isDiscountType, loadAssignmentPricing } from "@/lib/pricing";
@@ -115,18 +109,12 @@ export default async function AssignmentPage({
 
   const [
     canEdit,
-    canUpdateFields,
-    canComplete,
-    canCancel,
     canPricing,
     canDelete,
     canUploadFreelancer,
     canUploadRealtor,
   ] = await Promise.all([
     canEditAssignment(session, assignment),
-    canUpdateAssignmentFields(session, assignment),
-    canCompleteAssignment(session, assignment),
-    canCancelAssignment(session, assignment),
     canViewAssignmentPricing(session, assignment),
     canDeleteAssignment(session, assignment),
     canUploadToFreelancerLane(session, assignment),
@@ -201,21 +189,6 @@ export default async function AssignmentPage({
   const pricelistData = await getTeamPricelistItemsByService(
     assignment.teamId,
   );
-
-  // Pre-shape the data the inline complete dialog needs — keeps the
-  // AssignmentActions client component free of DB access.
-  const completeServices =
-    canComplete && assignment.status === "delivered"
-      ? assignment.services
-          .map((as) => services.find((s) => s.key === as.serviceKey))
-          .filter((s): s is (typeof services)[number] => !!s)
-          .map((s) => ({ key: s.key, short: s.short, color: s.color }))
-      : [];
-  const now = new Date();
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  const defaultFinishedAt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
-    now.getDate(),
-  )}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
   const initial: AssignmentFormInitial = {
     address: assignment.address,
@@ -314,26 +287,12 @@ export default async function AssignmentPage({
               canAddPersonalGoogle={canAddPersonalGoogle}
             />
           </div>
+          {/* Action toolbar — Edit / Start / Mark delivered / Mark completed /
+              Cancel are intentionally hidden for now (product call). The
+              `AssignmentActions` component + permission flags + server actions
+              are intact so we can re-enable later by re-rendering the block.
+              Delete stays, gated to admin-or-creator only. */}
           <div className="flex flex-wrap items-center gap-2">
-            <AssignmentActions
-              assignmentId={assignment.id}
-              reference={assignment.reference}
-              status={assignment.status}
-              canStart={
-                canEdit &&
-                canRoleTransitionTo(
-                  role(session),
-                  assignment.status as Status,
-                  "in_progress",
-                )
-              }
-              canDeliver={canEdit}
-              canUpdateFields={canUpdateFields}
-              canComplete={canComplete}
-              canCancel={canCancel}
-              completeServices={completeServices}
-              defaultFinishedAt={defaultFinishedAt}
-            />
             {canDelete && (
               <DeleteAssignmentButton
                 assignmentId={assignment.id}

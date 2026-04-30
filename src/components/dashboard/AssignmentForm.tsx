@@ -290,18 +290,11 @@ export function AssignmentForm({
               />
             </Field>
           </div>
-          <div className="sm:col-span-6">
-            <label className="flex items-center gap-2 text-sm text-[var(--color-ink-soft)]">
-              <input
-                type="checkbox"
-                name="isLargeProperty"
-                defaultChecked={initial?.isLargeProperty ?? false}
-                className="h-4 w-4 accent-[var(--color-brand)]"
-              />
-              Large property (&gt; 300&nbsp;m²) — renders "Groot pand" on the
-              calendar event and triggers the large-property pricing surcharge.
-            </label>
-          </div>
+          {/* "Large property (> 300 m²)" checkbox intentionally hidden for
+              now (product call). The DB column + server schema + pricing
+              surcharge logic stay intact; the form submits without the field
+              and the server defaults it to false. Re-render the <div> block
+              to expose it again. */}
         </CardBody>
       </Card>
 
@@ -795,60 +788,12 @@ export function AssignmentForm({
         </Card>
       )}
 
-      {canSetDiscount && (
-        <details
-          className="group rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]"
-          open={!!initial?.discount?.type}
-        >
-          <summary className="flex cursor-pointer items-center justify-between p-6 [&::-webkit-details-marker]:hidden">
-            <div>
-              <h3 className="text-base font-semibold text-[var(--color-ink)]">
-                Discount (admin)
-              </h3>
-              <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                Applied to the post-surcharge total. Percentage is in basis points
-                (1500 = 15%); fixed is in cents (2500 = €25.00).
-              </p>
-            </div>
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--color-border)] text-[var(--color-ink-muted)] transition-transform group-open:rotate-45">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </span>
-          </summary>
-          <div className="grid gap-5 border-t border-[var(--color-border)] p-6 sm:grid-cols-3">
-            <Field label="Type" id="discountType">
-              <Select
-                id="discountType"
-                name="discountType"
-                defaultValue={initial?.discount?.type ?? "none"}
-              >
-                <option value="none">No discount</option>
-                <option value="percentage">Percentage</option>
-                <option value="fixed">Fixed amount</option>
-              </Select>
-            </Field>
-            <Field label="Value" id="discountValue">
-              <Input
-                id="discountValue"
-                name="discountValue"
-                type="number"
-                min={0}
-                placeholder="1500"
-                defaultValue={initial?.discount?.value ?? ""}
-              />
-            </Field>
-            <Field label="Reason" id="discountReason">
-              <Input
-                id="discountReason"
-                name="discountReason"
-                placeholder="Volume deal"
-                defaultValue={initial?.discount?.reason ?? ""}
-              />
-            </Field>
-          </div>
-        </details>
-      )}
+      {/* Discount (admin) section intentionally hidden for now (product call).
+          The DB columns + server schema + pricing math stay intact; the form
+          omits discount* fields and the server reads them as undefined → no
+          discount applied. Re-render the <details> block to expose it again.
+          The `canSetDiscount` prop + `canSetDiscount` permission helper are
+          still wired, just not consumed at the UI level. */}
 
       {!readOnly && (
         <div className="sticky bottom-0 z-30 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">

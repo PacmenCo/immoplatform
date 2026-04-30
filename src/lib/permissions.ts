@@ -261,13 +261,14 @@ export async function canCompleteAssignment(
 }
 
 /**
- * Delete an assignment. Platform parity (AssignmentPolicy::delete):
- *   - admin: any assignment
- *   - medewerker/staff: never (explicit exclusion in Platform)
+ * Delete an assignment. Tighter than v1 by product decision:
+ *   - admin: any assignment, any status
+ *   - staff: never (explicit Platform exclusion, retained)
  *   - freelancer: never
- *   - makelaar/realtor: only their own (owner or team-owner), and only if the
- *     status is "deletable" — completed + delivered are kept for the invoice +
- *     commission audit trail; cancelled and earlier states are fair game.
+ *   - realtor: ONLY rows they personally created (createdById match), and only
+ *     in a deletable status. Team-owner privilege removed — owning the team
+ *     no longer lets you delete a teammate's assignment. Completed + delivered
+ *     stay locked for the invoice/commission audit trail.
  */
 const DELETABLE_STATUSES = ["draft", "scheduled", "in_progress", "cancelled"] as const;
 
@@ -282,8 +283,7 @@ export async function canDeleteAssignment(
   if (!DELETABLE_STATUSES.includes(a.status as typeof DELETABLE_STATUSES[number])) {
     return false;
   }
-  const { owned } = await getUserTeamIds(s.user.id);
-  return a.createdById === s.user.id || (!!a.teamId && owned.includes(a.teamId));
+  return a.createdById === s.user.id;
 }
 
 /**

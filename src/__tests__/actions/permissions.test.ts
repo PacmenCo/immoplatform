@@ -280,11 +280,11 @@ describe("canDeleteAssignment", () => {
   });
 
   it("realtor can delete their own row in deletable statuses", async () => {
-    const { realtor, teams } = await seedBaseline();
+    const { realtor } = await seedBaseline();
     for (const status of ["draft", "scheduled", "in_progress", "cancelled"]) {
       expect(
         await canDeleteAssignment(realtor, {
-          ...POLICY_INPUT({ teamId: teams.t1.id }),
+          ...POLICY_INPUT({ createdById: realtor.user.id }),
           status,
         }),
       ).toBe(true);
@@ -292,15 +292,28 @@ describe("canDeleteAssignment", () => {
   });
 
   it("realtor CANNOT delete completed / delivered rows (keep the audit trail)", async () => {
-    const { realtor, teams } = await seedBaseline();
+    const { realtor } = await seedBaseline();
     for (const status of ["completed", "delivered"]) {
       expect(
         await canDeleteAssignment(realtor, {
-          ...POLICY_INPUT({ teamId: teams.t1.id }),
+          ...POLICY_INPUT({ createdById: realtor.user.id }),
           status,
         }),
       ).toBe(false);
     }
+  });
+
+  it("team-owner realtor CANNOT delete a teammate's row (only the creator can)", async () => {
+    const { realtor, teams } = await seedBaseline();
+    // realtor owns teams.t1 but did NOT create this assignment (createdById is
+    // someone else on the team). Per the tightened gate, owning the team is
+    // no longer enough — only the actual creator can delete.
+    expect(
+      await canDeleteAssignment(realtor, {
+        ...POLICY_INPUT({ teamId: teams.t1.id, createdById: "other-teammate-id" }),
+        status: "draft",
+      }),
+    ).toBe(false);
   });
 });
 
