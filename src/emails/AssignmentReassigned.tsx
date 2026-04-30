@@ -36,7 +36,7 @@ export default function AssignmentReassigned(
       </P>
       {dateStr ? (
         <P>
-          Preferred date: <strong>{dateStr}</strong>
+          Planned date: <strong>{dateStr}</strong>
         </P>
       ) : null}
       <AssignmentCta ctx={props} />

@@ -60,13 +60,13 @@ export const EMAIL_EVENTS = {
   "assignment.scheduled": {
     label: "When one of my assignments is scheduled with a date",
     description:
-      "Sent to the realtor and agency when a new assignment lands in the scheduled state with a preferred date. Platform parity: AssignmentScheduledMail.",
+      "Sent to the realtor and agency when a new assignment lands in the scheduled state with a planned date. Platform parity: AssignmentScheduledMail.",
     forRoles: ["realtor", "admin", "staff"] as const,
     category: "assignment",
   },
   "assignment.date_updated": {
     label: "When an assignment's scheduled date changes",
-    description: "Sent to the freelancer + creator when the preferred date is edited.",
+    description: "Sent to the freelancer + creator when the planned date is edited.",
     forRoles: ["freelancer", "realtor", "admin", "staff"] as const,
     category: "assignment",
   },

@@ -418,7 +418,7 @@ describe("updateAssignmentInner — wide-edit write semantics", () => {
     expect(after.address).toBe("1 Teststraat");
     expect(after.city).toBe("Antwerpen");
     expect(after.ownerName).toBe("Test Owner");
-    // Preferred date landed + auto-status flipped awaiting → scheduled.
+    // Planned date landed + auto-status flipped awaiting → scheduled.
     expect(after.preferredDate?.toISOString().slice(0, 10)).toBe("2026-08-15");
     expect(after.status).toBe("scheduled");
   });

@@ -116,7 +116,7 @@ describe("createAssignmentInner — field validation", () => {
     const fd = buildCreateForm({ "preferred-date": "1990-01-01" });
     const res = await createAssignmentInner(admin, undefined, fd);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/Preferred date can't be in the past/);
+    if (!res.ok) expect(res.error).toMatch(/Planned date can't be in the past/);
   });
 
   it("preferred-date today is allowed (boundary)", async () => {

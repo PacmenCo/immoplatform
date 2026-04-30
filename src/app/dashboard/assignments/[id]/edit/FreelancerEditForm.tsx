@@ -43,7 +43,7 @@ export function FreelancerEditForm({
       {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
 
       <Field
-        label="Preferred date"
+        label="Planned date"
         id="preferred-date"
         hint="Set or change the appointment date. Saving with a date promotes an awaiting assignment to scheduled; clearing it on a scheduled row reverts to awaiting."
       >

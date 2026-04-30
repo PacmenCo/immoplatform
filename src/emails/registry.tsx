@@ -174,7 +174,7 @@ export const EMAIL_TEMPLATES: AnyTemplate[] = [
   {
     slug: "assignment-date-updated",
     label: "Assignment date updated",
-    description: "Sent when the preferred date of an assignment changes.",
+    description: "Sent when the planned date of an assignment changes.",
     element: (p) => (
       <AssignmentDateUpdated {...(p as AssignmentDateUpdatedEmailProps)} />
     ),

@@ -1,4 +1,11 @@
-export const SERVICE_KEYS = ["epc", "asbestos", "electrical", "fuel"] as const;
+export const SERVICE_KEYS = [
+  "epc",
+  "asbestos",
+  "electrical",
+  "fuel",
+  "photos",
+  "signage",
+] as const;
 export type ServiceKey = (typeof SERVICE_KEYS)[number];
 
 /**
@@ -40,6 +47,18 @@ export const SERVICES: Record<
     short: "TK",
     color: "var(--color-fuel)",
     description: "Periodic inspection for above-ground and buried fuel tanks.",
+  },
+  photos: {
+    label: "Property Photography",
+    short: "PH",
+    color: "var(--color-photos)",
+    description: "Professional listing photography for sales and rentals.",
+  },
+  signage: {
+    label: "On-site Signage",
+    short: "SG",
+    color: "var(--color-signage)",
+    description: "Mounted For-Sale / For-Rent signage at the property.",
   },
 };
 

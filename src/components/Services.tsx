@@ -61,6 +61,30 @@ const services: Service[] = [
     badge: "TK",
     icon: <IconDroplet />,
   },
+  {
+    slug: "photos",
+    title: "Property Photography",
+    tagline: "PH",
+    description:
+      "Wide-angle, professionally-lit listing photography for sales and rentals. Edited and delivered the same day so your listing goes live without a wait.",
+    whenNeeded: "Before publishing the listing",
+    validity: "Same-day delivery",
+    colorVar: "var(--color-photos)",
+    badge: "PH",
+    icon: <IconCamera />,
+  },
+  {
+    slug: "signage",
+    title: "On-site Signage",
+    tagline: "SG",
+    description:
+      "We deliver and mount For-Sale or For-Rent signage at the property, branded with your agency. Pickup and removal handled when the listing closes.",
+    whenNeeded: "Day the listing goes live",
+    validity: "Removed when the listing closes",
+    colorVar: "var(--color-signage)",
+    badge: "SG",
+    icon: <IconSign />,
+  },
 ];
 
 export default function Services() {
@@ -168,6 +192,22 @@ function IconDroplet() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5S12 2 12 2 9 6 7 9.5 4 13 4 15a7 7 0 0 0 8 7z" />
+    </svg>
+  );
+}
+function IconCamera() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+function IconSign() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 2v20" />
+      <path d="M5 6h14l-2 4 2 4H5z" />
     </svg>
   );
 }

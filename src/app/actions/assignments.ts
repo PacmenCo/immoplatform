@@ -246,7 +246,7 @@ const futureDateSchema = z
       today.setHours(0, 0, 0, 0);
       return d >= today;
     },
-    "Preferred date can't be in the past.",
+    "Planned date can't be in the past.",
   );
 
 // ─── Create ────────────────────────────────────────────────────────

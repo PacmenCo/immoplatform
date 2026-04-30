@@ -73,6 +73,34 @@ const detail: Record<
     regulation: "VLAREM II periodic inspection requirements",
     who: "Homeowners and agents with heating-oil tanks on property",
   },
+  photos: {
+    hero: "Listing photography that sells faster.",
+    body:
+      "Professional listing photography for residential and commercial properties — wide-angle shots, balanced lighting, and a delivery turnaround that matches the pace of your listing pipeline.",
+    bullets: [
+      "Wide-angle interior + exterior coverage",
+      "Edited, listing-ready JPEGs delivered same day",
+      "Optional drone shots for villas and large properties",
+      "Bundled into your existing assignment workflow",
+    ],
+    turnaround: "Same day delivery",
+    regulation: "—",
+    who: "Agents listing residential or commercial properties",
+  },
+  signage: {
+    hero: "On-site signage, mounted and ready.",
+    body:
+      "We deliver and install For-Sale and For-Rent signage at the property, photographed once mounted so your listing goes live the same day as the inspection.",
+    bullets: [
+      "Standard A-frame and post-mounted signage",
+      "Branded with your agency's colours and contact info",
+      "Installation photo for your records",
+      "Pickup + removal at the end of the listing",
+    ],
+    turnaround: "Same day installation",
+    regulation: "—",
+    who: "Agents needing on-site presence at the property",
+  },
 };
 
 export function generateStaticParams() {

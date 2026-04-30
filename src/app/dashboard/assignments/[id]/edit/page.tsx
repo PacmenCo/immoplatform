@@ -453,15 +453,20 @@ export default async function AssignmentPage({
             </Card>
           </div>
 
-          <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start min-w-0">
-            <Card>
+          {/* `lg:mt-8` compensates for the AssignmentForm's internal `p-8`
+              top-padding so the aside's first card aligns with the Property
+              card across the column gap. Margin (not padding) keeps the
+              sticky offset clean — when the aside sticks at top-20, there's
+              no extra empty space above the first card. */}
+          <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start min-w-0 lg:mt-8">
+            <Card className="lg:min-h-[391px]">
               <CardHeader>
                 <CardTitle>Scheduling</CardTitle>
               </CardHeader>
               <CardBody className="space-y-4 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-[var(--color-ink-muted)]">
-                    Preferred date
+                    Planned date
                   </span>
                   <span className="font-medium text-[var(--color-ink)] tabular-nums">
                     {assignment.preferredDate?.toISOString().slice(0, 10) ?? "—"}

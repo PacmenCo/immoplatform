@@ -369,47 +369,6 @@ export function AssignmentForm({
                 </div>
               );
             })}
-            {[
-              { key: "photos",  label: "Photos",  short: "PH",  color: "#8b5cf6", description: "Professional property photography." },
-              { key: "signage", label: "Signage", short: "SG",  color: "#14b8a6", description: "On-site signage installation." },
-            ].map((svc) => (
-              <div key={svc.key} className="group/svc space-y-3 opacity-60">
-                <label
-                  className="relative flex cursor-not-allowed items-start gap-3 rounded-[var(--radius-md)] border bg-[var(--color-bg)] p-4"
-                  style={{
-                    borderColor: "var(--color-border)",
-                    borderLeftWidth: "4px",
-                    borderLeftColor: svc.color,
-                  }}
-                  aria-disabled="true"
-                >
-                  <input
-                    type="checkbox"
-                    disabled
-                    className="mt-0.5 h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-brand)]"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className="inline-flex h-5 items-center justify-center rounded px-1.5 text-[10px] font-bold tracking-wider text-white"
-                        style={{ backgroundColor: svc.color }}
-                      >
-                        {svc.short}
-                      </span>
-                      <span className="text-sm font-semibold text-[var(--color-ink)]">
-                        {svc.label}
-                      </span>
-                      <span className="ml-auto rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
-                        Coming soon
-                      </span>
-                    </div>
-                    <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-ink-soft)]">
-                      {svc.description}
-                    </p>
-                  </div>
-                </label>
-              </div>
-            ))}
           </div>
         </CardBody>
       </Card>
@@ -644,7 +603,7 @@ export function AssignmentForm({
         </CardHeader>
         <CardBody className="grid gap-5 sm:grid-cols-2">
           <Field
-            label="Preferred date"
+            label="Planned date"
             id="preferred-date"
             hint="We confirm within 24 hours by email."
           >
@@ -743,7 +702,7 @@ export function AssignmentForm({
               <Field
                 label="Internal calendar date"
                 id="calendar-date"
-                hint="Overrides the preferred date when pushing to calendars. Customer's date stays untouched."
+                hint="Overrides the planned date when pushing to calendars. Customer's date stays untouched."
               >
                 <Input
                   id="calendar-date"

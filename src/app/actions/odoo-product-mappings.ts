@@ -16,7 +16,14 @@ import { withSession, type ActionResult } from "./_types";
  * "default pricelist" tier 2. Per-team rows are tier 1.
  */
 
-const KNOWN_SERVICE_KEYS = new Set(["asbestos", "epc", "electrical", "fuel"]);
+const KNOWN_SERVICE_KEYS = new Set([
+  "asbestos",
+  "epc",
+  "electrical",
+  "fuel",
+  "photos",
+  "signage",
+]);
 
 /**
  * Property-type values valid on `Assignment.propertyType`. v2's

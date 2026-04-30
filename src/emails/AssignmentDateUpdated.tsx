@@ -1,5 +1,5 @@
 /**
- * Assignment-date-updated email. Sent when preferred date changes.
+ * Assignment-date-updated email. Sent when the planned date changes.
  * Platform parity: AssignmentDateUpdated.
  */
 
@@ -33,11 +33,11 @@ export default function AssignmentDateUpdated(
   return (
     <EmailLayout
       preview={`Date changed on ${props.reference}`}
-      title="Preferred date changed"
+      title="Planned date changed"
     >
       <P>Hi {props.recipientName},</P>
       <P>
-        The preferred date for <strong>{props.reference}</strong> (
+        The planned date for <strong>{props.reference}</strong> (
         {addressLine(props)}) has changed.
       </P>
       <P>

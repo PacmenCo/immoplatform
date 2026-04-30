@@ -363,6 +363,18 @@ async function main() {
       description: "Periodic inspection for above-ground and buried fuel tanks.",
       unitPrice: 13500,
     },
+    {
+      key: "photos", label: "Property Photography", short: "PH",
+      color: "var(--color-photos)",
+      description: "Professional listing photography for sales and rentals.",
+      unitPrice: 15000, // €150 — placeholder; per-team overrides expected
+    },
+    {
+      key: "signage", label: "On-site Signage", short: "SG",
+      color: "var(--color-signage)",
+      description: "Mounted For-Sale / For-Rent signage at the property.",
+      unitPrice: 7500, // €75 — placeholder; per-team overrides expected
+    },
   ];
   for (const s of services) {
     await prisma.service.upsert({
