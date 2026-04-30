@@ -171,47 +171,6 @@ export function AssignmentForm({
     "office" | "other"
   >(initial?.keyPickupLocationType ?? "office");
 
-  // Services + per-service freelancer state. UI-only: drives the new
-  // "Assigned" section so each picked service can carry its own freelancer.
-  // Posts hidden `freelancerId` (lead freelancer = first non-empty assignment)
-  // for backwards-compat with the current server action; per-service values
-  // post as `freelancer_<serviceKey>` and are silently ignored until the DB
-  // column lands.
-  const [selectedServiceKeys, setSelectedServiceKeys] = useState<string[]>(
-    initial?.services ?? [],
-  );
-  const [freelancerByService, setFreelancerByService] = useState<
-    Record<string, string>
-  >(() => {
-    const seed = initial?.freelancerId ?? "";
-    const map: Record<string, string> = {};
-    for (const k of initial?.services ?? []) map[k] = seed;
-    return map;
-  });
-  function toggleService(key: string, checked: boolean) {
-    setSelectedServiceKeys((prev) =>
-      checked ? Array.from(new Set([...prev, key])) : prev.filter((k) => k !== key),
-    );
-    if (!checked) {
-      setFreelancerByService((prev) => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
-    }
-  }
-  function setFreelancerForService(serviceKey: string, freelancerId: string) {
-    setFreelancerByService((prev) => ({ ...prev, [serviceKey]: freelancerId }));
-  }
-  function applyFreelancerToAll(freelancerId: string) {
-    setFreelancerByService(() => {
-      const map: Record<string, string> = {};
-      for (const k of selectedServiceKeys) map[k] = freelancerId;
-      return map;
-    });
-  }
-  const leadFreelancerId =
-    selectedServiceKeys.map((k) => freelancerByService[k]).find(Boolean) ?? "";
 
   // Create-time supporting files. Only ever populated when the form is in
   // create mode and the caller can upload (canUploadFiles true). Reusing
@@ -380,7 +339,6 @@ export function AssignmentForm({
                       type="checkbox"
                       name={`service_${svc.key}`}
                       defaultChecked={initial?.services.includes(svc.key) ?? false}
-                      onChange={(e) => toggleService(svc.key, e.target.checked)}
                       className="peer mt-0.5 h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-brand)]"
                     />
                     <div className="flex-1 min-w-0">
@@ -532,7 +490,7 @@ export function AssignmentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Agency contact</CardTitle>
+          <CardTitle>Contact person</CardTitle>
           <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
             The realtor or agency person the inspector should contact. Shown on
             the calendar event under "Makelaar".
@@ -719,127 +677,25 @@ export function AssignmentForm({
           </div>
           {canSetFreelancer && freelancers && (
             <div className="sm:col-span-2">
-              <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-4">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--color-ink)]">
-                      Assigned
-                    </p>
-                    <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
-                      {selectedServiceKeys.length === 0
-                        ? "Pick services first to assign freelancers."
-                        : selectedServiceKeys.length === 1
-                          ? "Choose the inspector for this service."
-                          : "Pick a freelancer for each service. They can be the same person or different."}
-                    </p>
-                  </div>
-                  {selectedServiceKeys.length > 1 && (
-                    <span className="rounded-full bg-[var(--color-bg-muted)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
-                      {selectedServiceKeys.length} services
-                    </span>
-                  )}
-                </div>
-
-                {/* "Same person for all" shortcut — only relevant when 2+ services. */}
-                {selectedServiceKeys.length > 1 && (
-                  <label className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-[var(--color-bg-muted)] px-3 py-2">
-                    <span className="text-xs text-[var(--color-ink-soft)]">
-                      Same person for every service?
-                    </span>
-                    <Select
-                      aria-label="Apply one freelancer to all services"
-                      value=""
-                      onChange={(e) => {
-                        if (e.currentTarget.value) {
-                          applyFreelancerToAll(e.currentTarget.value);
-                          e.currentTarget.value = "";
-                        }
-                      }}
-                      className="!h-8 !text-xs flex-1 min-w-[200px]"
-                    >
-                      <option value="">— Pick to apply to all —</option>
-                      {freelancers.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.firstName} {f.lastName}
-                          {f.region ? ` · ${f.region}` : ""}
-                        </option>
-                      ))}
-                    </Select>
-                  </label>
-                )}
-
-                {/* Per-service rows. Empty state when no services are picked. */}
-                {selectedServiceKeys.length === 0 ? (
-                  <div className="mt-4 rounded-md border border-dashed border-[var(--color-border)] py-6 text-center">
-                    <p className="text-sm text-[var(--color-ink-muted)]">
-                      No services selected yet.
-                    </p>
-                    <p className="mt-0.5 text-xs text-[var(--color-ink-faint)]">
-                      Tick a service above and an assignment row will appear here.
-                    </p>
-                  </div>
-                ) : (
-                  <ul className="mt-4 space-y-2">
-                    {selectedServiceKeys.map((svcKey) => {
-                      const svc = services.find((s) => s.key === svcKey);
-                      if (!svc) return null;
-                      const value = freelancerByService[svcKey] ?? "";
-                      const assigned = freelancers.find((f) => f.id === value);
-                      return (
-                        <li
-                          key={svcKey}
-                          className="flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] border bg-[var(--color-bg)] p-3"
-                          style={{
-                            borderColor: "var(--color-border)",
-                            borderLeftWidth: "4px",
-                            borderLeftColor: svc.color,
-                          }}
-                        >
-                          <span
-                            className="inline-flex h-6 shrink-0 items-center justify-center rounded px-2 text-[10px] font-bold tracking-wider text-white"
-                            style={{ backgroundColor: svc.color }}
-                            title={svc.label}
-                          >
-                            {svc.short}
-                          </span>
-                          <span className="hidden text-sm font-medium text-[var(--color-ink)] sm:inline">
-                            {svc.label}
-                          </span>
-                          <div className="flex-1 min-w-[200px]">
-                            <Select
-                              aria-label={`Freelancer for ${svc.label}`}
-                              name={`freelancer_${svc.key}`}
-                              value={value}
-                              onChange={(e) =>
-                                setFreelancerForService(svc.key, e.currentTarget.value)
-                              }
-                              className="!h-9"
-                            >
-                              <option value="">— Unassigned —</option>
-                              {freelancers.map((f) => (
-                                <option key={f.id} value={f.id}>
-                                  {f.firstName} {f.lastName}
-                                  {f.region ? ` · ${f.region}` : ""}
-                                </option>
-                              ))}
-                            </Select>
-                          </div>
-                          {!assigned && (
-                            <span className="text-[10px] uppercase tracking-wider text-[var(--color-ink-faint)]">
-                              Unassigned
-                            </span>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-
-                {/* Lead freelancer for backwards-compat with the current server
-                    action. Posts the first non-empty per-service value, or empty
-                    when nothing is assigned. */}
-                <input type="hidden" name="freelancerId" value={leadFreelancerId} />
-              </div>
+              <Field
+                label="Assign freelancer"
+                id="freelancer-id"
+                hint="Optional — leave as Unassigned to assign later."
+              >
+                <Select
+                  id="freelancer-id"
+                  name="freelancerId"
+                  defaultValue={initial?.freelancerId ?? ""}
+                >
+                  <option value="">— Unassigned —</option>
+                  {freelancers.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.firstName} {f.lastName}
+                      {f.region ? ` · ${f.region}` : ""}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
             </div>
           )}
           {canSetFreelancer && (

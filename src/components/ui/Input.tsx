@@ -111,24 +111,30 @@ export function Field({
   });
 
   return (
-    <div className="flex flex-col gap-2">
+    // `mt-auto` on the input wrapper aligns inputs at the row's bottom edge
+    // when sibling Fields share a grid row but have different label/hint
+    // heights (e.g. one-line vs two-line hints). In non-grid / equal-height
+    // contexts there's no extra space, so mt-auto is a no-op.
+    <div className="flex h-full flex-col gap-2">
       <Label htmlFor={id} hint={hint} hintId={hintId} required={required}>
         {label}
       </Label>
-      {enhancedChildren}
-      {error && (
-        <span
-          id={errorId}
-          role="alert"
-          className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-asbestos)]"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 8v4M12 16h.01" />
-          </svg>
-          {error}
-        </span>
-      )}
+      <div className="mt-auto flex flex-col gap-2">
+        {enhancedChildren}
+        {error && (
+          <span
+            id={errorId}
+            role="alert"
+            className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-asbestos)]"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4M12 16h.01" />
+            </svg>
+            {error}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
