@@ -32,19 +32,34 @@ type FileRow = {
 export function AssignmentFilesButton({
   assignmentId,
   reference,
+  fileCount,
 }: {
   assignmentId: string;
   reference: string;
+  /** Number of non-deleted files. When 0, the button renders in a muted
+   *  state but still opens the modal (so users can confirm emptiness). */
+  fileCount?: number;
 }) {
   const [open, setOpen] = useState(false);
+  const isEmpty = fileCount === 0;
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={`Files for ${reference}`}
-        className="grid h-9 w-9 place-items-center rounded text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
+        aria-label={
+          isEmpty
+            ? `No files for ${reference}`
+            : `Files for ${reference}`
+        }
+        title={isEmpty ? "No files uploaded yet" : undefined}
+        className={
+          "grid h-9 w-9 place-items-center rounded transition-colors " +
+          (isEmpty
+            ? "text-[var(--color-ink-faint)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink-muted)]"
+            : "text-[var(--color-ink-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]")
+        }
       >
         <PaperclipIcon />
       </button>

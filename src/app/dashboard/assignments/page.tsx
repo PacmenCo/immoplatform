@@ -251,6 +251,7 @@ export default async function AssignmentsList({
       team: { select: { id: true, name: true } },
       freelancer: { select: { id: true, firstName: true, lastName: true } },
       services: { select: { serviceKey: true } },
+      _count: { select: { files: { where: { deletedAt: null } } } },
     },
     skip: (page - 1) * PAGE_SIZE,
     take: PAGE_SIZE,
@@ -401,7 +402,16 @@ export default async function AssignmentsList({
                           </div>
                         </td>
                         <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-sm text-[var(--color-ink-soft)]">
-                          {a.team?.name ?? "—"}
+                          {a.team ? (
+                            <Link
+                              href={`/dashboard/teams/${a.team.id}`}
+                              className="hover:text-[var(--color-ink)] hover:underline"
+                            >
+                              {a.team.name}
+                            </Link>
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td className="hidden md:table-cell px-6 py-3">
                           {a.freelancer ? (
@@ -451,6 +461,7 @@ export default async function AssignmentsList({
                           <AssignmentFilesButton
                             assignmentId={a.id}
                             reference={a.reference}
+                            fileCount={a._count.files}
                           />
                         </td>
                       </tr>

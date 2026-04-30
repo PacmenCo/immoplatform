@@ -8,7 +8,13 @@ import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <>
+    <div
+      className="contents"
+      style={{
+        fontFamily:
+          "var(--font-proxima), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      }}
+    >
       <Nav />
       <main className="flex-1">
         <Hero />
@@ -18,6 +24,6 @@ export default function Home() {
         <CTA />
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

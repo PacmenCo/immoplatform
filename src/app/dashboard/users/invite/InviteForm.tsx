@@ -71,6 +71,10 @@ export function InviteForm({
   // list (realtors can't be handed a teamId they don't own via URL).
   const seedTeamId =
     initialTeamId && teams.some((t) => t.id === initialTeamId) ? initialTeamId : "";
+  // When the invite was launched from a team page (?teamId=…), the team is
+  // locked — the user explicitly chose this team by being there. Otherwise
+  // the picker is free.
+  const teamLocked = !!seedTeamId;
   const [teamId, setTeamId] = useState<string>(seedTeamId);
   const [teamRole, setTeamRole] = useState<"owner" | "member">("member");
   const [email, setEmail] = useState<string>("");
@@ -224,9 +228,11 @@ export function InviteForm({
           {showTeam && (
             <Card>
               <CardHeader>
-                <CardTitle>Team (optional)</CardTitle>
+                <CardTitle>{teamLocked ? "Team" : "Team (optional)"}</CardTitle>
                 <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                  {role === "realtor"
+                  {teamLocked
+                    ? `Inviting into ${selectedTeam?.name ?? "this team"}. Open the invite from the Users page if you need to pick a different team.`
+                    : role === "realtor"
                     ? "Attach this realtor to an agency team."
                     : "Attach this freelancer to a team they regularly work with."}
                 </p>
@@ -241,6 +247,7 @@ export function InviteForm({
                   placeholder="Search a team…"
                   searchPlaceholder="Type a team name or city…"
                   clearOptionLabel="No team (optional)"
+                  disabled={teamLocked}
                   options={teams.map((t) => ({
                     value: t.id,
                     label: t.name,

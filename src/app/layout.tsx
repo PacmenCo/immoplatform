@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import { Geist, Geist_Mono, Fraunces, Montserrat } from "next/font/google";
 import "./globals.css";
 import { SkipLink } from "@/components/ui/SkipLink";
 import { ThemeScript } from "@/components/theme/ThemeScript";
@@ -21,6 +21,16 @@ const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
   axes: ["opsz"],
+});
+
+// Homepage typeface. Proxima Nova is the brand target but it's a paid Adobe
+// licence — Montserrat is the closest open-source stand-in and is what we
+// ship until the licence is procured. To swap: replace this loader with the
+// licensed Proxima Nova @font-face, keep the `--font-proxima` variable name.
+const proxima = Montserrat({
+  variable: "--font-proxima",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -70,7 +80,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${proxima.variable} h-full antialiased`}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
