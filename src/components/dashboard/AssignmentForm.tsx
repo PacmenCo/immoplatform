@@ -90,7 +90,6 @@ type Props = {
   ) => Promise<ActionResult>;
   initial?: AssignmentFormInitial;
   submitLabel?: string;
-  cancelHref: string;
   /** Render admin/staff-only fields (discount editor). */
   canSetDiscount?: boolean;
   /** Render the freelancer picker — admin/staff only (Platform parity). */
@@ -143,7 +142,6 @@ export function AssignmentForm({
   action,
   initial,
   submitLabel,
-  cancelHref,
   canSetDiscount,
   canSetFreelancer,
   freelancers,
@@ -234,7 +232,6 @@ export function AssignmentForm({
       {loadedAt && !readOnly && (
         <input type="hidden" name="loaded-at" value={loadedAt} />
       )}
-      {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
 
       <Card>
         <CardHeader>
@@ -862,10 +859,30 @@ export function AssignmentForm({
             <p className="text-xs text-[var(--color-ink-muted)]">
               <span aria-hidden className="text-[var(--color-asbestos)]">*</span> Required
             </p>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="md" href={cancelHref}>
-                Cancel
-              </Button>
+            <div className="flex shrink-0 items-center gap-3">
+              {state && !state.ok && (
+                <p
+                  role="alert"
+                  className="flex min-w-0 items-center gap-1.5 rounded-md bg-[var(--color-asbestos)] px-3 py-2 text-sm font-medium text-white shadow-sm"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                    className="shrink-0"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4M12 16h.01" />
+                  </svg>
+                  <span className="truncate">{state.error}</span>
+                </p>
+              )}
               <Button type="submit" size="md" loading={pending}>
                 {submitCopy}
               </Button>

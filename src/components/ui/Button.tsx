@@ -43,12 +43,18 @@ const SPINNER_PX: Record<Size, number> = { sm: 12, md: 14, lg: 18 };
 
 export function Button(props: ButtonAsButton | ButtonAsLink) {
   const { variant = "primary", size = "md", loading = false, className, children, ...rest } = props;
-  const cls = cn(base, variants[variant], sizes[size], loading && "cursor-wait", className);
+  const cls = cn(base, "relative", variants[variant], sizes[size], loading && "cursor-wait", className);
 
+  // Render children invisibly while loading so the button width stays exactly
+  // the same as its idle state — overlay the spinner on top of the reserved
+  // space. Without this trick the spinner+text combo grows the button by the
+  // spinner's width on click.
   const content = loading ? (
     <>
-      <Spinner size={SPINNER_PX[size]} />
-      <span className="opacity-80">{children}</span>
+      <span className="invisible">{children}</span>
+      <span className="absolute inset-0 flex items-center justify-center">
+        <Spinner size={SPINNER_PX[size]} />
+      </span>
     </>
   ) : (
     children

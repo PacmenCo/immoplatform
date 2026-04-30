@@ -341,7 +341,6 @@ export default async function AssignmentPage({
                 services={services}
                 action={boundUpdate}
                 initial={initial}
-                cancelHref="/dashboard/assignments"
                 canSetDiscount={discountEditor}
                 canSetFreelancer={canFreelancer}
                 freelancers={freelancers}

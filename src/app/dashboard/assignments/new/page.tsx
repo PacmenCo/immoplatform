@@ -55,7 +55,6 @@ export default async function NewAssignmentPage() {
       <AssignmentForm
         services={services}
         action={createAssignment}
-        cancelHref="/dashboard/assignments"
         canSetDiscount={canSetDiscount(session)}
         canSetFreelancer={canFreelancer}
         canUploadFiles={canUploadFiles}
