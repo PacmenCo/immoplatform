@@ -1,38 +1,26 @@
 import { defineRouting } from "next-intl/routing";
 
-// URL segments stay short ("/nl") for ergonomics; internal locale IDs are
-// region-tagged ("nl-BE") so copy can lean Flemish and a future "fr-BE" /
-// "fr-FR" split slots in without a URL migration. Add new locales here +
-// drop a sibling messages/<id>/ directory; staleness check enforces the rest.
+// URLs use the full locale ID as the segment: /nl-BE/... and /en/....
+//
+// We previously used a `prefixes: { "nl-BE": "/nl", en: "/en" }` mapping for
+// shorter URLs, but Next 16's proxy runtime mis-resolved the prefix→locale
+// rewrite — `/nl` would 307-redirect to `https://immoplatform.be:3000/nl/nl-BE`
+// (port leak + doubled path) instead of internally rendering. Falling back to
+// locale-as-prefix is what works on Next 16 + next-intl 4.x today; revisit if
+// the upstream issue is fixed.
 export const routing = defineRouting({
   locales: ["en", "nl-BE"] as const,
   defaultLocale: "nl-BE",
-  localePrefix: {
-    mode: "always",
-    prefixes: {
-      en: "/en",
-      "nl-BE": "/nl",
-    },
-  },
+  localePrefix: "always",
   // First-visit negotiation: read Accept-Language, persist via NEXT_LOCALE
-  // cookie, redirect on subsequent loads. Belgian visitors land on /nl,
-  // English browsers on /en, returning visitors keep their last choice.
+  // cookie, redirect on subsequent loads.
   localeDetection: true,
 });
 
 export type Locale = (typeof routing.locales)[number];
 
 // Tiny accessor so call-sites (sitemap, hreflang helper, future locale-aware
-// link builders) don't reach into the `localePrefix.prefixes` shape directly.
-// Adding a locale here = updating `defineRouting` above; no other site needs to
-// know the URL segment mapping.
-//
-// next-intl's resolved type for `localePrefix` is the open union
-// `LocalePrefixMode | LocalePrefixConfigVerbose<...>` with `prefixes` typed as
-// `Partial<Record<Locale, string>>`. We always pass a verbose `{ mode, prefixes }`
-// object with every locale present, so a narrow cast + `?? "/" + locale` fallback
-// keeps this honest without forcing every caller to widen.
+// link builders) don't reach into routing internals directly. URL = locale id.
 export function urlPrefixFor(locale: Locale): string {
-  const lp = routing.localePrefix as { prefixes?: Partial<Record<Locale, string>> };
-  return lp.prefixes?.[locale] ?? `/${locale}`;
+  return `/${locale}`;
 }

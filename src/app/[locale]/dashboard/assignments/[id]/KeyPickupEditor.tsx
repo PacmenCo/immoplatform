@@ -143,16 +143,20 @@ export function KeyPickupEditor({ assignmentId, initial, canEdit }: Props) {
       ? saved.address.trim()
       : null;
 
+  // Required-with-address is the high-value state: dedicate the second line
+  // to the full (wrapped) address so the inspector can read it without
+  // hovering. Office / Not-required are quieter — same layout, lighter ink.
+  const valueClass = saved.requires
+    ? "mt-0.5 text-sm text-[var(--color-ink)]"
+    : "mt-0.5 text-sm text-[var(--color-ink-soft)]";
+
   if (!canEdit) {
     return (
       <div>
-        <p className="text-[var(--color-ink-muted)] whitespace-nowrap">{t("label")}</p>
-        <p
-          className="mt-0.5 font-medium text-[var(--color-ink)] line-clamp-2"
-          title={fullAddress ?? undefined}
-        >
-          {summary}
+        <p className="text-xs uppercase tracking-wide text-[var(--color-ink-muted)]">
+          {t("label")}
         </p>
+        <p className={valueClass}>{summary}</p>
       </div>
     );
   }
@@ -164,16 +168,15 @@ export function KeyPickupEditor({ assignmentId, initial, canEdit }: Props) {
         onClick={openEditor}
         className="group block w-full rounded-md py-1 -my-1 -mx-2 px-2 text-left transition-colors hover:bg-[var(--color-bg-alt)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand)]"
       >
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[var(--color-ink-muted)] whitespace-nowrap">{t("label")}</span>
-          <PencilIcon className="text-[var(--color-ink-muted)] opacity-40 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase tracking-wide text-[var(--color-ink-muted)]">
+              {t("label")}
+            </p>
+            <p className={valueClass}>{summary}</p>
+          </div>
+          <PencilIcon className="mt-0.5 shrink-0 text-[var(--color-ink-muted)] opacity-40 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
         </div>
-        <p
-          className="mt-0.5 font-medium text-[var(--color-ink)] line-clamp-2"
-          title={fullAddress ?? undefined}
-        >
-          {summary}
-        </p>
       </button>
     );
   }

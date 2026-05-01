@@ -806,7 +806,7 @@ export function AssignmentForm({
 
       {!readOnly && (
         <div className="fixed inset-x-0 bottom-0 md:left-64 z-30 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
-          <div className="flex items-center justify-between gap-3 px-8 py-4">
+          <div className="flex items-center justify-between gap-3 px-8 py-5">
             <p className="text-xs text-[var(--color-ink-muted)]">
               <span aria-hidden className="text-[var(--color-asbestos)]">*</span> {t("requiredHint")}
             </p>

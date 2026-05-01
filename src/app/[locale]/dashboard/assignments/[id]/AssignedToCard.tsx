@@ -141,7 +141,7 @@ export function AssignedToCard({
   const assignedCount = visibleServices.filter((s) => byService[s.key]).length;
 
   return (
-    <div className="-mx-6 border-t border-[var(--color-border)] pt-4">
+    <div className="-mx-6 mt-5 border-t border-[var(--color-border)] pt-4">
       <div className="flex items-start justify-between gap-3 px-6">
         <div>
           <h4 className="text-sm font-semibold text-[var(--color-ink)]">
