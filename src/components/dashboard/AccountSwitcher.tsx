@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useTranslateError } from "@/i18n/error";
 import { switchToAccount } from "@/app/actions/account-switcher";
 
 export type SwitcherAccount = {
@@ -34,6 +35,7 @@ export function AccountSwitcher({
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const t = useTranslations("dashboard.shared.accountSwitcher");
+  const tErr = useTranslateError();
 
   if (accounts.length === 0) return null;
 
@@ -50,7 +52,7 @@ export function AccountSwitcher({
       // a full toast system.
       if (res && !res.ok) {
         // eslint-disable-next-line no-alert
-        alert(t("switchFailed", { error: res.error }));
+        alert(t("switchFailed", { error: tErr(res.error) }));
       } else {
         // Success — full reload to evict any stale React state for the old
         // session. The action's redirect handles routing.
