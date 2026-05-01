@@ -1,10 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea } from "@/components/ui/Input";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { SuccessBanner } from "@/components/ui/SuccessBanner";
+import { useTranslateError } from "@/i18n/error";
 import { submitContactForm } from "@/app/actions/contact";
 import type { ActionResult } from "@/app/actions/_types";
 
@@ -17,6 +19,8 @@ import type { ActionResult } from "@/app/actions/_types";
  * can't accidentally re-submit.
  */
 export function ContactForm() {
+  const t = useTranslations("home.contact.form");
+  const tErr = useTranslateError();
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
     FormData
@@ -25,8 +29,7 @@ export function ContactForm() {
   if (state?.ok) {
     return (
       <SuccessBanner>
-        <strong>Thanks — we got your message.</strong> We&apos;ll get back to
-        you within 4 business hours on weekdays.
+        <strong>{t("successTitle")}</strong> {t("successBody")}
       </SuccessBanner>
     );
   }
@@ -35,27 +38,27 @@ export function ContactForm() {
 
   return (
     <form action={formAction} className="mt-8 space-y-5" noValidate>
-      {state && !state.ok ? <ErrorAlert>{state.error}</ErrorAlert> : null}
+      {state && !state.ok ? <ErrorAlert>{tErr(state.error)}</ErrorAlert> : null}
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Full name" id="name">
+        <Field label={t("fullName")} id="name">
           <Input
             id="name"
             name="name"
             autoComplete="name"
-            placeholder="Jane Mertens"
+            placeholder={t("fullNamePlaceholder")}
             defaultValue={v.name ?? ""}
             required
             maxLength={120}
           />
         </Field>
-        <Field label="Work email" id="email">
+        <Field label={t("email")} id="email">
           <Input
             id="email"
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="you@agency.be"
+            placeholder={t("emailPlaceholder")}
             defaultValue={v.email ?? ""}
             required
             maxLength={255}
@@ -63,38 +66,38 @@ export function ContactForm() {
         </Field>
       </div>
 
-      <Field label="Phone" id="phone" hint="Optional — for faster follow-up.">
+      <Field label={t("phone")} id="phone" hint={t("phoneHint")}>
         <Input
           id="phone"
           name="phone"
           type="tel"
           autoComplete="tel"
-          placeholder="+32 470 12 34 56"
+          placeholder={t("phonePlaceholder")}
           defaultValue={v.phone ?? ""}
           maxLength={40}
         />
       </Field>
 
       <Field
-        label="Subject"
+        label={t("subject")}
         id="subject"
-        hint="Optional — helps us route your request."
+        hint={t("subjectHint")}
       >
         <Input
           id="subject"
           name="subject"
-          placeholder="EPC for an apartment in Antwerp"
+          placeholder={t("subjectPlaceholder")}
           defaultValue={v.subject ?? ""}
           maxLength={200}
         />
       </Field>
 
-      <Field label="Message" id="message">
+      <Field label={t("message")} id="message">
         <Textarea
           id="message"
           name="message"
           rows={6}
-          placeholder="Tell us what you're looking for..."
+          placeholder={t("messagePlaceholder")}
           defaultValue={v.message ?? ""}
           required
           maxLength={4000}
@@ -134,7 +137,7 @@ export function ContactForm() {
         className="w-full sm:w-auto"
         loading={pending}
       >
-        Send message
+        {t("submit")}
       </Button>
     </form>
   );

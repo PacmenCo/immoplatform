@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/Avatar";
 import { IconPlus, IconSearch, IconUserSwap, IconX } from "@/components/ui/Icons";
 import { initials } from "@/lib/format";
+import type { ServiceKey } from "@/lib/mockData";
 import type { EligibleFreelancer } from "./ReassignFreelancerButton";
 
 // UI-only prototype. Per-service freelancer + planned-date assignments are
@@ -45,6 +46,7 @@ export function AssignedToCard({
 }: Props) {
   const t = useTranslations("dashboard.assignments.assignedTo");
   const tShared = useTranslations("dashboard.assignments.shared");
+  const tServices = useTranslations("services");
   // Which services are currently checked on the form. Seeded from the page
   // (so the card paints right on SSR), then kept in sync with the form's
   // checkboxes via the change-listener below.
@@ -183,7 +185,7 @@ export function AssignedToCard({
                         <span
                           className="mt-1 inline-flex h-6 w-12 shrink-0 items-center justify-center rounded px-2 text-[10px] font-bold tracking-wider text-white"
                           style={{ backgroundColor: svc.color }}
-                          title={svc.label}
+                          title={tServices(`${svc.key as ServiceKey}.title`)}
                         >
                           {svc.short}
                         </span>
@@ -217,7 +219,7 @@ export function AssignedToCard({
                         <span
                           className="inline-flex h-6 w-12 shrink-0 items-center justify-center rounded px-2 text-[10px] font-bold tracking-wider text-white"
                           style={{ backgroundColor: svc.color }}
-                          title={svc.label}
+                          title={tServices(`${svc.key as ServiceKey}.title`)}
                         >
                           {svc.short}
                         </span>
@@ -264,7 +266,7 @@ export function AssignedToCard({
                       <div className="flex shrink-0 items-center pr-6">
                         <input
                           type="date"
-                          aria-label={t("plannedDateAria", { service: svc.label })}
+                          aria-label={t("plannedDateAria", { service: tServices(`${svc.key as ServiceKey}.title`) })}
                           value={byDate[svc.key] ?? ""}
                           disabled={!canEdit}
                           onChange={(e) =>
@@ -306,6 +308,7 @@ function FreelancerPicker({
 }) {
   const t = useTranslations("dashboard.assignments.assignedTo");
   const tShared = useTranslations("dashboard.assignments.shared");
+  const tServices = useTranslations("services");
   const [q, setQ] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 

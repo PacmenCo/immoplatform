@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Select } from "@/components/ui/Input";
 import { SearchInput } from "@/components/dashboard/SearchInput";
 import { SearchSelect } from "@/components/ui/SearchSelect";
-import { STATUS_META, STATUS_ORDER, type Status } from "@/lib/mockData";
+import { STATUS_ORDER, type Status } from "@/lib/mockData";
 
 type Team = { id: string; name: string };
 type Freelancer = { id: string; firstName: string; lastName: string };
@@ -46,6 +46,7 @@ export function FiltersBar({
   showReset,
 }: Props) {
   const t = useTranslations("dashboard.assignments.filters");
+  const tStatuses = useTranslations("dashboard.assignments.statuses");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -93,7 +94,7 @@ export function FiltersBar({
             <option value="">{t("allStatuses")}</option>
             {STATUS_ORDER.map((s) => (
               <option key={s} value={s}>
-                {STATUS_META[s].label}
+                {tStatuses(s)}
               </option>
             ))}
           </Select>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 
 export default function RootError({
@@ -10,6 +11,7 @@ export default function RootError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations("common.error");
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -35,22 +37,22 @@ export default function RootError({
           </svg>
         </div>
         <h1 className="mb-2 text-xl font-semibold text-[var(--color-ink)]">
-          Something went wrong
+          {t("title")}
         </h1>
         <p className="mb-6 text-sm text-[var(--color-ink-muted)]">
-          An unexpected error occurred. You can try again, or head back to the homepage.
+          {t("body")}
         </p>
         {error.digest && (
           <p className="mb-6 font-mono text-xs text-[var(--color-ink-faint)]">
-            ref: {error.digest}
+            {t("refLabel")} {error.digest}
           </p>
         )}
         <div className="flex flex-col justify-center gap-2 sm:flex-row">
           <Button variant="primary" onClick={() => reset()}>
-            Try again
+            {t("tryAgain")}
           </Button>
           <Button variant="secondary" href="/">
-            Go home
+            {t("goHome")}
           </Button>
         </div>
       </div>

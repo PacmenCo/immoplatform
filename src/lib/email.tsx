@@ -22,7 +22,17 @@
 import "server-only";
 import * as React from "react";
 import { render } from "@react-email/render";
-import { NextIntlClientProvider } from "next-intl";
+// `IntlProvider` is loaded via dynamic import inside `renderTemplate()` so it
+// never appears in the static module graph. Earlier we tried two static
+// approaches and both broke a real flow:
+//   - `IntlProvider` from `use-intl/react`: pulls `createContext` into the
+//     RSC bundle, crashing any server component that transitively imports
+//     this file (e.g. dashboard pages → server actions → email).
+//   - `NextIntlClientProvider` from `next-intl`: marked with "use client",
+//     so `@react-email/render` (running server-side) can't invoke it as
+//     a function — comment-submit / invite-send / etc. all 500'd.
+// Dynamic import sidesteps both: the client-context module is only resolved
+// inside the render() call path, never at import time.
 import { getTranslations } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 
@@ -325,13 +335,18 @@ async function renderTemplate(
   locale: string,
 ): Promise<{ html: string; text: string }> {
   const messages = await loadEmailMessages(locale);
+  // Dynamic import keeps `IntlProvider`'s React-context dependency out of the
+  // static module graph (see top-of-file note). `use-intl/react`'s provider
+  // is the right tool here: framework-agnostic, plain React-context, and
+  // the email render runs in a render-tree context where context propagates.
+  const { IntlProvider } = await import("use-intl/react");
   const wrapped = (
-    <NextIntlClientProvider
-      locale={locale as Parameters<typeof NextIntlClientProvider>[0]["locale"]}
-      messages={messages as Parameters<typeof NextIntlClientProvider>[0]["messages"]}
+    <IntlProvider
+      locale={locale as Parameters<typeof IntlProvider>[0]["locale"]}
+      messages={messages as Parameters<typeof IntlProvider>[0]["messages"]}
     >
       {element}
-    </NextIntlClientProvider>
+    </IntlProvider>
   );
   const [html, text] = await Promise.all([
     render(wrapped, { pretty: false }),

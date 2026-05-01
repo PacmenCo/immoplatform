@@ -59,7 +59,7 @@ export default async function ServicePage({
                 {svc.short}
               </span>
               <span className="text-sm font-medium text-[var(--color-ink-muted)]">
-                {svc.label}
+                {t("title")}
               </span>
             </div>
             <h1

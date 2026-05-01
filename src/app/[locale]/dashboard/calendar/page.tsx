@@ -106,6 +106,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   const tWeekdays = await getTranslations("dashboard.calendar.weekdays");
   const tMonths = await getTranslations("dashboard.calendar.months");
   const tEvents = await getTranslations("dashboard.calendar.events");
+  const tStatuses = await getTranslations("dashboard.assignments.statuses");
   const weekdayLabels = WEEKDAY_KEYS.map((k) => tWeekdays(k));
   const monthNames = MONTH_KEYS.map((k) => tMonths(k));
 
@@ -251,6 +252,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
             weekdayLabels={weekdayLabels}
             noAssignmentsLabel={tEvents("noAssignments")}
             fallbackShort={tEvents("fallbackShort")}
+            statusLabel={(s) => tStatuses(s)}
           />
         ) : (
           <MonthGrid
@@ -369,6 +371,7 @@ function WeekGrid({
   weekdayLabels,
   noAssignmentsLabel,
   fallbackShort,
+  statusLabel,
 }: {
   rangeStart: Date;
   today: Date;
@@ -378,6 +381,7 @@ function WeekGrid({
   weekdayLabels: string[];
   noAssignmentsLabel: string;
   fallbackShort: string;
+  statusLabel: (s: Status) => string;
 }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(rangeStart, i));
 
@@ -419,6 +423,7 @@ function WeekGrid({
                       servicesByKey={servicesByKey}
                       canEdit={canEdit}
                       fallbackShort={fallbackShort}
+                      statusLabel={statusLabel(e.status as Status)}
                     />
                   ))
                 )}
@@ -475,6 +480,7 @@ function WeekGrid({
                       servicesByKey={servicesByKey}
                       canEdit={canEdit}
                       fallbackShort={fallbackShort}
+                      statusLabel={statusLabel(e.status as Status)}
                     />
                   ))
                 )}
@@ -546,11 +552,13 @@ function WeekEventCard({
   servicesByKey,
   canEdit,
   fallbackShort,
+  statusLabel,
 }: {
   event: CalendarAssignment;
   servicesByKey: Record<string, { key: string; color: string; short: string }>;
   canEdit: (a: CalendarAssignment) => boolean;
   fallbackShort: string;
+  statusLabel: string;
 }) {
   const colors = eventColors(event, servicesByKey, fallbackShort);
   const primaryColor = colors[0].color;
@@ -578,7 +586,7 @@ function WeekEventCard({
             className="shrink-0 rounded px-1 py-[1px] text-[9px] font-semibold uppercase tracking-wide"
             style={{ backgroundColor: meta.bg, color: meta.fg }}
           >
-            {meta.label}
+            {statusLabel}
           </span>
         )}
       </div>

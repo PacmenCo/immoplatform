@@ -30,6 +30,7 @@ type Props = {
  */
 export function StatusPicker({ assignmentId, status, role }: Props) {
   const t = useTranslations("dashboard.assignments.statusPicker");
+  const tStatuses = useTranslations("dashboard.assignments.statuses");
   const tErr = useTranslateError();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
@@ -114,7 +115,7 @@ export function StatusPicker({ assignmentId, status, role }: Props) {
         aria-expanded={open}
         className="inline-flex items-center gap-1 rounded-full border border-transparent hover:border-[var(--color-border-strong)] transition-colors disabled:opacity-60"
       >
-        <Badge bg={meta.bg} fg={meta.fg}>{meta.label}</Badge>
+        <Badge bg={meta.bg} fg={meta.fg}>{tStatuses(status)}</Badge>
         <svg
           aria-hidden
           width="10"
@@ -156,7 +157,7 @@ export function StatusPicker({ assignmentId, status, role }: Props) {
                       className="h-1.5 w-1.5 rounded-full"
                       style={{ backgroundColor: m.fg }}
                     />
-                    <span className="flex-1">{m.label}</span>
+                    <span className="flex-1">{tStatuses(s)}</span>
                     {isCurrent && (
                       <span className="text-[10px] uppercase tracking-wider text-[var(--color-ink-muted)]">
                         {t("current")}

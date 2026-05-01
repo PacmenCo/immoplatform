@@ -1,5 +1,5 @@
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { Card } from "@/components/ui/Card";
 import { BrandName } from "@/components/BrandName";
 import { BrandLogo } from "@/components/BrandLogo";
 
@@ -14,10 +14,14 @@ export function AuthShell({
   children: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  const t = useTranslations("auth.shell");
+  const tFooter = useTranslations("common.footer");
+  const tNav = useTranslations("common.nav");
+
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="flex flex-col justify-between px-8 py-10 sm:px-16">
-        <Link href="/" className="inline-flex items-center" aria-label="immoplatform.be — home">
+        <Link href="/" className="inline-flex items-center" aria-label={tNav("homeAriaLabel")}>
           <BrandLogo className="h-12 w-auto" />
         </Link>
 
@@ -40,7 +44,10 @@ export function AuthShell({
         </main>
 
         <p className="text-xs text-[var(--color-ink-muted)]">
-          © {new Date().getFullYear()} <BrandName />. All rights reserved.
+          {tFooter.rich("copyright", {
+            year: new Date().getFullYear(),
+            brand: () => <BrandName />,
+          })}
         </p>
       </div>
 
@@ -52,7 +59,7 @@ export function AuthShell({
         <div className="relative flex h-full flex-col justify-between p-12 text-[var(--color-on-brand)]">
           <div className="inline-flex items-center gap-2 self-start rounded-full border border-[var(--color-on-brand)]/15 bg-[var(--color-on-brand)]/5 px-3 py-1 text-xs font-medium uppercase tracking-wider opacity-80">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-epc)]" aria-hidden />
-            Belgian real-estate certifications
+            {t("badge")}
           </div>
 
           <div className="max-w-md space-y-4">
@@ -60,11 +67,10 @@ export function AuthShell({
               className="font-semibold leading-[1.1] tracking-tight"
               style={{ fontSize: "clamp(1.875rem, 2.6vw, 2.5rem)" }}
             >
-              One dashboard for every certificate.
+              {t("panelTitle")}
             </h2>
             <p className="text-base leading-relaxed opacity-80">
-              Order, schedule, track, and invoice every inspection &mdash;
-              all from one place.
+              {t("panelBody")}
             </p>
           </div>
 
@@ -74,28 +80,28 @@ export function AuthShell({
                 aria-hidden
                 className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-epc)]"
               />
-              EPC certificates
+              {t("panel.epc")}
             </li>
             <li className="flex items-center gap-2.5">
               <span
                 aria-hidden
                 className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-asbestos)]"
               />
-              Asbestos attests
+              {t("panel.asbestos")}
             </li>
             <li className="flex items-center gap-2.5">
               <span
                 aria-hidden
                 className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-electrical)]"
               />
-              Electrical inspections
+              {t("panel.electrical")}
             </li>
             <li className="flex items-center gap-2.5">
               <span
                 aria-hidden
                 className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-fuel)]"
               />
-              Fuel-tank checks
+              {t("panel.fuel")}
             </li>
           </ul>
         </div>

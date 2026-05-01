@@ -217,7 +217,26 @@
     },
     "form": {
       "heading": "Send us a message",
-      "subheading": "We reply within 4 business hours on weekdays."
+      "subheading": "We reply within 4 business hours on weekdays.",
+      "fullName": "Full name",
+      "fullNamePlaceholder": "Jane Mertens",
+      "email": "Work email",
+      "emailPlaceholder": "you@agency.be",
+      "phone": "Phone",
+      "phoneHint": "Optional — for faster follow-up.",
+      "phonePlaceholder": "+32 470 12 34 56",
+      "subject": "Subject",
+      "subjectHint": "Optional — helps us route your request.",
+      "subjectPlaceholder": "EPC for an apartment in Antwerp",
+      "message": "Message",
+      "messagePlaceholder": "Tell us what you're looking for...",
+      "submit": "Send message",
+      "successTitle": "Thanks — we got your message.",
+      "successBody": "We'll get back to you within 4 business hours on weekdays."
     }
+  },
+  "metadata": {
+    "tagline": "One platform for every real-estate certificate",
+    "description": "Energy Performance Certificates, Asbestos Inventory Attests, Electrical Inspections and Fuel Tank Checks for Belgian real-estate agents. One dashboard, one invoice, one team of experts."
   }
 }

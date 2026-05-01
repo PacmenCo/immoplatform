@@ -1,115 +1,58 @@
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 
-type Service = {
-  slug: string;
-  title: string;
-  tagline: string;
-  description: string;
-  whenNeeded: string;
-  validity: string;
+type ServiceMeta = {
+  slug: "epc" | "asbestos" | "electrical" | "fuel" | "photos" | "signage";
   colorVar: string;
-  badge: string;
   icon: React.ReactNode;
 };
 
-const services: Service[] = [
-  {
-    slug: "epc",
-    title: "Energy Performance Certificate",
-    tagline: "EPC",
-    description:
-      "Energy-performance rating shown on the property listing. The certificate displays the energy class (A → G) and must be available before the property is advertised for sale or rent.",
-    whenNeeded: "Before advertising a sale or rental",
-    validity: "10 years",
-    colorVar: "var(--color-epc)",
-    badge: "EPC",
-    icon: <IconLeaf />,
-  },
-  {
-    slug: "asbestos",
-    title: "Asbestos Inventory Attest",
-    tagline: "AIV",
-    description:
-      "Mandatory in Flanders since November 2022 for the sale of any residential property built before 2001. Issued by an OVAM-certified inspector after a non-destructive site inventory.",
-    whenNeeded: "Sale of pre-2001 buildings (Flanders)",
-    validity: "Up to 10 years",
-    colorVar: "var(--color-asbestos)",
-    badge: "AIV",
-    icon: <IconShield />,
-  },
-  {
-    slug: "electrical",
-    title: "Electrical Inspection",
-    tagline: "EK",
-    description:
-      "AREI/RGIE installation check covering the safety of the electrical system. Required at every residential sale and after major renovations of the installation.",
-    whenNeeded: "On every residential sale",
-    validity: "25 years if approved · 18 months to remediate if not",
-    colorVar: "var(--color-electrical)",
-    badge: "EK",
-    icon: <IconBolt />,
-  },
-  {
-    slug: "fuel",
-    title: "Fuel Tank Check",
-    tagline: "TK",
-    description:
-      "Periodic inspection of residential heating-oil tanks, above-ground or buried. The certificate confirms the tank meets regional regulations and may continue to be used.",
-    whenNeeded: "Periodic — frequency depends on tank type",
-    validity: "Reissued at each inspection",
-    colorVar: "var(--color-fuel)",
-    badge: "TK",
-    icon: <IconDroplet />,
-  },
-  {
-    slug: "photos",
-    title: "Property Photography",
-    tagline: "PH",
-    description:
-      "Wide-angle, professionally-lit listing photography for sales and rentals. Edited and delivered the same day so your listing goes live without a wait.",
-    whenNeeded: "Before publishing the listing",
-    validity: "Same-day delivery",
-    colorVar: "var(--color-photos)",
-    badge: "PH",
-    icon: <IconCamera />,
-  },
-  {
-    slug: "signage",
-    title: "On-site Signage",
-    tagline: "SG",
-    description:
-      "We deliver and mount For-Sale or For-Rent signage at the property, branded with your agency. Pickup and removal handled when the listing closes.",
-    whenNeeded: "Day the listing goes live",
-    validity: "Removed when the listing closes",
-    colorVar: "var(--color-signage)",
-    badge: "SG",
-    icon: <IconSign />,
-  },
+// Service codes (EPC/AIV/EK/TK/PH/SG) and visual metadata stay in code;
+// titles, taglines, descriptions, when-needed and validity are translated.
+const SERVICE_META: ServiceMeta[] = [
+  { slug: "epc", colorVar: "var(--color-epc)", icon: <IconLeaf /> },
+  { slug: "asbestos", colorVar: "var(--color-asbestos)", icon: <IconShield /> },
+  { slug: "electrical", colorVar: "var(--color-electrical)", icon: <IconBolt /> },
+  { slug: "fuel", colorVar: "var(--color-fuel)", icon: <IconDroplet /> },
+  { slug: "photos", colorVar: "var(--color-photos)", icon: <IconCamera /> },
+  { slug: "signage", colorVar: "var(--color-signage)", icon: <IconSign /> },
 ];
 
-export default function Services() {
+export default async function Services() {
+  const t = await getTranslations("home.services");
+
   return (
     <section id="services" className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
       <div className="mx-auto max-w-[var(--container)] px-6 py-24">
         <div className="max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-            Services
+            {t("eyebrow")}
           </p>
           <h2
             className="mt-3 font-semibold tracking-tight"
             style={{ fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)", lineHeight: 1.1 }}
           >
-            Every certificate a property needs, under one roof.
+            {t("heading")}
           </h2>
           <p className="mt-4 text-[var(--color-ink-soft)] text-lg">
-            Pick one service or bundle all four on the same assignment. One invoice,
-            one point of contact, one dashboard.
+            {t("lead")}
           </p>
         </div>
 
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {services.map((service) => (
-            <ServiceCard key={service.title} service={service} />
+          {SERVICE_META.map((meta) => (
+            <ServiceCard
+              key={meta.slug}
+              meta={meta}
+              title={t(`cards.${meta.slug}.title`)}
+              tagline={t(`cards.${meta.slug}.tagline`)}
+              description={t(`cards.${meta.slug}.description`)}
+              whenNeeded={t(`cards.${meta.slug}.whenNeeded`)}
+              validity={t(`cards.${meta.slug}.validity`)}
+              whenLabel={t("whenLabel")}
+              validityLabel={t("validityLabel")}
+              learnMore={t("learnMore")}
+            />
           ))}
         </div>
       </div>
@@ -117,49 +60,69 @@ export default function Services() {
   );
 }
 
-function ServiceCard({ service }: { service: Service }) {
+function ServiceCard({
+  meta,
+  title,
+  tagline,
+  description,
+  whenNeeded,
+  validity,
+  whenLabel,
+  validityLabel,
+  learnMore,
+}: {
+  meta: ServiceMeta;
+  title: string;
+  tagline: string;
+  description: string;
+  whenNeeded: string;
+  validity: string;
+  whenLabel: string;
+  validityLabel: string;
+  learnMore: string;
+}) {
   return (
     <article
       className="group relative flex flex-col rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-6 transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
-      style={{ borderTopWidth: "3px", borderTopColor: service.colorVar }}
+      style={{ borderTopWidth: "3px", borderTopColor: meta.colorVar }}
     >
       <div
         className="grid h-11 w-11 place-items-center rounded-lg"
-        style={{ backgroundColor: `color-mix(in srgb, ${service.colorVar} 12%, white)`, color: service.colorVar }}
+        style={{ backgroundColor: `color-mix(in srgb, ${meta.colorVar} 12%, white)`, color: meta.colorVar }}
       >
-        {service.icon}
+        {meta.icon}
       </div>
 
-      <p className="mt-5 text-xs font-semibold uppercase tracking-wider" style={{ color: service.colorVar }}>
-        {service.tagline}
+      <p className="mt-5 text-xs font-semibold uppercase tracking-wider" style={{ color: meta.colorVar }}>
+        {tagline}
       </p>
       <h3 className="mt-1 text-lg font-semibold text-[var(--color-ink)]">
-        {service.title}
+        {title}
       </h3>
       <p className="mt-3 text-sm text-[var(--color-ink-soft)]">
-        {service.description}
+        {description}
       </p>
 
       <dl className="mt-5 space-y-2 border-t border-[var(--color-border)] pt-4 text-xs">
         <div>
           <dt className="font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-            When
+            {whenLabel}
           </dt>
-          <dd className="mt-0.5 text-[var(--color-ink-soft)]">{service.whenNeeded}</dd>
+          <dd className="mt-0.5 text-[var(--color-ink-soft)]">{whenNeeded}</dd>
         </div>
         <div>
           <dt className="font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-            Validity
+            {validityLabel}
           </dt>
-          <dd className="mt-0.5 text-[var(--color-ink-soft)]">{service.validity}</dd>
+          <dd className="mt-0.5 text-[var(--color-ink-soft)]">{validity}</dd>
         </div>
       </dl>
 
       <Link
-        href={`/services/${service.slug}`}
+        href={`/services/${meta.slug}`}
         className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-ink)] transition-colors group-hover:text-[var(--color-brand)]"
       >
-        Learn more
+        {learnMore}
         <span className="transition-transform group-hover:translate-x-0.5">→</span>
       </Link>
     </article>

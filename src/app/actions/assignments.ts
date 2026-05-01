@@ -2021,22 +2021,29 @@ export async function postCommentInner(
     const c = await loadUser(a.createdById);
     if (c) commentRecipients.push(c);
   }
+  // Emails are best-effort: a delivery hiccup (or the known render-context
+  // bug for email templates that use `useTranslations()` from inside an RSC-
+  // invoked server action) must not 500 the comment post. Log and move on.
   await Promise.all(
-    commentRecipients.map(async (r) =>
-      notify({
-        to: r,
-        event: "assignment.comment_posted",
-        ...(await commentPostedEmail(
-          {
-            ...ctxFromAssignment(a),
-            recipientName: r.firstName,
-            authorName: fullName(session.user),
-            body: parsed.data.body,
-          },
-          r.locale,
-        )),
-      }),
-    ),
+    commentRecipients.map(async (r) => {
+      try {
+        await notify({
+          to: r,
+          event: "assignment.comment_posted",
+          ...(await commentPostedEmail(
+            {
+              ...ctxFromAssignment(a),
+              recipientName: r.firstName,
+              authorName: fullName(session.user),
+              body: parsed.data.body,
+            },
+            r.locale,
+          )),
+        });
+      } catch (e) {
+        console.error("[email] commentPosted failed:", e);
+      }
+    }),
   );
 
   revalidatePath(`/dashboard/assignments/${parsed.data.assignmentId}`);

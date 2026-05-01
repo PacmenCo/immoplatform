@@ -1,52 +1,56 @@
+import { getTranslations } from "next-intl/server";
 import { TAP_TARGET_LINK } from "@/components/ui/tap-target";
 import { BrandName } from "@/components/BrandName";
 import { BrandLogo } from "@/components/BrandLogo";
 
-const columns = [
-  {
-    title: "Services",
-    links: [
-      { label: "Energy Performance Certificate (EPC)", href: "/services/epc" },
-      { label: "Asbestos Inventory Attest (AIV)", href: "/services/asbestos" },
-      { label: "Electrical Inspection (EK)", href: "/services/electrical" },
-      { label: "Fuel Tank Check (TK)", href: "/services/fuel" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "About", href: "/about" },
-      { label: "Contact", href: "/contact" },
-    ],
-  },
-  {
-    title: "Account",
-    links: [
-      { label: "Login", href: "/login" },
-      { label: "Register", href: "/register" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { label: "Privacy", href: "/legal/privacy" },
-      { label: "Terms", href: "/legal/terms" },
-      { label: "Cookies", href: "/legal/cookies" },
-    ],
-  },
-];
+export default async function Footer() {
+  const tFooter = await getTranslations("common.footer");
+  const tNav = await getTranslations("common.nav");
 
-export default function Footer() {
+  const columns = [
+    {
+      title: tFooter("columns.services.title"),
+      links: [
+        { label: tFooter("columns.services.links.epc"), href: "/services/epc" },
+        { label: tFooter("columns.services.links.asbestos"), href: "/services/asbestos" },
+        { label: tFooter("columns.services.links.electrical"), href: "/services/electrical" },
+        { label: tFooter("columns.services.links.fuel"), href: "/services/fuel" },
+      ],
+    },
+    {
+      title: tFooter("columns.company.title"),
+      links: [
+        { label: tFooter("columns.company.links.about"), href: "/about" },
+        { label: tFooter("columns.company.links.contact"), href: "/contact" },
+      ],
+    },
+    {
+      title: tFooter("columns.account.title"),
+      links: [
+        { label: tFooter("columns.account.links.login"), href: "/login" },
+        { label: tFooter("columns.account.links.register"), href: "/register" },
+      ],
+    },
+    {
+      title: tFooter("columns.legal.title"),
+      links: [
+        { label: tFooter("columns.legal.links.privacy"), href: "/legal/privacy" },
+        { label: tFooter("columns.legal.links.terms"), href: "/legal/terms" },
+        { label: tFooter("columns.legal.links.cookies"), href: "/legal/cookies" },
+      ],
+    },
+  ];
+
   return (
     <footer className="bg-[var(--color-bg)]">
       <div className="mx-auto max-w-[var(--container)] px-6 py-16">
         <div className="grid gap-10 md:grid-cols-5">
           <div className="md:col-span-1">
-            <a href="/" className="inline-flex items-center" aria-label="immoplatform.be — home">
+            <a href="/" className="inline-flex items-center" aria-label={tNav("homeAriaLabel")}>
               <BrandLogo className="h-12 w-auto" />
             </a>
             <p className="mt-4 text-sm text-[var(--color-ink-soft)]">
-              One platform for every real-estate certificate in Belgium.
+              {tFooter("tagline")}
             </p>
           </div>
 
@@ -73,10 +77,13 @@ export default function Footer() {
 
         <div className="mt-16 flex flex-col items-start justify-between gap-4 border-t border-[var(--color-border)] pt-8 sm:flex-row sm:items-center">
           <p className="text-sm text-[var(--color-ink-muted)]">
-            © {new Date().getFullYear()} <BrandName />. All rights reserved.
+            {tFooter.rich("copyright", {
+              year: new Date().getFullYear(),
+              brand: () => <BrandName />,
+            })}
           </p>
           <p className="text-sm text-[var(--color-ink-muted)]">
-            Asbest Experts · EPC Partner · Elec Inspect · Tank Check
+            {tFooter("brandsLine")}
           </p>
         </div>
       </div>

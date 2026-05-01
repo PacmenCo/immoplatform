@@ -1,132 +1,147 @@
 {
   "about": {
     "cta": {
-      "body": "Register your agency and start routing every EPC, asbestos, electrical and fuel-tank check from a single dashboard.",
-      "contact": "Talk to us",
-      "heading": "Four certificates, one workflow.",
-      "register": "Register your agency"
+      "body": "Registreer uw kantoor en stuur voortaan elke EPC, asbest-, elektrische en stookolietankcontrole vanuit één dashboard.",
+      "contact": "Neem contact op",
+      "heading": "Vier certificaten, één werkproces.",
+      "register": "Registreer uw kantoor"
     },
     "hero": {
-      "badgePrefix": "About",
-      "subtitle": "We brought together the four Belgian certification practices our customers were already using — and rebuilt the paperwork around one dashboard. No more juggling three invoices and four inspectors for a single property sale.",
-      "title": "Four specialists, one team."
+      "badgePrefix": "Over ons",
+      "subtitle": "Wij brachten de vier Belgische certificeringspraktijken samen die onze klanten al gebruikten — en bouwden de administratie opnieuw rond één dashboard. Niet langer jongleren met drie facturen en vier deskundigen voor de verkoop van één pand.",
+      "title": "Vier specialisten, één team."
     },
     "timeline": {
-      "heading": "How we got here",
+      "heading": "Hoe we hier geraakt zijn",
       "items": {
         "electrical2018": {
-          "body": "AREI-accredited electrical inspectors bring installation checks into the portfolio, making pre-sale compliance a one-stop service.",
-          "title": "Elec Inspect comes aboard",
+          "body": "AREI-erkende elektrische keurders brengen installatiekeuringen in het portfolio, waardoor pre-verkoopconformiteit een one-stop-dienst wordt.",
+          "title": "Elec Inspect komt erbij",
           "year": "2018"
         },
         "epc2015": {
-          "body": "A dedicated EPC specialist with certified assessors across Flanders and Brussels merges to offer energy certificates under the same roof.",
-          "title": "EPC Partner joins",
+          "body": "Een gespecialiseerde EPC-speler met erkende energiedeskundigen in Vlaanderen en Brussel sluit zich aan om energiecertificaten onder hetzelfde dak aan te bieden.",
+          "title": "EPC Partner sluit aan",
           "year": "2015"
         },
         "founded2011": {
-          "body": "The oldest of the four — started as a two-person asbestos inventory practice in Antwerp and grew into a region-wide operation.",
-          "title": "Asbest Experts founded",
+          "body": "De oudste van de vier — gestart als een tweekoppige asbestinventarispraktijk in Antwerpen en uitgegroeid tot een gewestelijke speler.",
+          "title": "Asbest Experts opgericht",
           "year": "2011"
         },
         "fuel2021": {
-          "body": "The last specialist — certified fuel-tank inspectors — joins, covering above-ground and buried tanks for residential and commercial clients.",
-          "title": "Tank Check completes the team",
+          "body": "De laatste specialist — erkende stookolietankcontroleurs — sluit aan en dekt zowel bovengrondse als ondergrondse tanks voor particuliere en zakelijke klanten.",
+          "title": "Tank Check vervolledigt het team",
           "year": "2021"
         },
         "launch2026": {
-          "body": "Four specialists, one brand, one platform. We open our shared dashboard to every real-estate agency in Belgium.",
-          "title": "immoplatform launches",
+          "body": "Vier specialisten, één merk, één platform. Wij stellen ons gedeelde dashboard open voor elk vastgoedkantoor in België.",
+          "title": "immoplatform gaat live",
           "year": "2026"
         }
       },
-      "subheading": "Fifteen years of independent craft, three acquisitions, and one shared platform."
+      "subheading": "Vijftien jaar onafhankelijk vakwerk, drie overnames en één gedeeld platform."
     },
     "values": {
-      "heading": "What we believe",
+      "heading": "Waar wij in geloven",
       "items": {
         "belgium": {
-          "body": "Built for the regional quirks — Flemish EPC, Brussels electrical, Walloon asbestos. Local rules, national coverage.",
-          "title": "Belgium first"
+          "body": "Gebouwd voor de regionale eigenheden — Vlaamse EPC, Brusselse keuring, Waalse asbestregels. Lokale regels, nationale dekking.",
+          "title": "België eerst"
         },
         "inspectorFriendly": {
-          "body": "Our freelancers get fair rates, clean scheduling and tools that actually help in the field.",
-          "title": "Inspector-friendly"
+          "body": "Onze freelancers krijgen correcte tarieven, een nette planning en hulpmiddelen die op terrein écht helpen.",
+          "title": "Vriendelijk voor deskundigen"
         },
         "oneFile": {
-          "body": "Every certificate, report and invoice lives in the same folder. No email threads, no spreadsheets.",
-          "title": "One file, one truth"
+          "body": "Elk certificaat, rapport en factuur staat in dezelfde map. Geen e-mailketens, geen rekenbladen.",
+          "title": "Eén dossier, één waarheid"
         },
         "receipts": {
-          "body": "Every document is retained for 10 years, indexed and exportable in one click.",
-          "title": "Keep the receipts"
+          "body": "Elk bestand wordt 10 jaar bewaard, geïndexeerd en met één klik exporteerbaar.",
+          "title": "Bewaar de bewijsstukken"
         },
         "specialists": {
-          "body": "Every service is delivered by a certified, accredited inspector — never a generalist.",
-          "title": "Specialists only"
+          "body": "Elke dienst wordt geleverd door een erkende, gecertificeerde deskundige — nooit door een generalist.",
+          "title": "Enkel specialisten"
         },
         "transparent": {
-          "body": "Flat rates, no hidden fees, and real-time status visible to every party on the assignment.",
-          "title": "Transparent by default"
+          "body": "Vaste tarieven, geen verborgen kosten en realtime status zichtbaar voor elke partij in de opdracht.",
+          "title": "Standaard transparant"
         }
       },
-      "subheading": "Six principles that shape the way we build, inspect and invoice."
+      "subheading": "Zes principes die de manier waarop wij bouwen, keuren en factureren bepalen."
     }
   },
   "contact": {
     "form": {
-      "heading": "Send us a message",
-      "subheading": "We reply within 4 business hours on weekdays."
+      "email": "Zakelijk e-mailadres",
+      "emailPlaceholder": "u@kantoor.be",
+      "fullName": "Volledige naam",
+      "fullNamePlaceholder": "Jane Mertens",
+      "heading": "Stuur ons een bericht",
+      "message": "Bericht",
+      "messagePlaceholder": "Vertel ons waar u naar op zoek bent…",
+      "phone": "Telefoon",
+      "phoneHint": "Optioneel — voor een snellere opvolging.",
+      "phonePlaceholder": "+32 470 12 34 56",
+      "subheading": "Wij antwoorden binnen 4 werkuren op weekdagen.",
+      "subject": "Onderwerp",
+      "subjectHint": "Optioneel — helpt ons uw vraag bij de juiste persoon te brengen.",
+      "subjectPlaceholder": "EPC voor een appartement in Antwerpen",
+      "submit": "Bericht verzenden",
+      "successBody": "Wij komen binnen 4 werkuren op weekdagen bij u terug.",
+      "successTitle": "Dank u — we hebben uw bericht goed ontvangen."
     },
     "hero": {
       "badge": "Contact",
-      "subtitle": "Whether you're scoping a new agency account, troubleshooting a delivered file, or just curious about coverage in your province — we'll get back the same business day.",
-      "title": "Talk to a real human. Usually within the hour."
+      "subtitle": "Of u nu een nieuw kantoor-account voorbereidt, een opgeleverd bestand wilt nakijken of gewoon nieuwsgierig bent naar onze dekking in uw provincie — wij komen nog dezelfde werkdag bij u terug.",
+      "title": "Spreek met een echte medewerker. Doorgaans binnen het uur."
     }
   },
   "cta": {
-    "body": "Set up your agency in minutes. First assignment on us.",
-    "contact": "Talk to us",
-    "heading": "Ready to simplify your workflow?",
-    "register": "Register your office"
+    "body": "Uw kantoor is in enkele minuten ingericht. De eerste opdracht bieden wij aan.",
+    "contact": "Neem contact op",
+    "heading": "Klaar om uw werkproces te vereenvoudigen?",
+    "register": "Registreer uw kantoor"
   },
   "hero": {
-    "badge": "4 companies. 1 platform.",
-    "ctaRegister": "Register your office",
-    "ctaSeeServices": "See services",
+    "badge": "4 bedrijven. 1 platform.",
+    "ctaRegister": "Registreer uw kantoor",
+    "ctaSeeServices": "Ontdek onze diensten",
     "preview": {
-      "address": "Rue Belliard 12",
-      "addressDetail": "1040 Brussels · Apartment, 120 m²",
+      "address": "Belliardstraat 12",
+      "addressDetail": "1040 Brussel · Appartement, 120 m²",
       "freelancerLabel": "Freelancer",
       "freelancerName": "Tim De Vries",
       "ref": "ASG-2041",
-      "status": "Delivered",
-      "toastBody": "Signed by owner · just now",
-      "toastTitle": "Certificate sent",
-      "turnaroundLabel": "Turnaround",
-      "turnaroundValue": "4 days"
+      "status": "Geleverd",
+      "toastBody": "Ondertekend door eigenaar · zonet",
+      "toastTitle": "Certificaat verzonden",
+      "turnaroundLabel": "Doorlooptijd",
+      "turnaroundValue": "4 dagen"
     },
-    "subtitle": "Energy Performance Certificates, Asbestos Inventory Attests, Electrical Inspections and Fuel Tank Checks — ordered, tracked and delivered from a single dashboard. Built for real-estate agents in Belgium.",
-    "title": "One platform for every real-estate certificate."
+    "subtitle": "Energieprestatiecertificaten, asbestinventarisattesten, elektrische keuringen en stookolietankcontroles — besteld, opgevolgd en opgeleverd vanuit één dashboard. Gebouwd voor vastgoedmakelaars in België.",
+    "title": "Eén platform voor elk vastgoedcertificaat."
   },
   "howItWorks": {
-    "eyebrow": "How it works",
-    "heading": "From listing to certificate, in three steps.",
+    "eyebrow": "Hoe het werkt",
+    "heading": "Van advertentie tot certificaat, in drie stappen.",
     "steps": {
       "create": {
-        "body": "Add the property address, owner and tenant contacts, and any notes — just like you do today.",
+        "body": "Voeg het pandadres toe, evenals de gegevens van eigenaar en huurder en eventuele opmerkingen — net zoals u dat vandaag doet.",
         "n": "02",
-        "title": "Create an assignment"
+        "title": "Maak een opdracht aan"
       },
       "pick": {
-        "body": "Tick EPC, AIV, EK or TK — one, some or all. We schedule the rest.",
+        "body": "Vink EPC, AIV, EK of TK aan — één, enkele of allemaal. Wij regelen de rest.",
         "n": "03",
-        "title": "Pick the services you need"
+        "title": "Kies de diensten die u nodig heeft"
       },
       "register": {
-        "body": "Create an account for your agency. Invite your colleagues and set your branding preferences.",
+        "body": "Maak een account aan voor uw kantoor. Nodig uw collega's uit en stel uw huisstijlvoorkeuren in.",
         "n": "01",
-        "title": "Register your office"
+        "title": "Registreer uw kantoor"
       }
     }
   },
@@ -134,90 +149,94 @@
     "brands": {
       "asbestos": {
         "name": "Asbest Experts",
-        "service": "Asbestos Inventory Attest (AIV)"
+        "service": "Asbestinventarisattest (AIV)"
       },
       "electrical": {
         "name": "Elec Inspect",
-        "service": "Electrical Inspection (EK)"
+        "service": "Elektrische keuring (EK)"
       },
       "epc": {
         "name": "EPC Partner",
-        "service": "Energy Performance Certificate (EPC)"
+        "service": "Energieprestatiecertificaat (EPC)"
       },
       "fuel": {
         "name": "Tank Check",
-        "service": "Fuel Tank Check (TK)"
+        "service": "Stookolietankcontrole (TK)"
       }
     },
-    "eyebrow": "The story",
-    "heading": "Four specialists. One team.",
-    "lead1": "For years, real-estate agents juggled four different inspectors, four invoices and four inboxes to close a single sale. We brought the best of each discipline together so you don't have to.",
-    "lead2": "One login, one point of contact and one delivery timeline — backed by the same certified experts you already trusted.",
+    "eyebrow": "Het verhaal",
+    "heading": "Vier specialisten. Eén team.",
+    "lead1": "Jarenlang jongleerden vastgoedmakelaars met vier verschillende deskundigen, vier facturen en vier mailboxen om één verkoop af te ronden. Wij hebben het beste van elke discipline samengebracht, zodat u dat niet meer hoeft te doen.",
+    "lead2": "Eén login, één aanspreekpunt en één opleveringsplanning — gedragen door dezelfde gecertificeerde experts die u al vertrouwde.",
     "stats": {
       "oneContact": {
-        "body": "A single account manager per office.",
-        "label": "One contact"
+        "body": "Eén accountmanager per kantoor.",
+        "label": "Eén aanspreekpunt"
       },
       "oneDashboard": {
-        "body": "Track every assignment in real time.",
-        "label": "One dashboard"
+        "body": "Volg elke opdracht in real time op.",
+        "label": "Eén dashboard"
       },
       "oneInvoice": {
-        "body": "All services, one monthly statement.",
-        "label": "One invoice"
+        "body": "Alle diensten, één maandelijks overzicht.",
+        "label": "Eén factuur"
       }
     }
+  },
+  "metadata": {
+    "description": "Energieprestatiecertificaten, asbestinventarisattesten, elektrische keuringen en stookolietankcontroles voor Belgische vastgoedmakelaars. Eén dashboard, één factuur, één team van experts.",
+    "tagline": "Eén platform voor elk vastgoedcertificaat"
   },
   "services": {
     "cards": {
       "asbestos": {
-        "description": "Mandatory in Flanders since November 2022 for the sale of any residential property built before 2001. Issued by an OVAM-certified inspector after a non-destructive site inventory.",
+        "description": "Verplicht in Vlaanderen sinds november 2022 voor de verkoop van elk woongebouw van vóór 2001. Wordt afgeleverd door een door OVAM erkend deskundige na een niet-destructieve plaatsbeschrijving.",
         "tagline": "AIV",
-        "title": "Asbestos Inventory Attest",
-        "validity": "Up to 10 years",
-        "whenNeeded": "Sale of pre-2001 buildings (Flanders)"
+        "title": "Asbestinventarisattest",
+        "validity": "Tot 10 jaar",
+        "whenNeeded": "Verkoop van gebouwen van vóór 2001 (Vlaanderen)"
       },
       "electrical": {
-        "description": "AREI/RGIE installation check covering the safety of the electrical system. Required at every residential sale and after major renovations of the installation.",
+        "description": "AREI/RGIE-keuring van de installatie waarbij de veiligheid van het elektrische systeem wordt nagekeken. Vereist bij elke woningverkoop en na grondige renovaties van de installatie.",
         "tagline": "EK",
-        "title": "Electrical Inspection",
-        "validity": "25 years if approved · 18 months to remediate if not",
-        "whenNeeded": "On every residential sale"
+        "title": "Elektrische keuring",
+        "validity": "25 jaar bij goedkeuring · 18 maanden om in orde te brengen indien niet conform",
+        "whenNeeded": "Bij elke woningverkoop"
       },
       "epc": {
-        "description": "Energy-performance rating shown on the property listing. The certificate displays the energy class (A → G) and must be available before the property is advertised for sale or rent.",
+        "description": "Energieprestatiebeoordeling die op de pandadvertentie wordt getoond. Het certificaat geeft de energieklasse weer (A → G) en moet beschikbaar zijn voordat het pand te koop of te huur wordt aangeboden.",
         "tagline": "EPC",
-        "title": "Energy Performance Certificate",
-        "validity": "10 years",
-        "whenNeeded": "Before advertising a sale or rental"
+        "title": "Energieprestatiecertificaat",
+        "validity": "10 jaar",
+        "whenNeeded": "Vóór publicatie van een verkoop of verhuur"
       },
       "fuel": {
-        "description": "Periodic inspection of residential heating-oil tanks, above-ground or buried. The certificate confirms the tank meets regional regulations and may continue to be used.",
+        "description": "Periodieke controle van residentiële stookolietanks, bovengronds of ondergronds. Het certificaat bevestigt dat de tank voldoet aan de gewestelijke regelgeving en verder mag worden gebruikt.",
         "tagline": "TK",
-        "title": "Fuel Tank Check",
-        "validity": "Reissued at each inspection",
-        "whenNeeded": "Periodic — frequency depends on tank type"
+        "title": "Stookolietankcontrole",
+        "validity": "Opnieuw afgeleverd bij elke controle",
+        "whenNeeded": "Periodiek — frequentie hangt af van het tanktype"
       },
       "photos": {
-        "description": "Wide-angle, professionally-lit listing photography for sales and rentals. Edited and delivered the same day so your listing goes live without a wait.",
+        "description": "Groothoek- en professioneel uitgelichte advertentiefotografie voor verkoop en verhuur. Nog dezelfde dag bewerkt en opgeleverd, zodat uw advertentie zonder wachttijd online gaat.",
         "tagline": "PH",
-        "title": "Property Photography",
-        "validity": "Same-day delivery",
-        "whenNeeded": "Before publishing the listing"
+        "title": "Pandfotografie",
+        "validity": "Oplevering dezelfde dag",
+        "whenNeeded": "Vóór publicatie van de advertentie"
       },
       "signage": {
-        "description": "We deliver and mount For-Sale or For-Rent signage at the property, branded with your agency. Pickup and removal handled when the listing closes.",
+        "description": "Wij leveren en plaatsen een te-koop- of te-huur-bord aan het pand, voorzien van uw kantoorhuisstijl. Het ophalen en verwijderen verzorgen wij wanneer de advertentie afloopt.",
         "tagline": "SG",
-        "title": "On-site Signage",
-        "validity": "Removed when the listing closes",
-        "whenNeeded": "Day the listing goes live"
+        "title": "Verkoop-/verhuurbord",
+        "validity": "Verwijderd zodra de advertentie afloopt",
+        "whenNeeded": "De dag dat de advertentie online gaat"
       }
     },
-    "eyebrow": "Services",
-    "heading": "Every certificate a property needs, under one roof.",
-    "lead": "Pick one service or bundle all four on the same assignment. One invoice, one point of contact, one dashboard.",
-    "learnMore": "Learn more",
-    "validityLabel": "Validity",
-    "whenLabel": "When"
+    "eyebrow": "Diensten",
+    "heading": "Elk certificaat dat een pand nodig heeft, onder één dak.",
+    "lead": "Kies één dienst of bundel alle vier in dezelfde opdracht. Eén factuur, één aanspreekpunt, één dashboard.",
+    "learnMore": "Meer weten",
+    "validityLabel": "Geldigheid",
+    "whenLabel": "Wanneer"
   }
 }

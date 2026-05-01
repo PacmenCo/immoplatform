@@ -59,6 +59,8 @@ Defined in `globals.css` as CSS custom properties. Use via arbitrary Tailwind va
 
 `next-intl` powers EN + Flemish (`nl-BE`), structured so adding more locales is a one-line change in `src/i18n/routing.ts`.
 
+> **Translation style guide:** read `TRANSLATING.md` (repo root) before writing any nl-BE values. It locks the v1-derived glossary (kantoor / opdracht / makelaar / deskundige / pand / agenda), the formal `u` register, regulatory long-forms (Asbestinventarisattest, Energieprestatiecertificaat, AREI, OVAM), the don't-translate list, and ICU + rich-text rules. Every translator-facing convention lives there.
+
 - **URL shape:** `/en/...` and `/nl/...`. Internal locale IDs are `en` and `nl-BE` (region-tagged so copy can lean Flemish; `fr-BE` slots in symmetrically later). The `[locale]` segment lives at `src/app/[locale]/`; API routes, server actions, and root metadata files (`manifest.ts`, `sitemap.ts`, `robots.ts`, `opengraph-image.tsx`) stay at `src/app/`.
 - **Default + negotiation:** `src/middleware.ts` wraps `next-intl/middleware` with a `Vary: Accept-Language, Cookie` append. First-hit negotiation reads `Accept-Language`, persists choice via `NEXT_LOCALE` cookie, and falls back to `nl-BE`.
 - **Build wiring:** `next.config.ts` wraps the config with `createNextIntlPlugin("./src/i18n/request.ts")`. Without this, server-side translation lookups (`getTranslations`, `useTranslations`) throw at request time.

@@ -9,6 +9,7 @@ import {
   deleteOdooProductMapping,
 } from "@/app/actions/odoo-product-mappings";
 import { useTranslateError } from "@/i18n/error";
+import type { ServiceKey } from "@/lib/mockData";
 
 type Row = {
   id: string;
@@ -43,6 +44,7 @@ export function OdooProductMappingsTable({
   const t = useTranslations("dashboard.admin.odooProducts");
   const tTable = useTranslations("dashboard.admin.odooProducts.table");
   const tProp = useTranslations("dashboard.admin.odooProducts.propertyTypes");
+  const tServices = useTranslations("services");
   const tErr = useTranslateError();
   const [rows, setRows] = useState<Row[]>(initialRows);
   const [pending, start] = useTransition();
@@ -64,7 +66,8 @@ export function OdooProductMappingsTable({
   }
 
   function serviceLabel(key: string): string {
-    return services.find((s) => s.key === key)?.label ?? key;
+    const found = services.find((s) => s.key === key);
+    return found ? tServices(`${key as ServiceKey}.title`) : key;
   }
 
   function propertyLabel(value: string): string {
@@ -196,7 +199,7 @@ export function OdooProductMappingsTable({
           >
             {services.map((s) => (
               <option key={s.key} value={s.key}>
-                {s.label}
+                {tServices(`${s.key as ServiceKey}.title`)}
               </option>
             ))}
           </select>

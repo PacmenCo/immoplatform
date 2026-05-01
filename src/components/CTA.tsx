@@ -1,4 +1,8 @@
-export default function CTA() {
+import { getTranslations } from "next-intl/server";
+
+export default async function CTA() {
+  const t = await getTranslations("home.cta");
+
   return (
     <section className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)]">
       <div className="mx-auto max-w-[var(--container)] px-6 py-24">
@@ -16,23 +20,23 @@ export default function CTA() {
               className="font-semibold tracking-tight"
               style={{ fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)", lineHeight: 1.1 }}
             >
-              Ready to simplify your workflow?
+              {t("heading")}
             </h2>
             <p className="mt-4 text-lg text-[var(--color-ink-soft)]">
-              Set up your agency in minutes. First assignment on us.
+              {t("body")}
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <a
                 href="/register"
                 className="inline-flex items-center gap-2 rounded-md bg-[var(--color-brand)] px-6 py-3 text-sm font-semibold text-[var(--color-on-brand)] transition-all hover:bg-[var(--color-brand-soft)] hover:shadow-lg"
               >
-                Register your office
+                {t("register")}
               </a>
               <a
                 href="/contact"
                 className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border-strong)] px-6 py-3 text-sm font-semibold text-[var(--color-ink)] transition-all hover:border-[var(--color-ink)]"
               >
-                Talk to us
+                {t("contact")}
               </a>
             </div>
           </div>

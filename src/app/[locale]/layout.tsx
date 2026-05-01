@@ -1,14 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat } from "next/font/google";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { getMessages, setRequestLocale } from "next-intl/server";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import "../globals.css";
 import { SkipLink } from "@/components/ui/SkipLink";
 import { ThemeScript } from "@/components/theme/ThemeScript";
 import { UnsavedChangesProvider } from "@/components/dashboard/UnsavedChangesProvider";
 import { ToastProvider } from "@/components/ui/Toast";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { routing } from "@/i18n/routing";
 
 // Universal sans for the entire app — marketing, dashboard, headlines, body,
@@ -31,13 +31,20 @@ export async function generateMetadata(
   props: { params: Promise<{ locale: string }> },
 ): Promise<Metadata> {
   const { locale } = await props.params;
+  const t = await getTranslations({
+    locale: locale as Parameters<typeof getTranslations>[0] extends { locale?: infer L } ? L : never,
+    namespace: "home.metadata",
+  });
+  const tagline = t("tagline");
+  const description = t("description");
+  const fullTitle = `${SITE_NAME} — ${tagline}`;
   // OpenGraph uses underscore-form locales (BCP-47 dashes are invalid here).
   // `en` maps to en_US (Anglosphere convention; English visitors are mostly UK/US).
   const ogLocale = locale === "nl-BE" ? "nl_BE" : "en_US";
   return {
     metadataBase: new URL(SITE_URL),
-    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
-    description: SITE_DESCRIPTION,
+    title: fullTitle,
+    description,
     applicationName: SITE_NAME,
     appleWebApp: {
       capable: true,
@@ -56,14 +63,14 @@ export async function generateMetadata(
       locale: ogLocale,
       url: SITE_URL,
       siteName: SITE_NAME,
-      title: `${SITE_NAME} — ${SITE_TAGLINE}`,
-      description: SITE_DESCRIPTION,
+      title: fullTitle,
+      description,
       // og:image is auto-emitted from app/opengraph-image.tsx
     },
     twitter: {
       card: "summary_large_image",
-      title: `${SITE_NAME} — ${SITE_TAGLINE}`,
-      description: SITE_DESCRIPTION,
+      title: fullTitle,
+      description,
       // twitter:image inherits from og:image when not specified
     },
     // Note: next auto-emits <link rel="manifest" href="/manifest.webmanifest"> from app/manifest.ts.

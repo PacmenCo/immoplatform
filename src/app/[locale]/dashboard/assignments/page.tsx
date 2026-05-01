@@ -9,7 +9,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { IconList, IconPlus } from "@/components/ui/Icons";
-import { STATUS_META, STATUS_ORDER, Status } from "@/lib/mockData";
+import { STATUS_ORDER, Status } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import {
@@ -260,10 +260,11 @@ export default async function AssignmentsList({
 
   // Subtitle uses the filtered count (across all pages), not `assignments.length`
   // — that's now capped at PAGE_SIZE and would mis-report after pagination.
+  const tStatuses = await getTranslations("dashboard.assignments.statuses");
   const subtitle = activeStatus
     ? t("list.subtitle.filtered", {
         filtered: filteredCount,
-        statusLabel: STATUS_META[activeStatus].label.toLowerCase(),
+        statusLabel: tStatuses(activeStatus).toLowerCase(),
         total: totalCount,
       })
     : t("list.subtitle.totalOnly", { count: totalCount });

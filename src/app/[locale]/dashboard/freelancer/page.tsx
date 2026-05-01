@@ -30,6 +30,7 @@ export default async function FreelancerDashboard() {
   const tStats = await getTranslations("dashboard.freelancer.stats");
   const tToday = await getTranslations("dashboard.freelancer.today");
   const tRecent = await getTranslations("dashboard.freelancer.recent");
+  const tStatuses = await getTranslations("dashboard.assignments.statuses");
 
   // Scope every query on this page to the signed-in freelancer's own rows.
   const scope = { freelancerId: session.user.id };
@@ -248,7 +249,7 @@ export default async function FreelancerDashboard() {
                     <Card className="h-full p-5 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">
                       <div className="flex items-start justify-between gap-3">
                         <Badge bg={meta.bg} fg={meta.fg}>
-                          {meta.label}
+                          {tStatuses(a.status as Status)}
                         </Badge>
                         {a.status === "completed" && (
                           <span className="inline-flex items-center gap-1 text-xs text-[var(--color-epc)]">

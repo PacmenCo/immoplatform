@@ -79,6 +79,7 @@ export default async function AssignmentPage({
 }) {
   const t = await getTranslations("dashboard.assignments.detail");
   const tTimeAgo = await getTranslations("dashboard.assignments.detail.timeAgo");
+  const tStatuses = await getTranslations("dashboard.assignments.statuses");
   const { id } = await params;
   const sp = await searchParams;
   const notice = typeof sp.notice === "string" ? sp.notice : null;
@@ -292,7 +293,7 @@ export default async function AssignmentPage({
               />
             ) : (
               <Badge bg={meta.bg} fg={meta.fg}>
-                {meta.label}
+                {tStatuses(assignment.status as Status)}
               </Badge>
             )}
             <span

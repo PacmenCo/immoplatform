@@ -1,4 +1,8 @@
-export default function Hero() {
+import { getTranslations } from "next-intl/server";
+
+export default async function Hero() {
+  const t = await getTranslations("home.hero");
+
   return (
     <section className="relative overflow-hidden border-b border-[var(--color-border)] bg-[var(--color-bg-alt)]">
       <div
@@ -10,24 +14,21 @@ export default function Hero() {
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-ink-soft)]">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-epc)]" />
-              4 companies. 1 platform.
+              {t("badge")}
             </span>
 
             <h1
               className="mt-6 font-semibold tracking-tight text-[var(--color-ink)]"
               style={{ fontSize: "clamp(2.5rem, 5.5vw, 4rem)", lineHeight: 1.05 }}
             >
-              One platform for every real-estate certificate.
+              {t("title")}
             </h1>
 
             <p
               className="mt-6 max-w-xl text-[var(--color-ink-soft)]"
               style={{ fontSize: "clamp(1.05rem, 1.6vw, 1.2rem)" }}
             >
-              Energy Performance Certificates, Asbestos Inventory Attests,
-              Electrical Inspections and Fuel Tank Checks — ordered, tracked and
-              delivered from a single dashboard. Built for real-estate agents in
-              Belgium.
+              {t("subtitle")}
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-4">
@@ -35,26 +36,60 @@ export default function Hero() {
                 href="/register"
                 className="inline-flex items-center gap-2 rounded-md bg-[var(--color-brand)] px-6 py-3 text-sm font-semibold text-[var(--color-on-brand)] transition-all hover:bg-[var(--color-brand-soft)] hover:shadow-lg"
               >
-                Register your office
+                {t("ctaRegister")}
                 <ArrowRight />
               </a>
               <a
                 href="#services"
                 className="inline-flex items-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-bg)] px-6 py-3 text-sm font-semibold text-[var(--color-ink)] transition-all hover:border-[var(--color-ink)]"
               >
-                See services
+                {t("ctaSeeServices")}
               </a>
             </div>
           </div>
 
-          <HeroPreview />
+          <HeroPreview
+            referenceLabel={t("preview.ref")}
+            status={t("preview.status")}
+            address={t("preview.address")}
+            addressDetail={t("preview.addressDetail")}
+            freelancerLabel={t("preview.freelancerLabel")}
+            freelancerName={t("preview.freelancerName")}
+            turnaroundLabel={t("preview.turnaroundLabel")}
+            turnaroundValue={t("preview.turnaroundValue")}
+            toastTitle={t("preview.toastTitle")}
+            toastBody={t("preview.toastBody")}
+          />
         </div>
       </div>
     </section>
   );
 }
 
-function HeroPreview() {
+function HeroPreview({
+  referenceLabel,
+  status,
+  address,
+  addressDetail,
+  freelancerLabel,
+  freelancerName,
+  turnaroundLabel,
+  turnaroundValue,
+  toastTitle,
+  toastBody,
+}: {
+  referenceLabel: string;
+  status: string;
+  address: string;
+  addressDetail: string;
+  freelancerLabel: string;
+  freelancerName: string;
+  turnaroundLabel: string;
+  turnaroundValue: string;
+  toastTitle: string;
+  toastBody: string;
+}) {
+  // Service short codes are NEVER translated (don't-translate list)
   const services = [
     { label: "EPC", color: "var(--color-epc)" },
     { label: "AIV", color: "var(--color-asbestos)" },
@@ -70,17 +105,17 @@ function HeroPreview() {
       <div className="relative rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-bg)] p-6 shadow-[var(--shadow-lg)]">
         <div className="flex items-center justify-between">
           <span className="font-mono text-[11px] font-medium tracking-wider text-[var(--color-ink-muted)]">
-            ASG-2041
+            {referenceLabel}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--color-epc)_14%,white)] px-2 py-0.5 text-[11px] font-medium" style={{ color: "var(--color-epc)" }}>
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-epc)]" />
-            Delivered
+            {status}
           </span>
         </div>
         <p className="mt-4 text-[15px] font-semibold text-[var(--color-ink)]">
-          Rue Belliard 12
+          {address}
         </p>
-        <p className="text-xs text-[var(--color-ink-muted)]">1040 Brussels · Apartment, 120 m²</p>
+        <p className="text-xs text-[var(--color-ink-muted)]">{addressDetail}</p>
 
         <div className="mt-5 flex flex-wrap gap-1.5">
           {services.map((s) => (
@@ -100,12 +135,12 @@ function HeroPreview() {
 
         <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[var(--color-border)] pt-4 text-xs">
           <div>
-            <p className="text-[var(--color-ink-muted)]">Freelancer</p>
-            <p className="mt-0.5 font-medium text-[var(--color-ink)]">Tim De Vries</p>
+            <p className="text-[var(--color-ink-muted)]">{freelancerLabel}</p>
+            <p className="mt-0.5 font-medium text-[var(--color-ink)]">{freelancerName}</p>
           </div>
           <div>
-            <p className="text-[var(--color-ink-muted)]">Turnaround</p>
-            <p className="mt-0.5 font-medium text-[var(--color-ink)] tabular-nums">4 days</p>
+            <p className="text-[var(--color-ink-muted)]">{turnaroundLabel}</p>
+            <p className="mt-0.5 font-medium text-[var(--color-ink)] tabular-nums">{turnaroundValue}</p>
           </div>
         </div>
       </div>
@@ -118,8 +153,8 @@ function HeroPreview() {
             </svg>
           </span>
           <div className="pr-1">
-            <p className="text-xs font-medium text-[var(--color-ink)]">Certificate sent</p>
-            <p className="text-[10px] text-[var(--color-ink-muted)]">Signed by owner · just now</p>
+            <p className="text-xs font-medium text-[var(--color-ink)]">{toastTitle}</p>
+            <p className="text-[10px] text-[var(--color-ink-muted)]">{toastBody}</p>
           </div>
         </div>
       </div>

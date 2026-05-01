@@ -27,18 +27,13 @@ import {
 } from "@/lib/permissions";
 import { AnnouncementBanner } from "@/components/dashboard/AnnouncementBanner";
 import { loadActiveAnnouncements } from "@/lib/announcements";
+import { verbLabel } from "@/lib/audit-verbs";
 
-const UPCOMING_LINK_LABEL: Record<Role, string> = {
-  admin: "View all",
-  staff: "View all",
-  realtor: "Team assignments",
-  freelancer: "My inspections",
-};
-const UPCOMING_HEADING: Record<Role, string> = {
-  admin: "Upcoming assignments",
-  staff: "Upcoming assignments",
-  realtor: "Upcoming assignments",
-  freelancer: "My upcoming inspections",
+const UPCOMING_KEY: Record<Role, "Admin" | "Staff" | "Realtor" | "Freelancer"> = {
+  admin: "Admin",
+  staff: "Staff",
+  realtor: "Realtor",
+  freelancer: "Freelancer",
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -49,6 +44,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DashboardHome() {
   const session = await requireSession();
   await gateRealtorRequiresTeam(session);
+  const tStatuses = await getTranslations("dashboard.assignments.statuses");
+  const t = await getTranslations("dashboard.home");
+  const tVerbs = await getTranslations("dashboard.users.detail.verbs");
 
   const now = new Date();
   const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -128,38 +126,38 @@ export default async function DashboardHome() {
 
   const stats = [
     {
-      label: "Active assignments",
+      label: t("stats.active"),
       value: active.toString(),
-      delta: `${dueThisWeek} due this week`,
+      delta: t("stats.activeDelta", { count: dueThisWeek }),
     },
     {
-      label: "Delivered (MTD)",
+      label: t("stats.deliveredMtd"),
       value: deliveredMtd.toString(),
-      delta: `Since ${monthStart.toISOString().slice(0, 10)}`,
+      delta: t("stats.deliveredMtdDelta", { date: monthStart.toISOString().slice(0, 10) }),
     },
     ...(isFreelancer
       ? []
       : [{
-          label: "Team members",
+          label: t("stats.members"),
           value: memberCount.toString(),
-          delta: r === "admin" || r === "staff" ? "People on the platform" : "People on your teams",
+          delta: r === "admin" || r === "staff" ? t("stats.membersDeltaPlatform") : t("stats.membersDeltaTeam"),
         }]),
     {
-      label: "Avg. turnaround",
-      value: "4.2 d",
-      delta: "−0.3 d vs last month",
+      label: t("stats.turnaround"),
+      value: t("stats.turnaroundValue"),
+      delta: t("stats.turnaroundDelta"),
     },
   ];
 
   return (
     <>
-      <Topbar title="Overview" subtitle={`Welcome back, ${session.user.firstName}`} />
+      <Topbar title={t("topbarTitle")} subtitle={t("topbarSubtitle", { firstName: session.user.firstName })} />
       <div className="p-8 space-y-8 max-w-[1400px]">
         <AnnouncementBanner items={announcements} />
 
         <section aria-labelledby="stats-title">
           <h2 id="stats-title" className="sr-only">
-            Key metrics
+            {t("keyMetricsAria")}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((s) => (
@@ -184,23 +182,23 @@ export default async function DashboardHome() {
           <section className="lg:col-span-2">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-[var(--color-ink)]">
-                {UPCOMING_HEADING[r]}
+                {t(`upcoming.heading${UPCOMING_KEY[r]}`)}
               </h2>
               <Link
                 href="/dashboard/assignments"
                 className="text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] inline-flex items-center gap-1"
               >
-                {UPCOMING_LINK_LABEL[r]}
+                {t(`upcoming.link${UPCOMING_KEY[r]}`)}
                 <IconArrowRight size={14} />
               </Link>
             </div>
 
             {upcoming.length === 0 ? (
               <Card className="mt-4 p-8 text-center text-sm text-[var(--color-ink-muted)]">
-                Nothing on the calendar yet.
+                {t("upcoming.empty")}
                 {canCreate && (
                   <Button href="/dashboard/assignments/new" size="sm" className="ml-3">
-                    Create an assignment
+                    {t("upcoming.createCta")}
                   </Button>
                 )}
               </Card>
@@ -239,14 +237,14 @@ export default async function DashboardHome() {
                           </div>
                           <div className="text-right text-sm text-[var(--color-ink-soft)]">
                             <p className="text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
-                              Preferred
+                              {t("upcoming.preferredLabel")}
                             </p>
                             <p className="font-medium text-[var(--color-ink)] tabular-nums">
                               {a.preferredDate?.toISOString().slice(0, 10) ?? "—"}
                             </p>
                           </div>
                           <Badge bg={meta.bg} fg={meta.fg}>
-                            {meta.label}
+                            {tStatuses(a.status as Status)}
                           </Badge>
                         </Link>
                       </li>
@@ -259,19 +257,19 @@ export default async function DashboardHome() {
 
           <section>
             <h2 className="text-base font-semibold text-[var(--color-ink)]">
-              Recent activity
+              {t("recentActivity.heading")}
             </h2>
             <Card className="mt-4">
               {recentAudits.length === 0 ? (
                 <div className="p-4 text-sm text-[var(--color-ink-muted)]">
-                  Nothing yet — activity shows up once people start working.
+                  {t("recentActivity.empty")}
                 </div>
               ) : (
                 <ul className="divide-y divide-[var(--color-border)]">
                   {recentAudits.map((r) => {
                     const actor = r.actor
                       ? `${r.actor.firstName} ${r.actor.lastName}`
-                      : "System";
+                      : t("recentActivity.systemActor");
                     const iconKind = r.verb.includes("delivered")
                       ? "done"
                       : r.verb.includes("scheduled") || r.verb.includes("created")
@@ -295,7 +293,7 @@ export default async function DashboardHome() {
                           <p className="text-[var(--color-ink)]">
                             <span className="font-medium">{actor}</span>{" "}
                             <span className="text-[var(--color-ink-soft)]">
-                              {r.verb.replace(/_/g, " ").replace(/\./g, " ")}
+                              {verbLabel(r.verb, (k) => tVerbs(k as never))}
                             </span>
                           </p>
                           <p className="mt-0.5 text-xs text-[var(--color-ink-muted)] tabular-nums">
@@ -315,26 +313,26 @@ export default async function DashboardHome() {
           <section>
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-[var(--color-ink)]">
-                Quick actions
+                {t("quickActions.heading")}
               </h2>
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               <Card className="p-6">
                 <p className="font-medium text-[var(--color-ink)]">
-                  Create an assignment
+                  {t("quickActions.create.title")}
                 </p>
                 <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                  Start a new property inspection in under 2 minutes.
+                  {t("quickActions.create.body")}
                 </p>
                 <Button href="/dashboard/assignments/new" size="sm" className="mt-4">
-                  Start now
+                  {t("quickActions.create.cta")}
                 </Button>
               </Card>
               {canInvite && (
                 <Card className="p-6">
-                  <p className="font-medium text-[var(--color-ink)]">Invite a colleague</p>
+                  <p className="font-medium text-[var(--color-ink)]">{t("quickActions.invite.title")}</p>
                   <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                    Add people to your team so they can manage assignments too.
+                    {t("quickActions.invite.body")}
                   </p>
                   <Button
                     href="/dashboard/users/invite"
@@ -342,16 +340,16 @@ export default async function DashboardHome() {
                     variant="secondary"
                     className="mt-4"
                   >
-                    Invite user
+                    {t("quickActions.invite.cta")}
                   </Button>
                 </Card>
               )}
               <Card className="p-6">
                 <p className="font-medium text-[var(--color-ink)]">
-                  This month&apos;s overview
+                  {t("quickActions.overview.title")}
                 </p>
                 <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                  Revenue, delivered inspections, commission breakdowns.
+                  {t("quickActions.overview.body")}
                 </p>
                 <Button
                   href="/dashboard/overview"
@@ -359,7 +357,7 @@ export default async function DashboardHome() {
                   variant="secondary"
                   className="mt-4"
                 >
-                  Open overview
+                  {t("quickActions.overview.cta")}
                 </Button>
               </Card>
             </div>

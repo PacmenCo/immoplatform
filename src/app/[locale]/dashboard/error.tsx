@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 
 export default function DashboardError({
@@ -10,6 +11,7 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations("dashboard.errorPage");
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -19,10 +21,10 @@ export default function DashboardError({
       <header className="hidden h-16 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)] px-6 xl:px-8 lg:flex">
         <div className="min-w-0">
           <h1 className="truncate text-lg font-semibold text-[var(--color-ink)]">
-            Dashboard
+            {t("headerTitle")}
           </h1>
           <p className="truncate text-xs text-[var(--color-ink-muted)]">
-            Something broke while loading this view
+            {t("headerSubtitle")}
           </p>
         </div>
       </header>
@@ -44,23 +46,22 @@ export default function DashboardError({
             </svg>
           </div>
           <h2 className="mb-2 text-xl font-semibold text-[var(--color-ink)]">
-            We hit a snag loading this page
+            {t("title")}
           </h2>
           <p className="mb-6 text-sm text-[var(--color-ink-muted)]">
-            Your session is still active. Try reloading the section, or return to the
-            dashboard overview.
+            {t("body")}
           </p>
           {error.digest && (
             <p className="mb-6 font-mono text-xs text-[var(--color-ink-faint)]">
-              ref: {error.digest}
+              {t("refLabel")} {error.digest}
             </p>
           )}
           <div className="flex flex-col justify-center gap-2 sm:flex-row">
             <Button variant="primary" onClick={() => reset()}>
-              Try again
+              {t("tryAgain")}
             </Button>
             <Button variant="secondary" href="/dashboard">
-              Back to dashboard
+              {t("backToDashboard")}
             </Button>
           </div>
         </div>

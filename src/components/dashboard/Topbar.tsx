@@ -3,6 +3,7 @@ import { IconPlus } from "@/components/ui/Icons";
 import { Button } from "@/components/ui/Button";
 import { TeamSwitcher, type SwitcherTeam } from "./TeamSwitcher";
 import { AccountSwitcher, type SwitcherAccount } from "./AccountSwitcher";
+import { LocaleSwitcher } from "@/components/i18n/LocaleSwitcher";
 import { getSession } from "@/lib/auth";
 import {
   canCreateAssignment,
@@ -95,6 +96,7 @@ export async function Topbar({
             accounts={switcherAccounts}
           />
         )}
+        <LocaleSwitcher />
         {canCreate && (
           <Button href="/dashboard/assignments/new" size="sm" className="ml-1.5">
             <IconPlus size={16} />

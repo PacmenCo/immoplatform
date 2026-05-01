@@ -23,7 +23,7 @@ import { roleBadge } from "@/lib/roleColors";
 import { isOnline } from "@/lib/userStatus";
 import { avatarImageUrl } from "@/lib/avatar";
 import { BE_DATE_FULL, initials } from "@/lib/format";
-import { STATUS_META, type Status } from "@/lib/mockData";
+import { STATUS_META, type Status, type ServiceKey } from "@/lib/mockData";
 import { DeleteUserButton } from "../DeleteUserButton";
 import { LegalBillingDisplay, type LegalBillingData } from "@/components/dashboard/LegalBillingDisplay";
 
@@ -64,6 +64,8 @@ export default async function UserDetail({
   const tRoles = await getTranslations("dashboard.users.roles");
   const tRelative = await getTranslations("dashboard.users.detail.relativeTime");
   const tVerbs = await getTranslations("dashboard.users.detail.verbs");
+  const tStatuses = await getTranslations("dashboard.assignments.statuses");
+  const tServices = await getTranslations("services");
   const session = await requireSession();
   const canEdit = await buildCanEditAssignment(session);
   const { id } = await params;
@@ -322,6 +324,8 @@ export default async function UserDetail({
                       <SpecialtyCard
                         key={sp.service.key}
                         service={sp.service}
+                        title={tServices(`${sp.service.key as ServiceKey}.title`)}
+                        description={tServices(`${sp.service.key as ServiceKey}.dashboardDescription`)}
                       />
                     ))}
                   </div>
@@ -371,7 +375,7 @@ export default async function UserDetail({
                                   {a.reference}
                                 </span>
                                 <Badge bg={meta.bg} fg={meta.fg} size="sm">
-                                  {meta.label}
+                                  {tStatuses(a.status as Status)}
                                 </Badge>
                               </div>
                               <p className="mt-1 text-sm font-medium text-[var(--color-ink)]">
@@ -545,7 +549,15 @@ type ServiceLite = {
   description: string;
 };
 
-function SpecialtyCard({ service }: { service: ServiceLite }) {
+function SpecialtyCard({
+  service,
+  title,
+  description,
+}: {
+  service: ServiceLite;
+  title: string;
+  description: string;
+}) {
   return (
     <div
       className="flex items-start gap-3 rounded-[var(--radius-md)] border bg-[var(--color-bg)] p-3"
@@ -562,8 +574,8 @@ function SpecialtyCard({ service }: { service: ServiceLite }) {
         {service.short}
       </span>
       <div>
-        <p className="text-sm font-medium text-[var(--color-ink)]">{service.label}</p>
-        <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">{service.description}</p>
+        <p className="text-sm font-medium text-[var(--color-ink)]">{title}</p>
+        <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">{description}</p>
       </div>
     </div>
   );

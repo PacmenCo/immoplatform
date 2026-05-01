@@ -24,10 +24,18 @@
         }
       },
       "company": {
-        "title": "Company"
+        "title": "Company",
+        "links": {
+          "about": "About",
+          "contact": "Contact"
+        }
       },
       "account": {
-        "title": "Account"
+        "title": "Account",
+        "links": {
+          "login": "Login",
+          "register": "Register"
+        }
       },
       "legal": {
         "title": "Legal",
@@ -38,12 +46,33 @@
         }
       }
     },
-    "copyright": "© {year} {brand}. All rights reserved.",
+    "copyright": "© {year} <brand></brand>. All rights reserved.",
     "brandsLine": "Asbest Experts · EPC Partner · Elec Inspect · Tank Check"
   },
   "localeSwitcher": {
     "label": "Language",
     "en": "English",
     "nl-BE": "Nederlands"
+  },
+  "mobileNav": {
+    "openMenu": "Open menu"
+  },
+  "loading": {
+    "aria": "Loading"
+  },
+  "notFound": {
+    "title": "This page went to the inspector and never came back.",
+    "body": "The link you followed is broken, the page has moved, or it never existed. Pick one of the doors below and we'll get you back on track.",
+    "backHome": "Back to home",
+    "contactSupport": "Contact support",
+    "about": "About",
+    "login": "Log in"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "body": "An unexpected error occurred. You can try again, or head back to the homepage.",
+    "refLabel": "ref:",
+    "tryAgain": "Try again",
+    "goHome": "Go home"
   }
 }

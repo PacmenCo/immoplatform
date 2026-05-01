@@ -1,41 +1,32 @@
-const steps = [
-  {
-    n: "01",
-    title: "Register your office",
-    body: "Create an account for your agency. Invite your colleagues and set your branding preferences.",
-  },
-  {
-    n: "02",
-    title: "Create an assignment",
-    body: "Add the property address, owner and tenant contacts, and any notes — just like you do today.",
-  },
-  {
-    n: "03",
-    title: "Pick the services you need",
-    body: "Tick EPC, AIV, EK or TK — one, some or all. We schedule the rest.",
-  },
-];
+import { getTranslations } from "next-intl/server";
 
-export default function HowItWorks() {
+export default async function HowItWorks() {
+  const t = await getTranslations("home.howItWorks");
+  const steps = [
+    { key: "register", n: t("steps.register.n"), title: t("steps.register.title"), body: t("steps.register.body") },
+    { key: "create", n: t("steps.create.n"), title: t("steps.create.title"), body: t("steps.create.body") },
+    { key: "pick", n: t("steps.pick.n"), title: t("steps.pick.title"), body: t("steps.pick.body") },
+  ];
+
   return (
     <section id="how-it-works" className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)]">
       <div className="mx-auto max-w-[var(--container)] px-6 py-24">
         <div className="max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-            How it works
+            {t("eyebrow")}
           </p>
           <h2
             className="mt-3 font-semibold tracking-tight"
             style={{ fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)", lineHeight: 1.1 }}
           >
-            From listing to certificate, in three steps.
+            {t("heading")}
           </h2>
         </div>
 
         <ol className="mt-16 grid gap-8 md:grid-cols-3">
           {steps.map((step, i) => (
             <li
-              key={step.n}
+              key={step.key}
               className="relative rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-8"
             >
               <div className="flex items-baseline gap-3">

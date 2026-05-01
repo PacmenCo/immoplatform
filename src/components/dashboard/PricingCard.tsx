@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import type { DiscountType, PricingBreakdown } from "@/lib/pricing";
+import type { ServiceKey } from "@/lib/mockData";
 import { formatEuros } from "@/lib/format";
 
 type Props = {
@@ -17,6 +18,7 @@ type Props = {
 /** Read-only pricing card shown on the assignment detail page. */
 export async function PricingCard({ breakdown, servicesByKey, discountMeta, areaM2 }: Props) {
   const t = await getTranslations("dashboard.shared.pricingCard");
+  const tServices = await getTranslations("services");
   const surchargePct = breakdown.surchargeBps / 100;
   const hasAdjustments =
     breakdown.surchargeCents > 0 || breakdown.discountCents > 0;
@@ -45,7 +47,7 @@ export async function PricingCard({ breakdown, servicesByKey, discountMeta, area
                 className="flex items-baseline justify-between gap-3"
               >
                 <span className="text-[var(--color-ink-soft)]">
-                  {svc?.label ?? line.serviceKey}
+                  {svc ? tServices(`${line.serviceKey as ServiceKey}.title`) : line.serviceKey}
                 </span>
                 <span className="font-medium text-[var(--color-ink)] tabular-nums">
                   {formatEuros(line.lineCents)}

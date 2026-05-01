@@ -96,6 +96,7 @@ export default async function OverviewPage({
   const tByService = await getTranslations("dashboard.overview.byService");
   const tByTeam = await getTranslations("dashboard.overview.byTeam");
   const tFilters = await getTranslations("dashboard.overview.filters");
+  const tServices = await getTranslations("services");
 
   const monthShort = MONTH_KEYS.map((k) => tMonths(k));
 
@@ -208,6 +209,7 @@ export default async function OverviewPage({
             title={tByService("title")}
             emptyLabel={tByService("empty")}
             totalLabel={tByService("total")}
+            translateServiceTitle={(key) => tServices(`${key as ServiceKey}.title`)}
           />
         </div>
 
@@ -561,12 +563,14 @@ function ByServiceCard({
   title,
   emptyLabel,
   totalLabel,
+  translateServiceTitle,
 }: {
   byService: Array<{ serviceKey: string; revenueCents: number }>;
   total: number;
   title: string;
   emptyLabel: string;
   totalLabel: string;
+  translateServiceTitle: (key: string) => string;
 }) {
   return (
     <Card>
@@ -591,7 +595,7 @@ function ByServiceCard({
                         {s.serviceKey}
                       </span>
                     )}
-                    <span className="text-[var(--color-ink-soft)]">{svc?.label ?? s.serviceKey}</span>
+                    <span className="text-[var(--color-ink-soft)]">{svc ? translateServiceTitle(s.serviceKey) : s.serviceKey}</span>
                   </div>
                   <span className="font-medium text-[var(--color-ink)] tabular-nums">
                     {formatEuros(s.revenueCents)}

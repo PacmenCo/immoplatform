@@ -1,18 +1,23 @@
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 
-const LINKS = [
-  { href: "/#services", label: "Services" },
-  { href: "/#how-it-works", label: "How it works" },
-  { href: "/#about", label: "About" },
-  { href: "/contact", label: "Contact" },
-];
+export async function MobileNav() {
+  const tNav = await getTranslations("common.nav");
+  const tActions = await getTranslations("common.actions");
+  const tMobileNav = await getTranslations("common.mobileNav");
 
-export function MobileNav() {
+  const LINKS = [
+    { href: "/#services", label: tNav("services") },
+    { href: "/#how-it-works", label: tNav("howItWorks") },
+    { href: "/#about", label: tActions("about") },
+    { href: "/contact", label: tActions("contact") },
+  ];
+
   return (
     <details className="relative md:hidden group">
       <summary
         className="grid h-11 w-11 cursor-pointer list-none place-items-center rounded-md text-[var(--color-ink-soft)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)] [&::-webkit-details-marker]:hidden"
-        aria-label="Open menu"
+        aria-label={tMobileNav("openMenu")}
       >
         <svg
           width="20"
@@ -62,13 +67,13 @@ export function MobileNav() {
             href="/login"
             className="flex min-h-11 items-center justify-between rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
           >
-            Log in
+            {tActions("login")}
           </Link>
           <Link
             href="/register"
             className="mt-1 flex min-h-11 items-center justify-center rounded-md bg-[var(--color-brand)] px-3 py-2 text-sm font-medium text-[var(--color-on-brand)] transition-colors hover:bg-[var(--color-brand-soft)]"
           >
-            Register as agent
+            {tNav("register")}
           </Link>
         </div>
       </div>

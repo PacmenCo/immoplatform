@@ -14,7 +14,7 @@ import {
   type FinalizeItem,
   type PresignedUpload,
 } from "@/app/actions/files";
-import { FILE_CONSTRAINTS, type FileLane } from "@/lib/file-constraints";
+import { FILE_CONSTRAINTS, MAX_FILES_PER_UPLOAD, type FileLane } from "@/lib/file-constraints";
 
 /** Cap concurrent PUTs so a 20-file upload doesn't open 20 sockets at once. */
 const UPLOAD_CONCURRENCY = 3;
@@ -185,7 +185,7 @@ export function FileUploadForm({
           }
         }}
         accept={constraints.allowedMimes.join(",")}
-        hint={constraints.acceptHint}
+        hint={t("acceptHint", { maxMB: constraints.maxMB, maxFiles: MAX_FILES_PER_UPLOAD })}
         label={
           lane === "freelancer"
             ? t("labelFreelancer")

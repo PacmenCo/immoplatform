@@ -20,7 +20,9 @@
     "bullet4": "Re-inspection support after renovation",
     "turnaround": "3 working days",
     "regulation": "Mandatory per Flemish Energy Agency (VEKA) regulations",
-    "who": "Every home sold or leased in Belgium"
+    "who": "Every home sold or leased in Belgium",
+    "title": "Energy Performance Certificate",
+    "dashboardDescription": "Legally required energy rating for every sale or rental."
   },
   "asbestos": {
     "hero": "Asbestos Inventory Attests, no surprises.",
@@ -31,7 +33,9 @@
     "bullet4": "Connected to your assignment — no double data entry",
     "turnaround": "5 working days",
     "regulation": "Mandatory per Flemish OVAM regulations for pre-2001 buildings",
-    "who": "Any seller of a pre-2001 residential or commercial building"
+    "who": "Any seller of a pre-2001 residential or commercial building",
+    "title": "Asbestos Inventory Attest",
+    "dashboardDescription": "Mandatory asbestos inventory for buildings from before 2001."
   },
   "electrical": {
     "hero": "AREI-compliant Electrical Inspections.",
@@ -42,7 +46,9 @@
     "bullet4": "Integrated into the same dashboard as your other certificates",
     "turnaround": "4 working days",
     "regulation": "AREI (Belgian General Electrical Regulation) compliance",
-    "who": "Any property sold or with recent electrical work"
+    "who": "Any property sold or with recent electrical work",
+    "title": "Electrical Inspection",
+    "dashboardDescription": "AREI installation inspection for safe electrical systems."
   },
   "fuel": {
     "hero": "Fuel Tank Checks, done right.",
@@ -53,7 +59,9 @@
     "bullet4": "Environmental compliance built-in",
     "turnaround": "5 working days",
     "regulation": "VLAREM II periodic inspection requirements",
-    "who": "Homeowners and agents with heating-oil tanks on property"
+    "who": "Homeowners and agents with heating-oil tanks on property",
+    "title": "Fuel Tank Check",
+    "dashboardDescription": "Periodic inspection for above-ground and buried fuel tanks."
   },
   "photos": {
     "hero": "Listing photography that sells faster.",
@@ -64,7 +72,9 @@
     "bullet4": "Bundled into your existing assignment workflow",
     "turnaround": "Same day delivery",
     "regulation": "—",
-    "who": "Agents listing residential or commercial properties"
+    "who": "Agents listing residential or commercial properties",
+    "title": "Property Photography",
+    "dashboardDescription": "Professional listing photography for sales and rentals."
   },
   "signage": {
     "hero": "On-site signage, mounted and ready.",
@@ -75,6 +85,8 @@
     "bullet4": "Pickup + removal at the end of the listing",
     "turnaround": "Same day installation",
     "regulation": "—",
-    "who": "Agents needing on-site presence at the property"
+    "who": "Agents needing on-site presence at the property",
+    "title": "On-site Signage",
+    "dashboardDescription": "Mounted For-Sale / For-Rent signage at the property."
   }
 }

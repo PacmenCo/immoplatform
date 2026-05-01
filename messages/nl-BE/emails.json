@@ -71,7 +71,7 @@
   "common": {
     "automatedNotice": "Dit is een automatische melding van het platform.",
     "footerLine": "Je ontvangt deze e-mail van {brand}. Beheer je notificatievoorkeuren in <accountSettings>je accountinstellingen</accountSettings>.",
-    "hi": "Hi {name},",
+    "hi": "Beste {name},",
     "openUrlPrefix": "Of open deze URL:"
   },
   "contactSubmission": {
@@ -115,8 +115,8 @@
     "preview": "{inviterName} heeft je uitgenodigd voor {brand}.",
     "roleLine": "Rol: {role}",
     "subject": "Je bent uitgenodigd voor {brand} als {role}",
-    "teamLine": "Team: {teamName}",
-    "teamLineWithRole": "Team: {teamName} ({teamRole})",
+    "teamLine": "Kantoor: {teamName}",
+    "teamLineWithRole": "Kantoor: {teamName} ({teamRole})",
     "title": "Je bent uitgenodigd voor {brand}"
   },
   "monthlyInvoiceReminder": {

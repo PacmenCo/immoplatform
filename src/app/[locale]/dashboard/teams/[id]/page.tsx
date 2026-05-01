@@ -19,7 +19,7 @@ import {
   IconArrowRight,
   IconFileText,
 } from "@/components/ui/Icons";
-import { STATUS_META, Status } from "@/lib/mockData";
+import { STATUS_META, Status, type ServiceKey } from "@/lib/mockData";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { buildCanEditAssignment, canEditTeam, getUserTeamIds, hasRole } from "@/lib/permissions";
@@ -42,6 +42,8 @@ export default async function TeamDetailPage({
 }) {
   const t = await getTranslations("dashboard.teams.detail");
   const tRoles = await getTranslations("dashboard.users.roles");
+  const tStatuses = await getTranslations("dashboard.assignments.statuses");
+  const tServices = await getTranslations("services");
   const { id } = await params;
   const session = await requireSession();
   const canEdit = await buildCanEditAssignment(session);
@@ -431,7 +433,7 @@ export default async function TeamDetailPage({
                                   {a.reference}
                                 </span>
                                 <Badge bg={meta.bg} fg={meta.fg} size="sm">
-                                  {meta.label}
+                                  {tStatuses(a.status as Status)}
                                 </Badge>
                               </div>
                               <p className="mt-0.5 text-sm font-medium text-[var(--color-ink)]">
@@ -513,7 +515,7 @@ export default async function TeamDetailPage({
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
                           <ServicePill color={svc.color} label={svc.short} />
-                          <span className="text-[var(--color-ink-soft)]">{svc.label}</span>
+                          <span className="text-[var(--color-ink-soft)]">{tServices(`${svc.key as ServiceKey}.title`)}</span>
                         </div>
                         <span className="font-medium tabular-nums text-[var(--color-ink)]">
                           {count}
@@ -801,7 +803,7 @@ export default async function TeamDetailPage({
                           </td>
                           <td className="px-6 py-3">
                             <Badge bg={meta.bg} fg={meta.fg} size="sm">
-                              {meta.label}
+                              {tStatuses(a.status as Status)}
                             </Badge>
                           </td>
                         </tr>

@@ -299,7 +299,7 @@
       "yearPlaceholder": "1985",
       "area": "Living area (m²)",
       "areaPlaceholder": "120",
-      "photographerLabel": "Contact person for photographer",
+      "photographerLabel": "Contact person",
       "photographerRealtor": "Realtor",
       "photographerOwner": "Owner",
       "photographerTenant": "Tenant",
@@ -604,7 +604,8 @@
       "filesFailedFallback": "One or more files failed to upload.",
       "uploadFailedStatus": "Upload failed ({status}).",
       "networkError": "Network error during upload.",
-      "uploadAborted": "Upload aborted."
+      "uploadAborted": "Upload aborted.",
+      "acceptHint": "PDF, JPG, PNG, WebP · up to {maxMB} MB each · up to {maxFiles} files per upload"
     },
     "newPage": {
       "title": "New assignment",
@@ -612,6 +613,16 @@
     },
     "notices": {
       "filesFailed": "Assignment created. Some files failed to upload — try again from the Files tab."
+    },
+    "statuses": {
+      "draft": "Draft",
+      "awaiting": "Awaiting",
+      "scheduled": "Scheduled",
+      "in_progress": "In progress",
+      "delivered": "Delivered",
+      "completed": "Completed",
+      "on_hold": "On hold",
+      "cancelled": "Cancelled"
     }
   },
   "announcements": {
@@ -897,7 +908,12 @@
         "announcementCreated": "Published an announcement",
         "revenueAdjustmentCreated": "Added a revenue adjustment",
         "calendarConnected": "Connected a calendar",
-        "calendarDisconnected": "Disconnected a calendar"
+        "calendarDisconnected": "Disconnected a calendar",
+        "announcementUpdated": "Announcement updated",
+        "announcementDeleted": "Announcement deleted",
+        "announcementDismissed": "Announcement dismissed",
+        "contactMessageHandled": "Marked contact message as handled",
+        "contactMessageReopened": "Reopened contact message"
       },
       "relativeTime": {
         "justNow": "just now",
@@ -1962,5 +1978,74 @@
       "signedOff": "Signed off",
       "datePlaceholder": "—"
     }
+  },
+  "home": {
+    "topbarTitle": "Overview",
+    "topbarSubtitle": "Welcome back, {firstName}",
+    "keyMetricsAria": "Key metrics",
+    "stats": {
+      "active": "Active assignments",
+      "activeDelta": "{count} due this week",
+      "deliveredMtd": "Delivered (MTD)",
+      "deliveredMtdDelta": "Since {date}",
+      "members": "Team members",
+      "membersDeltaPlatform": "People on the platform",
+      "membersDeltaTeam": "People on your teams",
+      "turnaround": "Avg. turnaround",
+      "turnaroundValue": "4.2 d",
+      "turnaroundDelta": "−0.3 d vs last month"
+    },
+    "upcoming": {
+      "headingAdmin": "Upcoming assignments",
+      "headingStaff": "Upcoming assignments",
+      "headingRealtor": "Upcoming assignments",
+      "headingFreelancer": "My upcoming inspections",
+      "linkAdmin": "View all",
+      "linkStaff": "View all",
+      "linkRealtor": "Team assignments",
+      "linkFreelancer": "My inspections",
+      "empty": "Nothing on the calendar yet.",
+      "createCta": "Create an assignment",
+      "preferredLabel": "Preferred"
+    },
+    "recentActivity": {
+      "heading": "Recent activity",
+      "empty": "Nothing yet — activity shows up once people start working.",
+      "systemActor": "System"
+    },
+    "quickActions": {
+      "heading": "Quick actions",
+      "create": {
+        "title": "Create an assignment",
+        "body": "Start a new property inspection in under 2 minutes.",
+        "cta": "Start now"
+      },
+      "invite": {
+        "title": "Invite a colleague",
+        "body": "Add people to your team so they can manage assignments too.",
+        "cta": "Invite user"
+      },
+      "overview": {
+        "title": "This month's overview",
+        "body": "Revenue, delivered inspections, commission breakdowns.",
+        "cta": "Open overview"
+      }
+    }
+  },
+  "errorPage": {
+    "headerTitle": "Dashboard",
+    "headerSubtitle": "Something broke while loading this view",
+    "title": "We hit a snag loading this page",
+    "body": "Your session is still active. Try reloading the section, or return to the dashboard overview.",
+    "refLabel": "ref:",
+    "tryAgain": "Try again",
+    "backToDashboard": "Back to dashboard"
+  },
+  "notFoundPage": {
+    "topbarTitle": "Page not found",
+    "topbarSubtitle": "That dashboard route doesn't exist",
+    "title": "We couldn't find that page",
+    "description": "The link may be broken, or the page may have moved.",
+    "backToDashboard": "Back to dashboard"
   }
 }

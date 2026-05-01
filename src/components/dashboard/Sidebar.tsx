@@ -57,6 +57,7 @@ type SidebarProps = {
 export function Sidebar({ user, unreadContactCount }: SidebarProps) {
   const pathname = usePathname();
   const t = useTranslations("dashboard.shared.sidebar");
+  const tRoles = useTranslations("dashboard.users.roles");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -266,7 +267,7 @@ export function Sidebar({ user, unreadContactCount }: SidebarProps) {
               {user ? `${user.firstName} ${user.lastName}` : t("userFallbackName")}
             </span>
             <span className="text-xs capitalize text-[var(--color-ink-muted)] truncate">
-              {user?.role ?? t("userFallbackRole")}
+              {user?.role ? tRoles(user.role as NavRole) : t("userFallbackRole")}
             </span>
           </div>
           <svg

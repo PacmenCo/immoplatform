@@ -11,6 +11,7 @@ import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider
 import { useFormDirty } from "@/lib/useFormDirty";
 import { useTranslateError } from "@/i18n/error";
 import { FILE_CONSTRAINTS, MAX_REALTOR_FILES_AT_CREATE } from "@/lib/file-constraints";
+import type { ServiceKey } from "@/lib/mockData";
 import { formatPricelistItemPrice } from "@/lib/format";
 import type { OdooPricelistItem } from "@/lib/odoo";
 import type { ActionResult } from "@/app/actions/_types";
@@ -154,6 +155,7 @@ export function AssignmentForm({
   readOnly = false,
 }: Props) {
   const t = useTranslations("dashboard.shared.assignmentForm");
+  const tServices = useTranslations("services");
   const tErr = useTranslateError();
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
@@ -170,13 +172,6 @@ export function AssignmentForm({
   const fieldErrors =
     state && !state.ok && state.fields ? state.fields : undefined;
 
-  // Key-pickup triple state — drives the conditional reveals. Mirror of
-  // Platform's Alpine.js block in edit.blade.php:778-824: checkbox toggles
-  // the whole section, location_type radio toggles the address textarea.
-  const [requiresKeyPickup, setRequiresKeyPickup] = useState(
-    initial?.requiresKeyPickup ?? false,
-  );
-
   // Owner type drives the conditional VAT field. "owner" = Particulier
   // (private individual), "firm" = Bedrijf (company). Defaults to "owner"
   // per product call — most assignments are private property owners. Only
@@ -184,9 +179,15 @@ export function AssignmentForm({
   const [clientType, setClientType] = useState<"owner" | "firm">(
     initial?.clientType ?? "owner",
   );
-  const [keyPickupLocationType, setKeyPickupLocationType] = useState<
-    "office" | "other"
-  >(initial?.keyPickupLocationType ?? "office");
+
+  // Photographer contact-person choice (owner / realtor / tenant). Drives a
+  // conditional swap in the Contactpersoon section: when "tenant" is picked
+  // the section renders tenant name/email/phone fields directly (and the
+  // standalone Huurder card is hidden) — rather than asking the user to
+  // fill the same data twice. Defaults to "owner" if no initial value.
+  const [photographerContact, setPhotographerContact] = useState<
+    "owner" | "realtor" | "tenant"
+  >((initial?.photographerContactPerson as "owner" | "realtor" | "tenant" | null) ?? "owner");
 
 
   // Create-time supporting files. Only ever populated when the form is in
@@ -224,7 +225,7 @@ export function AssignmentForm({
               });
             }
       }
-      className="max-w-[960px] p-8 pb-28 space-y-8"
+      className="max-w-[960px] p-8 space-y-8"
     >
       {/* `<fieldset disabled>` cascades the disabled state to every input,
           select, textarea, and button inside — native HTML behavior, no
@@ -294,12 +295,9 @@ export function AssignmentForm({
                           {svc.short}
                         </span>
                         <span className="text-sm font-semibold text-[var(--color-ink)]">
-                          {svc.label}
+                          {tServices(`${svc.key as ServiceKey}.title`)}
                         </span>
                       </div>
-                      <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-ink-soft)]">
-                        {svc.description}
-                      </p>
                     </div>
                   </label>
                   {hasPicker && (
@@ -423,8 +421,8 @@ export function AssignmentForm({
             >
               {(
                 [
-                  ["realtor", t("photographerRealtor")],
                   ["owner", t("photographerOwner")],
+                  ["realtor", t("photographerRealtor")],
                   ["tenant", t("photographerTenant")],
                 ] as const
               ).map(([value, label]) => (
@@ -436,7 +434,8 @@ export function AssignmentForm({
                     type="radio"
                     name="photographerContactPerson"
                     value={value}
-                    defaultChecked={initial?.photographerContactPerson === value}
+                    checked={photographerContact === value}
+                    onChange={() => setPhotographerContact(value)}
                     className="h-4 w-4 accent-[var(--color-brand)]"
                   />
                   {label}
@@ -455,25 +454,65 @@ export function AssignmentForm({
           </p>
         </CardHeader>
         <CardBody className="grid gap-5 sm:grid-cols-2">
-          <Field label={t("contactEmail")} id="contact-email" error={fieldErrors?.contactEmail}>
-            <Input
-              id="contact-email"
-              name="contactEmail"
-              type="email"
-              placeholder={t("contactEmailPlaceholder")}
-              defaultValue={initial?.contactEmail ?? ""}
-              autoComplete="off"
-            />
-          </Field>
-          <Field label={t("contactPhone")} id="contact-phone" error={fieldErrors?.contactPhone}>
-            <Input
-              id="contact-phone"
-              name="contactPhone"
-              placeholder={t("contactPhonePlaceholder")}
-              defaultValue={initial?.contactPhone ?? ""}
-              autoComplete="off"
-            />
-          </Field>
+          {photographerContact === "tenant" ? (
+            <>
+              {/* When tenant is the contact, render tenant fields here so the
+                  user fills the data once. The standalone Huurder card below
+                  is hidden in this branch to avoid duplicate inputs. */}
+              <div className="sm:col-span-2">
+                <Field label={t("tenantFullName")} id="tenant-name" error={fieldErrors?.tenantName}>
+                  <Input
+                    id="tenant-name"
+                    name="tenant-name"
+                    placeholder={t("tenantFullNamePlaceholder")}
+                    defaultValue={initial?.tenant.name ?? ""}
+                    autoComplete="off"
+                  />
+                </Field>
+              </div>
+              <Field label={t("tenantEmail")} id="tenant-email" error={fieldErrors?.tenantEmail}>
+                <Input
+                  id="tenant-email"
+                  name="tenant-email"
+                  type="email"
+                  placeholder={t("tenantEmailPlaceholder")}
+                  defaultValue={initial?.tenant.email ?? ""}
+                  autoComplete="off"
+                />
+              </Field>
+              <Field label={t("tenantPhone")} id="tenant-phone" error={fieldErrors?.tenantPhone}>
+                <Input
+                  id="tenant-phone"
+                  name="tenant-phone"
+                  placeholder={t("tenantPhonePlaceholder")}
+                  defaultValue={initial?.tenant.phone ?? ""}
+                  autoComplete="off"
+                />
+              </Field>
+            </>
+          ) : (
+            <>
+              <Field label={t("contactEmail")} id="contact-email" error={fieldErrors?.contactEmail}>
+                <Input
+                  id="contact-email"
+                  name="contactEmail"
+                  type="email"
+                  placeholder={t("contactEmailPlaceholder")}
+                  defaultValue={initial?.contactEmail ?? ""}
+                  autoComplete="off"
+                />
+              </Field>
+              <Field label={t("contactPhone")} id="contact-phone" error={fieldErrors?.contactPhone}>
+                <Input
+                  id="contact-phone"
+                  name="contactPhone"
+                  placeholder={t("contactPhonePlaceholder")}
+                  defaultValue={initial?.contactPhone ?? ""}
+                  autoComplete="off"
+                />
+              </Field>
+            </>
+          )}
         </CardBody>
       </Card>
 
@@ -609,8 +648,14 @@ export function AssignmentForm({
         </CardBody>
       </Card>
 
+      {/* Standalone Huurder card hidden for now (product call). The hidden
+          inputs below still ride along on submit so existing tenant data is
+          preserved on edit; when "Huurder" is picked as the contactpersoon,
+          the inline tenant fields above remain the entry point for new data.
+          Re-render the <summary>/<div> block to expose the standalone card
+          again. */}
       <details
-        className="group rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]"
+        className="hidden"
         open={!!initial?.tenant.name}
       >
         <summary className="flex cursor-pointer items-center justify-between p-6 [&::-webkit-details-marker]:hidden">
@@ -675,132 +720,20 @@ export function AssignmentForm({
           <CardTitle>{t("schedulingTitle")}</CardTitle>
         </CardHeader>
         <CardBody className="grid gap-5 sm:grid-cols-2">
-          <Field
-            label={t("plannedDate")}
-            id="preferred-date"
-            hint={t("plannedDateHint")}
-            error={fieldErrors?.preferredDate}
-          >
-            <Input
-              id="preferred-date"
-              name="preferred-date"
-              type="date"
-              defaultValue={initial?.preferredDate ?? ""}
-            />
-          </Field>
-          <div className="sm:col-span-2">
-            <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
-              <input
-                type="checkbox"
-                name="requiresKeyPickup"
-                checked={requiresKeyPickup}
-                onChange={(e) => setRequiresKeyPickup(e.target.checked)}
-                className="h-4 w-4 accent-[var(--color-brand)]"
-              />
-              {t("keyPickup")}
-            </label>
-            {requiresKeyPickup && (
-              <div className="mt-4 ml-6 space-y-4 rounded-lg bg-[var(--color-bg-muted)] p-4">
-                <fieldset>
-                  <legend className="text-sm font-medium text-[var(--color-ink)]">
-                    {t("keyPickupWhere")}
-                  </legend>
-                  <div className="mt-2 space-y-2">
-                    <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
-                      <input
-                        type="radio"
-                        name="keyPickupLocationType"
-                        value="office"
-                        checked={keyPickupLocationType === "office"}
-                        onChange={() => setKeyPickupLocationType("office")}
-                        className="h-4 w-4 accent-[var(--color-brand)]"
-                      />
-                      {t("keyPickupOffice")}
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
-                      <input
-                        type="radio"
-                        name="keyPickupLocationType"
-                        value="other"
-                        checked={keyPickupLocationType === "other"}
-                        onChange={() => setKeyPickupLocationType("other")}
-                        className="h-4 w-4 accent-[var(--color-brand)]"
-                      />
-                      {t("keyPickupOther")}
-                    </label>
-                  </div>
-                </fieldset>
-                {keyPickupLocationType === "other" && (
-                  <Field
-                    label={t("keyPickupAddress")}
-                    id="key-pickup-address"
-                    hint={t("keyPickupAddressHint")}
-                    error={fieldErrors?.keyPickupAddress}
-                  >
-                    <Textarea
-                      id="key-pickup-address"
-                      name="keyPickupAddress"
-                      rows={3}
-                      placeholder={t("keyPickupAddressPlaceholder")}
-                      defaultValue={initial?.keyPickupAddress ?? ""}
-                    />
-                  </Field>
-                )}
-              </div>
-            )}
-          </div>
-          {canSetFreelancer && freelancers && (
-            <div className="sm:col-span-2">
-              <Field
-                label={t("freelancer")}
-                id="freelancer-id"
-                hint={t("freelancerHint")}
-              >
-                <Select
-                  id="freelancer-id"
-                  name="freelancerId"
-                  defaultValue={initial?.freelancerId ?? ""}
-                >
-                  <option value="">{t("freelancerUnassigned")}</option>
-                  {freelancers.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.firstName} {f.lastName}
-                      {f.region ? ` · ${f.region}` : ""}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
+          {/* Visible fields temporarily reduced to just `notes` per product
+              call. Hidden inputs preserve existing values on save so we don't
+              lose data when the form is submitted from an edit. */}
+          <input type="hidden" name="preferred-date" value={initial?.preferredDate ?? ""} />
+          {initial?.requiresKeyPickup && (
+            <input type="hidden" name="requiresKeyPickup" value="on" />
           )}
+          <input type="hidden" name="keyPickupLocationType" value={initial?.keyPickupLocationType ?? "office"} />
+          <input type="hidden" name="keyPickupAddress" value={initial?.keyPickupAddress ?? ""} />
           {canSetFreelancer && (
             <>
-              <Field
-                label={t("calendarDate")}
-                id="calendar-date"
-                hint={t("calendarDateHint")}
-                error={fieldErrors?.calendarDate}
-              >
-                <Input
-                  id="calendar-date"
-                  name="calendarDate"
-                  type="datetime-local"
-                  defaultValue={initial?.calendarDate ?? ""}
-                />
-              </Field>
-              <Field
-                label={t("calendarAccount")}
-                id="calendar-account-email"
-                hint={t("calendarAccountHint")}
-                error={fieldErrors?.calendarAccountEmail}
-              >
-                <Input
-                  id="calendar-account-email"
-                  name="calendarAccountEmail"
-                  type="email"
-                  placeholder={t("calendarAccountPlaceholder")}
-                  defaultValue={initial?.calendarAccountEmail ?? ""}
-                />
-              </Field>
+              <input type="hidden" name="freelancerId" value={initial?.freelancerId ?? ""} />
+              <input type="hidden" name="calendarDate" value={initial?.calendarDate ?? ""} />
+              <input type="hidden" name="calendarAccountEmail" value={initial?.calendarAccountEmail ?? ""} />
             </>
           )}
           <div className="sm:col-span-2">
@@ -872,7 +805,7 @@ export function AssignmentForm({
           still wired, just not consumed at the UI level. */}
 
       {!readOnly && (
-        <div className="sticky bottom-0 z-30 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 md:left-64 z-30 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
           <div className="flex items-center justify-between gap-3 px-8 py-4">
             <p className="text-xs text-[var(--color-ink-muted)]">
               <span aria-hidden className="text-[var(--color-asbestos)]">*</span> {t("requiredHint")}
