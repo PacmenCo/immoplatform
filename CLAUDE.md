@@ -184,7 +184,7 @@ Fast role-testing tool. Closed group of accounts (the founder + 3 `@immo.test` t
 - **Dev/test behaviour:** any group member can swap to any other. Every test user has a known seeded password (`Jordan1234`) so the workflow stays fluid.
 - **Production behaviour:** opt-in, locked-down.
   - Gated behind `ALLOW_PROD_SWITCHER=true` in `.env.production`. Unset = feature dormant; flip + `systemctl restart immoplatform` to enable. The kill-switch is the env, not a code change.
-  - **Origin restriction:** only the founder (`FOUNDER_EMAIL`) may *initiate* a switch on prod. Test users are valid destinations but never origins, so even a leaked test-user password can't pivot to admin via the switcher.
+  - **Privilege-escalation guard:** on prod, only the founder (`FOUNDER_EMAIL`) may switch *into* the founder account. Test → test hops are allowed (handy for inspecting role-specific UI without re-logging-in); test → Jordan is blocked, so a leaked test-user password can't pivot to admin via the switcher.
   - **Test users are not directly loginable:** `scripts/bootstrap-test-users.ts` mints each one with a freshly-generated random bcrypt hash (the plaintext is discarded). `loginInner` also refuses any `@immo.test` email on prod as defense-in-depth.
   - Net: the 3 test rows on prod can be *reached only* via `switchToAccount` from Jordan's session.
 - **Audit:** every switch writes one `user.account_switched` row with `actorId = original user`, `metadata = { fromEmail, toEmail }`. Single causal event, not a sign-out + orphan sign-in pair.

@@ -74,20 +74,26 @@ export async function switchToAccount(
     return { ok: false, error: "errors.switcher.notAuthorized" };
   }
 
-  // 4. On prod, only the founder may *initiate* a switch. Test users are
-  //    valid destinations but not valid origins — even if their passwordHash
-  //    leaked, the attacker can't pivot to admin. In dev we keep the
-  //    any-to-any behaviour so the workflow stays fluid.
-  if (process.env.NODE_ENV === "production" && fromEmail !== FOUNDER_EMAIL) {
-    return { ok: false, error: "errors.switcher.founderOnly" };
-  }
-
-  // 5. Target must be in the group. Check string-membership BEFORE the DB
+  // 4. Target must be in the group. Check string-membership BEFORE the DB
   //    lookup — otherwise this becomes a user-existence oracle for any
   //    email an attacker wants to probe.
   const toEmail = targetEmail.toLowerCase().trim();
   if (!isSwitcherMember(toEmail)) {
     return { ok: false, error: "errors.switcher.targetNotInGroup" };
+  }
+
+  // 5. On prod, the only thing we *strictly* forbid is a non-founder origin
+  //    pivoting INTO the founder account — that's the privilege-escalation
+  //    path a leaked test-user password would unlock. Test → test hops are
+  //    fine (and necessary for the dev workflow: Jordan picks Test Staff,
+  //    pokes around, then jumps to Test Realtor without re-logging-in). In
+  //    dev/test we keep the any-to-any behaviour so the workflow stays fluid.
+  if (
+    process.env.NODE_ENV === "production" &&
+    fromEmail !== FOUNDER_EMAIL &&
+    toEmail === FOUNDER_EMAIL
+  ) {
+    return { ok: false, error: "errors.switcher.founderOnly" };
   }
 
   // 5. No-op if already this user — avoids generating a useless audit row
