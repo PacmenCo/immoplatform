@@ -80,9 +80,9 @@ export default async function FreelancerDashboard() {
     prisma.assignment.findMany({
       where: {
         ...scope,
-        status: { in: ["delivered", "completed"] },
+        status: "completed",
       },
-      orderBy: [{ completedAt: "desc" }, { deliveredAt: "desc" }],
+      orderBy: { completedAt: "desc" },
       take: 3,
       include: { services: true },
     }),
@@ -95,9 +95,7 @@ export default async function FreelancerDashboard() {
     { label: tStats("todaysJobs"), value: String(todaysJobs) },
     { label: tStats("thisWeek"), value: String(thisWeekCount) },
     // "In progress" = inspections the freelancer has started but not yet
-    // delivered. Previously labelled "Pending uploads" but the query was on
-    // status=in_progress (not "delivered awaiting files"); aligning copy to
-    // the actual semantics.
+    // completed. Reflects the actual `status=in_progress` query semantics.
     { label: tStats("inProgress"), value: String(inProgressCount) },
     { label: tStats("completedThisMonth"), value: String(completedThisMonth) },
   ];
@@ -239,7 +237,7 @@ export default async function FreelancerDashboard() {
             <div className="grid gap-4 md:grid-cols-3">
               {recent.map((a) => {
                 const meta = STATUS_META[a.status as Status] ?? STATUS_META.draft;
-                const when = a.completedAt ?? a.deliveredAt ?? a.preferredDate ?? null;
+                const when = a.completedAt ?? a.preferredDate ?? null;
                 return (
                   <Link
                     key={a.id}

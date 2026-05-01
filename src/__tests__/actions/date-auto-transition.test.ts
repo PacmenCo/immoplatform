@@ -13,7 +13,7 @@ import { seedAssignment, seedBaseline } from "../_helpers/fixtures";
 //      without a second save.
 //   2) Clearing preferredDate on a "scheduled" assignment reverts to "awaiting"
 //      so it doesn't sit on the schedule with no when.
-//   3) Setting a date on non-early statuses (in_progress, delivered, …) leaves
+//   3) Setting a date on non-early statuses (in_progress, completed, …) leaves
 //      status unchanged.
 
 setupTestDb();

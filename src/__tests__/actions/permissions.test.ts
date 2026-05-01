@@ -291,16 +291,14 @@ describe("canDeleteAssignment", () => {
     }
   });
 
-  it("realtor CANNOT delete completed / delivered rows (keep the audit trail)", async () => {
+  it("realtor CANNOT delete completed rows (keep the audit trail)", async () => {
     const { realtor } = await seedBaseline();
-    for (const status of ["completed", "delivered"]) {
-      expect(
-        await canDeleteAssignment(realtor, {
-          ...POLICY_INPUT({ createdById: realtor.user.id }),
-          status,
-        }),
-      ).toBe(false);
-    }
+    expect(
+      await canDeleteAssignment(realtor, {
+        ...POLICY_INPUT({ createdById: realtor.user.id }),
+        status: "completed",
+      }),
+    ).toBe(false);
   });
 
   it("team-owner realtor CANNOT delete a teammate's row (only the creator can)", async () => {

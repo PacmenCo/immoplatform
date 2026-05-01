@@ -53,7 +53,7 @@ async function seedSignedUrl() {
   // Revert auto-complete so delete etc still work on the row later.
   await prisma.assignment.update({
     where: { id: asg.id },
-    data: { status: "scheduled", completedAt: null, deliveredAt: null },
+    data: { status: "scheduled", completedAt: null },
   });
   const file = await prisma.assignmentFile.findFirstOrThrow({
     where: { assignmentId: asg.id, deletedAt: null },
@@ -199,7 +199,7 @@ describe("GET /api/files/[...path] — live-delete guard", () => {
     );
     await prisma.assignment.update({
       where: { id: asg.id },
-      data: { status: "scheduled", completedAt: null, deliveredAt: null },
+      data: { status: "scheduled", completedAt: null },
     });
     const file = await prisma.assignmentFile.findFirstOrThrow({
       where: { assignmentId: asg.id, deletedAt: null },
@@ -236,7 +236,7 @@ describe("GET /api/files/[...path] — filename sanitization", () => {
     );
     await prisma.assignment.update({
       where: { id: asg.id },
-      data: { status: "scheduled", completedAt: null, deliveredAt: null },
+      data: { status: "scheduled", completedAt: null },
     });
     const file = await prisma.assignmentFile.findFirstOrThrow({
       where: { assignmentId: asg.id, deletedAt: null },

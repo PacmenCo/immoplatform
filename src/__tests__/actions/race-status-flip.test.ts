@@ -27,20 +27,20 @@ describe("v1→v2 race: admin completes vs freelancer's stale write", () => {
   it("first transition wins; second errors with stale-status copy; single audit row", async () => {
     const { admin, freelancer, teams } = await seedBaseline();
 
-    // Seed at `delivered` — the realistic precondition for the agency's
+    // Seed at `in_progress` — the realistic precondition for the agency's
     // `markAssignmentCompleted` to succeed. The freelancer (or another
     // actor) will then race a `cancelAssignment`, which also expects a
     // non-terminal source state.
     const asg = await seedAssignment({
       id: "a_race_complete_vs_cancel",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
       freelancerId: freelancer.user.id,
       createdById: admin.user.id,
       services: [{ serviceKey: "asbestos", unitPriceCents: 25_000 }],
     });
 
-    // First writer: admin completes. Predicate matches (delivered →
+    // First writer: admin completes. Predicate matches (in_progress →
     // completed is in sourcesOf("completed")). Should succeed.
     const fd = new FormData();
     const completeRes = await markAssignmentCompletedInner(
@@ -80,14 +80,14 @@ describe("v1→v2 race: admin completes vs freelancer's stale write", () => {
     expect(cancelledRows.length).toBe(0);
   });
 
-  it("predicate-only race: stale `delivered` row hits updateMany count=0 and returns stale-status copy", async () => {
+  it("predicate-only race: stale `in_progress` row hits updateMany count=0 and returns stale-status copy", async () => {
     // This test exercises the v2 inverse-transition predicate directly.
-    // Setup: assignment is `delivered`. We simulate two concurrent admins:
-    //   - A1 reads at `delivered`, fires markComplete → updateMany claims
+    // Setup: assignment is `in_progress`. We simulate two concurrent admins:
+    //   - A1 reads at `in_progress`, fires markComplete → updateMany claims
     //     the row, status flips to `completed`.
-    //   - A2 already read at `delivered`, then ALSO fires markComplete —
-    //     bypassing the early `if (a.status !== "delivered")` precheck by
-    //     loading first then calling the action against the now-stale row.
+    //   - A2 already read at `in_progress`, then ALSO fires markComplete —
+    //     bypassing the early sourcesOf precheck by loading first then
+    //     calling the action against the now-stale row.
     //
     // To make the predicate-count fire (not the early read-guard), we
     // race two completion attempts where the SECOND inner call enters
@@ -109,7 +109,7 @@ describe("v1→v2 race: admin completes vs freelancer's stale write", () => {
     const { admin, teams, freelancer } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_race_double_complete",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
       freelancerId: freelancer.user.id,
       createdById: admin.user.id,
@@ -130,13 +130,13 @@ describe("v1→v2 race: admin completes vs freelancer's stale write", () => {
 
     // Loser's error must be one of the two intended messages:
     //   - "Status changed while you were away. Reload and try again."  (predicate count=0)
-    //   - "Only delivered assignments can be completed. This one is completed."  (early guard re-read)
+    //   - "This assignment can't be completed from its current status."  (early guard re-read once status is `completed`)
     // Either is correct v2 behavior — both prevent the v1 LWW clobber.
     const loser = losers[0];
     if (!loser.ok) {
       const ok =
         loser.error === STALE_COPY ||
-        loser.error === "errors.assignment.cannotCompleteNonDelivered";
+        loser.error === "errors.assignment.cannotCompleteFromCurrentStatus";
       expect(ok).toBe(true);
     }
 
@@ -156,15 +156,15 @@ describe("v1→v2 race: admin completes vs freelancer's stale write", () => {
   });
 
   it("complete-vs-cancel concurrent: exactly one transition lands, no double audit", async () => {
-    // Both actions start from `delivered`. Whichever updateMany claims the
-    // row first wins; the other's predicate (`status: in [delivered]` for
-    // complete; `status: notIn TERMINAL` for cancel — but the row is now
-    // terminal) returns count=0. Net: one transition, one audit row, no
-    // double-bookkeeping.
+    // Both actions start from `in_progress`. Whichever updateMany claims the
+    // row first wins; the other's predicate (`status: in sourcesOf(completed)`
+    // for complete; `status: notIn TERMINAL` for cancel — but the row is
+    // now terminal) returns count=0. Net: one transition, one audit row,
+    // no double-bookkeeping.
     const { admin, teams, freelancer } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_race_complete_vs_cancel_parallel",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
       freelancerId: freelancer.user.id,
       createdById: admin.user.id,

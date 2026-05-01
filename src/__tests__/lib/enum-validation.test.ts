@@ -22,13 +22,12 @@ describe("isRole", () => {
 });
 
 describe("isStatus", () => {
-  it("accepts all 8 statuses in STATUS_ORDER", () => {
+  it("accepts all 7 statuses in STATUS_ORDER", () => {
     for (const s of [
       "draft",
       "awaiting",
       "scheduled",
       "in_progress",
-      "delivered",
       "completed",
       "on_hold",
       "cancelled",

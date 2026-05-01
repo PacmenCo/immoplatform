@@ -68,12 +68,6 @@ import AssignmentDateUpdated, {
   previewProps as assignmentDateUpdatedProps,
   type AssignmentDateUpdatedEmailProps,
 } from "./AssignmentDateUpdated";
-import AssignmentDelivered, {
-  subjectKey as assignmentDeliveredSubjectKey,
-  subjectArgs as assignmentDeliveredSubjectArgs,
-  previewProps as assignmentDeliveredProps,
-  type AssignmentDeliveredEmailProps,
-} from "./AssignmentDelivered";
 import AssignmentCompleted, {
   subjectKey as assignmentCompletedSubjectKey,
   subjectArgs as assignmentCompletedSubjectArgs,
@@ -269,18 +263,6 @@ const TEMPLATE_INPUTS: TemplateInput[] = [
     subjectArgs: (p) =>
       assignmentDateUpdatedSubjectArgs(p as AssignmentDateUpdatedEmailProps),
     previewProps: assignmentDateUpdatedProps,
-  },
-  {
-    slug: "assignment-delivered",
-    label: "Assignment delivered",
-    description: "Sent to the agency when a freelancer marks work delivered.",
-    element: (p) => (
-      <AssignmentDelivered {...(p as AssignmentDeliveredEmailProps)} />
-    ),
-    subjectKey: assignmentDeliveredSubjectKey,
-    subjectArgs: (p) =>
-      assignmentDeliveredSubjectArgs(p as AssignmentDeliveredEmailProps),
-    previewProps: assignmentDeliveredProps,
   },
   {
     slug: "assignment-completed",

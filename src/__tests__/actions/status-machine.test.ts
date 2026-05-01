@@ -41,7 +41,7 @@ describe("changeAssignmentStatusInner — role allowlist", () => {
     const { staff, teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_staff_sets_completed",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
     });
     const res = await changeAssignmentStatusInner(staff, asg.id, {
@@ -76,7 +76,7 @@ describe("changeAssignmentStatusInner — role allowlist", () => {
     const { freelancer, teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_freelancer_cannot_complete",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
       freelancerId: freelancer.user.id,
     });
@@ -107,7 +107,7 @@ describe("changeAssignmentStatusInner — role allowlist", () => {
     const { realtor, teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_realtor_cannot_complete",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
       createdById: realtor.user.id,
     });
@@ -154,7 +154,7 @@ describe("changeAssignmentStatusInner — target-specific policy gates", () => {
     const { admin, teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_complete_with_commission",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
       propertyType: "apartment",
       services: [{ serviceKey: "asbestos", unitPriceCents: 25_000 }],

@@ -24,7 +24,6 @@ const EVENT_CATALOG_KEY: Record<EmailEventKey, string> = {
   "assignment.date_updated": "assignmentDateUpdated",
   "assignment.freelancer_assigned": "assignmentFreelancerAssigned",
   "assignment.freelancer_unassigned": "assignmentFreelancerUnassigned",
-  "assignment.delivered": "assignmentDelivered",
   "assignment.completed": "assignmentCompleted",
   "assignment.cancelled": "assignmentCancelled",
   "assignment.files_uploaded": "assignmentFilesUploaded",

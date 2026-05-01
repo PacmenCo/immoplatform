@@ -41,11 +41,10 @@ describe("uploadAssignmentFilesInner — freelancer lane", () => {
 
     const after = await prisma.assignment.findUniqueOrThrow({
       where: { id: asg.id },
-      select: { status: true, completedAt: true, deliveredAt: true },
+      select: { status: true, completedAt: true },
     });
     expect(after.status).toBe("completed");
     expect(after.completedAt).toBeInstanceOf(Date);
-    expect(after.deliveredAt).toBeInstanceOf(Date);
 
     const files = await prisma.assignmentFile.findMany({
       where: { assignmentId: asg.id },
@@ -324,12 +323,11 @@ describe("uploadAssignmentFilesInner — realtor lane", () => {
 
     const after = await prisma.assignment.findUniqueOrThrow({
       where: { id: asg.id },
-      select: { status: true, completedAt: true, deliveredAt: true },
+      select: { status: true, completedAt: true },
     });
     // Realtor-lane upload must NOT auto-complete.
     expect(after.status).toBe("scheduled");
     expect(after.completedAt).toBeNull();
-    expect(after.deliveredAt).toBeNull();
 
     const files = await prisma.assignmentFile.findMany({
       where: { assignmentId: asg.id },

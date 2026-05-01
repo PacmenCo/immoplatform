@@ -54,16 +54,18 @@ export default async function NewAssignmentPage() {
   return (
     <>
       <Topbar title={t("title")} subtitle={t("subtitle")} />
-      <AssignmentForm
-        services={services}
-        action={createAssignment}
-        canSetDiscount={canSetDiscount(session)}
-        canSetFreelancer={canFreelancer}
-        canUploadFiles={canUploadFiles}
-        freelancers={freelancers}
-        pricelistItemsByService={pricelistData.byService}
-        odooError={pricelistData.odooError}
-      />
+      <div className="px-8 pt-8 pb-28 max-w-[960px]">
+        <AssignmentForm
+          services={services}
+          action={createAssignment}
+          canSetDiscount={canSetDiscount(session)}
+          canSetFreelancer={canFreelancer}
+          canUploadFiles={canUploadFiles}
+          freelancers={freelancers}
+          pricelistItemsByService={pricelistData.byService}
+          odooError={pricelistData.odooError}
+        />
+      </div>
     </>
   );
 }

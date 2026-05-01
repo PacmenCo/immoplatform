@@ -81,11 +81,6 @@ import AssignmentDateUpdated, {
   subjectArgs as assignmentDateUpdatedSubjectArgs,
   type AssignmentDateUpdatedEmailProps,
 } from "@/emails/AssignmentDateUpdated";
-import AssignmentDelivered, {
-  subjectKey as assignmentDeliveredSubjectKey,
-  subjectArgs as assignmentDeliveredSubjectArgs,
-  type AssignmentDeliveredEmailProps,
-} from "@/emails/AssignmentDelivered";
 import AssignmentCompleted, {
   subjectKey as assignmentCompletedSubjectKey,
   subjectArgs as assignmentCompletedSubjectArgs,
@@ -505,23 +500,6 @@ export async function assignmentDateUpdatedEmail(
     lc,
     assignmentDateUpdatedSubjectKey,
     assignmentDateUpdatedSubjectArgs(props),
-  );
-  return { subject, html, text };
-}
-
-export async function assignmentDeliveredEmail(
-  props: AssignmentDeliveredEmailProps,
-  locale?: string,
-): Promise<RenderedEmail> {
-  const lc = resolveLocale(locale);
-  const { html, text } = await renderTemplate(
-    <AssignmentDelivered {...props} />,
-    lc,
-  );
-  const subject = await buildSubject(
-    lc,
-    assignmentDeliveredSubjectKey,
-    assignmentDeliveredSubjectArgs(props),
   );
   return { subject, html, text };
 }

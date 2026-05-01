@@ -26,8 +26,8 @@ export function subjectArgs(
 }
 
 /**
- * Build the localized "what" fragment ("delivered N files" / "uploaded N
- * supporting files") from a lane + count. Lane × singular/plural × locale
+ * Build the localized "what" fragment ("uploaded N deliverables" / "uploaded
+ * N supporting files") from a lane + count. Lane × singular/plural × locale
  * cross product = 4 keys, simpler than ICU select inside the parent string.
  */
 function whatKey(lane: "freelancer" | "realtor", count: number): string {

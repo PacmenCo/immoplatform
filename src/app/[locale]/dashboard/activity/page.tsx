@@ -66,7 +66,6 @@ function classifyVerb(verb: string): Kind {
   }
   if (
     verb === "assignment.started" ||
-    verb === "assignment.delivered" ||
     verb === "assignment.completed" ||
     verb === "assignment.cancelled" ||
     verb === "assignment.reassigned" ||

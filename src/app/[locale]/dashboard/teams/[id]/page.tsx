@@ -185,8 +185,8 @@ export default async function TeamDetailPage({
   const activeCount = team.assignments.filter((a) =>
     ["scheduled", "in_progress"].includes(a.status),
   ).length;
-  const deliveredMtd = team.assignments.filter(
-    (a) => a.deliveredAt && a.deliveredAt >= monthStart,
+  const completedMtd = team.assignments.filter(
+    (a) => a.completedAt && a.completedAt >= monthStart,
   ).length;
 
   const serviceCount: Record<string, number> = {};
@@ -358,9 +358,9 @@ export default async function TeamDetailPage({
             tone="warn"
           />
           <StatCard
-            label={t("stats.deliveredMtd")}
-            value={deliveredMtd.toString()}
-            hint={t("stats.deliveredMtdHint", { date: monthStart.toISOString().slice(0, 10) })}
+            label={t("stats.completedMtd")}
+            value={completedMtd.toString()}
+            hint={t("stats.completedMtdHint", { date: monthStart.toISOString().slice(0, 10) })}
             tone="ok"
           />
           <StatCard

@@ -92,13 +92,6 @@
     "newLabel": "New: {date}",
     "unscheduled": "unscheduled"
   },
-  "assignmentDelivered": {
-    "subject": "Delivered: {address} ({reference})",
-    "title": "Assignment delivered",
-    "preview": "{reference} delivered — review files",
-    "bodyWithFreelancer": "{actorName} marked {freelancerName}'s inspection at {address} ({reference}) as delivered. Review the files and sign off when you're ready.",
-    "bodyDirect": "{actorName} marked the inspection at {address} ({reference}) as delivered. Review the files and sign off when you're ready."
-  },
   "assignmentCompleted": {
     "subject": "Completed: {address} ({reference})",
     "title": "Assignment completed",
@@ -129,8 +122,8 @@
     "subject": "New files: {address} ({reference})",
     "title": "New files uploaded",
     "preview": "{uploaderName} {what} on {reference}",
-    "freelancerSingular": "delivered {count} file",
-    "freelancerPlural": "delivered {count} files",
+    "freelancerSingular": "uploaded {count} deliverable",
+    "freelancerPlural": "uploaded {count} deliverables",
     "realtorSingular": "uploaded {count} supporting file",
     "realtorPlural": "uploaded {count} supporting files",
     "body": "{uploaderName} {what} on {reference} ({address}).",

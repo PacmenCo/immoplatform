@@ -113,17 +113,12 @@ async function applyUploadBookkeeping(
       });
       // Platform parity (ProcessFilePondUpload.php:260-289 + AssignmentController.php:704-716):
       // a freelancer-lane upload jumps the assignment straight to `completed`
-      // and fires the commission calc. `deliveredAt` is backfilled atomically
-      // (only when still null) so a concurrent admin set can't be clobbered.
+      // and fires the commission calc.
       if (lane === "freelancer") {
         const now = new Date();
         await tx.assignment.update({
           where: { id: assignmentId },
           data: { status: "completed", completedAt: now },
-        });
-        await tx.assignment.updateMany({
-          where: { id: assignmentId, deliveredAt: null },
-          data: { deliveredAt: now },
         });
         autoCompleted = true;
         const commission = await applyCommission(assignmentId, tx);
@@ -233,13 +228,13 @@ async function applyUploadBookkeeping(
     );
 
     // Platform parity (AssignmentCompletedMail at AssignmentController.php:1082):
-    // v2's auto-complete path skips "delivered" and lands directly on
-    // "completed", so the files_uploaded email above doesn't say "it's
-    // done" — fan out the completion event too. Auto-complete only fires
-    // on the freelancer lane, where `recipients` is already the agency,
-    // so reuse it instead of querying again. The assigned freelancer is
-    // added only when they're not the uploader (admin/staff uploading on
-    // behalf of the freelancer is possible via canUploadToFreelancerLane).
+    // a freelancer-lane upload lands the row on "completed", so the
+    // files_uploaded email above doesn't say "it's done" — fan out the
+    // completion event too. Auto-complete only fires on the freelancer lane,
+    // where `recipients` is already the agency, so reuse it instead of
+    // querying again. The assigned freelancer is added only when they're not
+    // the uploader (admin/staff uploading on behalf of the freelancer is
+    // possible via canUploadToFreelancerLane).
     if (autoCompleted) {
       const completedRecipients: Recipient[] = [...recipients];
       if (meta.freelancerId && meta.freelancerId !== session.user.id) {

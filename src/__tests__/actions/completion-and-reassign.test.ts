@@ -13,7 +13,7 @@ import { makeSession } from "../_helpers/session";
 //
 // Covers:
 //   markAssignmentCompleted:
-//     - delivered → completed transition only
+//     - scheduled / in_progress → completed transitions
 //     - commission applied in-tx (eligibility observed)
 //     - "Marked completed: …" comment when note passed
 //     - finishedAt override respected (no future dates)
@@ -32,11 +32,11 @@ function form(data: Record<string, string> = {}): FormData {
 }
 
 describe("markAssignmentCompletedInner — happy path", () => {
-  it("delivered + admin → completed + completedAt stamped + commission applied", async () => {
+  it("in_progress + admin → completed + completedAt stamped + commission applied", async () => {
     const { admin, teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_complete_happy",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
       propertyType: "apartment",
       services: [{ serviceKey: "asbestos", unitPriceCents: 25_000 }],
@@ -61,7 +61,7 @@ describe("markAssignmentCompletedInner — happy path", () => {
     const { admin, teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_complete_finishedat",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
     });
     const when = "2026-04-20T09:00:00.000Z";
@@ -77,7 +77,7 @@ describe("markAssignmentCompletedInner — happy path", () => {
     const { admin, teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_complete_with_note",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
     });
     await markAssignmentCompletedInner(
@@ -102,7 +102,7 @@ describe("markAssignmentCompletedInner — happy path", () => {
     const { admin, teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_complete_no_note",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
     });
     await markAssignmentCompletedInner(admin, asg.id, undefined, form());
@@ -116,7 +116,7 @@ describe("markAssignmentCompletedInner — happy path", () => {
     const { admin, teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_complete_audit",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
       propertyType: "apartment",
       services: [{ serviceKey: "asbestos", unitPriceCents: 25_000 }],
@@ -134,17 +134,17 @@ describe("markAssignmentCompletedInner — happy path", () => {
 });
 
 describe("markAssignmentCompletedInner — guard clauses", () => {
-  it("not delivered (scheduled) → rejected", async () => {
+  it("non-completable source (awaiting) → rejected", async () => {
     const { admin, teams } = await seedBaseline();
     const asg = await seedAssignment({
-      id: "a_complete_not_delivered",
-      status: "scheduled",
+      id: "a_complete_not_completable",
+      status: "awaiting",
       teamId: teams.t1.id,
     });
     const res = await markAssignmentCompletedInner(admin, asg.id, undefined, form());
     expect(res).toEqual({
       ok: false,
-      error: "errors.assignment.cannotCompleteNonDelivered",
+      error: "errors.assignment.cannotCompleteFromCurrentStatus",
     });
   });
 
@@ -158,7 +158,7 @@ describe("markAssignmentCompletedInner — guard clauses", () => {
     const res = await markAssignmentCompletedInner(admin, asg.id, undefined, form());
     expect(res).toEqual({
       ok: false,
-      error: "errors.assignment.cannotCompleteNonDelivered",
+      error: "errors.assignment.cannotCompleteFromCurrentStatus",
     });
   });
 
@@ -166,7 +166,7 @@ describe("markAssignmentCompletedInner — guard clauses", () => {
     const { admin, teams } = await seedBaseline();
     const asg = await seedAssignment({
       id: "a_complete_future",
-      status: "delivered",
+      status: "in_progress",
       teamId: teams.t1.id,
     });
     const future = new Date(Date.now() + 86_400_000).toISOString();
@@ -189,7 +189,7 @@ describe("markAssignmentCompletedInner — guard clauses", () => {
     });
     const asg = await seedAssignment({
       id: "a_complete_outsider",
-      status: "delivered",
+      status: "in_progress",
       teamId: "t_test_1",
     });
     const res = await markAssignmentCompletedInner(outsider, asg.id, undefined, form());

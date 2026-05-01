@@ -482,7 +482,7 @@ async function main() {
       services: ["asbestos", "electrical", "fuel"],
     },
     {
-      id: "a_1003", reference: "ASG-2026-1003", status: AssignmentStatus.delivered,
+      id: "a_1003", reference: "ASG-2026-1003", status: AssignmentStatus.in_progress,
       address: "Sint-Pietersnieuwstraat 45", city: "Gent", postal: "9000",
       propertyType: "apartment", constructionYear: 1998, areaM2: 85,
       preferredDate: new Date("2026-04-10"),
@@ -490,7 +490,6 @@ async function main() {
       ownerName: "Hannah Peeters", ownerEmail: "hannah@example.com", ownerPhone: "+32 478 55 44 33",
       teamId: "t_03", freelancerId: "u_5", createdById: "u_1",
       services: ["epc"],
-      deliveredAt: new Date("2026-04-12"),
     },
     {
       id: "a_1004", reference: "ASG-2026-1004", status: AssignmentStatus.completed,
@@ -502,7 +501,6 @@ async function main() {
       tenantName: "Lisa Maes", tenantEmail: "lisa@example.com", tenantPhone: "+32 471 22 11 00",
       teamId: "t_04", freelancerId: "u_7", createdById: "u_1",
       services: ["epc", "asbestos", "electrical", "fuel"],
-      deliveredAt: new Date("2026-03-29"),
       completedAt: new Date("2026-03-30"),
     },
     {
@@ -545,7 +543,7 @@ async function main() {
       clientType: ClientType.owner,
       teamId: "t_01", freelancerId: "u_3", createdById: "u_2",
       services: ["epc", "asbestos", "electrical"],
-      deliveredAt: new Date("2026-04-12"), completedAt: new Date("2026-04-13"),
+      completedAt: new Date("2026-04-13"),
     },
     {
       // Discount applied — 10% off pre-discount total.
@@ -560,7 +558,7 @@ async function main() {
       teamId: "t_02", freelancerId: "u_4", createdById: "u_6",
       services: ["asbestos", "electrical"],
       discountType: DiscountType.percentage, discountValue: 1000, discountReason: "Repeat-customer rebate",
-      deliveredAt: new Date("2026-04-08"), completedAt: new Date("2026-04-09"),
+      completedAt: new Date("2026-04-09"),
     },
     {
       id: "a_1009", reference: "ASG-2026-2003", status: AssignmentStatus.cancelled,
@@ -626,7 +624,7 @@ async function main() {
       services: ["electrical", "fuel"],
     },
     {
-      id: "a_1015", reference: "ASG-2026-2009", status: AssignmentStatus.delivered,
+      id: "a_1015", reference: "ASG-2026-2009", status: AssignmentStatus.in_progress,
       address: "Place du Marché 3", city: "Liège", postal: "4000",
       propertyType: "apartment", constructionYear: 2001, areaM2: 105,
       preferredDate: new Date("2026-04-18"),
@@ -634,7 +632,6 @@ async function main() {
       ownerName: "Mathieu Lemaire", ownerEmail: "mathieu@example.com", ownerPhone: "+32 491 99 88 77",
       teamId: "t_05", freelancerId: "u_12", createdById: "u_10",
       services: ["electrical"],
-      deliveredAt: new Date("2026-04-23"),
     },
     {
       // Last-month completion for revenue chart trend.
@@ -646,7 +643,7 @@ async function main() {
       ownerName: "Lien Adriaens", ownerEmail: "lien@example.com", ownerPhone: "+32 477 33 22 11",
       teamId: "t_01", freelancerId: "u_3", createdById: "u_2",
       services: ["epc", "asbestos"],
-      deliveredAt: new Date("2026-03-15"), completedAt: new Date("2026-03-16"),
+      completedAt: new Date("2026-03-16"),
     },
     {
       // Two months back, different team, single-service.
@@ -658,7 +655,7 @@ async function main() {
       ownerName: "Camille Renard", ownerEmail: "camille@example.com", ownerPhone: "+32 472 11 22 33",
       teamId: "t_02", freelancerId: "u_11", createdById: "u_6",
       services: ["asbestos"],
-      deliveredAt: new Date("2026-02-26"), completedAt: new Date("2026-02-27"),
+      completedAt: new Date("2026-02-27"),
     },
     {
       // qty 3 + firm client + this month — quantity-fix demo.
@@ -674,7 +671,7 @@ async function main() {
       clientType: ClientType.firm,
       teamId: "t_04", freelancerId: "u_7", createdById: "u_8",
       services: ["epc", "asbestos", "fuel"],
-      deliveredAt: new Date("2026-04-06"), completedAt: new Date("2026-04-07"),
+      completedAt: new Date("2026-04-07"),
     },
     {
       id: "a_1019", reference: "ASG-2026-2013", status: AssignmentStatus.cancelled,
@@ -730,7 +727,7 @@ async function main() {
       services: ["asbestos", "electrical"],
     },
     {
-      id: "a_test_003", reference: "ASG-2026-9003", status: AssignmentStatus.delivered,
+      id: "a_test_003", reference: "ASG-2026-9003", status: AssignmentStatus.in_progress,
       address: "Test Square 3", city: "Test City", postal: "1000",
       propertyType: "apartment", constructionYear: 2005, areaM2: 75,
       preferredDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // a week ago
@@ -738,7 +735,6 @@ async function main() {
       ownerName: "Test Owner Gamma", ownerEmail: "owner-c@example.test", ownerPhone: "+32 470 00 00 03",
       teamId: "t_test", freelancerId: "u_test_freelancer", createdById: "u_test_realtor",
       services: ["epc", "fuel"],
-      deliveredAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
     },
   ];
 

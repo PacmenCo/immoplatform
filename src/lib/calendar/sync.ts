@@ -69,8 +69,8 @@ export async function syncAssignmentToCalendars(
 
     // Platform parity (sendCalendarNotification, AssignmentController.php:1264-1295):
     // external calendar events only live on assignments in the "scheduled"
-    // state. Leaving scheduled for in_progress/delivered/completed is a no-op
-    // here — the event stays in place, matching Platform's behaviour of only
+    // state. Leaving scheduled for in_progress/completed is a no-op here —
+    // the event stays in place, matching Platform's behaviour of only
     // touching the calendar on Ingepland transitions. Cancel actions still
     // run so an explicit cancelAssignment / deleteAssignment / cancelled
     // transition removes stale events.

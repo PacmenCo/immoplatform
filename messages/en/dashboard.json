@@ -261,7 +261,7 @@
       "particulier": "Particulier (owner)",
       "firm": "Firm (bedrijf)",
       "commissionTitle": "Commission",
-      "commissionDescription": "How much the team keeps per delivered assignment. Set once, applies platform-wide.",
+      "commissionDescription": "How much the team keeps per completed assignment. Set once, applies platform-wide.",
       "commissionModel": "Model",
       "commissionNone": "No commission",
       "commissionPercentage": "Percentage of order",
@@ -281,7 +281,7 @@
       "productSearchPlaceholder": "Type to search…",
       "productClearAriaLabel": "Clear pricelist selection",
       "productNoMatches": "No matching products.",
-      "propertyTitle": "Property",
+      "propertyTitle": "Address",
       "propertySubtitle": "Where is the inspection taking place?",
       "address": "Street + number",
       "addressPlaceholder": "Meir 34",
@@ -401,8 +401,7 @@
       "odooHeaderTitle": "Odoo sync status",
       "filesHeader": "Files",
       "columns": {
-        "reference": "Reference",
-        "property": "Property",
+        "address": "Address",
         "services": "Services",
         "team": "Team",
         "freelancer": "Freelancer",
@@ -525,8 +524,6 @@
     "actions": {
       "edit": "Edit",
       "startInspection": "Start inspection",
-      "markDelivered": "Mark delivered",
-      "markNotDelivered": "Mark not delivered",
       "markCompleted": "Mark completed",
       "cancel": "Cancel",
       "cancelDialogTitle": "Cancel this assignment?",
@@ -619,7 +616,6 @@
       "awaiting": "Awaiting",
       "scheduled": "Scheduled",
       "in_progress": "In progress",
-      "delivered": "Delivered",
       "completed": "Completed",
       "on_hold": "On hold",
       "cancelled": "Cancelled"
@@ -845,7 +841,7 @@
       "atAGlance": {
         "title": "At a glance",
         "active": "Active",
-        "delivered": "Delivered",
+        "completed": "Completed",
         "closed": "Closed",
         "services": "Services",
         "teams": "Teams",
@@ -879,7 +875,6 @@
         "assignmentCreated": "Created an assignment",
         "assignmentUpdated": "Updated an assignment",
         "assignmentStarted": "Started an inspection",
-        "assignmentDelivered": "Delivered an inspection",
         "assignmentCompleted": "Signed off on an assignment",
         "assignmentCancelled": "Cancelled an assignment",
         "assignmentDeleted": "Deleted an assignment",
@@ -1113,8 +1108,8 @@
         "membersNoOwner": "No owner assigned",
         "active": "Active",
         "activeHint": "Scheduled or in progress",
-        "deliveredMtd": "Delivered (MTD)",
-        "deliveredMtdHint": "Since {date}",
+        "completedMtd": "Completed (MTD)",
+        "completedMtdHint": "Since {date}",
         "commission": "Commission",
         "commissionInvoicesFirm": "Invoices firm by default",
         "commissionInvoicesOwner": "Invoices owner by default",
@@ -1194,7 +1189,7 @@
         "empty": "No assignments yet.",
         "columns": {
           "reference": "Reference",
-          "property": "Property",
+          "property": "Address",
           "services": "Services",
           "freelancer": "Freelancer",
           "date": "Date",
@@ -1270,7 +1265,7 @@
       },
       "commission": {
         "title": "Commission configuration",
-        "descriptionPrefix": "How this team is rewarded per delivered assignment. Payouts are tracked on the",
+        "descriptionPrefix": "How this team is rewarded per completed assignment. Payouts are tracked on the",
         "descriptionLink": "Commissions page",
         "descriptionSuffix": ".",
         "options": {
@@ -1284,13 +1279,13 @@
           },
           "fixed": {
             "label": "Fixed amount",
-            "description": "A flat fee per delivered assignment."
+            "description": "A flat fee per completed assignment."
           }
         },
         "amountLabel": "Amount",
         "percentageLabel": "Percentage",
         "amountHintPercentage": "Of the invoice total, excluding VAT.",
-        "amountHintFixed": "Flat euro amount per delivered assignment.",
+        "amountHintFixed": "Flat euro amount per completed assignment.",
         "cadenceLabel": "Payout cadence",
         "cadence": {
           "weekly": "Weekly",
@@ -1531,10 +1526,6 @@
         "assignmentFreelancerUnassigned": {
           "label": "When I'm removed from an assignment",
           "description": "Sent to the freelancer when the agency reassigns their work to someone else."
-        },
-        "assignmentDelivered": {
-          "label": "When my team's assignment is delivered",
-          "description": "Sent to the agency when the freelancer flags the work delivered."
         },
         "assignmentCompleted": {
           "label": "When an assignment I'm on is marked completed",
@@ -1908,7 +1899,7 @@
       "title": "Breakdown",
       "subtitle": "Every commission line for {team} in Q{quarter} {year}.",
       "headerAssignment": "Assignment",
-      "headerProperty": "Property",
+      "headerProperty": "Address",
       "headerTotal": "Total",
       "headerRate": "Rate",
       "headerCommission": "Commission",
@@ -1973,8 +1964,8 @@
     "recent": {
       "heading": "Recent completed",
       "viewAll": "View all",
-      "emptyTitle": "Nothing delivered yet",
-      "emptyDescription": "Assignments you mark delivered or completed show here so you can jump back to them for follow-up.",
+      "emptyTitle": "Nothing completed yet",
+      "emptyDescription": "Assignments you mark completed show here so you can jump back to them for follow-up.",
       "signedOff": "Signed off",
       "datePlaceholder": "—"
     }
@@ -1986,8 +1977,8 @@
     "stats": {
       "active": "Active assignments",
       "activeDelta": "{count} due this week",
-      "deliveredMtd": "Delivered (MTD)",
-      "deliveredMtdDelta": "Since {date}",
+      "completedMtd": "Completed (MTD)",
+      "completedMtdDelta": "Since {date}",
       "members": "Team members",
       "membersDeltaPlatform": "People on the platform",
       "membersDeltaTeam": "People on your teams",
@@ -2027,7 +2018,7 @@
       },
       "overview": {
         "title": "This month's overview",
-        "body": "Revenue, delivered inspections, commission breakdowns.",
+        "body": "Revenue, completed inspections, commission breakdowns.",
         "cta": "Open overview"
       }
     }

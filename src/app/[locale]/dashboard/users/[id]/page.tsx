@@ -127,7 +127,7 @@ export default async function UserDetail({
         ? { createdById: user.id }
         : null;
 
-  const [recentAssignments, totalAssignments, activeCount, deliveredCount, auditRows] =
+  const [recentAssignments, totalAssignments, activeCount, completedCount, auditRows] =
     await Promise.all([
       recentWhere
         ? prisma.assignment.findMany({
@@ -147,7 +147,7 @@ export default async function UserDetail({
         : Promise.resolve(0),
       recentWhere
         ? prisma.assignment.count({
-            where: { ...recentWhere, status: { in: ["delivered", "completed"] } },
+            where: { ...recentWhere, status: "completed" },
           })
         : Promise.resolve(0),
       prisma.auditLog.findMany({
@@ -486,8 +486,8 @@ export default async function UserDetail({
                 <CardBody className="grid grid-cols-2 gap-4">
                   <Stat label={t("atAGlance.active")} value={activeCount.toString()} />
                   <Stat
-                    label={user.role === "freelancer" ? t("atAGlance.delivered") : t("atAGlance.closed")}
-                    value={deliveredCount.toString()}
+                    label={user.role === "freelancer" ? t("atAGlance.completed") : t("atAGlance.closed")}
+                    value={completedCount.toString()}
                   />
                   {user.role === "freelancer" ? (
                     <Stat label={t("atAGlance.services")} value={user.specialties.length.toString()} />
@@ -588,7 +588,6 @@ const VERB_KEYS: Record<string, string> = {
   "assignment.created": "assignmentCreated",
   "assignment.updated": "assignmentUpdated",
   "assignment.started": "assignmentStarted",
-  "assignment.delivered": "assignmentDelivered",
   "assignment.completed": "assignmentCompleted",
   "assignment.cancelled": "assignmentCancelled",
   "assignment.deleted": "assignmentDeleted",

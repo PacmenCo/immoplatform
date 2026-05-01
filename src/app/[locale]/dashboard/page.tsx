@@ -71,7 +71,7 @@ export default async function DashboardHome() {
   const [
     active,
     dueThisWeek,
-    deliveredMtd,
+    completedMtd,
     services,
     upcoming,
     recentAudits,
@@ -94,7 +94,7 @@ export default async function DashboardHome() {
         ),
       }),
       prisma.assignment.count({
-        where: composeWhere({ deliveredAt: { gte: monthStart } }, scope),
+        where: composeWhere({ completedAt: { gte: monthStart } }, scope),
       }),
       prisma.service.findMany(),
       prisma.assignment.findMany({
@@ -131,9 +131,9 @@ export default async function DashboardHome() {
       delta: t("stats.activeDelta", { count: dueThisWeek }),
     },
     {
-      label: t("stats.deliveredMtd"),
-      value: deliveredMtd.toString(),
-      delta: t("stats.deliveredMtdDelta", { date: monthStart.toISOString().slice(0, 10) }),
+      label: t("stats.completedMtd"),
+      value: completedMtd.toString(),
+      delta: t("stats.completedMtdDelta", { date: monthStart.toISOString().slice(0, 10) }),
     },
     ...(isFreelancer
       ? []
@@ -270,7 +270,7 @@ export default async function DashboardHome() {
                     const actor = r.actor
                       ? `${r.actor.firstName} ${r.actor.lastName}`
                       : t("recentActivity.systemActor");
-                    const iconKind = r.verb.includes("delivered")
+                    const iconKind = r.verb.includes("completed")
                       ? "done"
                       : r.verb.includes("scheduled") || r.verb.includes("created")
                         ? "schedule"

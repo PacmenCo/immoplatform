@@ -11,7 +11,6 @@ import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider
 import { isTerminalStatus } from "@/lib/mockData";
 import {
   cancelAssignment,
-  markAssignmentDelivered,
   markAssignmentInProgress,
 } from "@/app/actions/assignments";
 import { CompleteForm } from "./CompleteForm";
@@ -22,7 +21,6 @@ type Props = {
   reference: string;
   status: string;
   canStart: boolean;
-  canDeliver: boolean;
   canUpdateFields: boolean;
   canComplete: boolean;
   canCancel: boolean;
@@ -38,7 +36,6 @@ export function AssignmentActions({
   reference,
   status,
   canStart,
-  canDeliver,
   canUpdateFields,
   canComplete,
   canCancel,
@@ -65,13 +62,6 @@ export function AssignmentActions({
       if (!r.ok) setActionError(r.error);
     });
   }
-  function runDeliver() {
-    setActionError(null);
-    startTransition(async () => {
-      const r = await markAssignmentDelivered(assignmentId);
-      if (!r.ok) setActionError(r.error);
-    });
-  }
   function runCancel() {
     setCancelError(null);
     startTransition(async () => {
@@ -87,11 +77,7 @@ export function AssignmentActions({
 
   const isTerminal = isTerminalStatus(status);
   const showStart = canStart && (status === "scheduled" || status === "draft");
-  // Mirror v1's reversible `finished_at` flag — show on both edges of the
-  // delivered ↔ in_progress toggle. Label flips so the action is unambiguous.
-  const showDeliver = canDeliver && status === "in_progress";
-  const showUndeliver = canDeliver && status === "delivered";
-  const showComplete = canComplete && status === "delivered";
+  const showComplete = canComplete && (status === "in_progress" || status === "scheduled");
   const showCancel = canCancel && !isTerminal;
   const showEdit = canUpdateFields && !isTerminal;
 
@@ -114,22 +100,6 @@ export function AssignmentActions({
           <Button size="sm" onClick={runStart} loading={pending}>
             <IconPlay size={12} />
             {t("startInspection")}
-          </Button>
-        )}
-        {showDeliver && (
-          <Button size="sm" onClick={runDeliver} loading={pending}>
-            <IconCheck size={12} />
-            {t("markDelivered")}
-          </Button>
-        )}
-        {showUndeliver && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={runDeliver}
-            loading={pending}
-          >
-            {t("markNotDelivered")}
           </Button>
         )}
         {showComplete && (

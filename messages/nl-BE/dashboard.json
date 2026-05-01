@@ -197,8 +197,6 @@
       "cancelReasonPlaceholder": "Eigenaar bedacht zich, dubbele bestelling, enz.",
       "edit": "Bewerken",
       "markCompleted": "Markeren als voltooid",
-      "markDelivered": "Markeren als geleverd",
-      "markNotDelivered": "Markeren als niet geleverd",
       "startInspection": "Inspectie starten"
     },
     "assignedTo": {
@@ -331,11 +329,10 @@
     },
     "list": {
       "columns": {
+        "address": "Adres",
         "created": "Aangemaakt",
         "freelancer": "Freelancer",
         "plannedDate": "Geplande datum",
-        "property": "Pand",
-        "reference": "Referentie",
         "services": "Diensten",
         "status": "Status",
         "team": "Kantoor"
@@ -430,10 +427,9 @@
       "awaiting": "In afwachting",
       "cancelled": "Geannuleerd",
       "completed": "Voltooid",
-      "delivered": "Geleverd",
-      "draft": "Concept",
-      "in_progress": "In uitvoering",
-      "on_hold": "Geparkeerd",
+      "draft": "Nieuw",
+      "in_progress": "In verwerking",
+      "on_hold": "On hold",
       "scheduled": "Ingepland"
     },
     "statusPicker": {
@@ -482,7 +478,7 @@
       "headerAssignment": "Opdracht",
       "headerCommission": "Commissie",
       "headerCompleted": "Voltooid",
-      "headerProperty": "Pand",
+      "headerProperty": "Adres",
       "headerRate": "Tarief",
       "headerTotal": "Totaal",
       "subtitle": "Elke commissieregel voor {team} in K{quarter} {year}.",
@@ -591,8 +587,8 @@
     "ariaStatsTitle": "Kerncijfers",
     "recent": {
       "datePlaceholder": "—",
-      "emptyDescription": "Opdrachten die u als geleverd of voltooid markeert, verschijnen hier zodat u er voor opvolging snel naar kunt terugkeren.",
-      "emptyTitle": "Nog niets opgeleverd",
+      "emptyDescription": "Opdrachten die u als voltooid markeert, verschijnen hier zodat u er voor opvolging snel naar kunt terugkeren.",
+      "emptyTitle": "Nog niets voltooid",
       "heading": "Recent voltooid",
       "signedOff": "Afgetekend",
       "viewAll": "Alles bekijken"
@@ -629,7 +625,7 @@
         "title": "Een collega uitnodigen"
       },
       "overview": {
-        "body": "Omzet, geleverde keuringen en commissieverdelingen.",
+        "body": "Omzet, voltooide keuringen en commissieverdelingen.",
         "cta": "Overzicht openen",
         "title": "Overzicht van deze maand"
       }
@@ -642,8 +638,8 @@
     "stats": {
       "active": "Actieve opdrachten",
       "activeDelta": "{count} deze week gepland",
-      "deliveredMtd": "Geleverd (deze maand)",
-      "deliveredMtdDelta": "Sinds {date}",
+      "completedMtd": "Voltooid (deze maand)",
+      "completedMtdDelta": "Sinds {date}",
       "members": "Kantoorleden",
       "membersDeltaPlatform": "Mensen op het platform",
       "membersDeltaTeam": "Mensen in uw kantoren",
@@ -953,10 +949,6 @@
           "description": "Wordt verzonden naar de freelancer en de aanmaker wanneer de geplande datum wordt aangepast.",
           "label": "Wanneer de geplande datum van een opdracht verandert"
         },
-        "assignmentDelivered": {
-          "description": "Wordt verzonden naar de agency wanneer de freelancer het werk als opgeleverd markeert.",
-          "label": "Wanneer een opdracht van mijn team is opgeleverd"
-        },
         "assignmentFilesUploaded": {
           "description": "Wordt verzonden naar de makelaar of aanmaker wanneer de freelancer opleveringen upload, en naar de freelancer wanneer de makelaar ondersteunende documenten upload.",
           "label": "Wanneer er bestanden worden geüpload bij een opdracht waar ik op zit"
@@ -1220,7 +1212,7 @@
       "productNoMatches": "Geen overeenkomende producten.",
       "productSearchPlaceholder": "Type om te zoeken…",
       "propertySubtitle": "Waar vindt de keuring plaats?",
-      "propertyTitle": "Pand",
+      "propertyTitle": "Adres",
       "propertyType": "Type pand",
       "propertyTypeApartment": "Appartement",
       "propertyTypeCommercial": "Handelspand",
@@ -1410,7 +1402,7 @@
       "city": "Gemeente",
       "cityPlaceholder": "Antwerpen",
       "color": "Kleur",
-      "commissionDescription": "Hoeveel het kantoor inhoudt per opgeleverde opdracht. Eenmaal ingesteld, geldt platformbreed.",
+      "commissionDescription": "Hoeveel het kantoor inhoudt per voltooide opdracht. Eenmaal ingesteld, geldt platformbreed.",
       "commissionFixed": "Vast bedrag per opdracht",
       "commissionModel": "Model",
       "commissionNone": "Geen commissie",
@@ -1470,7 +1462,7 @@
         "columns": {
           "date": "Datum",
           "freelancer": "Freelancer",
-          "property": "Pand",
+          "property": "Adres",
           "reference": "Referentie",
           "services": "Diensten",
           "status": "Status"
@@ -1540,7 +1532,7 @@
         "accruing": "Wordt opgebouwd",
         "activityEmpty": "Nog geen commissie opgebouwd. Regels worden vastgelegd zodra een opdracht als voltooid wordt gemarkeerd.",
         "activityTitle": "Commissieactiviteit",
-        "amountHintFixed": "Vast bedrag in euro per geleverde opdracht.",
+        "amountHintFixed": "Vast bedrag in euro per voltooide opdracht.",
         "amountHintPercentage": "Van het factuurtotaal, exclusief btw.",
         "amountLabel": "Bedrag",
         "cadence": {
@@ -1550,11 +1542,11 @@
         },
         "cadenceLabel": "Frequentie van uitbetaling",
         "descriptionLink": "Commissiepagina",
-        "descriptionPrefix": "Hoe dit kantoor wordt vergoed per geleverde opdracht. Uitbetalingen worden bijgehouden op de",
+        "descriptionPrefix": "Hoe dit kantoor wordt vergoed per voltooide opdracht. Uitbetalingen worden bijgehouden op de",
         "descriptionSuffix": ".",
         "options": {
           "fixed": {
-            "description": "Een vast bedrag per geleverde opdracht.",
+            "description": "Een vast bedrag per voltooide opdracht.",
             "label": "Vast bedrag"
           },
           "none": {
@@ -1666,15 +1658,15 @@
       },
       "stats": {
         "active": "Actief",
-        "activeHint": "Ingepland of in uitvoering",
+        "activeHint": "Ingepland of in verwerking",
         "commission": "Commissie",
         "commissionFlatFee": "{rate} vast tarief",
         "commissionInvoicesFirm": "Standaard wordt het kantoor gefactureerd",
         "commissionInvoicesOwner": "Standaard wordt de eigenaar gefactureerd",
         "commissionNotConfigured": "Niet geconfigureerd",
         "commissionPercentageOf": "{rate} van de omzet",
-        "deliveredMtd": "Geleverd (deze maand)",
-        "deliveredMtdHint": "Sinds {date}",
+        "completedMtd": "Voltooid (deze maand)",
+        "completedMtdHint": "Sinds {date}",
         "members": "Leden",
         "membersHasOwner": "Heeft een eigenaar",
         "membersNoOwner": "Geen eigenaar toegewezen"
@@ -1776,7 +1768,7 @@
       "atAGlance": {
         "active": "Actief",
         "closed": "Afgesloten",
-        "delivered": "Geleverd",
+        "completed": "Voltooid",
         "services": "Diensten",
         "teams": "Kantoren",
         "title": "In één oogopslag",
@@ -1848,7 +1840,6 @@
         "assignmentCompleted": "Opdracht afgetekend",
         "assignmentCreated": "Opdracht aangemaakt",
         "assignmentDeleted": "Opdracht verwijderd",
-        "assignmentDelivered": "Inspectie geleverd",
         "assignmentFileDeleted": "Bestand verwijderd",
         "assignmentFileUploaded": "Bestanden geüpload",
         "assignmentReassigned": "Deskundige opnieuw toegewezen",

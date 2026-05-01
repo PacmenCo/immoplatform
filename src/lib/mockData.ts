@@ -63,13 +63,12 @@ export const SERVICES: Record<
 };
 
 // Order matches Platform's lifecycle: new → awaiting → scheduled → in progress →
-// delivered → completed, with on_hold as a pause state and cancelled terminal.
+// completed, with on_hold as a pause state and cancelled terminal.
 export type Status =
   | "draft"
   | "awaiting"
   | "scheduled"
   | "in_progress"
-  | "delivered"
   | "completed"
   | "on_hold"
   | "cancelled";
@@ -91,7 +90,6 @@ export const STATUS_META: Record<Status, { label: string; bg: string; fg: string
   awaiting: { label: "Awaiting", ...statusTint("#475569") },  // slate-darker
   scheduled: { label: "Scheduled", ...statusTint("#3b82f6") }, // blue
   in_progress: { label: "In progress", ...statusTint("#f59e0b") }, // amber
-  delivered: { label: "Delivered", ...statusTint("#22c55e") }, // green
   completed: { label: "Completed", ...statusTint("#84cc16") }, // lime
   on_hold: { label: "On hold", ...statusTint("#71717a") },    // zinc
   cancelled: { label: "Cancelled", ...statusTint("#ef4444") }, // red
@@ -106,7 +104,6 @@ export const STATUS_ORDER = [
   "awaiting",
   "scheduled",
   "in_progress",
-  "delivered",
   "completed",
   "on_hold",
   "cancelled",
@@ -171,7 +168,7 @@ export const ASSIGNMENTS: Assignment[] = [
     address: "Sint-Pietersnieuwstraat 45",
     city: "Gent",
     postal: "9000",
-    status: "delivered",
+    status: "in_progress",
     services: ["epc"],
     preferredDate: "2026-04-10",
     createdAt: "2026-04-02",
@@ -495,7 +492,7 @@ export const DASHBOARD_STATS = [
 ];
 
 export const RECENT_ACTIVITY = [
-  { who: "Tim De Vos", what: "delivered", ref: "ASG-2026-1003", when: "12 min ago", kind: "delivered" as const },
+  { who: "Tim De Vos", what: "completed", ref: "ASG-2026-1003", when: "12 min ago", kind: "completed" as const },
   { who: "Els Vermeulen", what: "created", ref: "ASG-2026-1007", when: "1 hr ago", kind: "created" as const },
   { who: "Sofie Janssens", what: "scheduled", ref: "ASG-2026-1002", when: "3 hr ago", kind: "scheduled" as const },
   { who: "Nele Willems", what: "uploaded files for", ref: "ASG-2026-1004", when: "yesterday", kind: "files" as const },

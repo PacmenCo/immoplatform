@@ -11,7 +11,7 @@ import { STATUS_ORDER, type Status } from "@/lib/mockData";
 import type { Role } from "@/lib/permissions.types";
 
 // Platform parity:
-// - TRANSITIONS mirrors Platform's informal state machine + immo's extensions
+// - TRANSITIONS mirrors Platform's informal state machine
 // - ROLE_ALLOWED_STATUSES derived from StatusSeeder.php's role_status pivot:
 //     admin/medewerker → all
 //     makelaar → on_hold + cancelled
@@ -38,13 +38,8 @@ describe("TRANSITIONS table — exhaustive over STATUS_ORDER", () => {
     }
   });
 
-  it("delivered is only reachable from scheduled or in_progress", () => {
-    const sources = sourcesOf("delivered");
-    expect(sources.sort()).toEqual(["in_progress", "scheduled"].sort());
-  });
-
-  it("completed is only reachable from delivered", () => {
-    expect(sourcesOf("completed")).toEqual(["delivered"]);
+  it("completed is reachable from scheduled and in_progress", () => {
+    expect(sourcesOf("completed").sort()).toEqual(["in_progress", "scheduled"].sort());
   });
 
   it("no transitions out of terminal states", () => {
@@ -58,14 +53,12 @@ describe("canTransition — spot checks", () => {
   it.each([
     ["draft", "awaiting", true],
     ["draft", "scheduled", true],
-    ["draft", "completed", false], // can't skip delivery
+    ["draft", "completed", false], // can't skip in_progress
     ["awaiting", "scheduled", true],
     ["scheduled", "awaiting", true], // date cleared → revert
-    ["scheduled", "delivered", true],
-    ["in_progress", "delivered", true],
-    ["in_progress", "completed", false], // must go through delivered
-    ["delivered", "completed", true],
-    ["delivered", "awaiting", false],
+    ["scheduled", "in_progress", true],
+    ["scheduled", "completed", true],
+    ["in_progress", "completed", true],
     ["on_hold", "awaiting", true],
     ["on_hold", "in_progress", true],
   ] as Array<[Status, Status, boolean]>)(
@@ -84,10 +77,9 @@ describe("EARLY_STATUSES", () => {
     expect(EARLY_STATUSES.size).toBe(3);
   });
 
-  it("does NOT include scheduled / in_progress / delivered / completed / cancelled", () => {
+  it("does NOT include scheduled / in_progress / completed / cancelled", () => {
     expect(EARLY_STATUSES.has("scheduled")).toBe(false);
     expect(EARLY_STATUSES.has("in_progress")).toBe(false);
-    expect(EARLY_STATUSES.has("delivered")).toBe(false);
     expect(EARLY_STATUSES.has("completed")).toBe(false);
     expect(EARLY_STATUSES.has("cancelled")).toBe(false);
   });
@@ -100,7 +92,6 @@ describe("canRoleTransitionTo — Platform role_status pivot parity", () => {
     ["admin", "awaiting"],
     ["admin", "scheduled"],
     ["admin", "in_progress"],
-    ["admin", "delivered"],
     ["admin", "completed"],
     ["admin", "on_hold"],
     ["admin", "cancelled"],
@@ -119,8 +110,8 @@ describe("canRoleTransitionTo — Platform role_status pivot parity", () => {
     expect(canRoleTransitionTo("realtor", "scheduled", "cancelled")).toBe(true);
   });
 
-  it("realtor cannot set draft / awaiting / scheduled / in_progress / delivered / completed (different-from-current)", () => {
-    const banned: Status[] = ["draft", "awaiting", "scheduled", "in_progress", "delivered", "completed"];
+  it("realtor cannot set draft / awaiting / scheduled / in_progress / completed (different-from-current)", () => {
+    const banned: Status[] = ["draft", "awaiting", "scheduled", "in_progress", "completed"];
     for (const to of banned) {
       expect(canRoleTransitionTo("realtor", "on_hold", to)).toBe(false);
     }
@@ -137,8 +128,8 @@ describe("canRoleTransitionTo — Platform role_status pivot parity", () => {
     expect(canRoleTransitionTo("freelancer", "scheduled", "cancelled")).toBe(false);
   });
 
-  it("freelancer cannot set draft / delivered / completed / on_hold", () => {
-    const banned: Status[] = ["draft", "delivered", "completed", "on_hold"];
+  it("freelancer cannot set draft / completed / on_hold", () => {
+    const banned: Status[] = ["draft", "completed", "on_hold"];
     for (const to of banned) {
       expect(canRoleTransitionTo("freelancer", "scheduled", to)).toBe(false);
     }
@@ -154,9 +145,9 @@ describe("canRoleTransitionTo — Platform role_status pivot parity", () => {
 });
 
 describe("allowedTargetsForRole", () => {
-  it("admin gets all 8 statuses regardless of current", () => {
+  it("admin gets all 7 statuses regardless of current", () => {
     const targets = allowedTargetsForRole("admin", "draft");
-    expect(targets.length).toBe(8);
+    expect(targets.length).toBe(7);
     for (const s of STATUS_ORDER) {
       expect(targets).toContain(s);
     }
@@ -177,8 +168,8 @@ describe("allowedTargetsForRole", () => {
   });
 
   it("freelancer gets role allowlist + current (which may be outside)", () => {
-    const targets = allowedTargetsForRole("freelancer", "delivered");
-    expect(targets).toContain("delivered");
+    const targets = allowedTargetsForRole("freelancer", "completed");
+    expect(targets).toContain("completed");
     expect(targets).toContain("awaiting");
     expect(targets).toContain("scheduled");
     expect(targets).toContain("in_progress");

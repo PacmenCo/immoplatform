@@ -38,6 +38,12 @@ import type { Prisma } from "@prisma/client";
  */
 const PAGE_SIZE = 20;
 
+function formatDayMonthYear(d: Date): string {
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getUTCFullYear()}`;
+}
+
 const SORTS = [
   { id: "created", column: "createdAt" as const },
   { id: "address", column: "address" as const },
@@ -330,12 +336,11 @@ export default async function AssignmentsList({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">
-                    <SortHeader current={currentState} id="created" label={t("list.columns.reference")} hideBelow="sm" />
-                    <SortHeader current={currentState} id="address" label={t("list.columns.property")} />
+                    <SortHeader current={currentState} id="created" label={t("list.columns.created")} />
+                    <SortHeader current={currentState} id="address" label={t("list.columns.address")} />
                     <th scope="col" className="hidden sm:table-cell text-left font-semibold px-6 py-3">{t("list.columns.services")}</th>
                     <th scope="col" className="hidden md:table-cell text-left font-semibold px-6 py-3">{t("list.columns.team")}</th>
                     <th scope="col" className="hidden md:table-cell text-left font-semibold px-6 py-3">{t("list.columns.freelancer")}</th>
-                    <SortHeader current={currentState} id="created" label={t("list.columns.created")} hideBelow="md" />
                     <SortHeader current={currentState} id="date" label={t("list.columns.plannedDate")} hideBelow="sm" />
                     <SortHeader current={currentState} id="status" label={t("list.columns.status")} />
                     {isAdmin && (
@@ -353,29 +358,21 @@ export default async function AssignmentsList({
                     return (
                       <tr
                         key={a.id}
-                        className="group transition-colors hover:bg-[color-mix(in_srgb,var(--color-brand)_3%,var(--color-bg))]"
+                        className="group relative cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--color-brand)_3%,var(--color-bg))]"
                       >
-                        <td className="hidden sm:table-cell px-3 sm:px-6 py-3 whitespace-nowrap">
-                          <Link
-                            href={`/dashboard/assignments/${a.id}${canEdit(a) ? "/edit" : ""}`}
-                            className="font-mono text-xs font-medium text-[var(--color-ink)] hover:underline"
-                          >
-                            {a.reference}
-                          </Link>
+                        <td className="px-3 sm:px-6 py-3 whitespace-nowrap text-sm text-[var(--color-ink-soft)] tabular-nums">
+                          {formatDayMonthYear(a.createdAt)}
                         </td>
                         <td className="px-3 sm:px-6 py-3">
                           <Link
                             href={`/dashboard/assignments/${a.id}${canEdit(a) ? "/edit" : ""}`}
-                            className="block sm:contents"
+                            className="block sm:contents before:absolute before:inset-0 before:content-['']"
                           >
                             <p className="text-sm font-medium text-[var(--color-ink)] leading-tight">
                               {a.address}
                             </p>
                             <p className="text-xs text-[var(--color-ink-muted)]">
                               {a.postal} {a.city}
-                            </p>
-                            <p className="mt-0.5 font-mono text-[10px] text-[var(--color-ink-faint)] sm:hidden">
-                              {a.reference}
                             </p>
                           </Link>
                         </td>
@@ -398,7 +395,7 @@ export default async function AssignmentsList({
                           {a.team ? (
                             <Link
                               href={`/dashboard/teams/${a.team.id}`}
-                              className="hover:text-[var(--color-ink)] hover:underline"
+                              className="relative z-10 hover:text-[var(--color-ink)] hover:underline"
                             >
                               {a.team.name}
                             </Link>
@@ -410,7 +407,7 @@ export default async function AssignmentsList({
                           {a.freelancer ? (
                             <Link
                               href={`/dashboard/users/${a.freelancer.id}`}
-                              className="inline-flex items-center gap-2 hover:[&>span:last-child]:text-[var(--color-ink)] hover:[&>span:last-child]:underline"
+                              className="relative z-10 inline-flex items-center gap-2 hover:[&>span:last-child]:text-[var(--color-ink)] hover:[&>span:last-child]:underline"
                             >
                               <Avatar
                                 initials={initials(a.freelancer.firstName, a.freelancer.lastName)}
@@ -426,13 +423,10 @@ export default async function AssignmentsList({
                             </span>
                           )}
                         </td>
-                        <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-sm text-[var(--color-ink-soft)] tabular-nums">
-                          {a.createdAt.toISOString().slice(0, 10)}
-                        </td>
                         <td className="hidden sm:table-cell px-6 py-3 whitespace-nowrap text-sm text-[var(--color-ink-soft)] tabular-nums">
-                          {a.preferredDate?.toISOString().slice(0, 10) ?? "—"}
+                          {a.preferredDate ? formatDayMonthYear(a.preferredDate) : "—"}
                         </td>
-                        <td className="px-3 sm:px-6 py-3">
+                        <td className="relative z-10 px-3 sm:px-6 py-3">
                           <StatusPicker
                             assignmentId={a.id}
                             status={a.status as Status}
@@ -440,7 +434,7 @@ export default async function AssignmentsList({
                           />
                         </td>
                         {isAdmin && (
-                          <td className="odoo-col px-3 py-3 text-center">
+                          <td className="odoo-col relative z-10 px-3 py-3 text-center">
                             <OdooSyncCell
                               assignmentId={a.id}
                               odooSyncedAt={a.odooSyncedAt}
@@ -450,7 +444,7 @@ export default async function AssignmentsList({
                             />
                           </td>
                         )}
-                        <td className="hidden lg:table-cell px-2 py-3">
+                        <td className="hidden lg:table-cell relative z-10 px-2 py-3">
                           <AssignmentFilesButton
                             assignmentId={a.id}
                             reference={a.reference}

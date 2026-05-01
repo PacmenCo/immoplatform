@@ -12,9 +12,8 @@ import type { Role } from "./permissions.types";
 export const TRANSITIONS = {
   draft: ["awaiting", "scheduled", "in_progress", "on_hold", "cancelled"],
   awaiting: ["scheduled", "in_progress", "on_hold", "cancelled"],
-  scheduled: ["awaiting", "in_progress", "delivered", "on_hold", "cancelled"],
-  in_progress: ["delivered", "on_hold", "cancelled"],
-  delivered: ["completed", "cancelled"],
+  scheduled: ["awaiting", "in_progress", "completed", "on_hold", "cancelled"],
+  in_progress: ["completed", "on_hold", "cancelled"],
   on_hold: ["awaiting", "scheduled", "in_progress", "cancelled"],
   completed: [],
   cancelled: [],
@@ -58,17 +57,17 @@ export function sourcesOf(to: Status): Status[] {
  *   freelancer  → awaiting, scheduled, in_progress
  *                 (Platform: In afwachting, Ingepland, In verwerking)
  *
- * Note: the `draft` / `delivered` / `completed` targets are NOT listed for
- * realtor or freelancer. The dedicated lifecycle actions (markDelivered,
- * markCompleted, cancel) still apply their own policy gates — this map
- * only controls the inline picker + freelancer restricted-edit path.
+ * Note: the `draft` / `completed` targets are NOT listed for realtor or
+ * freelancer. The dedicated lifecycle actions (markCompleted, cancel) still
+ * apply their own policy gates — this map only controls the inline picker +
+ * freelancer restricted-edit path.
  *
  * The CURRENT status is always allowed as a no-op, matching Platform's
  * "add existing status_id to allow list" fallback (AssignmentController.php:402).
  */
 const ROLE_ALLOWED_STATUSES = {
-  admin: ["draft", "awaiting", "scheduled", "in_progress", "delivered", "completed", "on_hold", "cancelled"],
-  staff: ["draft", "awaiting", "scheduled", "in_progress", "delivered", "completed", "on_hold", "cancelled"],
+  admin: ["draft", "awaiting", "scheduled", "in_progress", "completed", "on_hold", "cancelled"],
+  staff: ["draft", "awaiting", "scheduled", "in_progress", "completed", "on_hold", "cancelled"],
   realtor: ["on_hold", "cancelled"],
   freelancer: ["awaiting", "scheduled", "in_progress"],
 } as const satisfies Record<Role, readonly Status[]>;

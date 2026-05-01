@@ -51,7 +51,6 @@ import {
   assignmentCancelledEmail,
   assignmentCompletedEmail,
   assignmentDateUpdatedEmail,
-  assignmentDeliveredEmail,
   assignmentReassignedEmail,
   assignmentScheduledEmail,
   assignmentUnassignedEmail,
@@ -694,119 +693,6 @@ export const createAssignment = withSession(async (
   return result;
 });
 
-// ─── Mark delivered (toggle) ───────────────────────────────────────
-//
-// Mirrors v1's `AssignmentController::markFinished` (Platform/app/Http/
-// Controllers/AssignmentController.php:1066-1077) which toggles `finished_at`:
-// set to now() if null, set to null if not. v2 splits delivered (freelancer
-// says "done") from completed (agency confirms + applies commission), so the
-// toggle here is bound to the delivered ↔ in_progress edge only — completed
-// remains a one-way gate (commission already applied).
-
-export const markAssignmentDelivered = withSession(async (
-  session,
-  id: string,
-): Promise<ActionResult> => {
-  const a = await prisma.assignment.findUnique({ where: { id } });
-  if (!a) return { ok: false, error: "errors.assignment.notFound" };
-
-  if (!(await canEditAssignment(session, a))) {
-    return {
-      ok: false,
-      error: "errors.assignment.cannotMarkDelivered",
-    };
-  }
-
-  // Completed = commission applied, audit trail closed. Reverting that here
-  // would silently bypass the un-completion path. Reject and steer the user
-  // to whoever owns reversing a completed row.
-  if (a.status === "completed") {
-    return {
-      ok: false,
-      error: "errors.assignment.completedReverseRequiresAdmin",
-    };
-  }
-
-  // Toggle back to in_progress when the row is currently delivered. Same
-  // reversibility v1 freelancers had on `finished_at`. The status sources
-  // for delivered include in_progress + scheduled etc.; the un-mark target
-  // is in_progress regardless of how it got to delivered, since v2 has no
-  // "go back to scheduled" flow at this point in the lifecycle.
-  const isUnmark = a.status === "delivered";
-
-  const claim = isUnmark
-    ? await prisma.assignment.updateMany({
-        where: { id, status: "delivered" },
-        data: { status: "in_progress", deliveredAt: null },
-      })
-    : await prisma.assignment.updateMany({
-        where: { id, status: { in: sourcesOf("delivered") } },
-        data: { status: "delivered", deliveredAt: new Date() },
-      });
-  if (claim.count === 0) {
-    return {
-      ok: false,
-      error: "errors.assignment.statusChangedAway",
-    };
-  }
-
-  await audit({
-    actorId: session.user.id,
-    verb: isUnmark ? "assignment.undelivered" : "assignment.delivered",
-    objectType: "assignment",
-    objectId: id,
-    metadata: { fromStatus: a.status },
-  });
-
-  // Notify everyone on the row who didn't flip the switch: creator + team
-  // owners (agency side) AND the assigned freelancer. When an admin or realtor
-  // marks delivered on behalf, the freelancer should still learn that their
-  // work just moved into the agency's review queue. v1 only fired on the
-  // forward direction; we mirror that — un-marking is rare, usually a "oops"
-  // by the freelancer, and dragging the agency into the inbox for it would be
-  // noisy.
-  if (!isUnmark) {
-    const [agency, assignedFreelancer] = await Promise.all([
-      collectAgencyRecipients({
-        teamId: a.teamId,
-        createdById: a.createdById,
-        exclude: [session.user.id],
-      }),
-      loadUser(a.freelancerId),
-    ]);
-    const deliveredRecipients: Recipient[] = [...agency];
-    if (assignedFreelancer && assignedFreelancer.id !== session.user.id) {
-      // Avoid double-notifying if the freelancer is also the creator.
-      if (!deliveredRecipients.some((r) => r.id === assignedFreelancer.id)) {
-        deliveredRecipients.push(assignedFreelancer);
-      }
-    }
-    const actorName = fullName(session.user);
-    const freelancerName = assignedFreelancer ? fullName(assignedFreelancer) : null;
-    await Promise.all(
-      deliveredRecipients.map(async (r) =>
-        notify({
-          to: r,
-          event: "assignment.delivered",
-          ...(await assignmentDeliveredEmail(
-            {
-              ...ctxFromAssignment(a),
-              recipientName: r.firstName,
-              actorName,
-              freelancerName,
-            },
-            r.locale,
-          )),
-        }),
-      ),
-    );
-  }
-
-  revalidatePath(`/dashboard/assignments/${id}`);
-  revalidatePath("/dashboard/assignments");
-  revalidatePath("/dashboard");
-  return { ok: true };
-});
 
 // ─── Update ────────────────────────────────────────────────────────
 
@@ -1688,7 +1574,7 @@ export const markAssignmentInProgress = withSession(async (
   return { ok: true };
 });
 
-// ─── Complete (delivered → completed) ──────────────────────────────
+// ─── Complete (in_progress / scheduled → completed) ───────────────
 
 const completeSchema = z.object({
   note: z.string().max(4000).optional(),
@@ -1721,10 +1607,10 @@ export async function markAssignmentCompletedInner(
   if (!(await canCompleteAssignment(session, a))) {
     return { ok: false, error: "errors.assignment.cannotComplete" };
   }
-  if (a.status !== "delivered") {
+  if (!(sourcesOf("completed") as readonly string[]).includes(a.status)) {
     return {
       ok: false,
-      error: "errors.assignment.cannotCompleteNonDelivered",
+      error: "errors.assignment.cannotCompleteFromCurrentStatus",
     };
   }
 
@@ -2070,7 +1956,6 @@ const AUDIT_BY_TARGET = {
   awaiting: "assignment.updated",
   scheduled: "assignment.updated",
   in_progress: "assignment.started",
-  delivered: "assignment.delivered",
   completed: "assignment.completed",
   cancelled: "assignment.cancelled",
   on_hold: "assignment.updated",
@@ -2151,7 +2036,6 @@ export async function changeAssignmentStatusInner(
 
   const now = new Date();
   const data: Prisma.AssignmentUpdateInput = { status: target };
-  if (target === "delivered" && !a.deliveredAt) data.deliveredAt = now;
   if (target === "completed" && !a.completedAt) data.completedAt = now;
   if (target === "cancelled" && !a.cancelledAt) data.cancelledAt = now;
 
@@ -2325,7 +2209,7 @@ export const retryAssignmentOdooSync = withSession(async (
 /**
  * Platform parity (AssignmentController::destroy + AssignmentPolicy::delete):
  * admin deletes anything; staff never; freelancer never; realtor only their
- * own + only while status is not delivered/completed. Cascades via Prisma
+ * own + only while status is not completed. Cascades via Prisma
  * onDelete: Cascade for comments, services, files, commission, and calendar
  * events. External calendar events get a best-effort cancel first so stale
  * events don't linger on Google/Outlook calendars.

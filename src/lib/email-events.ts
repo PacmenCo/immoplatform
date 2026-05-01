@@ -82,12 +82,6 @@ export const EMAIL_EVENTS = {
     forRoles: ["freelancer"] as const,
     category: "assignment",
   },
-  "assignment.delivered": {
-    label: "When my team's assignment is delivered",
-    description: "Sent to the agency when the freelancer flags the work delivered.",
-    forRoles: ["realtor", "admin", "staff"] as const,
-    category: "assignment",
-  },
   "assignment.completed": {
     label: "When an assignment I'm on is marked completed",
     description: "Sent to the assigned freelancer when the agency signs off.",

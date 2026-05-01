@@ -375,12 +375,12 @@ function DesktopTable({
               return (
                 <tr
                   key={team.id}
-                  className="group cursor-pointer transition-colors hover:bg-[var(--color-bg-alt)]"
+                  className="group relative cursor-pointer transition-colors hover:bg-[var(--color-bg-alt)]"
                 >
                   <td className="px-6 py-4">
                     <Link
                       href={`/dashboard/teams/${team.id}`}
-                      className="flex items-center gap-3 text-[var(--color-ink)]"
+                      className="flex items-center gap-3 text-[var(--color-ink)] before:absolute before:inset-0 before:content-['']"
                     >
                       <span
                         className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-xs font-bold text-white"

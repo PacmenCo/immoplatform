@@ -244,12 +244,12 @@ export default async function UsersPage({
                   return (
                     <tr
                       key={u.id}
-                      className="group transition-colors hover:bg-[color-mix(in_srgb,var(--color-brand)_3%,var(--color-bg))]"
+                      className="group relative cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--color-brand)_3%,var(--color-bg))]"
                     >
                       <td className="px-6 py-3">
                         <Link
                           href={`/dashboard/users/${u.id}`}
-                          className="flex items-center gap-3"
+                          className="flex items-center gap-3 before:absolute before:inset-0 before:content-['']"
                         >
                           <Avatar initials={initials(u.firstName, u.lastName)} size="md" />
                           <div>
@@ -286,7 +286,7 @@ export default async function UsersPage({
                           relativeTime(u.lastSeenAt, now)
                         )}
                       </td>
-                      <td className="px-6 py-3 text-right">
+                      <td className="relative z-10 px-6 py-3 text-right">
                         <div className="inline-flex items-center gap-2">
                           {canDelete ? (
                             <DeleteUserButton userId={u.id} userName={fullName} />

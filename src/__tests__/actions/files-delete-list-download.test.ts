@@ -26,7 +26,7 @@ setupTestDb();
 async function seedFileUpload(opts: {
   freelancerSession: Awaited<ReturnType<typeof makeSession>>;
   teamId: string;
-  assignmentStatus?: "draft" | "awaiting" | "scheduled" | "in_progress" | "delivered" | "completed" | "cancelled" | "on_hold";
+  assignmentStatus?: "draft" | "awaiting" | "scheduled" | "in_progress" | "completed" | "cancelled" | "on_hold";
   filename?: string;
 }) {
   const asg = await seedAssignment({
@@ -49,7 +49,7 @@ async function seedFileUpload(opts: {
   // non-terminal assignment.
   await prisma.assignment.update({
     where: { id: asg.id },
-    data: { status: "scheduled", completedAt: null, deliveredAt: null },
+    data: { status: "scheduled", completedAt: null },
   });
   const file = await prisma.assignmentFile.findFirstOrThrow({
     where: { assignmentId: asg.id, deletedAt: null },
@@ -186,7 +186,7 @@ describe("listAssignmentFilesInner", () => {
     );
     await prisma.assignment.update({
       where: { id: assignmentId },
-      data: { status: "scheduled", completedAt: null, deliveredAt: null },
+      data: { status: "scheduled", completedAt: null },
     });
     const res = await listAssignmentFilesInner(freelancer, assignmentId);
     expect(res.ok).toBe(true);

@@ -4,7 +4,6 @@ import {
   assignmentCancelledEmail,
   assignmentCompletedEmail,
   assignmentDateUpdatedEmail,
-  assignmentDeliveredEmail,
   assignmentReassignedEmail,
   assignmentScheduledEmail,
   assignmentUnassignedEmail,
@@ -180,42 +179,6 @@ describe("assignmentDateUpdatedEmail", () => {
       newDate: null,
     }, "en");
     assertShape(out);
-  });
-});
-
-describe("assignmentDeliveredEmail", () => {
-  it("actor is the freelancer → one-name byline (not 'X marked Y's inspection')", async () => {
-    const out = await assignmentDeliveredEmail({
-      ...ctx,
-      recipientName: "Bob",
-      actorName: "Dana Freelancer",
-      freelancerName: "Dana Freelancer",
-    }, "en");
-    assertShape(out);
-    expect(out.html).toContain("Dana Freelancer marked the inspection");
-    expect(out.html).not.toContain("Dana Freelancer marked Dana Freelancer");
-  });
-
-  it("actor differs from freelancer → 'X marked Y's inspection'", async () => {
-    const out = await assignmentDeliveredEmail({
-      ...ctx,
-      recipientName: "Bob",
-      actorName: "Alice Admin",
-      freelancerName: "Dana Freelancer",
-    }, "en");
-    assertShape(out);
-    expect(out.html).toContain("Alice Admin marked Dana Freelancer");
-  });
-
-  it("freelancerName is null (unassigned row) → single-name byline", async () => {
-    const out = await assignmentDeliveredEmail({
-      ...ctx,
-      recipientName: "Bob",
-      actorName: "Alice Admin",
-      freelancerName: null,
-    }, "en");
-    assertShape(out);
-    expect(out.html).toContain("Alice Admin marked the inspection");
   });
 });
 

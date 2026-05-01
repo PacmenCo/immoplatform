@@ -33,13 +33,6 @@
     "title": "Geplande datum gewijzigd",
     "unscheduled": "niet ingepland"
   },
-  "assignmentDelivered": {
-    "bodyDirect": "{actorName} heeft de inspectie op {address} ({reference}) als opgeleverd gemarkeerd. Bekijk de bestanden en teken af wanneer je klaar bent.",
-    "bodyWithFreelancer": "{actorName} heeft de inspectie van {freelancerName} op {address} ({reference}) als opgeleverd gemarkeerd. Bekijk de bestanden en teken af wanneer je klaar bent.",
-    "preview": "{reference} opgeleverd — bekijk de bestanden",
-    "subject": "Opgeleverd: {address} ({reference})",
-    "title": "Opdracht opgeleverd"
-  },
   "assignmentReassigned": {
     "body": "Je bent toegewezen aan {reference} ({address}).",
     "plannedDateLabel": "Geplande datum: {date}",
@@ -98,8 +91,8 @@
   "filesUploaded": {
     "body": "{uploaderName} {what} bij {reference} ({address}).",
     "ctaButton": "Bestanden bekijken",
-    "freelancerPlural": "leverde {count} bestanden op",
-    "freelancerSingular": "leverde {count} bestand op",
+    "freelancerPlural": "uploadde {count} opleveringen",
+    "freelancerSingular": "uploadde {count} oplevering",
     "preview": "{uploaderName} {what} bij {reference}",
     "realtorPlural": "uploadde {count} ondersteunende bestanden",
     "realtorSingular": "uploadde {count} ondersteunend bestand",

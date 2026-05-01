@@ -56,7 +56,7 @@ export const getUserTeamIds = cache(async (userId: string) => {
  * undefined / null. Use this instead of spread-merging — prevents
  * silent key collisions and correctly preserves nested OR / NOT.
  *
- *   where: composeWhere({ status: "delivered" }, await assignmentScope(s))
+ *   where: composeWhere({ status: "completed" }, await assignmentScope(s))
  *
  * Constrained to shapes that expose an `AND` field — every Prisma-generated
  * WhereInput satisfies this, so the cast is honest within its intended use.
@@ -143,8 +143,8 @@ export async function canViewAssignment(
 }
 
 /**
- * Wide edit — status transitions (start, deliver, mark) AND field edits.
- * Freelancers get this on their own rows so they can mark delivered; use
+ * Wide edit — status transitions (start, complete, etc.) AND field edits.
+ * Freelancers get this on their own rows so they can transition state; use
  * `canUpdateAssignmentFields` for the narrower "rewrite address/contacts"
  * case where freelancers must be excluded.
  */
@@ -243,7 +243,7 @@ export function filterUpdateForFreelancer(raw: FormData): FormData {
 }
 
 /**
- * Mark a delivered assignment as completed. Owner-level realtors + assigned
+ * Mark an assignment as completed. Owner-level realtors + assigned
  * freelancers + admin/staff. Platform parity — AssignmentController.php:1066
  * (markFinished) allows the freelancer to self-complete; we align by allowing
  * the assigned freelancer through the gate. Team members who aren't owner and
@@ -267,8 +267,8 @@ export async function canCompleteAssignment(
  *   - freelancer: never
  *   - realtor: ONLY rows they personally created (createdById match), and only
  *     in a deletable status. Team-owner privilege removed — owning the team
- *     no longer lets you delete a teammate's assignment. Completed + delivered
- *     stay locked for the invoice/commission audit trail.
+ *     no longer lets you delete a teammate's assignment. Completed stays
+ *     locked for the invoice/commission audit trail.
  */
 const DELETABLE_STATUSES = ["draft", "scheduled", "in_progress", "cancelled"] as const;
 

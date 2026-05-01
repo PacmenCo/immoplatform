@@ -29,7 +29,6 @@ enum AssignmentStatus {
   awaiting
   scheduled
   in_progress
-  delivered
   completed
   cancelled
   on_hold
@@ -520,7 +519,6 @@ model Assignment {
 
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
-  deliveredAt        DateTime?
   completedAt        DateTime?
   cancelledAt        DateTime?
   cancellationReason String?

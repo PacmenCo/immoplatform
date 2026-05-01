@@ -200,7 +200,7 @@ export function AssignedToCard({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-stretch">
+                    <div>
                       <RowOuter
                         type={RowOuter === "button" ? "button" : undefined}
                         onClick={
@@ -210,7 +210,7 @@ export function AssignedToCard({
                             : undefined
                         }
                         className={
-                          "group flex min-w-0 flex-1 items-center gap-3 px-6 py-4 text-left transition-colors " +
+                          "group flex w-full items-center gap-3 px-6 pt-4 pb-2 text-left transition-colors " +
                           (canEdit
                             ? "cursor-pointer hover:bg-[var(--color-bg-muted)]"
                             : "")
@@ -263,9 +263,9 @@ export function AssignedToCard({
                           </>
                         )}
                       </RowOuter>
-                      <div className="flex shrink-0 items-center pr-6">
+                      <div className="pl-[60px] pr-6 pb-4">
                         <input
-                          type="date"
+                          type="datetime-local"
                           aria-label={t("plannedDateAria", { service: tServices(`${svc.key as ServiceKey}.title`) })}
                           value={byDate[svc.key] ?? ""}
                           disabled={!canEdit}
@@ -275,7 +275,7 @@ export function AssignedToCard({
                               [svc.key]: e.target.value,
                             }))
                           }
-                          className="h-9 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-bg)] px-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-brand)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/10 disabled:bg-[var(--color-bg-muted)] disabled:text-[var(--color-ink-muted)] disabled:cursor-not-allowed"
+                          className="h-9 w-full max-w-[260px] rounded-md border border-[var(--color-border-strong)] bg-[var(--color-bg)] px-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-brand)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/10 disabled:bg-[var(--color-bg-muted)] disabled:text-[var(--color-ink-muted)] disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>

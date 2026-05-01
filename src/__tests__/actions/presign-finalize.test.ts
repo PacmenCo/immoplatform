@@ -64,11 +64,10 @@ describe("presign + finalize — happy path", () => {
 
     const after = await prisma.assignment.findUniqueOrThrow({
       where: { id: asg.id },
-      select: { status: true, completedAt: true, deliveredAt: true },
+      select: { status: true, completedAt: true },
     });
     expect(after.status).toBe("completed");
     expect(after.completedAt).toBeInstanceOf(Date);
-    expect(after.deliveredAt).toBeInstanceOf(Date);
 
     const file = await prisma.assignmentFile.findUniqueOrThrow({
       where: { id: u.fileId },

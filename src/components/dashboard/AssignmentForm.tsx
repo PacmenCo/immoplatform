@@ -189,6 +189,17 @@ export function AssignmentForm({
     "owner" | "realtor" | "tenant"
   >((initial?.photographerContactPerson as "owner" | "realtor" | "tenant" | null) ?? "owner");
 
+  // Key-pickup controls — only rendered in create mode (the edit page surfaces
+  // the same data via the right-column KeyPickupEditor, so we don't duplicate
+  // it here). State drives the conditional radio + address textarea visibility;
+  // the actual values reach the server via the rendered <input>/<textarea>.
+  const [requiresKeyPickup, setRequiresKeyPickup] = useState<boolean>(
+    initial?.requiresKeyPickup ?? false,
+  );
+  const [keyPickupLocationType, setKeyPickupLocationType] = useState<"office" | "other">(
+    initial?.keyPickupLocationType ?? "office",
+  );
+
 
   // Create-time supporting files. Only ever populated when the form is in
   // create mode and the caller can upload (canUploadFiles true). Reusing
@@ -225,7 +236,7 @@ export function AssignmentForm({
               });
             }
       }
-      className="max-w-[960px] p-8 space-y-8"
+      className="space-y-0"
     >
       {/* `<fieldset disabled>` cascades the disabled state to every input,
           select, textarea, and button inside — native HTML behavior, no
@@ -446,82 +457,57 @@ export function AssignmentForm({
         </CardBody>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("contactTitle")}</CardTitle>
-          <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-            {t("contactSubtitle")}
-          </p>
-        </CardHeader>
-        <CardBody className="grid gap-5 sm:grid-cols-2">
-          {photographerContact === "tenant" ? (
-            <>
-              {/* When tenant is the contact, render tenant fields here so the
-                  user fills the data once. The standalone Huurder card below
-                  is hidden in this branch to avoid duplicate inputs. */}
-              <div className="sm:col-span-2">
-                <Field label={t("tenantFullName")} id="tenant-name" error={fieldErrors?.tenantName}>
-                  <Input
-                    id="tenant-name"
-                    name="tenant-name"
-                    placeholder={t("tenantFullNamePlaceholder")}
-                    defaultValue={initial?.tenant.name ?? ""}
-                    autoComplete="off"
-                  />
-                </Field>
-              </div>
-              <Field label={t("tenantEmail")} id="tenant-email" error={fieldErrors?.tenantEmail}>
+      {photographerContact === "tenant" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("contactTitle")}</CardTitle>
+            <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+              {t("contactSubtitle")}
+            </p>
+          </CardHeader>
+          <CardBody className="grid gap-5 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Field label={t("tenantFullName")} id="tenant-name" error={fieldErrors?.tenantName}>
                 <Input
-                  id="tenant-email"
-                  name="tenant-email"
-                  type="email"
-                  placeholder={t("tenantEmailPlaceholder")}
-                  defaultValue={initial?.tenant.email ?? ""}
+                  id="tenant-name"
+                  name="tenant-name"
+                  placeholder={t("tenantFullNamePlaceholder")}
+                  defaultValue={initial?.tenant.name ?? ""}
                   autoComplete="off"
                 />
               </Field>
-              <Field label={t("tenantPhone")} id="tenant-phone" error={fieldErrors?.tenantPhone}>
-                <Input
-                  id="tenant-phone"
-                  name="tenant-phone"
-                  placeholder={t("tenantPhonePlaceholder")}
-                  defaultValue={initial?.tenant.phone ?? ""}
-                  autoComplete="off"
-                />
-              </Field>
-            </>
-          ) : (
-            <>
-              <Field label={t("contactEmail")} id="contact-email" error={fieldErrors?.contactEmail}>
-                <Input
-                  id="contact-email"
-                  name="contactEmail"
-                  type="email"
-                  placeholder={t("contactEmailPlaceholder")}
-                  defaultValue={initial?.contactEmail ?? ""}
-                  autoComplete="off"
-                />
-              </Field>
-              <Field label={t("contactPhone")} id="contact-phone" error={fieldErrors?.contactPhone}>
-                <Input
-                  id="contact-phone"
-                  name="contactPhone"
-                  placeholder={t("contactPhonePlaceholder")}
-                  defaultValue={initial?.contactPhone ?? ""}
-                  autoComplete="off"
-                />
-              </Field>
-            </>
-          )}
-        </CardBody>
-      </Card>
+            </div>
+            <Field label={t("tenantEmail")} id="tenant-email" error={fieldErrors?.tenantEmail}>
+              <Input
+                id="tenant-email"
+                name="tenant-email"
+                type="email"
+                placeholder={t("tenantEmailPlaceholder")}
+                defaultValue={initial?.tenant.email ?? ""}
+                autoComplete="off"
+              />
+            </Field>
+            <Field label={t("tenantPhone")} id="tenant-phone" error={fieldErrors?.tenantPhone}>
+              <Input
+                id="tenant-phone"
+                name="tenant-phone"
+                placeholder={t("tenantPhonePlaceholder")}
+                defaultValue={initial?.tenant.phone ?? ""}
+                autoComplete="off"
+              />
+            </Field>
+          </CardBody>
+        </Card>
+      ) : (
+        <>
+          <input type="hidden" name="contactEmail" value={initial?.contactEmail ?? ""} />
+          <input type="hidden" name="contactPhone" value={initial?.contactPhone ?? ""} />
+        </>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>{t("ownerTitle")}</CardTitle>
-          <p className="text-sm text-[var(--color-ink-soft)] mt-1">
-            {t("ownerSubtitle")}
-          </p>
         </CardHeader>
         <CardBody className="space-y-5">
           {/* Particulier vs Bedrijf radio. Drives invoice routing AND the
@@ -715,52 +701,101 @@ export function AssignmentForm({
         </div>
       </details>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("schedulingTitle")}</CardTitle>
-        </CardHeader>
-        <CardBody className="grid gap-5 sm:grid-cols-2">
-          {/* Visible fields temporarily reduced to just `notes` per product
-              call. Hidden inputs preserve existing values on save so we don't
-              lose data when the form is submitted from an edit. */}
-          <input type="hidden" name="preferred-date" value={initial?.preferredDate ?? ""} />
-          {initial?.requiresKeyPickup && (
+      {initial ? (
+        // Edit mode: Planning card hidden entirely. The right-column
+        // KeyPickupEditor and assignment header carry the relevant scheduling
+        // info; notes aren't editable here. Hidden inputs preserve existing
+        // values so an unrelated save doesn't null them.
+        <>
+          <input type="hidden" name="preferred-date" value={initial.preferredDate ?? ""} />
+          <input type="hidden" name="notes" value={initial.notes ?? ""} />
+          {initial.requiresKeyPickup && (
             <input type="hidden" name="requiresKeyPickup" value="on" />
           )}
-          <input type="hidden" name="keyPickupLocationType" value={initial?.keyPickupLocationType ?? "office"} />
-          <input type="hidden" name="keyPickupAddress" value={initial?.keyPickupAddress ?? ""} />
+          <input type="hidden" name="keyPickupLocationType" value={initial.keyPickupLocationType ?? "office"} />
+          <input type="hidden" name="keyPickupAddress" value={initial.keyPickupAddress ?? ""} />
           {canSetFreelancer && (
             <>
-              <input type="hidden" name="freelancerId" value={initial?.freelancerId ?? ""} />
-              <input type="hidden" name="calendarDate" value={initial?.calendarDate ?? ""} />
-              <input type="hidden" name="calendarAccountEmail" value={initial?.calendarAccountEmail ?? ""} />
+              <input type="hidden" name="freelancerId" value={initial.freelancerId ?? ""} />
+              <input type="hidden" name="calendarDate" value={initial.calendarDate ?? ""} />
+              <input type="hidden" name="calendarAccountEmail" value={initial.calendarAccountEmail ?? ""} />
             </>
           )}
-          <div className="sm:col-span-2">
-            <Field label={t("notes")} id="notes" error={fieldErrors?.notes}>
-              <Textarea
-                id="notes"
-                name="notes"
-                rows={3}
-                placeholder={t("notesPlaceholder")}
-                defaultValue={initial?.notes ?? ""}
-              />
-            </Field>
-          </div>
-          {!initial && (
-            <div className="sm:col-span-2">
-              <Field label={t("initialComment")} id="initial-comment" error={fieldErrors?.initialComment}>
-                <Textarea
-                  id="initial-comment"
-                  name="initial-comment"
-                  rows={3}
-                  placeholder={t("initialCommentPlaceholder")}
+        </>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("schedulingTitle")}</CardTitle>
+          </CardHeader>
+          <CardBody className="grid gap-5 sm:grid-cols-2">
+            {/* preferred-date submitted blank in create mode — server defaults
+                it. Freelancer/calendar fields hidden until the side-panel
+                pickers are surfaced on create. */}
+            <input type="hidden" name="preferred-date" value="" />
+            {canSetFreelancer && (
+              <>
+                <input type="hidden" name="freelancerId" value="" />
+                <input type="hidden" name="calendarDate" value="" />
+                <input type="hidden" name="calendarAccountEmail" value="" />
+              </>
+            )}
+            <div className="sm:col-span-2 space-y-3">
+              <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
+                <input
+                  type="checkbox"
+                  name="requiresKeyPickup"
+                  checked={requiresKeyPickup}
+                  onChange={(e) => setRequiresKeyPickup(e.target.checked)}
+                  className="h-4 w-4 accent-[var(--color-brand)]"
                 />
-              </Field>
+                {t("keyPickup")}
+              </label>
+              {requiresKeyPickup && (
+                <div className="ml-6 space-y-2">
+                  <p className="text-sm font-medium text-[var(--color-ink)]">{t("keyPickupWhere")}</p>
+                  <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
+                    <input
+                      type="radio"
+                      name="keyPickupLocationType"
+                      value="office"
+                      checked={keyPickupLocationType === "office"}
+                      onChange={() => setKeyPickupLocationType("office")}
+                      className="h-4 w-4 accent-[var(--color-brand)]"
+                    />
+                    {t("keyPickupOffice")}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
+                    <input
+                      type="radio"
+                      name="keyPickupLocationType"
+                      value="other"
+                      checked={keyPickupLocationType === "other"}
+                      onChange={() => setKeyPickupLocationType("other")}
+                      className="h-4 w-4 accent-[var(--color-brand)]"
+                    />
+                    {t("keyPickupOther")}
+                  </label>
+                  {keyPickupLocationType === "other" && (
+                    <Field
+                      label={t("keyPickupAddress")}
+                      id="key-pickup-address"
+                      hint={t("keyPickupAddressHint")}
+                      error={fieldErrors?.keyPickupAddress}
+                    >
+                      <Textarea
+                        id="key-pickup-address"
+                        name="keyPickupAddress"
+                        rows={3}
+                        placeholder={t("keyPickupAddressPlaceholder")}
+                      />
+                    </Field>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-        </CardBody>
-      </Card>
+          </CardBody>
+        </Card>
+      )}
 
       {showCreateUpload && (
         <Card>

@@ -42,15 +42,15 @@ const FOUNDER_EMAIL = "founder@e2e.local";
   });
 
   // 2) Ensure Tim (u_3) has at least one in_progress E2E-TOGGLE assignment.
-  //    Tests advance the status (in_progress → delivered → completed); rather
-  //    than create a new row each run, RESET any existing E2E-TOGGLE-* row
-  //    for Tim back to in_progress so the helper's selectors stay stable.
+  //    Tests advance the status (in_progress → completed); rather than
+  //    create a new row each run, RESET any existing E2E-TOGGLE-* row for
+  //    Tim back to in_progress so the helper's selectors stay stable.
   const reset = await prisma.assignment.updateMany({
     where: {
       freelancerId: "u_3",
       reference: { startsWith: "E2E-TOGGLE-" },
     },
-    data: { status: "in_progress", deliveredAt: null, completedAt: null },
+    data: { status: "in_progress", completedAt: null },
   });
   if (reset.count > 0) {
     console.log(`✅ Reset ${reset.count} E2E-TOGGLE assignment(s) to in_progress`);

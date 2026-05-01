@@ -37,7 +37,7 @@ export default async function globalSetup() {
         freelancerId: "u_3",
         reference: { startsWith: "E2E-TOGGLE-" },
       },
-      data: { status: "in_progress", deliveredAt: null, completedAt: null },
+      data: { status: "in_progress", completedAt: null },
     });
     if (reset.count === 0) {
       const refSlug = `E2E-TOGGLE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;

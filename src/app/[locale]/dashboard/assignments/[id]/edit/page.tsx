@@ -318,8 +318,8 @@ export default async function AssignmentPage({
               canAddPersonalGoogle={canAddPersonalGoogle}
             />
           </div>
-          {/* Action toolbar — Edit / Start / Mark delivered / Mark completed /
-              Cancel are intentionally hidden for now (product call). The
+          {/* Action toolbar — Edit / Start / Mark completed / Cancel are
+              intentionally hidden for now (product call). The
               `AssignmentActions` component + permission flags + server actions
               are intact so we can re-enable later by re-rendering the block.
               Delete stays, gated to admin-or-creator only. */}
@@ -352,7 +352,7 @@ export default async function AssignmentPage({
         )}
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6 min-w-0">
+          <div className="lg:col-span-2 space-y-0 min-w-0">
             {/* Form modes: freelancer (date-only), editor (wide editable),
                 view-only (wide, disabled). Deliverables/Realtor uploads/
                 Comments render as siblings after the form. */}
@@ -490,12 +490,9 @@ export default async function AssignmentPage({
             })()}
           </div>
 
-          {/* `lg:mt-8` compensates for the AssignmentForm's internal `p-8`
-              top-padding so the aside's first card aligns with the Property
-              card across the column gap. Aside scrolls with the page (no
-              sticky) — user wants to skim sidebar cards quickly without them
-              pinning to the viewport top. */}
-          <aside className="space-y-6 lg:self-start min-w-0 lg:mt-8">
+          {/* Aside scrolls with the page (no sticky) — user wants to skim
+              sidebar cards quickly without them pinning to the viewport top. */}
+          <aside className="space-y-0 lg:self-start min-w-0">
             {assignment.team && (
               <Card>
                 <CardHeader>

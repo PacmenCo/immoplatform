@@ -13,7 +13,6 @@ export const VERB_KEYS: Record<string, string> = {
   "assignment.created": "assignmentCreated",
   "assignment.updated": "assignmentUpdated",
   "assignment.started": "assignmentStarted",
-  "assignment.delivered": "assignmentDelivered",
   "assignment.completed": "assignmentCompleted",
   "assignment.cancelled": "assignmentCancelled",
   "assignment.deleted": "assignmentDeleted",
