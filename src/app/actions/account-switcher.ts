@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { localeRedirect } from "@/i18n/navigation";
 import { prisma } from "@/lib/db";
 import {
   audit,
@@ -121,6 +121,9 @@ export async function switchToAccount(
   await createSession({ userId: target.id });
 
   // Land on a known-good page for the new identity. /dashboard/assignments
-  // is the post-login default elsewhere in the codebase.
-  redirect("/dashboard/assignments");
+  // is the post-login default elsewhere in the codebase. `localeRedirect`
+  // prepends the active locale prefix so the new session cookie survives
+  // the hop — a bare `redirect("/dashboard/assignments")` triggered another
+  // middleware-level redirect in prod and dropped the session mid-flight.
+  return localeRedirect("/dashboard/assignments");
 }
