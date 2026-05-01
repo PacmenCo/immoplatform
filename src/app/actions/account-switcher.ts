@@ -8,7 +8,7 @@ import {
   createSession,
   getSession,
 } from "@/lib/auth";
-import { FOUNDER_EMAIL, isSwitcherMember } from "@/lib/account-switcher";
+import { isSwitcherMember } from "@/lib/account-switcher";
 import type { ActionResult } from "./_types";
 
 /**
@@ -82,19 +82,17 @@ export async function switchToAccount(
     return { ok: false, error: "errors.switcher.targetNotInGroup" };
   }
 
-  // 5. On prod, the only thing we *strictly* forbid is a non-founder origin
-  //    pivoting INTO the founder account — that's the privilege-escalation
-  //    path a leaked test-user password would unlock. Test → test hops are
-  //    fine (and necessary for the dev workflow: Jordan picks Test Staff,
-  //    pokes around, then jumps to Test Realtor without re-logging-in). In
-  //    dev/test we keep the any-to-any behaviour so the workflow stays fluid.
-  if (
-    process.env.NODE_ENV === "production" &&
-    fromEmail !== FOUNDER_EMAIL &&
-    toEmail === FOUNDER_EMAIL
-  ) {
-    return { ok: false, error: "errors.switcher.founderOnly" };
-  }
+  // No founder-origin gate on prod. The relevant defenses live elsewhere:
+  //   1. Test users can't sign in directly — `bootstrap-test-users.ts` mints
+  //      a random bcrypt hash and throws away the plaintext; `loginInner`
+  //      additionally refuses any `@immo.test` email on prod.
+  //   2. The switcher group is hardcoded — adding a new origin/destination
+  //      requires a code change + redeploy.
+  // Together, the only way to *reach* a test account on prod is via Jordan's
+  // switch. So a test → Jordan hop can only be initiated by someone who
+  // already had Jordan's session — no privilege escalation. Allow it so the
+  // dev workflow stays fluid (Jordan → Test Staff → back to Jordan without
+  // re-logging-in).
 
   // 5. No-op if already this user — avoids generating a useless audit row
   //    and a redundant session swap.
