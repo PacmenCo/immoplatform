@@ -165,7 +165,7 @@ describe("updateAssignmentInner — optimistic locking", () => {
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.error).not.toContain("Someone else just edited");
-      expect(res.error).toMatch(/cancelled/i);
+      expect(res.error).toBe("errors.assignment.noLongerEditable");
     }
   });
 

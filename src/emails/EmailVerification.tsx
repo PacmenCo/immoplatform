@@ -1,10 +1,12 @@
 /**
  * Email-verification link sent after a user changes their email address.
+ * Copy lives under `emails.emailVerification.*`.
  */
 
 import * as React from "react";
 import { Link } from "@react-email/components";
-import { BrandMark, CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
+import { useTranslations } from "next-intl";
+import { CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
 import { BRAND_NAME } from "@/lib/site";
 
 export type EmailVerificationEmailProps = {
@@ -12,32 +14,28 @@ export type EmailVerificationEmailProps = {
   verifyUrl: string;
 };
 
-/** Constant subject — param kept so the call-signature is uniform across
- *  templates (the registry treats `subject(props)` as homogeneous). */
-export const subject = (_p: EmailVerificationEmailProps): string =>
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  `Verify your ${BRAND_NAME} email address`;
+export const subjectKey = "emails.emailVerification.subject";
+
+export function subjectArgs(_p: EmailVerificationEmailProps): Record<string, unknown> {
+  return { brand: BRAND_NAME };
+}
 
 export default function EmailVerification(props: EmailVerificationEmailProps) {
+  const t = useTranslations("emails.emailVerification");
+  const tCommon = useTranslations("emails.common");
   return (
     <EmailLayout
-      preview={`Confirm your email address on ${BRAND_NAME}`}
-      title="Verify your email"
+      preview={t("preview", { brand: BRAND_NAME })}
+      title={t("title")}
     >
-      <P>Hi {props.name},</P>
-      <P>
-        Confirm this is your email address so we can send you account
-        notifications. The link expires in 24 hours.
-      </P>
-      <CtaButton href={props.verifyUrl}>Verify email</CtaButton>
+      <P>{tCommon("hi", { name: props.name })}</P>
+      <P>{t("intro")}</P>
+      <CtaButton href={props.verifyUrl}>{t("ctaButton")}</CtaButton>
       <P style={mutedStyle}>
-        Or open this URL: <Link href={props.verifyUrl}>{props.verifyUrl}</Link>
+        {tCommon("openUrlPrefix")}{" "}
+        <Link href={props.verifyUrl}>{props.verifyUrl}</Link>
       </P>
-      <P style={mutedStyle}>
-        If you didn&rsquo;t change your email on <BrandMark size={13} />, you
-        can safely ignore this message — your account stays on the previous
-        address.
-      </P>
+      <P style={mutedStyle}>{t("ignoreNotice", { brand: BRAND_NAME })}</P>
     </EmailLayout>
   );
 }

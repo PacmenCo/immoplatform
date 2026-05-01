@@ -23,6 +23,7 @@ import {
   Text,
 } from "@react-email/components";
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { appBaseUrl } from "@/lib/urls";
 import { BRAND_PRIMARY, BRAND_ACCENT, BRAND_NAME } from "@/lib/site";
 
@@ -61,6 +62,21 @@ type Props = {
 };
 
 export function EmailLayout({ preview, title, children }: Props) {
+  const t = useTranslations("emails.common");
+  // ICU rich-text: render `{accountSettings}` as the localized link inline so
+  // we don't have to chop the sentence in two and risk a translator splitting
+  // the prose around a hard-coded English connector.
+  const footerNode = t.rich("footerLine", {
+    brand: BRAND_NAME,
+    accountSettings: (chunks) => (
+      <Link
+        href={`${appBaseUrl()}/dashboard/settings/notifications`}
+        style={footerLink}
+      >
+        {chunks}
+      </Link>
+    ),
+  });
   return (
     <Html>
       <Head />
@@ -79,14 +95,7 @@ export function EmailLayout({ preview, title, children }: Props) {
           </Section>
           <Hr style={hr} />
           <Section style={footer}>
-            <Text style={footerText}>
-              You&rsquo;re receiving this email from {BRAND_NAME}. Manage
-              notification preferences in your{" "}
-              <Link href={`${appBaseUrl()}/dashboard/settings/notifications`} style={footerLink}>
-                account settings
-              </Link>
-              .
-            </Text>
+            <Text style={footerText}>{footerNode}</Text>
           </Section>
         </Container>
       </Body>

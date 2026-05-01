@@ -121,7 +121,7 @@ describe("switchToAccount — rejections", () => {
 
     const res = await switchToAccount(TEST_REALTOR_EMAIL);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/not authorised/i);
+    if (!res.ok) expect(res.error).toBe("errors.switcher.notAuthorized");
   });
 
   it("rejects when the target email is NOT in the switcher group", async () => {
@@ -131,7 +131,7 @@ describe("switchToAccount — rejections", () => {
 
     const res = await switchToAccount(OUTSIDER_EMAIL);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/not in the switcher/i);
+    if (!res.ok) expect(res.error).toBe("errors.switcher.targetNotInGroup");
   });
 
   it("rejects when the target user does not exist", async () => {
@@ -141,7 +141,7 @@ describe("switchToAccount — rejections", () => {
     // Target email IS in the group but no User row exists for it.
     const res = await switchToAccount(TEST_REALTOR_EMAIL);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/not found|does not exist/i);
+    if (!res.ok) expect(res.error).toBe("errors.switcher.targetNotFound");
   });
 
   it("rejects when the target user is soft-deleted", async () => {
@@ -155,7 +155,7 @@ describe("switchToAccount — rejections", () => {
 
     const res = await switchToAccount(TEST_REALTOR_EMAIL);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/not found|does not exist/i);
+    if (!res.ok) expect(res.error).toBe("errors.switcher.targetNotFound");
   });
 
   it("rejects without a current session at all", async () => {
@@ -164,7 +164,7 @@ describe("switchToAccount — rejections", () => {
 
     const res = await switchToAccount(TEST_REALTOR_EMAIL);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/signed in|not signed/i);
+    if (!res.ok) expect(res.error).toBe("errors.switcher.notSignedIn");
   });
 
   it("rejects in production (NODE_ENV guard)", async () => {
@@ -175,7 +175,7 @@ describe("switchToAccount — rejections", () => {
 
     const res = await switchToAccount(TEST_REALTOR_EMAIL);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/disabled|production/i);
+    if (!res.ok) expect(res.error).toBe("errors.switcher.disabled");
   });
 
   it("rejects self-targeting (same email as current session)", async () => {
@@ -184,6 +184,6 @@ describe("switchToAccount — rejections", () => {
 
     const res = await switchToAccount(FOUNDER_EMAIL);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/already|self/i);
+    if (!res.ok) expect(res.error).toBe("errors.switcher.alreadySignedIn");
   });
 });

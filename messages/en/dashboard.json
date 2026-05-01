@@ -1,0 +1,1966 @@
+{
+  "pageTitles": {
+    "activity": "Activity log",
+    "assignment": "Assignment",
+    "assignments": "Assignments",
+    "calendar": "Calendar",
+    "commissions": "Commissions",
+    "contactMessages": "Contact messages",
+    "dashboard": "Dashboard",
+    "emails": "Email templates",
+    "notFound": "Not found",
+    "odooProducts": "Odoo product mappings",
+    "overview": "Overview",
+    "settings": "Settings",
+    "teams": "Teams",
+    "users": "Users"
+  },
+  "shared": {
+    "common": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "saveChanges": "Save changes",
+      "discard": "Discard",
+      "remove": "Remove",
+      "uploading": "Uploading…",
+      "saving": "Saving…",
+      "required": "Required",
+      "optional": "Optional"
+    },
+    "topbar": {
+      "newAssignment": "New assignment"
+    },
+    "sidebar": {
+      "homeAriaLabel": "immoplatform.be — dashboard",
+      "sectionAdmin": "Admin",
+      "items": {
+        "assignments": "Assignments",
+        "users": "Users",
+        "teams": "Teams",
+        "overview": "Overview",
+        "calendar": "Calendar",
+        "revenue": "Revenue",
+        "commissions": "Commissions",
+        "messages": "Messages",
+        "announcements": "Announcements",
+        "odooProducts": "Odoo products",
+        "settings": "Settings",
+        "signOut": "Sign out"
+      },
+      "userFallbackName": "Jordan Remy",
+      "userFallbackRole": "admin"
+    },
+    "mobileTopbar": {
+      "open": "Open navigation",
+      "close": "Close navigation",
+      "profile": "Your profile",
+      "signOut": "Sign out",
+      "homeAriaLabel": "immoplatform.be — dashboard",
+      "items": {
+        "overview": "Overview",
+        "assignments": "Assignments",
+        "teams": "Teams",
+        "users": "Users",
+        "calendar": "Calendar",
+        "revenue": "Revenue",
+        "announcements": "Announcements",
+        "settings": "Settings"
+      }
+    },
+    "accountSwitcher": {
+      "ariaLabel": "Switch account",
+      "devTag": "dev",
+      "trigger": "Switch user",
+      "currentlyPrefix": "Currently:",
+      "switchFailed": "Switch failed: {error}"
+    },
+    "teamSwitcher": {
+      "ariaLabel": "Switch team",
+      "actingAs": "Acting as",
+      "manageAll": "Manage all teams",
+      "createTeam": "Create a team"
+    },
+    "searchInput": {
+      "placeholder": "Search…"
+    },
+    "confirmDialog": {
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    },
+    "unsavedChanges": {
+      "title": "Leave without saving?",
+      "description": "You have unsaved changes on this page. If you leave now, they'll be lost.",
+      "confirmLabel": "Discard changes",
+      "cancelLabel": "Keep editing"
+    },
+    "settingsSaveBar": {
+      "ariaLabel": "Save changes",
+      "title": "Unsaved changes",
+      "saving": "Saving…",
+      "hint": "Don't forget to save before leaving the page.",
+      "discard": "Discard",
+      "save": "Save changes"
+    },
+    "settingsScopeBanner": {
+      "personalTitle": "Personal setting",
+      "personalDescription": "Changes here only affect your account. Other team members keep their own preferences.",
+      "orgTitle": "Organization setting",
+      "orgDescription": "Changes here apply to every member of your workspace. Only admins can edit these.",
+      "ariaLabel": "{title} scope"
+    },
+    "announcementBanner": {
+      "ariaLabel": "Announcements",
+      "dismissAriaLabel": "Dismiss announcement"
+    },
+    "brandingCard": {
+      "logoTitle": "Team logo",
+      "logoDescription": "Used in the opdrachtformulier header and on the team detail page.",
+      "logoNoneAlt": "No logo",
+      "logoConstraints": "PNG, JPG, WebP or GIF — max {max} MB.",
+      "logoUpdated": "Logo updated.",
+      "logoRemoved": "Logo removed.",
+      "logoAlt": "{teamName} logo",
+      "signatureTitle": "Signature image",
+      "signatureDescription": "Stamped into the signature box on the opdrachtformulier PDF. PNG with a transparent background renders cleanest.",
+      "signatureNoneAlt": "No signature",
+      "signatureConstraints": "PNG or JPG — max {max} MB. SVG not supported — PDFs stamp raster.",
+      "signatureUpdated": "Signature updated.",
+      "signatureRemoved": "Signature removed.",
+      "signatureAlt": "{teamName} signature",
+      "remove": "Remove"
+    },
+    "legalBillingFields": {
+      "title": "Legal & billing",
+      "intro": "Used on issued invoices and the assignment form. Optional now, but needed before billing.",
+      "optionalBadge": "Optional",
+      "businessType": "Business type",
+      "businessTypeAriaLabel": "Business type",
+      "soleTrader": "Sole trader",
+      "soleTraderDescription": "Eenmanszaak — invoices issued under personal name.",
+      "company": "Company",
+      "companyDescription": "BV / SRL or other legal entity.",
+      "legalName": "Legal name",
+      "legalNameHint": "As registered with the KBO/BCE.",
+      "legalNamePlaceholder": "e.g. Acme Inspections BV",
+      "vatNumber": "VAT number",
+      "vatHint": "Belgian format: BE + 10 digits",
+      "vatPlaceholder": "BE 0712.345.678",
+      "vatError": "Format should be BE + 10 digits.",
+      "kboNumber": "KBO / BCE number",
+      "kboHint": "Same digits as VAT, without the BE prefix.",
+      "kboPlaceholder": "0712345678",
+      "iban": "IBAN",
+      "ibanHint": "Belgian IBAN: BE + 14 digits.",
+      "ibanPlaceholder": "BE68 5390 0754 7034",
+      "ibanError": "Format looks off — expected BE + 14 digits.",
+      "billingEmail": "Billing email",
+      "billingEmailHint": "Where invoices and statements are sent.",
+      "billingEmailPlaceholder": "billing@agency.be",
+      "billingPhone": "Billing phone",
+      "billingPhonePlaceholder": "+32 3 234 56 78",
+      "billingAddress": "Billing address",
+      "billingAddressPlaceholder": "Street + number",
+      "billingPostal": "Postal code",
+      "billingPostalPlaceholder": "2000",
+      "billingCity": "City",
+      "billingCityPlaceholder": "Antwerpen",
+      "country": "Country"
+    },
+    "legalBillingDisplay": {
+      "title": "Legal & billing",
+      "incompleteTitle": "Billing details incomplete",
+      "incompleteBody": "Required before payouts can be issued. Add the inspector's VAT number, IBAN, and billing address.",
+      "addDetailsCta": "Add billing details →",
+      "labelLegalName": "Legal name",
+      "labelVatKbo": "VAT / KBO",
+      "labelIban": "IBAN",
+      "labelBillingEmail": "Billing email",
+      "labelBillingPhone": "Billing phone",
+      "labelBillingAddress": "Billing address",
+      "company": "Company",
+      "soleTrader": "Sole trader"
+    },
+    "pricingCard": {
+      "title": "Pricing",
+      "intro": "Prices are snapshotted at creation — later price-list edits won't change this invoice.",
+      "subtotal": "Subtotal",
+      "surchargeLabel": "Large-property surcharge",
+      "discount": "Discount",
+      "total": "Total"
+    },
+    "announcementForm": {
+      "contentTitle": "Content",
+      "title": "Title",
+      "titleHint": "Shown in bold on the banner",
+      "titlePlaceholder": "e.g. Scheduled maintenance on April 20",
+      "body": "Body",
+      "bodyHint": "One or two short sentences work best",
+      "bodyPlaceholder": "Describe what is happening, when, and what users should do.",
+      "type": "Type",
+      "typeInfo": "Info",
+      "typeSuccess": "Success",
+      "typeWarning": "Warning",
+      "typeDanger": "Danger",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "visibilityTitle": "Visibility",
+      "active": "Active",
+      "activeDescription": "Uncheck to save as a draft without publishing.",
+      "dismissible": "Dismissible",
+      "dismissibleDescription": "Let each user close the banner for themselves. Sticky announcements can only be closed by an admin.",
+      "previewTitle": "Preview",
+      "previewTitleFallback": "Your title shows here",
+      "previewBodyFallback": "Body text previews like this for all users in the active window.",
+      "submitCreate": "Publish announcement",
+      "submitEdit": "Save changes",
+      "cancel": "Cancel"
+    },
+    "teamForm": {
+      "basicsTitle": "Team basics",
+      "basicsDescription": "Name, location, and the badge shown on cards across the dashboard.",
+      "name": "Team name",
+      "namePlaceholder": "Vastgoed Antwerp",
+      "city": "City",
+      "cityPlaceholder": "Antwerpen",
+      "email": "Team email",
+      "emailHint": "Shared inbox — used on invoices.",
+      "emailPlaceholder": "contact@agency.be",
+      "shortDescription": "Short description",
+      "shortDescriptionPlaceholder": "e.g. Residential specialists in Flanders",
+      "badge": "Badge",
+      "badgeHint": "1–3 letters shown on team cards until a logo image is uploaded. Leave blank to derive from the team name.",
+      "badgePlaceholder": "VA",
+      "color": "Color",
+      "stampLogo": "Stamp team logo on property photos",
+      "stampLogoDescription": "When on, the team's branding is overlaid on listing photos generated by the platform.",
+      "legalTitle": "Legal + billing",
+      "legalDescription": "Used on issued invoices and the opdrachtformulier. Optional now, but needed before billing.",
+      "legalName": "Legal name",
+      "legalNamePlaceholder": "Vastgoed Antwerp BV",
+      "vatNumber": "VAT number",
+      "vatPlaceholder": "BE 0712.345.678",
+      "kboNumber": "Chamber of Commerce (KBO)",
+      "kboPlaceholder": "0712345678",
+      "iban": "IBAN",
+      "ibanPlaceholder": "BE68 5390 0754 7034",
+      "billingEmail": "Billing email",
+      "billingEmailPlaceholder": "billing@agency.be",
+      "billingPhone": "Billing phone",
+      "billingPhonePlaceholder": "+32 3 234 56 78",
+      "billingAddress": "Billing address",
+      "billingAddressPlaceholder": "Street + number",
+      "billingPostal": "Postal code",
+      "billingPostalPlaceholder": "2000",
+      "billingCity": "Billing city",
+      "billingCityPlaceholder": "Antwerpen",
+      "country": "Country",
+      "countryPlaceholder": "Belgium",
+      "invoiceRecipient": "Invoice recipient default",
+      "invoiceRecipientHint": "Drives which contact block prints on invoices. Overridable per assignment.",
+      "noDefault": "No default",
+      "particulier": "Particulier (owner)",
+      "firm": "Firm (bedrijf)",
+      "commissionTitle": "Commission",
+      "commissionDescription": "How much the team keeps per delivered assignment. Set once, applies platform-wide.",
+      "commissionModel": "Model",
+      "commissionNone": "No commission",
+      "commissionPercentage": "Percentage of order",
+      "commissionFixed": "Fixed amount per order",
+      "commissionValue": "Value",
+      "commissionValueHint": "Percentage: basis points (1500 = 15%). Fixed: cents (2500 = €25.00).",
+      "submitCreate": "Create team",
+      "submitEdit": "Save changes",
+      "cancel": "Cancel",
+      "requiredHint": "Required"
+    },
+    "assignmentForm": {
+      "servicesTitle": "Services",
+      "servicesSubtitle": "Pick one or more. We handle scheduling and delivery.",
+      "odooUnreachable": "Odoo is unreachable — pricelist pickers won't load. New assignments will use the team's base price as a fallback.",
+      "productLabel": "Product from team pricelist",
+      "productSearchPlaceholder": "Type to search…",
+      "productClearAriaLabel": "Clear pricelist selection",
+      "productNoMatches": "No matching products.",
+      "propertyTitle": "Property",
+      "propertySubtitle": "Where is the inspection taking place?",
+      "address": "Street + number",
+      "addressPlaceholder": "Meir 34",
+      "postal": "Postal code",
+      "postalPlaceholder": "2000",
+      "city": "City",
+      "cityPlaceholder": "Antwerpen",
+      "propertyType": "Property type",
+      "propertyTypeHouse": "House",
+      "propertyTypeApartment": "Apartment",
+      "propertyTypeStudio": "Studio",
+      "propertyTypeStudioRoom": "Student room",
+      "propertyTypeCommercial": "Commercial",
+      "year": "Construction year",
+      "yearPlaceholder": "1985",
+      "area": "Living area (m²)",
+      "areaPlaceholder": "120",
+      "photographerLabel": "Contact person for photographer",
+      "photographerRealtor": "Realtor",
+      "photographerOwner": "Owner",
+      "photographerTenant": "Tenant",
+      "contactTitle": "Contact person",
+      "contactSubtitle": "The realtor or agency person the inspector should contact. Shown on the calendar event under \"Makelaar\".",
+      "contactEmail": "Email",
+      "contactEmailPlaceholder": "info@vastgoedantwerp.be",
+      "contactPhone": "Phone",
+      "contactPhonePlaceholder": "+32 3 123 45 67",
+      "ownerTitle": "Owner",
+      "ownerSubtitle": "The person signing the assignment form.",
+      "ownerTypeAriaLabel": "Owner type",
+      "ownerParticulier": "Particulier",
+      "ownerFirm": "Bedrijf",
+      "ownerFullName": "Full name",
+      "ownerFullNamePlaceholder": "Els Vermeulen",
+      "ownerEmail": "Email",
+      "ownerEmailPlaceholder": "els@example.com",
+      "ownerPhone": "Phone",
+      "ownerPhonePlaceholder": "+32 476 12 34 56",
+      "ownerAddress": "Address",
+      "ownerAddressPlaceholder": "Meir 42",
+      "ownerCity": "City",
+      "ownerCityPlaceholder": "Antwerpen",
+      "ownerPostal": "Postal code",
+      "ownerPostalPlaceholder": "2000",
+      "ownerVat": "VAT number",
+      "ownerVatHint": "Required for firm invoices (e.g. BE 0712.345.678).",
+      "ownerVatPlaceholder": "BE 0712.345.678",
+      "tenantTitle": "Tenant",
+      "tenantSubtitle": "Add if the property is currently occupied — optional.",
+      "tenantFullName": "Full name",
+      "tenantFullNamePlaceholder": "Marc De Smet",
+      "tenantEmail": "Email",
+      "tenantEmailPlaceholder": "marc@example.com",
+      "tenantPhone": "Phone",
+      "tenantPhonePlaceholder": "+32 479 98 76 54",
+      "schedulingTitle": "Scheduling",
+      "plannedDate": "Planned date",
+      "plannedDateHint": "We confirm within 24 hours by email.",
+      "keyPickup": "A key needs to be picked up before the inspection",
+      "keyPickupWhere": "Where is the key picked up?",
+      "keyPickupOffice": "At the agency office",
+      "keyPickupOther": "At a different address",
+      "keyPickupAddress": "Pickup address",
+      "keyPickupAddressHint": "Full address where the inspector can pick up the key.",
+      "keyPickupAddressPlaceholder": "Street, number, postal code, city…",
+      "freelancer": "Assign freelancer",
+      "freelancerHint": "Optional — leave as Unassigned to assign later.",
+      "freelancerUnassigned": "— Unassigned —",
+      "calendarDate": "Internal calendar date",
+      "calendarDateHint": "Overrides the planned date when pushing to calendars. Customer's date stays untouched.",
+      "calendarAccount": "Calendar account (for email CTA)",
+      "calendarAccountHint": "The Google account the email's 'Add to my calendar' button targets.",
+      "calendarAccountPlaceholder": "you@agency.be",
+      "notes": "Notes for the inspector",
+      "notesPlaceholder": "Parking, access codes, pets — anything worth knowing.",
+      "initialComment": "Initial comment",
+      "initialCommentPlaceholder": "First message for the thread (optional) — visible to everyone on the assignment.",
+      "filesTitle": "Supporting files (optional)",
+      "filesSubtitle": "Attach floor plans, photos, or notes the inspector should see. You can also add files later from the Files tab.",
+      "filesHint": "PDF, JPG, PNG, WebP · up to {maxMB} MB each · up to {maxFiles} files",
+      "filesLabel": "Drop floor plans, photos or notes",
+      "filesNone": "No files picked yet.",
+      "filesReady": "{count, plural, one {# file ready to upload.} other {# files ready to upload.}}",
+      "submitCreate": "Create assignment",
+      "submitEdit": "Save changes",
+      "requiredHint": "Required"
+    }
+  },
+  "assignments": {
+    "shared": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "change": "Change",
+      "edit": "Edit",
+      "close": "Close",
+      "current": "Current",
+      "currentLowercase": "current",
+      "loading": "Loading…",
+      "unassigned": "Unassigned",
+      "unassignedDashed": "— Unassigned —"
+    },
+    "list": {
+      "title": "Assignments",
+      "subtitle": {
+        "totalOnly": "{count} total",
+        "filtered": "{filtered} {statusLabel} · {total} total"
+      },
+      "newCta": "New",
+      "createCta": "Create assignment",
+      "resetFilters": "Reset filters",
+      "showOdoo": "Show Odoo",
+      "hideOdoo": "Hide Odoo",
+      "showOdooTitle": "Show Odoo column",
+      "hideOdooTitle": "Hide Odoo column",
+      "odooHeader": "Odoo",
+      "odooHeaderTitle": "Odoo sync status",
+      "filesHeader": "Files",
+      "columns": {
+        "reference": "Reference",
+        "property": "Property",
+        "services": "Services",
+        "team": "Team",
+        "freelancer": "Freelancer",
+        "created": "Created",
+        "plannedDate": "Planned date",
+        "status": "Status"
+      },
+      "emptyMatching": {
+        "title": "No matching assignments",
+        "description": "Try broadening the filters — or reset to see all."
+      },
+      "emptyByRole": {
+        "admin": {
+          "title": "No assignments yet",
+          "description": "Create your first property inspection to get started."
+        },
+        "staff": {
+          "title": "No assignments yet",
+          "description": "Create your first property inspection to get started."
+        },
+        "realtor": {
+          "title": "No certificate orders yet for your team",
+          "description": "Click New assignment to order your team's first certificate."
+        },
+        "freelancer": {
+          "title": "No inspections assigned to you yet",
+          "description": "Once a realtor assigns you to an inspection, it shows up here."
+        }
+      }
+    },
+    "filters": {
+      "searchPlaceholder": "Search reference, address, team, person…",
+      "statusAriaLabel": "Filter by status",
+      "teamAriaLabel": "Filter by team",
+      "allStatuses": "All statuses",
+      "allTeams": "All teams",
+      "noTeam": "— No team —",
+      "allFreelancers": "All freelancers",
+      "freelancerSearchPlaceholder": "Type a name…",
+      "freelancerUnassigned": "— Unassigned —",
+      "reset": "Reset"
+    },
+    "pagination": {
+      "ariaLabel": "Pagination",
+      "summary": "Page {current} of {total} · {count} assignments total",
+      "prev": "Prev",
+      "next": "Next",
+      "previousPageAria": "Previous page",
+      "nextPageAria": "Next page",
+      "pageNumberAria": "Page {n}"
+    },
+    "filesButton": {
+      "ariaLabelEmpty": "No files for {reference}",
+      "ariaLabelHasFiles": "Files for {reference}",
+      "titleEmpty": "No files uploaded yet",
+      "modalTitle": "Files",
+      "modalAriaLabel": "Files for {reference}",
+      "loading": "Loading…",
+      "empty": "No files uploaded yet.",
+      "freelancerLane": "Freelancer lane",
+      "realtorLane": "Realtor lane",
+      "download": "Download"
+    },
+    "odooSync": {
+      "syncedTooltip": "Synced — partner #{partnerId}, order #{orderId}",
+      "warningFallback": "Synced with warnings",
+      "failedFallback": "Sync failed — click to retry",
+      "pendingTooltip": "Pending — click to sync now",
+      "requestFailed": "Request failed"
+    },
+    "statusPicker": {
+      "current": "current"
+    },
+    "detail": {
+      "cancellationReasonLabel": "Cancellation reason",
+      "deliverablesTitle": "Deliverables",
+      "deliverablesDescription": "Certificate PDFs and photos from the assigned inspector.",
+      "deliverablesEmpty": "The inspector hasn't uploaded a deliverable yet.",
+      "realtorUploadsTitle": "Realtor uploads",
+      "realtorUploadsDescription": "Floor plans, access notes, photos provided by the agency.",
+      "realtorUploadsEmpty": "No supporting documents uploaded yet.",
+      "uploadsClosedNotice": "This assignment is no longer active. Uploads and deletions are closed.",
+      "commentsTitle": "Comments",
+      "commentsCount": "{count, plural, =0 {0 comments} =1 {1 comment} other {# comments}}",
+      "commentsEmpty": "No comments yet. Start the conversation.",
+      "systemAuthor": "System",
+      "teamTitle": "Team",
+      "teamCreatedAt": "Created {date}",
+      "schedulingTitle": "Scheduling",
+      "commissionTitle": "Commission",
+      "commissionDescription": "Applied at completion. Snapshotted — retroactive rate changes don't rewrite this line.",
+      "commissionRate": "Rate",
+      "commissionEarned": "Earned",
+      "assignmentFormTitle": "Assignment form",
+      "assignmentFormDescription": "PDF opdrachtformulier.",
+      "assignmentFormFilenameSuffix": "Generate when ready",
+      "tenantTitle": "Tenant",
+      "timeAgo": {
+        "justNow": "just now",
+        "minutes": "{n} min ago",
+        "hours": "{n} hr ago",
+        "days": "{n, plural, =1 {1 day ago} other {# days ago}}"
+      }
+    },
+    "freelancerEditForm": {
+      "plannedDateLabel": "Planned date",
+      "plannedDateHint": "Set or change the appointment date. Saving with a date promotes an awaiting assignment to scheduled; clearing it on a scheduled row reverts to awaiting."
+    },
+    "completeForm": {
+      "title": "Complete {reference}",
+      "description": "Wrap up the inspection and move this assignment out of the active queue.",
+      "submit": "Mark as completed",
+      "servicesLabel": "Services",
+      "notesLabel": "Completion notes",
+      "notesHint": "Posts as a comment on the assignment. Optional.",
+      "notesPlaceholder": "Everything went smoothly. Owner was on site, access was fine.",
+      "finishedAtLabel": "Finished at",
+      "finishedAtHint": "Date and time the on-site work wrapped up."
+    },
+    "actions": {
+      "edit": "Edit",
+      "startInspection": "Start inspection",
+      "markDelivered": "Mark delivered",
+      "markNotDelivered": "Mark not delivered",
+      "markCompleted": "Mark completed",
+      "cancel": "Cancel",
+      "cancelDialogTitle": "Cancel this assignment?",
+      "cancelDialogDescription": "Cancelled assignments can no longer be edited. This will be visible in the team's activity log.",
+      "cancelDialogKeepIt": "Keep it",
+      "cancelDialogConfirm": "Cancel assignment",
+      "cancelReasonLabel": "Reason (optional)",
+      "cancelReasonHint": "Posts as a comment on the assignment so the team has context.",
+      "cancelReasonPlaceholder": "Owner changed their mind, duplicate order, etc."
+    },
+    "delete": {
+      "title": "Delete {reference}?",
+      "description": "The assignment, its files, comments, and calendar events all go. Commission lines and invoices tied to it are removed as well. This can't be undone.",
+      "confirmLabel": "Delete assignment",
+      "cancelLabel": "Keep it",
+      "triggerLabel": "Delete"
+    },
+    "downloadPdf": {
+      "buttonLabel": "Download",
+      "fallbackError": "Could not generate the PDF.",
+      "defaultFilename": "opdrachtformulier.pdf"
+    },
+    "calendarChips": {
+      "agencyGoogle": "Agency Google",
+      "yourOutlook": "Your Outlook",
+      "onYourGoogle": "On your Google",
+      "removeFromGoogleTitle": "Remove from my Google calendar",
+      "addToMyGoogle": "+ Add to my Google",
+      "adding": "Adding…"
+    },
+    "comments": {
+      "placeholder": "Add a comment…",
+      "submit": "Post comment"
+    },
+    "keyPickup": {
+      "label": "Key pickup",
+      "notRequired": "Not required",
+      "required": "Required",
+      "addressPending": "address pending",
+      "agencyOffice": "agency office",
+      "checkboxLabel": "A key needs to be picked up",
+      "atOffice": "At the agency office",
+      "atOther": "At a different address",
+      "addressPlaceholder": "Street, number, postal code, city…"
+    },
+    "assignedTo": {
+      "title": "Assigned to",
+      "summary": "{assigned} of {total} assigned",
+      "noServices": "Pick at least one service in the form — an assignment row will appear here for each.",
+      "inspector": "Inspector",
+      "plannedDateAria": "Planned date for {service}",
+      "searchPlaceholder": "Type a name, region, or email…",
+      "cancelAria": "Cancel",
+      "noMatches": "No freelancers match.",
+      "current": "Current"
+    },
+    "reassign": {
+      "assignTrigger": "Assign freelancer",
+      "changeTrigger": "Change",
+      "reassignTitle": "Reassign freelancer",
+      "assignTitle": "Assign a freelancer",
+      "description": "They'll see this assignment appear in their inspections list.",
+      "outOfScopeWarning": "The current freelancer is no longer in your team's roster. Saving will reassign to whoever you pick below.",
+      "rosterEmpty": "No freelancers are in your team's roster yet. Invite one from the Users page first.",
+      "freelancerLabel": "Freelancer",
+      "pickPlaceholder": "Pick a freelancer…",
+      "searchPlaceholder": "Type a name or region…"
+    },
+    "files": {
+      "labelFreelancer": "Drop certificate PDF(s) or click to upload",
+      "labelRealtor": "Drop floor plans, photos or notes",
+      "uploadedToast": "Uploaded {count} file{count, plural, =1 {} other {s}}.",
+      "mismatchedTickets": "Mismatched upload tickets — try again.",
+      "uploadFailed": "Upload failed.",
+      "filesFailedFallback": "One or more files failed to upload.",
+      "uploadFailedStatus": "Upload failed ({status}).",
+      "networkError": "Network error during upload.",
+      "uploadAborted": "Upload aborted."
+    },
+    "newPage": {
+      "title": "New assignment",
+      "subtitle": "Create a new property inspection"
+    },
+    "notices": {
+      "filesFailed": "Assignment created. Some files failed to upload — try again from the Files tab."
+    }
+  },
+  "announcements": {
+    "topbar": {
+      "title": "Announcements",
+      "subtitle": "Banner messages shown to users"
+    },
+    "actions": {
+      "new": "New announcement",
+      "edit": "Edit"
+    },
+    "empty": {
+      "title": "No announcements yet",
+      "description": "Publish a banner to let everyone on the platform know about updates, maintenance, or new features."
+    },
+    "types": {
+      "info": "Info",
+      "success": "Success",
+      "warning": "Warning",
+      "danger": "Danger"
+    },
+    "status": {
+      "active": "Active",
+      "scheduled": "Scheduled",
+      "expired": "Expired",
+      "inactive": "Inactive"
+    },
+    "meta": {
+      "sticky": "Sticky",
+      "systemAuthor": "System",
+      "rangeWithCreator": "{start} → {end} · by {creator}"
+    },
+    "delete": {
+      "trigger": "Delete",
+      "confirmLabel": "Delete",
+      "cancelLabel": "Keep it",
+      "title": "Delete \"{title}\"?",
+      "description": "The announcement disappears for everyone. Per-user dismissals are cleared too. This cannot be undone."
+    },
+    "detail": {
+      "subtitle": "Announcement details",
+      "timing": {
+        "title": "Timing & visibility",
+        "activeWindow": "Active window",
+        "activeWindowValue": "{start} → {end}",
+        "published": "Published",
+        "publishedYes": "Yes",
+        "publishedDraft": "Draft",
+        "dismissible": "Dismissible",
+        "dismissibleYes": "Yes · {count} dismissed",
+        "dismissibleNo": "No (sticky)",
+        "author": "Author",
+        "created": "Created",
+        "lastUpdated": "Last updated"
+      }
+    },
+    "new": {
+      "title": "New announcement",
+      "subtitle": "Create a banner message for users"
+    },
+    "edit": {
+      "title": "Edit announcement"
+    }
+  },
+  "contactMessages": {
+    "topbar": {
+      "title": "Contact messages",
+      "subtitleEmpty": "Visitor submissions from the public /contact form will land here.",
+      "subtitleCount": "{total} total · {unhandled} awaiting reply"
+    },
+    "empty": {
+      "title": "No messages yet",
+      "description": "When someone submits the contact form on immoplatform.be, the message will show up here.",
+      "inboxZeroTitle": "Inbox zero",
+      "inboxZeroDescription": "Every message has been handled. Switch to All to see the full history."
+    },
+    "filterTabs": {
+      "ariaLabel": "Filter messages",
+      "all": "All",
+      "unhandled": "Awaiting reply"
+    },
+    "row": {
+      "expandAria": "Expand message",
+      "collapseAria": "Collapse message",
+      "statusHandled": "Handled",
+      "statusNew": "New",
+      "markHandled": "Mark as handled",
+      "reopen": "Reopen",
+      "replyViaEmail": "Reply via email",
+      "replyDefaultSubject": "your message to immoplatform",
+      "replySubjectPrefix": "Re: {subject}",
+      "fields": {
+        "from": "From",
+        "phone": "Phone",
+        "subject": "Subject",
+        "message": "Message",
+        "ip": "IP",
+        "handledBy": "Handled by"
+      },
+      "notes": {
+        "label": "Internal notes",
+        "placeholder": "Anything the team should know about this lead…",
+        "save": "Save notes",
+        "saved": "Saved."
+      }
+    }
+  },
+  "activity": {
+    "topbar": {
+      "title": "Activity log",
+      "subtitle": "{count} recent events"
+    },
+    "card": {
+      "title": "Events"
+    },
+    "empty": {
+      "title": "No activity yet",
+      "description": "Mutations across the platform will stream into this log as they happen."
+    },
+    "table": {
+      "timestamp": "Timestamp",
+      "actor": "Actor",
+      "action": "Action",
+      "target": "Target"
+    },
+    "kinds": {
+      "auth": "Auth",
+      "create": "Create",
+      "update": "Update",
+      "status": "Status",
+      "delete": "Delete",
+      "system": "System"
+    },
+    "actor": {
+      "system": "System"
+    }
+  },
+  "emails": {
+    "index": {
+      "heading": "Email templates",
+      "description": "Review how each transactional / lifecycle email renders. Edit the JSON props to see how the template handles different inputs. Admin only."
+    },
+    "detail": {
+      "backToList": "← All templates",
+      "subjectLabel": "Subject:",
+      "propsErrorPrefix": "Props JSON error: {error} — showing defaults.",
+      "previewIframeTitle": "{label} preview",
+      "plainTextSummary": "Plain-text fallback",
+      "editor": {
+        "label": "Props (JSON)",
+        "apply": "Apply",
+        "reset": "Reset to defaults"
+      }
+    }
+  },
+  "users": {
+    "roles": {
+      "admin": "Admin",
+      "staff": "Staff",
+      "realtor": "Realtor",
+      "freelancer": "Freelancer"
+    },
+    "list": {
+      "topbarTitle": "Users",
+      "topbarSubtitle": "{count, plural, one {# person} other {# people}}",
+      "filterAll": "All",
+      "searchPlaceholder": "Search by name or email…",
+      "inviteUser": "Invite user",
+      "columns": {
+        "user": "User",
+        "role": "Role",
+        "team": "Team",
+        "joined": "Joined",
+        "lastSeen": "Last seen",
+        "actions": "Actions"
+      },
+      "noTeam": "—",
+      "lastSeen": {
+        "online": "Online",
+        "never": "Never",
+        "justNow": "Just now",
+        "minutesAgo": "{count}m ago",
+        "hoursAgo": "{count}h ago",
+        "daysAgo": "{count}d ago",
+        "monthsAgo": "{count}mo ago",
+        "yearsAgo": "{count}y ago"
+      },
+      "viewUserAriaLabel": "View {name}"
+    },
+    "detail": {
+      "breadcrumbUsers": "Users",
+      "subtitleNoTeam": "No team",
+      "online": "Online now",
+      "lastSeen": "Last seen {when}",
+      "neverSignedIn": "Never signed in",
+      "actions": {
+        "message": "Message",
+        "edit": "Edit"
+      },
+      "about": "About",
+      "certifications": {
+        "title": "Certifications",
+        "description": "Services this inspector is certified to perform."
+      },
+      "recentWork": {
+        "title": "Recent work",
+        "showingOf": "Showing last {shown} of {total}",
+        "emptyAdminStaff": "Admin & staff accounts don't carry assignments directly.",
+        "emptyDefault": "No assignments linked to this user yet."
+      },
+      "recentActivity": {
+        "title": "Recent activity",
+        "empty": "No recent activity."
+      },
+      "contact": {
+        "title": "Contact",
+        "membershipsExtra": "+{count} more",
+        "joined": "Joined {date}"
+      },
+      "atAGlance": {
+        "title": "At a glance",
+        "active": "Active",
+        "delivered": "Delivered",
+        "closed": "Closed",
+        "services": "Services",
+        "teams": "Teams",
+        "total": "Total"
+      },
+      "roleAccess": {
+        "title": "Role & access",
+        "yes": "Yes",
+        "admin": {
+          "fullAccess": "Full platform access",
+          "manageUsersTeams": "Manage users & teams",
+          "billingPriceLists": "Billing & price lists"
+        },
+        "staff": {
+          "createAssign": "Create & assign work",
+          "viewAllTeams": "View all teams",
+          "supportConsole": "Support console"
+        },
+        "realtor": {
+          "createAssignments": "Create assignments",
+          "seeTeamActivity": "See team activity",
+          "inviteTeammates": "Invite teammates"
+        },
+        "freelancer": {
+          "acceptAssignments": "Accept assignments",
+          "uploadDeliverables": "Upload deliverables",
+          "setAvailability": "Set availability"
+        }
+      },
+      "verbs": {
+        "assignmentCreated": "Created an assignment",
+        "assignmentUpdated": "Updated an assignment",
+        "assignmentStarted": "Started an inspection",
+        "assignmentDelivered": "Delivered an inspection",
+        "assignmentCompleted": "Signed off on an assignment",
+        "assignmentCancelled": "Cancelled an assignment",
+        "assignmentDeleted": "Deleted an assignment",
+        "assignmentReassigned": "Reassigned an inspector",
+        "assignmentFileUploaded": "Uploaded files",
+        "assignmentFileDeleted": "Removed a file",
+        "assignmentCommissionApplied": "Commission recorded",
+        "commissionQuarterPaid": "Marked a quarter paid",
+        "commissionQuarterUnpaid": "Reopened a quarter",
+        "teamCreated": "Created a team",
+        "teamUpdated": "Updated a team",
+        "teamDeleted": "Deleted a team",
+        "teamMemberAdded": "Added a team member",
+        "teamMemberRemoved": "Removed a team member",
+        "teamOwnershipTransferred": "Transferred ownership",
+        "userCreated": "Created a user",
+        "userDeleted": "Deleted a user",
+        "userProfileUpdated": "Updated profile",
+        "userPasswordChanged": "Changed password",
+        "userEmailChanged": "Changed email",
+        "userRoleChanged": "Changed role",
+        "userSignedIn": "Signed in",
+        "userSignedOut": "Signed out",
+        "inviteSent": "Sent an invite",
+        "inviteAccepted": "Invite accepted",
+        "announcementCreated": "Published an announcement",
+        "revenueAdjustmentCreated": "Added a revenue adjustment",
+        "calendarConnected": "Connected a calendar",
+        "calendarDisconnected": "Disconnected a calendar"
+      },
+      "relativeTime": {
+        "justNow": "just now",
+        "minutesAgo": "{count}m ago",
+        "hoursAgo": "{count}h ago",
+        "daysAgo": "{count}d ago",
+        "monthsAgo": "{count}mo ago",
+        "yearsAgo": "{count}y ago"
+      }
+    },
+    "edit": {
+      "topbarTitle": "Edit {name}",
+      "topbarSubtitle": "Admin user management",
+      "breadcrumbUsers": "Users",
+      "breadcrumbEdit": "Edit",
+      "profile": {
+        "title": "Profile",
+        "description": "Changing the email does not re-verify it — trusted admin update.",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "email": "Email",
+        "role": "Role",
+        "roleHint": "Controls what this person can access across the platform.",
+        "save": "Save profile"
+      },
+      "passwordReset": {
+        "title": "Reset password",
+        "description": "Sets a new password for this user. Every active session is revoked so the old password stops working immediately. The user is not emailed — share the new password out-of-band.",
+        "newPassword": "New password",
+        "newPasswordHint": "At least 8 characters including a letter and a number.",
+        "confirmPassword": "Confirm new password",
+        "submit": "Reset password",
+        "success": "Password reset. Other sessions signed out."
+      },
+      "delete": {
+        "trigger": "Delete",
+        "confirmTitle": "Delete {name}?",
+        "confirmDescription": "The account is soft-deleted — they can no longer sign in and every active session is revoked. Assignments and comments they created stay in place, attributed to their name.",
+        "confirmLabel": "Delete user",
+        "cancelLabel": "Keep"
+      }
+    },
+    "invite": {
+      "topbarTitle": "Invite user",
+      "topbarSubtitle": "Send an email invite to join your workspace",
+      "breadcrumbUsers": "Users",
+      "breadcrumbInvite": "Invite",
+      "needTeamFirst": {
+        "title": "You need to own a team before you can invite anyone",
+        "body": "Realtors can only invite people into teams they own. You're not an owner of any team yet — ask your agency admin to transfer ownership to you, or create a new team.",
+        "createTeam": "Create a team",
+        "backToDashboard": "Back to dashboard"
+      },
+      "whoCard": {
+        "title": "Who are you inviting?",
+        "description": "We'll email them a secure link to create their account.",
+        "emailLabel": "Work email",
+        "emailPlaceholder": "colleague@agency.be",
+        "noteLabel": "Optional note",
+        "noteHint": "Shown on the accept-invite page. Nice for context.",
+        "notePlaceholder": "Hi Lucas — welcome to our immoplatform workspace."
+      },
+      "roleCard": {
+        "title": "Role",
+        "description": "Determines what they can see and do on the platform.",
+        "roles": {
+          "realtor": {
+            "label": "Realtor",
+            "description": "Creates assignments, tracks their agency's work, invites teammates."
+          },
+          "freelancer": {
+            "label": "Freelancer",
+            "description": "Certified inspector — accepts assignments and uploads deliverables."
+          },
+          "staff": {
+            "label": "Staff",
+            "description": "immoplatform support — can view all teams and help users."
+          },
+          "admin": {
+            "label": "Admin",
+            "description": "Full platform access — billing, price lists, user management."
+          }
+        }
+      },
+      "teamCard": {
+        "title": "Team",
+        "titleOptional": "Team (optional)",
+        "descriptionLocked": "Inviting into {teamName}. Open the invite from the Users page if you need to pick a different team.",
+        "descriptionLockedFallback": "Inviting into this team. Open the invite from the Users page if you need to pick a different team.",
+        "descriptionRealtor": "Attach this realtor to an agency team.",
+        "descriptionFreelancer": "Attach this freelancer to a team they regularly work with.",
+        "teamFieldLabel": "Team / office",
+        "teamPlaceholder": "Search a team…",
+        "teamSearchPlaceholder": "Type a team name or city…",
+        "noTeamOption": "No team (optional)",
+        "teamRoleHeading": "Team role",
+        "teamRoles": {
+          "member": {
+            "label": "Member",
+            "description": "Can create and see assignments for the team."
+          },
+          "owner": {
+            "label": "Owner",
+            "description": "Member + can invite, edit team settings & remove others."
+          }
+        },
+        "ownerTakenLabel": "Taken",
+        "ownerTakenReason": "{ownerName} already owns this team",
+        "ownerTakenExplain": "{ownerName} already owns {teamName}. New invites can only join as members. To change the owner, transfer ownership first from the team settings."
+      },
+      "footer": {
+        "requiredHint": "Required",
+        "cancel": "Cancel",
+        "submit": "Send invite"
+      },
+      "preview": {
+        "title": "Preview email",
+        "description": "This is what they'll receive.",
+        "to": "To:",
+        "toFallback": "colleague@agency.be",
+        "from": "From:",
+        "subject": "You're invited to join <brand></brand>",
+        "bodyWithTeam": "You've been invited to join <brand></brand> as a <strong>{role}</strong> on team <strong>{team}</strong> ({teamRole}).",
+        "bodyWithoutTeam": "You've been invited to join <brand></brand> as a <strong>{role}</strong>.",
+        "cta": "Accept invitation →",
+        "expiry": "This link expires in 7 days."
+      }
+    },
+    "pendingInvites": {
+      "title": "Pending invites",
+      "ariaLabel": "Pending invites · {count} awaiting acceptance",
+      "inviteUser": "Invite user",
+      "showingRange": "Showing {start}–{end} of {total}",
+      "previous": "Previous",
+      "next": "Next",
+      "row": {
+        "metaSentBy": "Sent by {name} on {date}",
+        "resend": "Resend",
+        "revoke": "Revoke",
+        "confirmTitle": "Revoke invite for {email}?",
+        "confirmDescription": "They won't be able to use the accept link anymore. Sending a fresh invite is still possible afterwards.",
+        "confirmLabel": "Revoke invite",
+        "cancelLabel": "Keep it"
+      }
+    }
+  },
+  "teams": {
+    "list": {
+      "topbarTitle": "Teams",
+      "topbarSubtitle": "{count, plural, one {# office} other {# offices}}",
+      "founderBanner": {
+        "titleFromGate": "You need a team before you can use that section.",
+        "titleDefault": "Your agency isn't set up yet.",
+        "bodyCanFound": "Create your office to get started — you can invite teammates and order certificates afterwards.",
+        "bodyCannotFound": "Ask an administrator to create your office, or contact support if you're a new agency owner.",
+        "createOffice": "Create your office",
+        "contactSupport": "Contact support"
+      },
+      "headline": "{count, plural, one {# partner office} other {# partner offices}} across Belgium",
+      "createTeam": "Create team",
+      "searchPlaceholder": "Search by team name, city or owner…",
+      "empty": {
+        "noMatchTitle": "No teams match that search",
+        "noMatchDescription": "Nothing found for \"{query}\". Try a different name, city, or owner.",
+        "noTeamsTitle": "No teams yet",
+        "noTeamsDescription": "Create your first agency office. You'll be able to add members, set commission rules and order certificates on their behalf.",
+        "createFirst": "Create first team"
+      },
+      "columns": {
+        "office": "Office",
+        "owner": "Owner",
+        "members": "Members",
+        "assignments": "Assignments"
+      },
+      "mobile": {
+        "owner": "Owner",
+        "members": "Members",
+        "assignments": "Assignments"
+      },
+      "noCity": "—",
+      "noOwner": "—"
+    },
+    "detail": {
+      "breadcrumbTeams": "Teams",
+      "topbarSubtitleWithCity": "{city} · {count, plural, one {# member} other {# members}}",
+      "topbarSubtitleNoCity": "— · {count, plural, one {# member} other {# members}}",
+      "hero": {
+        "createdLabel": "Team · created {date}",
+        "ownerLabel": "Owner:",
+        "allTeams": "← All teams",
+        "inviteMember": "Invite member",
+        "editTeam": "Edit team"
+      },
+      "stats": {
+        "members": "Members",
+        "membersHasOwner": "Has an owner",
+        "membersNoOwner": "No owner assigned",
+        "active": "Active",
+        "activeHint": "Scheduled or in progress",
+        "deliveredMtd": "Delivered (MTD)",
+        "deliveredMtdHint": "Since {date}",
+        "commission": "Commission",
+        "commissionInvoicesFirm": "Invoices firm by default",
+        "commissionInvoicesOwner": "Invoices owner by default",
+        "commissionPercentageOf": "{rate} of revenue",
+        "commissionFlatFee": "{rate} flat fee",
+        "commissionNotConfigured": "Not configured"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "members": "Members",
+        "assignments": "Assignments",
+        "billing": "Billing",
+        "branding": "Branding",
+        "services": "Services & pricing",
+        "commission": "Commission"
+      },
+      "overview": {
+        "recentTitle": "Recent assignments",
+        "recentDescription": "Latest work carried out for this team.",
+        "viewAll": "View all →",
+        "emptyAssignments": "No assignments yet for this team.",
+        "factsTitle": "Team facts",
+        "facts": {
+          "legalName": "Legal name",
+          "vatNumber": "VAT number",
+          "kboNumber": "KBO number",
+          "iban": "IBAN",
+          "defaultRecipient": "Default invoice recipient",
+          "recipientFirm": "Firm / agency",
+          "recipientOwner": "Property owner",
+          "logoOnPhotos": "Logo on photo exports",
+          "logoEnabled": "Enabled",
+          "logoDisabled": "Disabled",
+          "notSet": "Not set"
+        },
+        "serviceMixTitle": "Service mix",
+        "serviceMixDescription": "What this team orders most.",
+        "quickActionsTitle": "Quick actions",
+        "quickActions": {
+          "createAssignment": "Create assignment",
+          "inviteMember": "Invite member",
+          "editBilling": "Edit billing details",
+          "adjustCommission": "Adjust commission"
+        }
+      },
+      "members": {
+        "title": "Members",
+        "summary": "{count, plural, one {# person has} other {# people have}} access to this team.",
+        "transferOwnership": "Transfer ownership",
+        "inviteMember": "Invite member",
+        "empty": "No members yet. Invite someone to get started.",
+        "columns": {
+          "name": "Name",
+          "email": "Email",
+          "platformRole": "Platform role",
+          "teamRole": "Team role",
+          "joined": "Joined"
+        },
+        "owner": "Owner",
+        "member": "Member",
+        "removeDash": "—",
+        "pendingTitle": "Pending invites",
+        "pendingSummary": "{count, plural, one {# invite} other {# invites}} awaiting acceptance",
+        "pendingColumns": {
+          "email": "Email",
+          "role": "Role",
+          "teamRole": "Team role",
+          "invited": "Invited",
+          "expires": "Expires"
+        },
+        "noExpiry": "—"
+      },
+      "assignments": {
+        "title": "Assignments",
+        "description": "All work carried out for this team.",
+        "new": "New",
+        "empty": "No assignments yet.",
+        "columns": {
+          "reference": "Reference",
+          "property": "Property",
+          "services": "Services",
+          "freelancer": "Freelancer",
+          "date": "Date",
+          "status": "Status"
+        },
+        "unassigned": "Unassigned",
+        "noDate": "—"
+      },
+      "billing": {
+        "title": "Billing & legal",
+        "description": "Legal entity details for invoices issued to and from this team.",
+        "fields": {
+          "legalName": "Legal name",
+          "legalNameHint": "Official entity name on invoices",
+          "legalNamePlaceholder": "e.g. Vastgoed Antwerp BVBA",
+          "contactEmail": "Contact email",
+          "contactEmailHint": "Team-wide inbox for notifications",
+          "contactEmailPlaceholder": "contact@team.be",
+          "vatNumber": "VAT number",
+          "vatNumberHint": "Belgian format: BE 0xxx.xxx.xxx",
+          "vatPlaceholder": "BE 0xxx.xxx.xxx",
+          "kbo": "KBO / Chamber of Commerce",
+          "kboPlaceholder": "0xxxxxxxxx",
+          "iban": "IBAN",
+          "ibanPlaceholder": "BE68 5390 0754 7034",
+          "billingEmail": "Billing email",
+          "billingEmailHint": "Invoice delivery address",
+          "billingEmailPlaceholder": "billing@team.be",
+          "billingPhone": "Billing phone",
+          "billingPhonePlaceholder": "+32 …",
+          "defaultRecipient": "Default invoice recipient",
+          "defaultRecipientHint": "Fallback when creating assignments",
+          "perAssignment": "— Pick per assignment —",
+          "ownerOption": "Property owner",
+          "firmOption": "Firm / agency",
+          "address": "Address",
+          "addressPlaceholder": "Street + number",
+          "postal": "Postal",
+          "postalPlaceholder": "2000",
+          "city": "City",
+          "cityPlaceholder": "Antwerpen",
+          "country": "Country",
+          "description": "Description / internal notes",
+          "descriptionPlaceholder": "Anything worth remembering about this team — primary contact, scheduling quirks, …"
+        },
+        "save": "Save billing details"
+      },
+      "branding": {
+        "title": "Branding",
+        "description": "Logo and signature used on PDF certificates issued on behalf of this team.",
+        "logoLabel": "Team logo",
+        "logoAlt": "{name} logo",
+        "noLogo": "No logo",
+        "logoEdit": "Upload or replace in Edit →",
+        "logoHint": "Shown on dashboards, assignments, and team cards.",
+        "signatureLabel": "Signature image",
+        "signatureAlt": "{name} signature",
+        "noSignature": "No signature",
+        "signatureEdit": "Upload or replace in Edit →",
+        "signatureHint": "Stamped on certificates and signed assignment forms."
+      },
+      "services": {
+        "title": "Services & price overrides",
+        "description": "Per-team prices override the master price list. Leave blank to use the master price shown.",
+        "columns": {
+          "service": "Service",
+          "master": "Master",
+          "override": "Team override",
+          "effective": "Effective"
+        },
+        "overrideBadge": "(override)",
+        "overridePlaceholder": "—"
+      },
+      "commission": {
+        "title": "Commission configuration",
+        "descriptionPrefix": "How this team is rewarded per delivered assignment. Payouts are tracked on the",
+        "descriptionLink": "Commissions page",
+        "descriptionSuffix": ".",
+        "options": {
+          "none": {
+            "label": "None",
+            "description": "This team doesn't earn commission."
+          },
+          "percentage": {
+            "label": "Percentage",
+            "description": "A share of the assignment price."
+          },
+          "fixed": {
+            "label": "Fixed amount",
+            "description": "A flat fee per delivered assignment."
+          }
+        },
+        "amountLabel": "Amount",
+        "percentageLabel": "Percentage",
+        "amountHintPercentage": "Of the invoice total, excluding VAT.",
+        "amountHintFixed": "Flat euro amount per delivered assignment.",
+        "cadenceLabel": "Payout cadence",
+        "cadence": {
+          "weekly": "Weekly",
+          "biweekly": "Bi-weekly",
+          "monthly": "Monthly"
+        },
+        "activityTitle": "Commission activity",
+        "activityEmpty": "No commission accrued yet. Lines are recorded when an assignment is marked completed.",
+        "accruing": "Accruing",
+        "paid": "Paid {date}",
+        "quarterLabel": "Q{quarter} {year}"
+      },
+      "footer": {
+        "adminOnlyDelete": "Only admins can delete this team.",
+        "editTeam": "Edit team"
+      },
+      "delete": {
+        "trigger": "Delete team",
+        "confirmTitle": "Delete {name}?",
+        "confirmDescription": "Members, invites, service-price overrides, commission lines and payout history are all removed. Blocked when assignments still reference this team — delete or reassign those first.",
+        "confirmLabel": "Delete team",
+        "cancelLabel": "Keep it"
+      },
+      "removeMember": {
+        "trigger": "Remove",
+        "confirmTitle": "Remove {member} from {team}?",
+        "confirmDescription": "They lose access to this team's assignments immediately. Their account and any assignments they personally created stay put.",
+        "confirmLabel": "Remove member",
+        "cancelLabel": "Keep"
+      },
+      "transferOwnership": {
+        "trigger": "Transfer ownership",
+        "modalTitle": "Transfer team ownership",
+        "modalDescription": "Pick a new owner for {team}. They'll get full edit + invite rights; you'll become a regular member.",
+        "cancel": "Cancel",
+        "confirm": "Confirm transfer",
+        "noEligible": "You're the only eligible owner of this team. Invite another realtor first — once they accept, you'll be able to transfer ownership to them here.",
+        "inviteTeammate": "Invite a teammate",
+        "newOwnerLabel": "New owner",
+        "newOwnerPlaceholder": "Pick an eligible teammate…",
+        "newOwnerSearchPlaceholder": "Type a name or email…",
+        "eligibleHint": "Only realtors and admins who are currently members of this team appear here. Freelancer members cannot own the team."
+      }
+    },
+    "new": {
+      "topbarTitle": "Create team",
+      "topbarSubtitle": "Start a new agency office. You'll become its owner."
+    },
+    "edit": {
+      "topbarTitle": "Edit {name}",
+      "topbarSubtitle": "Update agency details, billing info, pricing, and commission config.",
+      "servicesTitle": "Services & pricing",
+      "servicesDescription": "Custom pricing per service. Some services bind to an Odoo pricelist; others use a fixed override price (leave blank for the base price). Existing assignments keep their snapshotted price — changes apply to new work only.",
+      "priceOverrides": {
+        "odooUnreachable": "Odoo is unreachable — pricelist bindings can't be loaded or changed right now. Existing bindings are still in effect.",
+        "basePrice": "Base price {price}",
+        "save": "Save",
+        "reset": "Reset",
+        "overrideAriaLabel": "Override price for {label}",
+        "overrideError": "Enter a positive number (e.g. 145 or 145.50).",
+        "pricelistLabel": "Pricelist",
+        "pricelistNone": "— None —",
+        "pricelistMissing": "#{id} (missing in Odoo)",
+        "pricelistEmpty": "No pricelists in Odoo (or Odoo is unreachable).",
+        "itemsHeading": "Items in this pricelist",
+        "itemsEmpty": "No items configured in Odoo for this pricelist.",
+        "itemsColumnProduct": "Product",
+        "itemsColumnPrice": "Price"
+      }
+    }
+  },
+  "settings": {
+    "topbar": {
+      "title": "Settings",
+      "subtitle": "Personal account settings"
+    },
+    "scope": {
+      "appearanceDescription": "Theme, density and motion preferences are stored locally in this browser for your account only."
+    },
+    "saveBar": {
+      "saveProfile": "Save profile",
+      "savePreferences": "Save preferences"
+    },
+    "nav": {
+      "ariaLabel": "Settings",
+      "profile": "Profile",
+      "security": "Security",
+      "notifications": "Notifications",
+      "appearance": "Appearance",
+      "integrations": "Integrations"
+    },
+    "profile": {
+      "verifyBanner": {
+        "title": "Verify your email address",
+        "bodyPrefix": "We sent a link to ",
+        "bodySuffix": ". Click it to confirm the address so we can send you account notifications.",
+        "sent": "Verification email sent — check your inbox (and spam).",
+        "resend": "Resend email"
+      },
+      "details": {
+        "title": "Profile",
+        "subtitle": "Shown on comments, assignments and team pages.",
+        "saved": "Profile saved.",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "email": "Email",
+        "emailHintVerified": "Changing this sends a verification link to the new address.",
+        "emailHintUnverified": "Not verified. Save to resend, or use the banner above.",
+        "phone": "Phone",
+        "phonePlaceholder": "+32 …",
+        "region": "Region",
+        "regionHint": "City or province.",
+        "regionPlaceholder": "Antwerp",
+        "bio": "Bio",
+        "bioHint": "Optional — a short note that appears on your profile."
+      },
+      "photo": {
+        "title": "Photo",
+        "subtitle": "Appears next to your name across the dashboard.",
+        "uploading": "Uploading…",
+        "fileHint": "PNG, JPG or WebP — max {maxMb} MB.",
+        "remove": "Remove",
+        "updated": "Photo updated.",
+        "removed": "Photo removed."
+      },
+      "danger": {
+        "title": "Danger zone",
+        "subtitle": "Actions here can't be undone. Tread carefully.",
+        "deleteHeading": "Delete account",
+        "deleteBody": "Permanently remove your account and personal data. This cannot be reversed. We'll ask for your password to confirm.",
+        "open": "Delete account…",
+        "modalTitle": "Delete your account",
+        "modalDescription": "This removes your profile and signs you out of every device. Assignments you created stay on the platform; your name is kept on them for history.",
+        "keep": "Keep my account",
+        "confirm": "Delete account",
+        "passwordLabel": "Confirm with your password",
+        "passwordHint": "We ask for your password so a stolen session can't delete your account."
+      }
+    },
+    "security": {
+      "topbar": {
+        "title": "Security",
+        "subtitle": "Password and active sessions"
+      },
+      "password": {
+        "title": "Change password",
+        "subtitle": "Use at least 8 characters including a letter and a number. Other devices will be signed out when you save.",
+        "saved": "Password updated. Other active sessions have been signed out.",
+        "current": "Current password",
+        "new": "New password",
+        "newHint": "At least 8 characters, including a letter and a number.",
+        "confirm": "Confirm new password",
+        "submit": "Update password"
+      },
+      "sessions": {
+        "title": "Active sessions",
+        "subtitle": "Devices currently signed in to your account.",
+        "empty": "No active sessions.",
+        "thisDevice": "This device",
+        "ipUnknown": "IP unknown",
+        "activeNow": "Active now",
+        "minutesAgo": "{count, plural, one {# minute ago} other {# minutes ago}}",
+        "hoursAgo": "{count, plural, one {# hour ago} other {# hours ago}}",
+        "daysAgo": "{count, plural, one {# day ago} other {# days ago}}",
+        "monthsAgo": "{count, plural, one {# month ago} other {# months ago}}",
+        "yearsAgo": "{count, plural, one {# year ago} other {# years ago}}",
+        "revoke": "Revoke",
+        "revokeTitle": "Sign out {device}?",
+        "revokeDescription": "That device will need to sign in again next time it's used. Your current session stays signed in.",
+        "revokeConfirm": "Revoke session",
+        "cancel": "Cancel"
+      },
+      "signOutAll": {
+        "title": "Sign out everywhere",
+        "body": "Revoke every session except this one.",
+        "otherSessions": " Currently {count, plural, one {<strong>1 other session</strong>} other {<strong># other sessions</strong>}} active.",
+        "button": "Sign out all",
+        "confirmTitle": "Sign out all other sessions?",
+        "confirmDescription": "Every device except this one will need to sign in again. Use this if you suspect your account is accessed somewhere you don't recognise.",
+        "confirm": "Sign out everywhere",
+        "cancel": "Cancel",
+        "noOthers": "No other sessions were active.",
+        "signedOut": "{count, plural, one {Signed out 1 other session.} other {Signed out # other sessions.}}"
+      }
+    },
+    "notifications": {
+      "topbar": {
+        "title": "Notifications",
+        "subtitle": "Control what lands in your inbox"
+      },
+      "heading": "Notification preferences",
+      "intro": "Pick which events send you email. Only events relevant to your role as {role} appear here.",
+      "saved": "Notification preferences saved.",
+      "header": {
+        "event": "Event",
+        "email": "Email"
+      },
+      "rowEmailLabel": "Email",
+      "rowToggleAria": "Email — {label}",
+      "footer": "Transactional mail (invites, password resets, team adds) always sends regardless of these settings.",
+      "roles": {
+        "admin": "an admin",
+        "staff": "a staff member",
+        "realtor": "a realtor",
+        "freelancer": "a freelancer"
+      },
+      "categories": {
+        "assignment": {
+          "label": "Assignments",
+          "description": "Emails about the jobs you're involved in."
+        },
+        "team": {
+          "label": "Teams & offices",
+          "description": "Emails about your team and its members."
+        },
+        "user": {
+          "label": "Your account",
+          "description": "Emails about your own account activity."
+        }
+      },
+      "events": {
+        "assignmentCreated": {
+          "label": "When a new assignment is created",
+          "description": "Sent to platform admins and staff when any new assignment lands."
+        },
+        "assignmentScheduled": {
+          "label": "When one of my assignments is scheduled with a date",
+          "description": "Sent to the realtor and agency when a new assignment lands in the scheduled state with a planned date."
+        },
+        "assignmentDateUpdated": {
+          "label": "When an assignment's scheduled date changes",
+          "description": "Sent to the freelancer and creator when the planned date is edited."
+        },
+        "assignmentFreelancerAssigned": {
+          "label": "When I'm placed on a new assignment (or reassigned)",
+          "description": "Sent to the freelancer on first assignment and on any reassignment."
+        },
+        "assignmentFreelancerUnassigned": {
+          "label": "When I'm removed from an assignment",
+          "description": "Sent to the freelancer when the agency reassigns their work to someone else."
+        },
+        "assignmentDelivered": {
+          "label": "When my team's assignment is delivered",
+          "description": "Sent to the agency when the freelancer flags the work delivered."
+        },
+        "assignmentCompleted": {
+          "label": "When an assignment I'm on is marked completed",
+          "description": "Sent to the assigned freelancer when the agency signs off."
+        },
+        "assignmentCancelled": {
+          "label": "When an assignment I'm on is cancelled",
+          "description": "Sent to the freelancer (if assigned) and the creator."
+        },
+        "assignmentFilesUploaded": {
+          "label": "When files are uploaded to an assignment I'm on",
+          "description": "Sent to the realtor or creator when the freelancer uploads deliverables, and to the freelancer when the realtor uploads supporting docs."
+        },
+        "assignmentCommentPosted": {
+          "label": "When someone comments on an assignment I'm on",
+          "description": "Sent to other participants on the thread — the commenter is excluded."
+        },
+        "teamMemberAdded": {
+          "label": "When I'm added to a team",
+          "description": "Sent when an admin or realtor adds you to one of their teams. Doesn't fire on first-time invite acceptance — that path uses the invite email instead."
+        },
+        "userRegistered": {
+          "label": "When a new user registers on the platform",
+          "description": "Sent to platform admins when someone completes sign-up."
+        }
+      }
+    },
+    "appearance": {
+      "topbar": {
+        "title": "Appearance",
+        "subtitle": "Theme, density, motion, language"
+      },
+      "density": {
+        "title": "Density",
+        "subtitle": "How much content fits on one screen. Saved automatically.",
+        "ariaLabel": "Density",
+        "comfortable": "Comfortable",
+        "compact": "Compact",
+        "comfortableHint": "Default. Generous padding, easier to scan.",
+        "compactHint": "Tighter rows and cards. Good for power users with lots of assignments."
+      },
+      "motion": {
+        "title": "Motion & language",
+        "reduceMotion": "Reduce motion",
+        "reduceMotionHint": "Disable non-essential transitions. Respects your OS setting too.",
+        "highContrast": "High contrast",
+        "highContrastHint": "Stronger borders and text contrast for improved legibility.",
+        "language": "Language",
+        "languageHint": "Dashboard copy only. Full i18n lands later.",
+        "english": "English",
+        "dutch": "Nederlands",
+        "french": "Français"
+      },
+      "footer": "Every appearance setting saves automatically as you change it."
+    },
+    "integrations": {
+      "topbar": {
+        "title": "Integrations",
+        "subtitle": "Connect {brand} to the rest of your stack"
+      },
+      "errors": "{count, plural, one {1 sync error} other {# sync errors}} across your integrations",
+      "errorsBody": "Some data may be out of date. Review and retry below.",
+      "connectedHeading": "Connected ({count})",
+      "availableHeading": "Available ({count})",
+      "aboutTitle": "About integrations",
+      "aboutBody": "Org-wide integrations affect everyone on the team. Personal integrations (like your own calendar) only sync your assignments.",
+      "manageAria": "Manage {name}",
+      "scopeOrg": "Org-wide",
+      "scopePersonal": "Personal",
+      "errorCount": "{count, plural, one {1 error} other {# errors}}",
+      "healthy": "Healthy",
+      "lastSync": "Last sync {when}",
+      "connected": "Connected",
+      "connect": "Connect",
+      "breadcrumb": "Integrations",
+      "google": {
+        "topbar": {
+          "title": "Google Calendar",
+          "subtitle": "Two independent integrations — agency shared calendar and your personal one."
+        },
+        "breadcrumb": "Google Calendar",
+        "connectSuccess": "Connected successfully.",
+        "connectError": "Could not complete the connection ({code}). Try again.",
+        "agency": {
+          "title": "Agency shared calendar",
+          "subtitle": "Every scheduled assignment is pushed to a single Google calendar via a service account. Subscribe to it from your own Google to see the agency pipeline.",
+          "active": "Sync is active.",
+          "calendarIdLabel": "Calendar id:",
+          "howTo": "To view it personally: open Google Calendar → \"Other calendars\" → \"+\" → Subscribe to calendar → paste the id above. Or ask an admin to share it with your Google account directly.",
+          "notConfigured": "Not configured",
+          "notConfiguredBody": "An admin needs to set {var1}, {var2}, and {var3} in the server environment, then share the target calendar with the service-account email as \"Make changes to events\"."
+        },
+        "personal": {
+          "title": "My Google calendar",
+          "subtitle": "Connect your personal Google account so you can click \"Add to my calendar\" on an assignment and have the event land on your own schedule.",
+          "notConfigured": "Not configured — an admin needs to set {var1} + {var2}.",
+          "connectedAsPrefix": "Connected as ",
+          "connectedOn": "Connected on {date}.",
+          "expired": "Your connection expired or was revoked on {date}. Reconnect to keep the \"Add to my calendar\" button working.",
+          "reconnect": "Reconnect Google",
+          "connect": "Connect my Google calendar"
+        },
+        "disconnect": {
+          "button": "Disconnect Google",
+          "title": "Disconnect Google calendar?",
+          "description": "Future assignment events won't land on your Google calendar until you reconnect. Events you already added stay where they are.",
+          "confirm": "Disconnect",
+          "cancel": "Keep connected"
+        }
+      },
+      "outlook": {
+        "topbar": {
+          "title": "Outlook / Microsoft 365",
+          "subtitle": "Sync the assignments you create to your own Outlook calendar."
+        },
+        "breadcrumb": "Outlook",
+        "connectSuccess": "Connected successfully.",
+        "connectError": "Could not complete the connection ({code}). Try again.",
+        "personal": {
+          "title": "My Outlook calendar",
+          "subtitle": "When you create an assignment, we push it to your personal Outlook calendar and keep it in sync with reschedules and cancellations. Nothing syncs until you connect.",
+          "notConfigured": "Not configured — an admin needs to set {var1} + {var2} in the server environment after registering an app in Azure.",
+          "connectedAsPrefix": "Connected as ",
+          "connectedOn": "Connected on {date}.",
+          "expired": "Your connection expired or was revoked on {date}. Reconnect so new assignments land on your Outlook again.",
+          "reconnect": "Reconnect Microsoft account",
+          "connect": "Connect Microsoft account"
+        },
+        "disconnect": {
+          "button": "Disconnect Outlook",
+          "title": "Disconnect Outlook calendar?",
+          "description": "Future assignment events won't sync to Outlook until you reconnect. Events already created stay on your calendar.",
+          "confirm": "Disconnect",
+          "cancel": "Keep connected"
+        }
+      }
+    }
+  },
+  "admin": {
+    "home": {
+      "topbar": {
+        "title": "Admin",
+        "subtitle": "Platform configuration and operations"
+      },
+      "heading": "Control panel",
+      "intro": "Admin-only tools for configuring the platform, managing access and reviewing activity. Choose a section below.",
+      "cards": {
+        "priceList": {
+          "title": "Price list",
+          "description": "Master list of services, unit prices and Odoo mapping."
+        },
+        "users": {
+          "title": "User management",
+          "description": "Invite staff, realtors and freelancers; set roles and access."
+        },
+        "teams": {
+          "title": "Team management",
+          "description": "Partner offices, branding, members and commission rules."
+        },
+        "announcements": {
+          "title": "Announcements",
+          "description": "Publish banner messages to the entire platform."
+        },
+        "activity": {
+          "title": "Activity log",
+          "description": "Full audit trail of logins, mutations and status changes."
+        },
+        "commissions": {
+          "title": "Commissions & payouts",
+          "description": "Per-team balance, approve and mark payouts, commission rules."
+        },
+        "integrations": {
+          "title": "Integrations",
+          "description": "Odoo sync status, calendar connections, email provider."
+        }
+      }
+    },
+    "odooProducts": {
+      "topbar": {
+        "title": "Odoo product mappings",
+        "subtitle": "Per-(team, service, property type) → Odoo product name"
+      },
+      "intro": "When an assignment is created, the sync resolves an Odoo product per service in this order: <strong>1.</strong> the realtor's pre-pick on the create form (if the team has a pricelist binding), <strong>2.</strong> a row here matching the assignment's team, <strong>3.</strong> a default row (Team blank), <strong>4.</strong> a hardcoded asbestos fallback. EPC needs at least one row here (no hardcoded fallback). Mirrors Platform v1's 3-tier lookup.",
+      "card": {
+        "title": "Mappings",
+        "rowCount": "{count, plural, one {1 row} other {# rows}}"
+      },
+      "addHeading": "Add or update mapping",
+      "defaultTeam": "— (default)",
+      "addButton": "Add / update",
+      "productPlaceholder": "Niet-destructieve Asbestinventaris …",
+      "productRequired": "Product name is required.",
+      "table": {
+        "team": "Team",
+        "service": "Service",
+        "propertyType": "Property type",
+        "productName": "Odoo product name",
+        "actions": "Actions",
+        "empty": "No mappings yet. Default rows are seeded; add team-specific overrides above.",
+        "delete": "Delete mapping"
+      },
+      "propertyTypes": {
+        "house": "House",
+        "apartment": "Apartment",
+        "studio": "Studio",
+        "studio_room": "Student room",
+        "commercial": "Commercial"
+      }
+    },
+    "priceList": {
+      "topbar": {
+        "title": "Pricelists",
+        "subtitle": "Live pricelists from Odoo"
+      },
+      "intro": "Read-only view of pricelists in <db></db>. Edit in Odoo — changes refresh here within a few minutes.",
+      "loadError": "Could not load Odoo pricelists: {error}",
+      "card": {
+        "title": "Pricelists",
+        "summary": "{total} total · {active} active"
+      },
+      "table": {
+        "name": "Name",
+        "currency": "Currency",
+        "company": "Company",
+        "items": "Items",
+        "status": "Status",
+        "active": "Active",
+        "archived": "Archived",
+        "empty": "No pricelists found in Odoo."
+      }
+    }
+  },
+  "overview": {
+    "topbarTitle": "Revenue overview",
+    "stats": {
+      "revenue": "Revenue",
+      "revenueHintCompleted": "{count} completed",
+      "revenueHintCompletedWithAdj": "{count} completed · {adjustment} adj",
+      "commissionAccrued": "Commission accrued",
+      "commissionAccruedHint": "Across eligible teams",
+      "commissionPaid": "Commission paid",
+      "commissionPaidHint": "Payouts dated in period",
+      "outstanding": "Outstanding",
+      "outstandingHint": "Accrued minus paid"
+    },
+    "periodTabs": {
+      "month": "Month",
+      "quarter": "Quarter",
+      "year": "Year"
+    },
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "monthsLong": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    },
+    "byMonth": {
+      "title": "Revenue by month",
+      "monthsCount": "{count} months"
+    },
+    "byService": {
+      "title": "By service",
+      "empty": "No service revenue in this period.",
+      "total": "Total"
+    },
+    "byTeam": {
+      "title": "By team",
+      "subtitle": "Revenue, commission earned, and payouts for {period}.",
+      "managePayouts": "Manage payouts →",
+      "emptyTitle": "No revenue booked in {period}",
+      "emptyDescriptionFiltered": "No revenue for that team in this period. Try removing the team filter or switching period.",
+      "emptyDescriptionDefault": "Revenue is booked when an assignment reaches 'completed'. Nothing completed yet this period.",
+      "headerTeam": "Team",
+      "headerAssignments": "Assignments",
+      "headerRevenue": "Revenue",
+      "headerCommission": "Commission",
+      "headerPaid": "Paid",
+      "headerStatus": "Status",
+      "headerPayout": "Payout",
+      "statusNoCommission": "No commission",
+      "statusPaid": "Paid",
+      "statusPartial": "Partial",
+      "statusOutstanding": "Outstanding",
+      "noPayoutDash": "—"
+    },
+    "filters": {
+      "filterByTeam": "Filter by team",
+      "allTeams": "All teams"
+    },
+    "adjustments": {
+      "title": "Manual adjustments",
+      "description": "Journal corrections, bonuses, and deductions for {period}. Negative amounts subtract from booked revenue.",
+      "addAdjustment": "Add adjustment",
+      "fieldTeam": "Team",
+      "fieldYear": "Year",
+      "fieldMonth": "Month",
+      "fieldDescription": "Description",
+      "descriptionPlaceholder": "e.g. Late invoice settled in March",
+      "fieldAmount": "Amount (€)",
+      "amountHint": "Use a negative number for deductions",
+      "amountPlaceholder": "e.g. 150 or -50.00",
+      "save": "Save",
+      "cancel": "Cancel",
+      "emptyForPeriod": "No adjustments for {period}.",
+      "headerTeam": "Team",
+      "headerMonth": "Month",
+      "headerDescription": "Description",
+      "headerAmount": "Amount",
+      "headerAddedBy": "Added by",
+      "addedByFallback": "—",
+      "total": "Total",
+      "deleteTitle": "Delete this adjustment?",
+      "deleteDescription": "{amount} · {team} · {description}. This can't be undone.",
+      "deleteNoDescription": "No description",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Keep it"
+    }
+  },
+  "commissions": {
+    "topbarTitle": "Commissions",
+    "topbarSubtitle": "{year} · Q{quarter} · {total} total",
+    "yearLabel": "Year",
+    "quarterLabel": "Quarter",
+    "stats": {
+      "accrued": "Accrued this quarter",
+      "accruedSubtitle": "Across {count, plural, one {# team} other {# teams}}",
+      "paidOut": "Paid out",
+      "paidOutSubtitle": "{paid} of {total} teams paid",
+      "outstanding": "Outstanding",
+      "outstandingSubtitle": "Pending payout confirmation"
+    },
+    "table": {
+      "title": "Teams",
+      "subtitle": "Click a row to see the per-assignment breakdown for that team.",
+      "emptyTitle": "No commissions for Q{quarter} {year} yet",
+      "emptyDescription": "Commission lines fire when an assignment reaches 'completed'. Nothing completed this quarter yet — or no completed work had an asbestos service.",
+      "headerTeam": "Team",
+      "headerLines": "Lines",
+      "headerTotal": "Total",
+      "headerStatus": "Status",
+      "headerAction": "Action",
+      "statusOutstanding": "Outstanding",
+      "statusPaidOn": "Paid {date}",
+      "statusPaidBy": "by {name}"
+    },
+    "markPaid": "Mark paid",
+    "markUnpaid": "Mark unpaid",
+    "breakdown": {
+      "title": "Breakdown",
+      "subtitle": "Every commission line for {team} in Q{quarter} {year}.",
+      "headerAssignment": "Assignment",
+      "headerProperty": "Property",
+      "headerTotal": "Total",
+      "headerRate": "Rate",
+      "headerCommission": "Commission",
+      "headerCompleted": "Completed"
+    }
+  },
+  "calendar": {
+    "topbarTitle": "Calendar",
+    "filters": {
+      "previous": "Previous",
+      "next": "Next",
+      "today": "Today",
+      "viewWeek": "Week",
+      "viewMonth": "Month"
+    },
+    "weekdays": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "months": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    },
+    "events": {
+      "noAssignments": "No assignments",
+      "fallbackShort": "—"
+    }
+  },
+  "freelancer": {
+    "topbarTitle": "Freelancer",
+    "topbarSubtitle": "Your day, your jobs, your uploads",
+    "ariaStatsTitle": "Key metrics",
+    "stats": {
+      "todaysJobs": "Today's jobs",
+      "thisWeek": "This week",
+      "inProgress": "In progress",
+      "completedThisMonth": "Completed this month"
+    },
+    "today": {
+      "heading": "Today's schedule",
+      "openCalendar": "Open calendar",
+      "appointmentsCount": "· {count, plural, one {# appointment} other {# appointments}}",
+      "onTrack": "On track",
+      "emptyTitle": "No inspections booked for today",
+      "emptyDescription": "Enjoy the breather. Upcoming inspections show here as soon as they're scheduled."
+    },
+    "recent": {
+      "heading": "Recent completed",
+      "viewAll": "View all",
+      "emptyTitle": "Nothing delivered yet",
+      "emptyDescription": "Assignments you mark delivered or completed show here so you can jump back to them for follow-up.",
+      "signedOff": "Signed off",
+      "datePlaceholder": "—"
+    }
+  }
+}

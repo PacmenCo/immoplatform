@@ -184,7 +184,7 @@ describe("updateProfileInner — email change", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "That email is already in use on another account.",
+      error: "errors.auth.emailTakenOnAnotherAccount",
     });
   });
 
@@ -237,7 +237,7 @@ describe("resendEmailVerificationInner", () => {
     });
     verifiedSession.user.emailVerifiedAt = new Date();
     const res = await resendEmailVerificationInner(verifiedSession);
-    expect(res).toEqual({ ok: false, error: "Your email is already verified." });
+    expect(res).toEqual({ ok: false, error: "errors.verification.alreadyVerified" });
   });
 });
 
@@ -283,14 +283,14 @@ describe("confirmEmailVerification", () => {
     const res = await confirmEmailVerification("");
     expect(res).toEqual({
       ok: false,
-      error: "Missing or invalid verification token.",
+      error: "errors.verification.tokenMissing",
     });
   });
 
   it("unknown token → 'invalid'", async () => {
     await seedBaseline();
     const res = await confirmEmailVerification("unknown-token-value");
-    expect(res).toEqual({ ok: false, error: "This verification link is invalid." });
+    expect(res).toEqual({ ok: false, error: "errors.verification.linkInvalid" });
   });
 
   it("already-used token → 'already been used'", async () => {
@@ -302,7 +302,7 @@ describe("confirmEmailVerification", () => {
     const res = await confirmEmailVerification(token);
     expect(res).toEqual({
       ok: false,
-      error: "This verification link has already been used.",
+      error: "errors.verification.linkUsed",
     });
   });
 
@@ -314,7 +314,7 @@ describe("confirmEmailVerification", () => {
     });
     const res = await confirmEmailVerification(token);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/expired/);
+    if (!res.ok) expect(res.error).toBe("errors.verification.linkExpired");
   });
 
   it("email changed between request and confirm → 'previous email' error", async () => {
@@ -326,7 +326,7 @@ describe("confirmEmailVerification", () => {
     });
     const res = await confirmEmailVerification(token);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/previous email/);
+    if (!res.ok) expect(res.error).toBe("errors.verification.linkStaleEmail");
     // Not consumed.
     const rows = await prisma.emailVerification.findMany({
       where: { userId: realtor.user.id },
@@ -361,21 +361,21 @@ describe("uploadAvatarInner", () => {
   it("empty FormData → 'Pick an image to upload.'", async () => {
     const { realtor } = await seedBaseline();
     const res = await uploadAvatarInner(realtor, undefined, new FormData());
-    expect(res).toEqual({ ok: false, error: "Pick an image to upload." });
+    expect(res).toEqual({ ok: false, error: "errors.profile.pickImage" });
   });
 
   it("oversize image → rejected with size-limit message", async () => {
     const { realtor } = await seedBaseline();
     const tooBig = makeImage("image/png", AVATAR_MAX_BYTES + 1);
     const res = await uploadAvatarInner(realtor, undefined, form({ avatar: tooBig }));
-    expect(res).toEqual({ ok: false, error: "Image must be 2 MB or smaller." });
+    expect(res).toEqual({ ok: false, error: "errors.profile.imageTooLarge" });
   });
 
   it("disallowed mime (PDF) → 'Use PNG, JPG or WebP.'", async () => {
     const { realtor } = await seedBaseline();
     const pdf = new File(["x"], "a.pdf", { type: "application/pdf" });
     const res = await uploadAvatarInner(realtor, undefined, form({ avatar: pdf }));
-    expect(res).toEqual({ ok: false, error: "Use PNG, JPG or WebP." });
+    expect(res).toEqual({ ok: false, error: "errors.profile.imageWrongFormat" });
   });
 
   it("uploading a new avatar while one exists → old key deleted (via storage.delete)", async () => {

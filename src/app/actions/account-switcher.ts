@@ -59,19 +59,19 @@ export async function switchToAccount(
   //    `ALLOW_PROD_SWITCHER=true`. Lets ops drop the feature instantly
   //    without a redeploy.
   if (!switcherEnabled()) {
-    return { ok: false, error: "Account switching is disabled in this environment." };
+    return { ok: false, error: "errors.switcher.disabled" };
   }
 
   // 2. Must have a current session.
   const session = await getSession();
   if (!session) {
-    return { ok: false, error: "You must be signed in to switch accounts." };
+    return { ok: false, error: "errors.switcher.notSignedIn" };
   }
 
   // 3. Current user must be in the group.
   const fromEmail = session.user.email.toLowerCase().trim();
   if (!isSwitcherMember(fromEmail)) {
-    return { ok: false, error: "Your account is not authorised to switch." };
+    return { ok: false, error: "errors.switcher.notAuthorized" };
   }
 
   // 4. On prod, only the founder may *initiate* a switch. Test users are
@@ -79,7 +79,7 @@ export async function switchToAccount(
   //    leaked, the attacker can't pivot to admin. In dev we keep the
   //    any-to-any behaviour so the workflow stays fluid.
   if (process.env.NODE_ENV === "production" && fromEmail !== FOUNDER_EMAIL) {
-    return { ok: false, error: "Only the founder may initiate switches in production." };
+    return { ok: false, error: "errors.switcher.founderOnly" };
   }
 
   // 5. Target must be in the group. Check string-membership BEFORE the DB
@@ -87,13 +87,13 @@ export async function switchToAccount(
   //    email an attacker wants to probe.
   const toEmail = targetEmail.toLowerCase().trim();
   if (!isSwitcherMember(toEmail)) {
-    return { ok: false, error: "Target account is not in the switcher group." };
+    return { ok: false, error: "errors.switcher.targetNotInGroup" };
   }
 
   // 5. No-op if already this user — avoids generating a useless audit row
   //    and a redundant session swap.
   if (toEmail === fromEmail) {
-    return { ok: false, error: "You are already signed in as that account." };
+    return { ok: false, error: "errors.switcher.alreadySignedIn" };
   }
 
   // 6. Resolve the target row. Soft-deleted users are treated as "not found"
@@ -103,7 +103,7 @@ export async function switchToAccount(
     select: { id: true, deletedAt: true },
   });
   if (!target || target.deletedAt) {
-    return { ok: false, error: "Target account not found." };
+    return { ok: false, error: "errors.switcher.targetNotFound" };
   }
 
   // 7. Do the swap. Order: audit BEFORE clearSession so the original session

@@ -55,7 +55,7 @@ describe("inviteEmail", () => {
       teamRole: "member",
       note: "Welcome aboard.",
       expiresAt: new Date("2026-05-01T00:00:00Z"),
-    });
+    }, "en");
     assertShape(out);
     expect(out.subject).toMatch(/realtor/i);
     expect(out.html).toContain("Alice Admin");
@@ -75,7 +75,7 @@ describe("inviteEmail", () => {
       teamRole: null,
       note: null,
       expiresAt: new Date("2026-05-01T00:00:00Z"),
-    });
+    }, "en");
     expect(out.html).not.toMatch(/Note from/i);
   });
 });
@@ -85,7 +85,7 @@ describe("passwordResetEmail", () => {
     const out = await passwordResetEmail({
       name: "Alice",
       resetUrl: "https://example.com/reset?token=xyz",
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Alice");
     expect(out.html).toContain("https://example.com/reset?token=xyz");
@@ -97,7 +97,7 @@ describe("monthlyInvoiceReminderEmail", () => {
     const out = await monthlyInvoiceReminderEmail({
       monthLabel: "April 2026",
       overviewUrl: "https://example.com/dashboard/commissions",
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("April 2026");
     expect(out.html).toContain("https://example.com/dashboard/commissions");
@@ -110,7 +110,7 @@ describe("emailVerificationEmail", () => {
     const out = await emailVerificationEmail({
       name: "Bob",
       verifyUrl: "https://example.com/verify?token=tok",
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Bob");
     expect(out.html).toContain("https://example.com/verify?token=tok");
@@ -124,7 +124,7 @@ describe("addedToTeamEmail", () => {
       teamName: "Downtown Agency",
       teamRole: "member",
       loginUrl: "https://example.com/login",
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Alice Admin");
     expect(out.html).toContain("Downtown Agency");
@@ -141,7 +141,7 @@ describe("assignmentScheduledEmail", () => {
       recipientName: "Bob",
       scheduledAt: new Date("2026-05-10T14:30:00Z"),
       freelancerName: "Dana Freelancer",
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Bob");
     expect(out.html).toContain("ASG-42");
@@ -155,7 +155,7 @@ describe("assignmentScheduledEmail", () => {
       recipientName: "Bob",
       scheduledAt: new Date("2026-05-10T14:30:00Z"),
       freelancerName: null,
-    });
+    }, "en");
     assertShape(out);
   });
 });
@@ -167,7 +167,7 @@ describe("assignmentDateUpdatedEmail", () => {
       recipientName: "Bob",
       previousDate: new Date("2026-05-01T00:00:00Z"),
       newDate: new Date("2026-05-15T00:00:00Z"),
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("ASG-42");
   });
@@ -178,7 +178,7 @@ describe("assignmentDateUpdatedEmail", () => {
       recipientName: "Bob",
       previousDate: null,
       newDate: null,
-    });
+    }, "en");
     assertShape(out);
   });
 });
@@ -190,7 +190,7 @@ describe("assignmentDeliveredEmail", () => {
       recipientName: "Bob",
       actorName: "Dana Freelancer",
       freelancerName: "Dana Freelancer",
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Dana Freelancer marked the inspection");
     expect(out.html).not.toContain("Dana Freelancer marked Dana Freelancer");
@@ -202,7 +202,7 @@ describe("assignmentDeliveredEmail", () => {
       recipientName: "Bob",
       actorName: "Alice Admin",
       freelancerName: "Dana Freelancer",
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Alice Admin marked Dana Freelancer");
   });
@@ -213,7 +213,7 @@ describe("assignmentDeliveredEmail", () => {
       recipientName: "Bob",
       actorName: "Alice Admin",
       freelancerName: null,
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Alice Admin marked the inspection");
   });
@@ -225,7 +225,7 @@ describe("assignmentCompletedEmail", () => {
       ...ctx,
       recipientName: "Bob",
       completedByName: "Alice Admin",
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Alice Admin");
   });
@@ -238,7 +238,7 @@ describe("assignmentCancelledEmail", () => {
       recipientName: "Bob",
       cancelledByName: "Alice Admin",
       reason: "Owner cancelled the sale.",
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Alice Admin");
     expect(out.html).toContain("Owner cancelled the sale.");
@@ -250,7 +250,7 @@ describe("assignmentCancelledEmail", () => {
       recipientName: "Bob",
       cancelledByName: "Alice Admin",
       reason: null,
-    });
+    }, "en");
     assertShape(out);
   });
 });
@@ -261,7 +261,7 @@ describe("assignmentReassignedEmail", () => {
       ...ctx,
       freelancerName: "Dana",
       preferredDate: new Date("2026-05-10T10:00:00Z"),
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Dana");
     expect(out.html).toContain("ASG-42");
@@ -272,7 +272,7 @@ describe("assignmentReassignedEmail", () => {
       ...ctx,
       freelancerName: "Dana",
       preferredDate: null,
-    });
+    }, "en");
     assertShape(out);
   });
 });
@@ -282,7 +282,7 @@ describe("assignmentUnassignedEmail", () => {
     const out = await assignmentUnassignedEmail({
       ...ctx,
       freelancerName: "Dana",
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Dana");
     expect(out.html).toContain("ASG-42");
@@ -297,7 +297,7 @@ describe("filesUploadedEmail", () => {
       uploaderName: "Dana Freelancer",
       lane: "freelancer",
       fileCount: 3,
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Dana Freelancer");
     expect(out.html).toMatch(/3/); // file count
@@ -310,7 +310,7 @@ describe("filesUploadedEmail", () => {
       uploaderName: "Dana",
       lane: "realtor",
       fileCount: 1,
-    });
+    }, "en");
     assertShape(out);
   });
 });
@@ -322,7 +322,7 @@ describe("commentPostedEmail", () => {
       recipientName: "Bob",
       authorName: "Dana Freelancer",
       body: "Running 10 min late — traffic on R0.",
-    });
+    }, "en");
     assertShape(out);
     expect(out.html).toContain("Dana Freelancer");
     expect(out.html).toContain("Running 10 min late");
@@ -334,7 +334,7 @@ describe("commentPostedEmail", () => {
       recipientName: "Bob",
       authorName: "Dana",
       body: "Line one.\n\nLine two.",
-    });
+    }, "en");
     assertShape(out);
     expect(out.text).toContain("Line one");
     expect(out.text).toContain("Line two");
@@ -348,7 +348,7 @@ describe("HTML-escape safety", () => {
       recipientName: "Bob",
       authorName: "Attacker",
       body: "<script>alert('xss')</script>",
-    });
+    }, "en");
     // The payload survives as escaped text, but the raw tag must not.
     expect(out.html).not.toMatch(/<script>alert/);
     expect(out.text).toContain("<script>"); // plaintext is fine, it's not HTML-rendered
@@ -360,7 +360,7 @@ describe("HTML-escape safety", () => {
       recipientName: "Bob",
       cancelledByName: "Alice",
       reason: "<script>alert('xss')</script>",
-    });
+    }, "en");
     expect(out.html).not.toMatch(/<script>alert/);
   });
 });

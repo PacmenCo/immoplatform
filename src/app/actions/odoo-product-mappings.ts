@@ -48,7 +48,7 @@ export const setOdooProductMapping = withSession(async (
   },
 ): Promise<ActionResult> => {
   if (!hasRole(session, "admin")) {
-    return { ok: false, error: "Admins only." };
+    return { ok: false, error: "errors.odoo.adminsOnly" };
   }
   const teamId = args.teamId ?? null;
   const serviceKey = args.serviceKey?.trim();
@@ -56,16 +56,16 @@ export const setOdooProductMapping = withSession(async (
   const odooProductName = args.odooProductName?.trim();
 
   if (!serviceKey || !KNOWN_SERVICE_KEYS.has(serviceKey)) {
-    return { ok: false, error: "Unknown service key." };
+    return { ok: false, error: "errors.odoo.unknownServiceKey" };
   }
   if (!propertyType || !KNOWN_PROPERTY_TYPES.has(propertyType)) {
-    return { ok: false, error: "Unknown property type." };
+    return { ok: false, error: "errors.odoo.unknownPropertyType" };
   }
   if (!odooProductName) {
-    return { ok: false, error: "Product name is required." };
+    return { ok: false, error: "errors.odoo.productNameRequired" };
   }
   if (odooProductName.length > 200) {
-    return { ok: false, error: "Product name is too long (max 200 chars)." };
+    return { ok: false, error: "errors.odoo.productNameTooLong" };
   }
 
   if (teamId !== null) {
@@ -73,7 +73,7 @@ export const setOdooProductMapping = withSession(async (
       where: { id: teamId },
       select: { id: true },
     });
-    if (!team) return { ok: false, error: "Team not found." };
+    if (!team) return { ok: false, error: "errors.team.notFound" };
   }
 
   // teamId is part of the unique compound index. Prisma's compound-unique
@@ -111,9 +111,9 @@ export const deleteOdooProductMapping = withSession(async (
   args: { id: string },
 ): Promise<ActionResult> => {
   if (!hasRole(session, "admin")) {
-    return { ok: false, error: "Admins only." };
+    return { ok: false, error: "errors.odoo.adminsOnly" };
   }
-  if (!args.id) return { ok: false, error: "Missing id." };
+  if (!args.id) return { ok: false, error: "errors.odoo.missingId" };
 
   const existing = await prisma.odooProductMapping.findUnique({
     where: { id: args.id },
@@ -125,7 +125,7 @@ export const deleteOdooProductMapping = withSession(async (
       odooProductName: true,
     },
   });
-  if (!existing) return { ok: false, error: "Mapping not found." };
+  if (!existing) return { ok: false, error: "errors.odoo.mappingNotFound" };
 
   await prisma.odooProductMapping.delete({ where: { id: existing.id } });
   await audit({

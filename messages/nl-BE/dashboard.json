@@ -1,0 +1,1966 @@
+{
+  "activity": {
+    "actor": {
+      "system": "[TODO en: System]"
+    },
+    "card": {
+      "title": "[TODO en: Events]"
+    },
+    "empty": {
+      "description": "[TODO en: Mutations across the platform will stream into this log as they happen.]",
+      "title": "[TODO en: No activity yet]"
+    },
+    "kinds": {
+      "auth": "[TODO en: Auth]",
+      "create": "[TODO en: Create]",
+      "delete": "[TODO en: Delete]",
+      "status": "[TODO en: Status]",
+      "system": "[TODO en: System]",
+      "update": "[TODO en: Update]"
+    },
+    "table": {
+      "action": "[TODO en: Action]",
+      "actor": "[TODO en: Actor]",
+      "target": "[TODO en: Target]",
+      "timestamp": "[TODO en: Timestamp]"
+    },
+    "topbar": {
+      "subtitle": "[TODO en: {count} recent events]",
+      "title": "[TODO en: Activity log]"
+    }
+  },
+  "admin": {
+    "home": {
+      "cards": {
+        "activity": {
+          "description": "Volledig auditspoor van logins, mutaties en statuswijzigingen.",
+          "title": "Activiteitenlog"
+        },
+        "announcements": {
+          "description": "Publiceer bannerberichten voor het hele platform.",
+          "title": "Aankondigingen"
+        },
+        "commissions": {
+          "description": "Saldo per team, uitbetalingen goedkeuren en markeren, commissieregels.",
+          "title": "Commissies & uitbetalingen"
+        },
+        "integrations": {
+          "description": "Odoo-syncstatus, agendaverbindingen, mailprovider.",
+          "title": "Integraties"
+        },
+        "priceList": {
+          "description": "Masterlijst van diensten, eenheidsprijzen en Odoo-mapping.",
+          "title": "Prijslijst"
+        },
+        "teams": {
+          "description": "Partnerkantoren, branding, leden en commissieregels.",
+          "title": "Teambeheer"
+        },
+        "users": {
+          "description": "Nodig medewerkers, makelaars en freelancers uit; stel rollen en toegang in.",
+          "title": "Gebruikersbeheer"
+        }
+      },
+      "heading": "Configuratiepaneel",
+      "intro": "Tools alleen voor admins om het platform te configureren, toegang te beheren en activiteit te bekijken. Kies hieronder een sectie.",
+      "topbar": {
+        "subtitle": "Platformconfiguratie en operatie",
+        "title": "Admin"
+      }
+    },
+    "odooProducts": {
+      "addButton": "Toevoegen / bijwerken",
+      "addHeading": "Mapping toevoegen of bijwerken",
+      "card": {
+        "rowCount": "{count, plural, one {1 rij} other {# rijen}}",
+        "title": "Mappings"
+      },
+      "defaultTeam": "— (standaard)",
+      "intro": "Wanneer een opdracht wordt aangemaakt, kiest de sync een Odoo-product per dienst in deze volgorde: <strong>1.</strong> de voorkeur die de makelaar opgaf op het aanmaakformulier (als het team een pricelist-binding heeft), <strong>2.</strong> een rij hier die overeenkomt met het team van de opdracht, <strong>3.</strong> een standaardrij (Team leeg), <strong>4.</strong> een hardgecodeerde asbest-fallback. EPC heeft minstens één rij hier nodig (geen hardgecodeerde fallback). Spiegelt de 3-traps lookup van Platform v1.",
+      "productPlaceholder": "Niet-destructieve Asbestinventaris …",
+      "productRequired": "Productnaam is verplicht.",
+      "propertyTypes": {
+        "apartment": "Appartement",
+        "commercial": "Handelspand",
+        "house": "Huis",
+        "studio": "Studio",
+        "studio_room": "Studentenkamer"
+      },
+      "table": {
+        "actions": "Acties",
+        "delete": "Mapping verwijderen",
+        "empty": "Nog geen mappings. Standaardrijen zijn ingeladen; voeg hierboven team-specifieke overrides toe.",
+        "productName": "Odoo-productnaam",
+        "propertyType": "Type pand",
+        "service": "Dienst",
+        "team": "Team"
+      },
+      "topbar": {
+        "subtitle": "Per (team, dienst, type pand) → Odoo-productnaam",
+        "title": "Odoo-productmappings"
+      }
+    },
+    "priceList": {
+      "card": {
+        "summary": "{total} totaal · {active} actief",
+        "title": "Prijslijsten"
+      },
+      "intro": "Alleen-lezen weergave van prijslijsten in <db></db>. Bewerk in Odoo — wijzigingen verschijnen hier binnen enkele minuten.",
+      "loadError": "Kon Odoo-prijslijsten niet laden: {error}",
+      "table": {
+        "active": "Actief",
+        "archived": "Gearchiveerd",
+        "company": "Bedrijf",
+        "currency": "Munt",
+        "empty": "Geen prijslijsten gevonden in Odoo.",
+        "items": "Items",
+        "name": "Naam",
+        "status": "Status"
+      },
+      "topbar": {
+        "subtitle": "Live prijslijsten uit Odoo",
+        "title": "Prijslijsten"
+      }
+    }
+  },
+  "announcements": {
+    "actions": {
+      "edit": "[TODO en: Edit]",
+      "new": "[TODO en: New announcement]"
+    },
+    "delete": {
+      "cancelLabel": "[TODO en: Keep it]",
+      "confirmLabel": "[TODO en: Delete]",
+      "description": "[TODO en: The announcement disappears for everyone. Per-user dismissals are cleared too. This cannot be undone.]",
+      "title": "[TODO en: Delete \"{title}\"?]",
+      "trigger": "[TODO en: Delete]"
+    },
+    "detail": {
+      "subtitle": "[TODO en: Announcement details]",
+      "timing": {
+        "activeWindow": "[TODO en: Active window]",
+        "activeWindowValue": "[TODO en: {start} → {end}]",
+        "author": "[TODO en: Author]",
+        "created": "[TODO en: Created]",
+        "dismissible": "[TODO en: Dismissible]",
+        "dismissibleNo": "[TODO en: No (sticky)]",
+        "dismissibleYes": "[TODO en: Yes · {count} dismissed]",
+        "lastUpdated": "[TODO en: Last updated]",
+        "published": "[TODO en: Published]",
+        "publishedDraft": "[TODO en: Draft]",
+        "publishedYes": "[TODO en: Yes]",
+        "title": "[TODO en: Timing & visibility]"
+      }
+    },
+    "edit": {
+      "title": "[TODO en: Edit announcement]"
+    },
+    "empty": {
+      "description": "[TODO en: Publish a banner to let everyone on the platform know about updates, maintenance, or new features.]",
+      "title": "[TODO en: No announcements yet]"
+    },
+    "meta": {
+      "rangeWithCreator": "[TODO en: {start} → {end} · by {creator}]",
+      "sticky": "[TODO en: Sticky]",
+      "systemAuthor": "[TODO en: System]"
+    },
+    "new": {
+      "subtitle": "[TODO en: Create a banner message for users]",
+      "title": "[TODO en: New announcement]"
+    },
+    "status": {
+      "active": "[TODO en: Active]",
+      "expired": "[TODO en: Expired]",
+      "inactive": "[TODO en: Inactive]",
+      "scheduled": "[TODO en: Scheduled]"
+    },
+    "topbar": {
+      "subtitle": "[TODO en: Banner messages shown to users]",
+      "title": "[TODO en: Announcements]"
+    },
+    "types": {
+      "danger": "[TODO en: Danger]",
+      "info": "[TODO en: Info]",
+      "success": "[TODO en: Success]",
+      "warning": "[TODO en: Warning]"
+    }
+  },
+  "assignments": {
+    "actions": {
+      "cancel": "[TODO en: Cancel]",
+      "cancelDialogConfirm": "[TODO en: Cancel assignment]",
+      "cancelDialogDescription": "[TODO en: Cancelled assignments can no longer be edited. This will be visible in the team's activity log.]",
+      "cancelDialogKeepIt": "[TODO en: Keep it]",
+      "cancelDialogTitle": "[TODO en: Cancel this assignment?]",
+      "cancelReasonHint": "[TODO en: Posts as a comment on the assignment so the team has context.]",
+      "cancelReasonLabel": "[TODO en: Reason (optional)]",
+      "cancelReasonPlaceholder": "[TODO en: Owner changed their mind, duplicate order, etc.]",
+      "edit": "[TODO en: Edit]",
+      "markCompleted": "[TODO en: Mark completed]",
+      "markDelivered": "[TODO en: Mark delivered]",
+      "markNotDelivered": "[TODO en: Mark not delivered]",
+      "startInspection": "[TODO en: Start inspection]"
+    },
+    "assignedTo": {
+      "cancelAria": "[TODO en: Cancel]",
+      "current": "[TODO en: Current]",
+      "inspector": "[TODO en: Inspector]",
+      "noMatches": "[TODO en: No freelancers match.]",
+      "noServices": "[TODO en: Pick at least one service in the form — an assignment row will appear here for each.]",
+      "plannedDateAria": "[TODO en: Planned date for {service}]",
+      "searchPlaceholder": "[TODO en: Type a name, region, or email…]",
+      "summary": "[TODO en: {assigned} of {total} assigned]",
+      "title": "[TODO en: Assigned to]"
+    },
+    "calendarChips": {
+      "adding": "[TODO en: Adding…]",
+      "addToMyGoogle": "[TODO en: + Add to my Google]",
+      "agencyGoogle": "[TODO en: Agency Google]",
+      "onYourGoogle": "[TODO en: On your Google]",
+      "removeFromGoogleTitle": "[TODO en: Remove from my Google calendar]",
+      "yourOutlook": "[TODO en: Your Outlook]"
+    },
+    "comments": {
+      "placeholder": "[TODO en: Add a comment…]",
+      "submit": "[TODO en: Post comment]"
+    },
+    "completeForm": {
+      "description": "[TODO en: Wrap up the inspection and move this assignment out of the active queue.]",
+      "finishedAtHint": "[TODO en: Date and time the on-site work wrapped up.]",
+      "finishedAtLabel": "[TODO en: Finished at]",
+      "notesHint": "[TODO en: Posts as a comment on the assignment. Optional.]",
+      "notesLabel": "[TODO en: Completion notes]",
+      "notesPlaceholder": "[TODO en: Everything went smoothly. Owner was on site, access was fine.]",
+      "servicesLabel": "[TODO en: Services]",
+      "submit": "[TODO en: Mark as completed]",
+      "title": "[TODO en: Complete {reference}]"
+    },
+    "delete": {
+      "cancelLabel": "[TODO en: Keep it]",
+      "confirmLabel": "[TODO en: Delete assignment]",
+      "description": "[TODO en: The assignment, its files, comments, and calendar events all go. Commission lines and invoices tied to it are removed as well. This can't be undone.]",
+      "title": "[TODO en: Delete {reference}?]",
+      "triggerLabel": "[TODO en: Delete]"
+    },
+    "detail": {
+      "assignmentFormDescription": "[TODO en: PDF opdrachtformulier.]",
+      "assignmentFormFilenameSuffix": "[TODO en: Generate when ready]",
+      "assignmentFormTitle": "[TODO en: Assignment form]",
+      "cancellationReasonLabel": "[TODO en: Cancellation reason]",
+      "commentsCount": "[TODO en: {count, plural, =0 {0 comments} =1 {1 comment} other {# comments}}]",
+      "commentsEmpty": "[TODO en: No comments yet. Start the conversation.]",
+      "commentsTitle": "[TODO en: Comments]",
+      "commissionDescription": "[TODO en: Applied at completion. Snapshotted — retroactive rate changes don't rewrite this line.]",
+      "commissionEarned": "[TODO en: Earned]",
+      "commissionRate": "[TODO en: Rate]",
+      "commissionTitle": "[TODO en: Commission]",
+      "deliverablesDescription": "[TODO en: Certificate PDFs and photos from the assigned inspector.]",
+      "deliverablesEmpty": "[TODO en: The inspector hasn't uploaded a deliverable yet.]",
+      "deliverablesTitle": "[TODO en: Deliverables]",
+      "realtorUploadsDescription": "[TODO en: Floor plans, access notes, photos provided by the agency.]",
+      "realtorUploadsEmpty": "[TODO en: No supporting documents uploaded yet.]",
+      "realtorUploadsTitle": "[TODO en: Realtor uploads]",
+      "schedulingTitle": "[TODO en: Scheduling]",
+      "systemAuthor": "[TODO en: System]",
+      "teamCreatedAt": "[TODO en: Created {date}]",
+      "teamTitle": "[TODO en: Team]",
+      "tenantTitle": "[TODO en: Tenant]",
+      "timeAgo": {
+        "days": "[TODO en: {n, plural, =1 {1 day ago} other {# days ago}}]",
+        "hours": "[TODO en: {n} hr ago]",
+        "justNow": "[TODO en: just now]",
+        "minutes": "[TODO en: {n} min ago]"
+      },
+      "uploadsClosedNotice": "[TODO en: This assignment is no longer active. Uploads and deletions are closed.]"
+    },
+    "downloadPdf": {
+      "buttonLabel": "[TODO en: Download]",
+      "defaultFilename": "[TODO en: opdrachtformulier.pdf]",
+      "fallbackError": "[TODO en: Could not generate the PDF.]"
+    },
+    "files": {
+      "filesFailedFallback": "[TODO en: One or more files failed to upload.]",
+      "labelFreelancer": "[TODO en: Drop certificate PDF(s) or click to upload]",
+      "labelRealtor": "[TODO en: Drop floor plans, photos or notes]",
+      "mismatchedTickets": "[TODO en: Mismatched upload tickets — try again.]",
+      "networkError": "[TODO en: Network error during upload.]",
+      "uploadAborted": "[TODO en: Upload aborted.]",
+      "uploadedToast": "[TODO en: Uploaded {count} file{count, plural, =1 {} other {s}}.]",
+      "uploadFailed": "[TODO en: Upload failed.]",
+      "uploadFailedStatus": "[TODO en: Upload failed ({status}).]"
+    },
+    "filesButton": {
+      "ariaLabelEmpty": "[TODO en: No files for {reference}]",
+      "ariaLabelHasFiles": "[TODO en: Files for {reference}]",
+      "download": "[TODO en: Download]",
+      "empty": "[TODO en: No files uploaded yet.]",
+      "freelancerLane": "[TODO en: Freelancer lane]",
+      "loading": "[TODO en: Loading…]",
+      "modalAriaLabel": "[TODO en: Files for {reference}]",
+      "modalTitle": "[TODO en: Files]",
+      "realtorLane": "[TODO en: Realtor lane]",
+      "titleEmpty": "[TODO en: No files uploaded yet]"
+    },
+    "filters": {
+      "allFreelancers": "[TODO en: All freelancers]",
+      "allStatuses": "[TODO en: All statuses]",
+      "allTeams": "[TODO en: All teams]",
+      "freelancerSearchPlaceholder": "[TODO en: Type a name…]",
+      "freelancerUnassigned": "[TODO en: — Unassigned —]",
+      "noTeam": "[TODO en: — No team —]",
+      "reset": "[TODO en: Reset]",
+      "searchPlaceholder": "[TODO en: Search reference, address, team, person…]",
+      "statusAriaLabel": "[TODO en: Filter by status]",
+      "teamAriaLabel": "[TODO en: Filter by team]"
+    },
+    "freelancerEditForm": {
+      "plannedDateHint": "[TODO en: Set or change the appointment date. Saving with a date promotes an awaiting assignment to scheduled; clearing it on a scheduled row reverts to awaiting.]",
+      "plannedDateLabel": "[TODO en: Planned date]"
+    },
+    "keyPickup": {
+      "addressPending": "[TODO en: address pending]",
+      "addressPlaceholder": "[TODO en: Street, number, postal code, city…]",
+      "agencyOffice": "[TODO en: agency office]",
+      "atOffice": "[TODO en: At the agency office]",
+      "atOther": "[TODO en: At a different address]",
+      "checkboxLabel": "[TODO en: A key needs to be picked up]",
+      "label": "[TODO en: Key pickup]",
+      "notRequired": "[TODO en: Not required]",
+      "required": "[TODO en: Required]"
+    },
+    "list": {
+      "columns": {
+        "created": "[TODO en: Created]",
+        "freelancer": "[TODO en: Freelancer]",
+        "plannedDate": "[TODO en: Planned date]",
+        "property": "[TODO en: Property]",
+        "reference": "[TODO en: Reference]",
+        "services": "[TODO en: Services]",
+        "status": "[TODO en: Status]",
+        "team": "[TODO en: Team]"
+      },
+      "createCta": "[TODO en: Create assignment]",
+      "emptyByRole": {
+        "admin": {
+          "description": "[TODO en: Create your first property inspection to get started.]",
+          "title": "[TODO en: No assignments yet]"
+        },
+        "freelancer": {
+          "description": "[TODO en: Once a realtor assigns you to an inspection, it shows up here.]",
+          "title": "[TODO en: No inspections assigned to you yet]"
+        },
+        "realtor": {
+          "description": "[TODO en: Click New assignment to order your team's first certificate.]",
+          "title": "[TODO en: No certificate orders yet for your team]"
+        },
+        "staff": {
+          "description": "[TODO en: Create your first property inspection to get started.]",
+          "title": "[TODO en: No assignments yet]"
+        }
+      },
+      "emptyMatching": {
+        "description": "[TODO en: Try broadening the filters — or reset to see all.]",
+        "title": "[TODO en: No matching assignments]"
+      },
+      "filesHeader": "[TODO en: Files]",
+      "hideOdoo": "[TODO en: Hide Odoo]",
+      "hideOdooTitle": "[TODO en: Hide Odoo column]",
+      "newCta": "[TODO en: New]",
+      "odooHeader": "[TODO en: Odoo]",
+      "odooHeaderTitle": "[TODO en: Odoo sync status]",
+      "resetFilters": "[TODO en: Reset filters]",
+      "showOdoo": "[TODO en: Show Odoo]",
+      "showOdooTitle": "[TODO en: Show Odoo column]",
+      "subtitle": {
+        "filtered": "[TODO en: {filtered} {statusLabel} · {total} total]",
+        "totalOnly": "[TODO en: {count} total]"
+      },
+      "title": "[TODO en: Assignments]"
+    },
+    "newPage": {
+      "subtitle": "[TODO en: Create a new property inspection]",
+      "title": "[TODO en: New assignment]"
+    },
+    "notices": {
+      "filesFailed": "[TODO en: Assignment created. Some files failed to upload — try again from the Files tab.]"
+    },
+    "odooSync": {
+      "failedFallback": "[TODO en: Sync failed — click to retry]",
+      "pendingTooltip": "[TODO en: Pending — click to sync now]",
+      "requestFailed": "[TODO en: Request failed]",
+      "syncedTooltip": "[TODO en: Synced — partner #{partnerId}, order #{orderId}]",
+      "warningFallback": "[TODO en: Synced with warnings]"
+    },
+    "pagination": {
+      "ariaLabel": "[TODO en: Pagination]",
+      "next": "[TODO en: Next]",
+      "nextPageAria": "[TODO en: Next page]",
+      "pageNumberAria": "[TODO en: Page {n}]",
+      "prev": "[TODO en: Prev]",
+      "previousPageAria": "[TODO en: Previous page]",
+      "summary": "[TODO en: Page {current} of {total} · {count} assignments total]"
+    },
+    "reassign": {
+      "assignTitle": "[TODO en: Assign a freelancer]",
+      "assignTrigger": "[TODO en: Assign freelancer]",
+      "changeTrigger": "[TODO en: Change]",
+      "description": "[TODO en: They'll see this assignment appear in their inspections list.]",
+      "freelancerLabel": "[TODO en: Freelancer]",
+      "outOfScopeWarning": "[TODO en: The current freelancer is no longer in your team's roster. Saving will reassign to whoever you pick below.]",
+      "pickPlaceholder": "[TODO en: Pick a freelancer…]",
+      "reassignTitle": "[TODO en: Reassign freelancer]",
+      "rosterEmpty": "[TODO en: No freelancers are in your team's roster yet. Invite one from the Users page first.]",
+      "searchPlaceholder": "[TODO en: Type a name or region…]"
+    },
+    "shared": {
+      "cancel": "[TODO en: Cancel]",
+      "change": "[TODO en: Change]",
+      "close": "[TODO en: Close]",
+      "current": "[TODO en: Current]",
+      "currentLowercase": "[TODO en: current]",
+      "delete": "[TODO en: Delete]",
+      "edit": "[TODO en: Edit]",
+      "loading": "[TODO en: Loading…]",
+      "save": "[TODO en: Save]",
+      "unassigned": "[TODO en: Unassigned]",
+      "unassignedDashed": "[TODO en: — Unassigned —]"
+    },
+    "statusPicker": {
+      "current": "[TODO en: current]"
+    }
+  },
+  "calendar": {
+    "events": {
+      "fallbackShort": "[TODO en: —]",
+      "noAssignments": "[TODO en: No assignments]"
+    },
+    "filters": {
+      "next": "[TODO en: Next]",
+      "previous": "[TODO en: Previous]",
+      "today": "[TODO en: Today]",
+      "viewMonth": "[TODO en: Month]",
+      "viewWeek": "[TODO en: Week]"
+    },
+    "months": {
+      "april": "[TODO en: April]",
+      "august": "[TODO en: August]",
+      "december": "[TODO en: December]",
+      "february": "[TODO en: February]",
+      "january": "[TODO en: January]",
+      "july": "[TODO en: July]",
+      "june": "[TODO en: June]",
+      "march": "[TODO en: March]",
+      "may": "[TODO en: May]",
+      "november": "[TODO en: November]",
+      "october": "[TODO en: October]",
+      "september": "[TODO en: September]"
+    },
+    "topbarTitle": "[TODO en: Calendar]",
+    "weekdays": {
+      "fri": "[TODO en: Fri]",
+      "mon": "[TODO en: Mon]",
+      "sat": "[TODO en: Sat]",
+      "sun": "[TODO en: Sun]",
+      "thu": "[TODO en: Thu]",
+      "tue": "[TODO en: Tue]",
+      "wed": "[TODO en: Wed]"
+    }
+  },
+  "commissions": {
+    "breakdown": {
+      "headerAssignment": "[TODO en: Assignment]",
+      "headerCommission": "[TODO en: Commission]",
+      "headerCompleted": "[TODO en: Completed]",
+      "headerProperty": "[TODO en: Property]",
+      "headerRate": "[TODO en: Rate]",
+      "headerTotal": "[TODO en: Total]",
+      "subtitle": "[TODO en: Every commission line for {team} in Q{quarter} {year}.]",
+      "title": "[TODO en: Breakdown]"
+    },
+    "markPaid": "[TODO en: Mark paid]",
+    "markUnpaid": "[TODO en: Mark unpaid]",
+    "quarterLabel": "[TODO en: Quarter]",
+    "stats": {
+      "accrued": "[TODO en: Accrued this quarter]",
+      "accruedSubtitle": "[TODO en: Across {count, plural, one {# team} other {# teams}}]",
+      "outstanding": "[TODO en: Outstanding]",
+      "outstandingSubtitle": "[TODO en: Pending payout confirmation]",
+      "paidOut": "[TODO en: Paid out]",
+      "paidOutSubtitle": "[TODO en: {paid} of {total} teams paid]"
+    },
+    "table": {
+      "emptyDescription": "[TODO en: Commission lines fire when an assignment reaches 'completed'. Nothing completed this quarter yet — or no completed work had an asbestos service.]",
+      "emptyTitle": "[TODO en: No commissions for Q{quarter} {year} yet]",
+      "headerAction": "[TODO en: Action]",
+      "headerLines": "[TODO en: Lines]",
+      "headerStatus": "[TODO en: Status]",
+      "headerTeam": "[TODO en: Team]",
+      "headerTotal": "[TODO en: Total]",
+      "statusOutstanding": "[TODO en: Outstanding]",
+      "statusPaidBy": "[TODO en: by {name}]",
+      "statusPaidOn": "[TODO en: Paid {date}]",
+      "subtitle": "[TODO en: Click a row to see the per-assignment breakdown for that team.]",
+      "title": "[TODO en: Teams]"
+    },
+    "topbarSubtitle": "[TODO en: {year} · Q{quarter} · {total} total]",
+    "topbarTitle": "[TODO en: Commissions]",
+    "yearLabel": "[TODO en: Year]"
+  },
+  "contactMessages": {
+    "empty": {
+      "description": "[TODO en: When someone submits the contact form on immoplatform.be, the message will show up here.]",
+      "inboxZeroDescription": "[TODO en: Every message has been handled. Switch to All to see the full history.]",
+      "inboxZeroTitle": "[TODO en: Inbox zero]",
+      "title": "[TODO en: No messages yet]"
+    },
+    "filterTabs": {
+      "all": "[TODO en: All]",
+      "ariaLabel": "[TODO en: Filter messages]",
+      "unhandled": "[TODO en: Awaiting reply]"
+    },
+    "row": {
+      "collapseAria": "[TODO en: Collapse message]",
+      "expandAria": "[TODO en: Expand message]",
+      "fields": {
+        "from": "[TODO en: From]",
+        "handledBy": "[TODO en: Handled by]",
+        "ip": "[TODO en: IP]",
+        "message": "[TODO en: Message]",
+        "phone": "[TODO en: Phone]",
+        "subject": "[TODO en: Subject]"
+      },
+      "markHandled": "[TODO en: Mark as handled]",
+      "notes": {
+        "label": "[TODO en: Internal notes]",
+        "placeholder": "[TODO en: Anything the team should know about this lead…]",
+        "save": "[TODO en: Save notes]",
+        "saved": "[TODO en: Saved.]"
+      },
+      "reopen": "[TODO en: Reopen]",
+      "replyDefaultSubject": "[TODO en: your message to immoplatform]",
+      "replySubjectPrefix": "[TODO en: Re: {subject}]",
+      "replyViaEmail": "[TODO en: Reply via email]",
+      "statusHandled": "[TODO en: Handled]",
+      "statusNew": "[TODO en: New]"
+    },
+    "topbar": {
+      "subtitleCount": "[TODO en: {total} total · {unhandled} awaiting reply]",
+      "subtitleEmpty": "[TODO en: Visitor submissions from the public /contact form will land here.]",
+      "title": "[TODO en: Contact messages]"
+    }
+  },
+  "emails": {
+    "detail": {
+      "backToList": "[TODO en: ← All templates]",
+      "editor": {
+        "apply": "[TODO en: Apply]",
+        "label": "[TODO en: Props (JSON)]",
+        "reset": "[TODO en: Reset to defaults]"
+      },
+      "plainTextSummary": "[TODO en: Plain-text fallback]",
+      "previewIframeTitle": "[TODO en: {label} preview]",
+      "propsErrorPrefix": "[TODO en: Props JSON error: {error} — showing defaults.]",
+      "subjectLabel": "[TODO en: Subject:]"
+    },
+    "index": {
+      "description": "[TODO en: Review how each transactional / lifecycle email renders. Edit the JSON props to see how the template handles different inputs. Admin only.]",
+      "heading": "[TODO en: Email templates]"
+    }
+  },
+  "freelancer": {
+    "ariaStatsTitle": "[TODO en: Key metrics]",
+    "recent": {
+      "datePlaceholder": "[TODO en: —]",
+      "emptyDescription": "[TODO en: Assignments you mark delivered or completed show here so you can jump back to them for follow-up.]",
+      "emptyTitle": "[TODO en: Nothing delivered yet]",
+      "heading": "[TODO en: Recent completed]",
+      "signedOff": "[TODO en: Signed off]",
+      "viewAll": "[TODO en: View all]"
+    },
+    "stats": {
+      "completedThisMonth": "[TODO en: Completed this month]",
+      "inProgress": "[TODO en: In progress]",
+      "thisWeek": "[TODO en: This week]",
+      "todaysJobs": "[TODO en: Today's jobs]"
+    },
+    "today": {
+      "appointmentsCount": "[TODO en: · {count, plural, one {# appointment} other {# appointments}}]",
+      "emptyDescription": "[TODO en: Enjoy the breather. Upcoming inspections show here as soon as they're scheduled.]",
+      "emptyTitle": "[TODO en: No inspections booked for today]",
+      "heading": "[TODO en: Today's schedule]",
+      "onTrack": "[TODO en: On track]",
+      "openCalendar": "[TODO en: Open calendar]"
+    },
+    "topbarSubtitle": "[TODO en: Your day, your jobs, your uploads]",
+    "topbarTitle": "[TODO en: Freelancer]"
+  },
+  "overview": {
+    "adjustments": {
+      "addAdjustment": "[TODO en: Add adjustment]",
+      "addedByFallback": "[TODO en: —]",
+      "amountHint": "[TODO en: Use a negative number for deductions]",
+      "amountPlaceholder": "[TODO en: e.g. 150 or -50.00]",
+      "cancel": "[TODO en: Cancel]",
+      "deleteCancel": "[TODO en: Keep it]",
+      "deleteConfirm": "[TODO en: Delete]",
+      "deleteDescription": "[TODO en: {amount} · {team} · {description}. This can't be undone.]",
+      "deleteNoDescription": "[TODO en: No description]",
+      "deleteTitle": "[TODO en: Delete this adjustment?]",
+      "description": "[TODO en: Journal corrections, bonuses, and deductions for {period}. Negative amounts subtract from booked revenue.]",
+      "descriptionPlaceholder": "[TODO en: e.g. Late invoice settled in March]",
+      "emptyForPeriod": "[TODO en: No adjustments for {period}.]",
+      "fieldAmount": "[TODO en: Amount (€)]",
+      "fieldDescription": "[TODO en: Description]",
+      "fieldMonth": "[TODO en: Month]",
+      "fieldTeam": "[TODO en: Team]",
+      "fieldYear": "[TODO en: Year]",
+      "headerAddedBy": "[TODO en: Added by]",
+      "headerAmount": "[TODO en: Amount]",
+      "headerDescription": "[TODO en: Description]",
+      "headerMonth": "[TODO en: Month]",
+      "headerTeam": "[TODO en: Team]",
+      "save": "[TODO en: Save]",
+      "title": "[TODO en: Manual adjustments]",
+      "total": "[TODO en: Total]"
+    },
+    "byMonth": {
+      "monthsCount": "[TODO en: {count} months]",
+      "title": "[TODO en: Revenue by month]"
+    },
+    "byService": {
+      "empty": "[TODO en: No service revenue in this period.]",
+      "title": "[TODO en: By service]",
+      "total": "[TODO en: Total]"
+    },
+    "byTeam": {
+      "emptyDescriptionDefault": "[TODO en: Revenue is booked when an assignment reaches 'completed'. Nothing completed yet this period.]",
+      "emptyDescriptionFiltered": "[TODO en: No revenue for that team in this period. Try removing the team filter or switching period.]",
+      "emptyTitle": "[TODO en: No revenue booked in {period}]",
+      "headerAssignments": "[TODO en: Assignments]",
+      "headerCommission": "[TODO en: Commission]",
+      "headerPaid": "[TODO en: Paid]",
+      "headerPayout": "[TODO en: Payout]",
+      "headerRevenue": "[TODO en: Revenue]",
+      "headerStatus": "[TODO en: Status]",
+      "headerTeam": "[TODO en: Team]",
+      "managePayouts": "[TODO en: Manage payouts →]",
+      "noPayoutDash": "[TODO en: —]",
+      "statusNoCommission": "[TODO en: No commission]",
+      "statusOutstanding": "[TODO en: Outstanding]",
+      "statusPaid": "[TODO en: Paid]",
+      "statusPartial": "[TODO en: Partial]",
+      "subtitle": "[TODO en: Revenue, commission earned, and payouts for {period}.]",
+      "title": "[TODO en: By team]"
+    },
+    "filters": {
+      "allTeams": "[TODO en: All teams]",
+      "filterByTeam": "[TODO en: Filter by team]"
+    },
+    "months": {
+      "apr": "[TODO en: Apr]",
+      "aug": "[TODO en: Aug]",
+      "dec": "[TODO en: Dec]",
+      "feb": "[TODO en: Feb]",
+      "jan": "[TODO en: Jan]",
+      "jul": "[TODO en: Jul]",
+      "jun": "[TODO en: Jun]",
+      "mar": "[TODO en: Mar]",
+      "may": "[TODO en: May]",
+      "nov": "[TODO en: Nov]",
+      "oct": "[TODO en: Oct]",
+      "sep": "[TODO en: Sep]"
+    },
+    "monthsLong": {
+      "april": "[TODO en: April]",
+      "august": "[TODO en: August]",
+      "december": "[TODO en: December]",
+      "february": "[TODO en: February]",
+      "january": "[TODO en: January]",
+      "july": "[TODO en: July]",
+      "june": "[TODO en: June]",
+      "march": "[TODO en: March]",
+      "may": "[TODO en: May]",
+      "november": "[TODO en: November]",
+      "october": "[TODO en: October]",
+      "september": "[TODO en: September]"
+    },
+    "periodTabs": {
+      "month": "[TODO en: Month]",
+      "quarter": "[TODO en: Quarter]",
+      "year": "[TODO en: Year]"
+    },
+    "stats": {
+      "commissionAccrued": "[TODO en: Commission accrued]",
+      "commissionAccruedHint": "[TODO en: Across eligible teams]",
+      "commissionPaid": "[TODO en: Commission paid]",
+      "commissionPaidHint": "[TODO en: Payouts dated in period]",
+      "outstanding": "[TODO en: Outstanding]",
+      "outstandingHint": "[TODO en: Accrued minus paid]",
+      "revenue": "[TODO en: Revenue]",
+      "revenueHintCompleted": "[TODO en: {count} completed]",
+      "revenueHintCompletedWithAdj": "[TODO en: {count} completed · {adjustment} adj]"
+    },
+    "topbarTitle": "[TODO en: Revenue overview]"
+  },
+  "pageTitles": {
+    "activity": "Activity log",
+    "assignment": "Assignment",
+    "assignments": "Assignments",
+    "calendar": "Calendar",
+    "commissions": "Commissions",
+    "contactMessages": "Contact messages",
+    "dashboard": "Dashboard",
+    "emails": "Email templates",
+    "notFound": "Not found",
+    "odooProducts": "Odoo product mappings",
+    "overview": "Overview",
+    "settings": "Settings",
+    "teams": "Teams",
+    "users": "Users"
+  },
+  "settings": {
+    "appearance": {
+      "density": {
+        "ariaLabel": "Dichtheid",
+        "comfortable": "Comfortabel",
+        "comfortableHint": "Standaard. Ruime padding, makkelijker te scannen.",
+        "compact": "Compact",
+        "compactHint": "Strakkere rijen en kaarten. Goed voor power-users met veel opdrachten.",
+        "subtitle": "Hoeveel inhoud op één scherm past. Wordt automatisch opgeslagen.",
+        "title": "Dichtheid"
+      },
+      "footer": "Elke weergave-instelling wordt automatisch opgeslagen zodra je ze wijzigt.",
+      "motion": {
+        "dutch": "Nederlands",
+        "english": "English",
+        "french": "Français",
+        "highContrast": "Hoog contrast",
+        "highContrastHint": "Duidelijkere randen en tekstcontrast voor betere leesbaarheid.",
+        "language": "Taal",
+        "languageHint": "Enkel dashboardtekst. Volledige i18n volgt later.",
+        "reduceMotion": "Beweging beperken",
+        "reduceMotionHint": "Schakelt niet-essentiële overgangen uit. Volgt ook je OS-instelling.",
+        "title": "Beweging & taal"
+      },
+      "topbar": {
+        "subtitle": "Thema, dichtheid, beweging, taal",
+        "title": "Weergave"
+      }
+    },
+    "integrations": {
+      "aboutBody": "Org-brede integraties gelden voor het hele team. Persoonlijke integraties (zoals je eigen agenda) syncen alleen jouw opdrachten.",
+      "aboutTitle": "Over integraties",
+      "availableHeading": "Beschikbaar ({count})",
+      "breadcrumb": "Integraties",
+      "connect": "Verbinden",
+      "connected": "Verbonden",
+      "connectedHeading": "Verbonden ({count})",
+      "errorCount": "{count, plural, one {1 fout} other {# fouten}}",
+      "errors": "{count, plural, one {1 syncfout} other {# syncfouten}} in je integraties",
+      "errorsBody": "Sommige gegevens zijn mogelijk verouderd. Bekijk en probeer hieronder opnieuw.",
+      "google": {
+        "agency": {
+          "active": "Synchronisatie is actief.",
+          "calendarIdLabel": "Agenda-id:",
+          "howTo": "Persoonlijk bekijken: open Google Agenda → \"Andere agenda's\" → \"+\" → Abonneren op agenda → plak het id hierboven. Of vraag een admin om de agenda rechtstreeks met je Google-account te delen.",
+          "notConfigured": "Niet geconfigureerd",
+          "notConfiguredBody": "Een admin moet {var1}, {var2} en {var3} instellen in de serveromgeving en de agenda met het service-account-e-mailadres delen als \"Wijzigingen aanbrengen in afspraken\".",
+          "subtitle": "Elke geplande opdracht wordt naar één gedeelde Google-agenda gestuurd via een service-account. Abonneer je vanuit je eigen Google om de agency-pipeline te zien.",
+          "title": "Gedeelde agency-agenda"
+        },
+        "breadcrumb": "Google Agenda",
+        "connectError": "Kon de verbinding niet voltooien ({code}). Probeer opnieuw.",
+        "connectSuccess": "Succesvol verbonden.",
+        "disconnect": {
+          "button": "Google ontkoppelen",
+          "cancel": "Verbonden houden",
+          "confirm": "Ontkoppelen",
+          "description": "Toekomstige opdrachten verschijnen pas weer in je Google-agenda na een nieuwe verbinding. Reeds toegevoegde afspraken blijven staan.",
+          "title": "Google-agenda ontkoppelen?"
+        },
+        "personal": {
+          "connect": "Mijn Google-agenda verbinden",
+          "connectedAsPrefix": "Verbonden als ",
+          "connectedOn": "Verbonden op {date}.",
+          "expired": "Je verbinding is verlopen of ingetrokken op {date}. Maak opnieuw verbinding zodat de knop \"Toevoegen aan mijn agenda\" blijft werken.",
+          "notConfigured": "Niet geconfigureerd — een admin moet {var1} + {var2} instellen.",
+          "reconnect": "Google opnieuw verbinden",
+          "subtitle": "Verbind je persoonlijke Google-account zodat je via \"Toevoegen aan mijn agenda\" op een opdracht de afspraak op je eigen agenda kunt zetten.",
+          "title": "Mijn Google-agenda"
+        },
+        "topbar": {
+          "subtitle": "Twee aparte integraties — gedeelde agency-agenda en je persoonlijke agenda.",
+          "title": "Google Agenda"
+        }
+      },
+      "healthy": "Gezond",
+      "lastSync": "Laatste sync {when}",
+      "manageAria": "{name} beheren",
+      "outlook": {
+        "breadcrumb": "Outlook",
+        "connectError": "Kon de verbinding niet voltooien ({code}). Probeer opnieuw.",
+        "connectSuccess": "Succesvol verbonden.",
+        "disconnect": {
+          "button": "Outlook ontkoppelen",
+          "cancel": "Verbonden houden",
+          "confirm": "Ontkoppelen",
+          "description": "Toekomstige opdrachten syncen pas weer naar Outlook na een nieuwe verbinding. Reeds aangemaakte afspraken blijven staan.",
+          "title": "Outlook-agenda ontkoppelen?"
+        },
+        "personal": {
+          "connect": "Microsoft-account verbinden",
+          "connectedAsPrefix": "Verbonden als ",
+          "connectedOn": "Verbonden op {date}.",
+          "expired": "Je verbinding is verlopen of ingetrokken op {date}. Maak opnieuw verbinding zodat nieuwe opdrachten weer in je Outlook verschijnen.",
+          "notConfigured": "Niet geconfigureerd — een admin moet {var1} + {var2} instellen in de serveromgeving na het registreren van een app in Azure.",
+          "reconnect": "Microsoft-account opnieuw verbinden",
+          "subtitle": "Wanneer je een opdracht aanmaakt, sturen we die naar je persoonlijke Outlook-agenda en houden we ze gesynchroniseerd bij verschuivingen en annuleringen. Niets wordt gesynchroniseerd tot je verbindt.",
+          "title": "Mijn Outlook-agenda"
+        },
+        "topbar": {
+          "subtitle": "Sync de opdrachten die je aanmaakt naar je eigen Outlook-agenda.",
+          "title": "Outlook / Microsoft 365"
+        }
+      },
+      "scopeOrg": "Org-breed",
+      "scopePersonal": "Persoonlijk",
+      "topbar": {
+        "subtitle": "Verbind {brand} met de rest van je stack",
+        "title": "Integraties"
+      }
+    },
+    "nav": {
+      "appearance": "Weergave",
+      "ariaLabel": "Instellingen",
+      "integrations": "Integraties",
+      "notifications": "Meldingen",
+      "profile": "Profiel",
+      "security": "Beveiliging"
+    },
+    "notifications": {
+      "categories": {
+        "assignment": {
+          "description": "E-mails over de opdrachten waarbij je betrokken bent.",
+          "label": "Opdrachten"
+        },
+        "team": {
+          "description": "E-mails over je team en zijn leden.",
+          "label": "Teams & kantoren"
+        },
+        "user": {
+          "description": "E-mails over je eigen account.",
+          "label": "Je account"
+        }
+      },
+      "events": {
+        "assignmentCancelled": {
+          "description": "Wordt verzonden naar de freelancer (indien toegewezen) en de aanmaker.",
+          "label": "Wanneer een opdracht waar ik op zit wordt geannuleerd"
+        },
+        "assignmentCommentPosted": {
+          "description": "Wordt verzonden naar de andere deelnemers in de thread — de auteur van het commentaar wordt overgeslagen.",
+          "label": "Wanneer iemand commentaar plaatst op een opdracht waar ik op zit"
+        },
+        "assignmentCompleted": {
+          "description": "Wordt verzonden naar de toegewezen freelancer wanneer de agency afsluit.",
+          "label": "Wanneer een opdracht waar ik op zit als voltooid wordt gemarkeerd"
+        },
+        "assignmentCreated": {
+          "description": "Wordt verzonden naar platform-admins en medewerkers wanneer een nieuwe opdracht binnenkomt.",
+          "label": "Wanneer een nieuwe opdracht wordt aangemaakt"
+        },
+        "assignmentDateUpdated": {
+          "description": "Wordt verzonden naar de freelancer en de aanmaker wanneer de geplande datum wordt aangepast.",
+          "label": "Wanneer de geplande datum van een opdracht verandert"
+        },
+        "assignmentDelivered": {
+          "description": "Wordt verzonden naar de agency wanneer de freelancer het werk als opgeleverd markeert.",
+          "label": "Wanneer een opdracht van mijn team is opgeleverd"
+        },
+        "assignmentFilesUploaded": {
+          "description": "Wordt verzonden naar de makelaar of aanmaker wanneer de freelancer opleveringen upload, en naar de freelancer wanneer de makelaar ondersteunende documenten upload.",
+          "label": "Wanneer er bestanden worden geüpload bij een opdracht waar ik op zit"
+        },
+        "assignmentFreelancerAssigned": {
+          "description": "Wordt verzonden naar de freelancer bij eerste toewijzing en bij elke heropdracht.",
+          "label": "Wanneer ik op een nieuwe opdracht word gezet (of opnieuw word toegewezen)"
+        },
+        "assignmentFreelancerUnassigned": {
+          "description": "Wordt verzonden naar de freelancer wanneer de agency het werk aan iemand anders toewijst.",
+          "label": "Wanneer ik van een opdracht word gehaald"
+        },
+        "assignmentScheduled": {
+          "description": "Wordt verzonden naar de makelaar en de agency wanneer een nieuwe opdracht in de geplande status binnenkomt met een afgesproken datum.",
+          "label": "Wanneer een van mijn opdrachten met een datum wordt gepland"
+        },
+        "teamMemberAdded": {
+          "description": "Wordt verzonden wanneer een admin of makelaar je toevoegt aan een van hun teams. Vuurt niet bij een eerste invite-acceptatie — die flow gebruikt de invite-mail.",
+          "label": "Wanneer ik aan een team word toegevoegd"
+        },
+        "userRegistered": {
+          "description": "Wordt verzonden naar platform-admins wanneer iemand de aanmelding voltooit.",
+          "label": "Wanneer een nieuwe gebruiker zich op het platform registreert"
+        }
+      },
+      "footer": "Transactionele mails (uitnodigingen, wachtwoordresets, team-toevoegingen) worden altijd verzonden, ongeacht deze instellingen.",
+      "header": {
+        "email": "E-mail",
+        "event": "Gebeurtenis"
+      },
+      "heading": "Meldingsvoorkeuren",
+      "intro": "Kies welke gebeurtenissen je per e-mail wilt ontvangen. Alleen gebeurtenissen die relevant zijn voor je rol als {role} verschijnen hier.",
+      "roles": {
+        "admin": "een admin",
+        "freelancer": "een freelancer",
+        "realtor": "een makelaar",
+        "staff": "een medewerker"
+      },
+      "rowEmailLabel": "E-mail",
+      "rowToggleAria": "E-mail — {label}",
+      "saved": "Meldingsvoorkeuren opgeslagen.",
+      "topbar": {
+        "subtitle": "Bepaal wat in je inbox terechtkomt",
+        "title": "Meldingen"
+      }
+    },
+    "profile": {
+      "danger": {
+        "confirm": "Account verwijderen",
+        "deleteBody": "Verwijder je account en persoonlijke gegevens permanent. Dit is niet terug te draaien. We vragen je wachtwoord ter bevestiging.",
+        "deleteHeading": "Account verwijderen",
+        "keep": "Mijn account behouden",
+        "modalDescription": "Dit verwijdert je profiel en logt je uit op elk apparaat. Opdrachten die je hebt aangemaakt blijven op het platform; je naam blijft erop staan voor de geschiedenis.",
+        "modalTitle": "Je account verwijderen",
+        "open": "Account verwijderen…",
+        "passwordHint": "We vragen je wachtwoord zodat een gestolen sessie je account niet kan verwijderen.",
+        "passwordLabel": "Bevestig met je wachtwoord",
+        "subtitle": "Acties hier zijn niet ongedaan te maken. Wees voorzichtig.",
+        "title": "Gevarenzone"
+      },
+      "details": {
+        "bio": "Bio",
+        "bioHint": "Optioneel — een korte tekst die op je profiel verschijnt.",
+        "email": "E-mail",
+        "emailHintUnverified": "Niet geverifieerd. Sla op om opnieuw te verzenden, of gebruik de banner hierboven.",
+        "emailHintVerified": "Dit wijzigen stuurt een verificatielink naar het nieuwe adres.",
+        "firstName": "Voornaam",
+        "lastName": "Achternaam",
+        "phone": "Telefoon",
+        "phonePlaceholder": "+32 …",
+        "region": "Regio",
+        "regionHint": "Stad of provincie.",
+        "regionPlaceholder": "Antwerpen",
+        "saved": "Profiel opgeslagen.",
+        "subtitle": "Wordt getoond bij commentaren, opdrachten en teampagina's.",
+        "title": "Profiel"
+      },
+      "photo": {
+        "fileHint": "PNG, JPG of WebP — max {maxMb} MB.",
+        "remove": "Verwijderen",
+        "removed": "Foto verwijderd.",
+        "subtitle": "Verschijnt naast je naam in het hele dashboard.",
+        "title": "Foto",
+        "updated": "Foto bijgewerkt.",
+        "uploading": "Bezig met uploaden…"
+      },
+      "verifyBanner": {
+        "bodyPrefix": "We hebben een link gestuurd naar ",
+        "bodySuffix": ". Klik erop om het adres te bevestigen zodat we je accountmeldingen kunnen sturen.",
+        "resend": "E-mail opnieuw verzenden",
+        "sent": "Verificatiemail verzonden — controleer je inbox (en spam).",
+        "title": "Verifieer je e-mailadres"
+      }
+    },
+    "saveBar": {
+      "savePreferences": "Voorkeuren opslaan",
+      "saveProfile": "Profiel opslaan"
+    },
+    "scope": {
+      "appearanceDescription": "Voorkeuren voor thema, dichtheid en beweging worden lokaal in deze browser bewaard, alleen voor jouw account."
+    },
+    "security": {
+      "password": {
+        "confirm": "Bevestig nieuw wachtwoord",
+        "current": "Huidig wachtwoord",
+        "new": "Nieuw wachtwoord",
+        "newHint": "Minstens 8 tekens, waaronder een letter en een cijfer.",
+        "saved": "Wachtwoord bijgewerkt. Andere actieve sessies zijn afgemeld.",
+        "submit": "Wachtwoord bijwerken",
+        "subtitle": "Gebruik minstens 8 tekens met een letter en een cijfer. Andere apparaten worden afgemeld zodra je opslaat.",
+        "title": "Wachtwoord wijzigen"
+      },
+      "sessions": {
+        "activeNow": "Nu actief",
+        "cancel": "Annuleren",
+        "daysAgo": "{count, plural, one {# dag geleden} other {# dagen geleden}}",
+        "empty": "Geen actieve sessies.",
+        "hoursAgo": "{count, plural, one {# uur geleden} other {# uur geleden}}",
+        "ipUnknown": "IP onbekend",
+        "minutesAgo": "{count, plural, one {# minuut geleden} other {# minuten geleden}}",
+        "monthsAgo": "{count, plural, one {# maand geleden} other {# maanden geleden}}",
+        "revoke": "Intrekken",
+        "revokeConfirm": "Sessie intrekken",
+        "revokeDescription": "Dat apparaat moet de volgende keer opnieuw inloggen. Je huidige sessie blijft ingelogd.",
+        "revokeTitle": "{device} afmelden?",
+        "subtitle": "Apparaten die momenteel zijn ingelogd op je account.",
+        "thisDevice": "Dit apparaat",
+        "title": "Actieve sessies",
+        "yearsAgo": "{count, plural, one {# jaar geleden} other {# jaar geleden}}"
+      },
+      "signOutAll": {
+        "body": "Trek elke sessie in behalve deze.",
+        "button": "Alles afmelden",
+        "cancel": "Annuleren",
+        "confirm": "Overal afmelden",
+        "confirmDescription": "Elk apparaat behalve dit moet opnieuw inloggen. Gebruik dit als je vermoedt dat je account ergens onbekend is geopend.",
+        "confirmTitle": "Alle andere sessies afmelden?",
+        "noOthers": "Er waren geen andere actieve sessies.",
+        "otherSessions": " Momenteel {count, plural, one {<strong>1 andere sessie</strong>} other {<strong># andere sessies</strong>}} actief.",
+        "signedOut": "{count, plural, one {1 andere sessie afgemeld.} other {# andere sessies afgemeld.}}",
+        "title": "Overal afmelden"
+      },
+      "topbar": {
+        "subtitle": "Wachtwoord en actieve sessies",
+        "title": "Beveiliging"
+      }
+    },
+    "topbar": {
+      "subtitle": "Persoonlijke accountinstellingen",
+      "title": "Instellingen"
+    }
+  },
+  "shared": {
+    "accountSwitcher": {
+      "ariaLabel": "[TODO en: Switch account]",
+      "currentlyPrefix": "[TODO en: Currently:]",
+      "devTag": "[TODO en: dev]",
+      "switchFailed": "[TODO en: Switch failed: {error}]",
+      "trigger": "[TODO en: Switch user]"
+    },
+    "announcementBanner": {
+      "ariaLabel": "[TODO en: Announcements]",
+      "dismissAriaLabel": "[TODO en: Dismiss announcement]"
+    },
+    "announcementForm": {
+      "active": "[TODO en: Active]",
+      "activeDescription": "[TODO en: Uncheck to save as a draft without publishing.]",
+      "body": "[TODO en: Body]",
+      "bodyHint": "[TODO en: One or two short sentences work best]",
+      "bodyPlaceholder": "[TODO en: Describe what is happening, when, and what users should do.]",
+      "cancel": "[TODO en: Cancel]",
+      "contentTitle": "[TODO en: Content]",
+      "dismissible": "[TODO en: Dismissible]",
+      "dismissibleDescription": "[TODO en: Let each user close the banner for themselves. Sticky announcements can only be closed by an admin.]",
+      "endDate": "[TODO en: End date]",
+      "previewBodyFallback": "[TODO en: Body text previews like this for all users in the active window.]",
+      "previewTitle": "[TODO en: Preview]",
+      "previewTitleFallback": "[TODO en: Your title shows here]",
+      "startDate": "[TODO en: Start date]",
+      "submitCreate": "[TODO en: Publish announcement]",
+      "submitEdit": "[TODO en: Save changes]",
+      "title": "[TODO en: Title]",
+      "titleHint": "[TODO en: Shown in bold on the banner]",
+      "titlePlaceholder": "[TODO en: e.g. Scheduled maintenance on April 20]",
+      "type": "[TODO en: Type]",
+      "typeDanger": "[TODO en: Danger]",
+      "typeInfo": "[TODO en: Info]",
+      "typeSuccess": "[TODO en: Success]",
+      "typeWarning": "[TODO en: Warning]",
+      "visibilityTitle": "[TODO en: Visibility]"
+    },
+    "assignmentForm": {
+      "address": "[TODO en: Street + number]",
+      "addressPlaceholder": "[TODO en: Meir 34]",
+      "area": "[TODO en: Living area (m²)]",
+      "areaPlaceholder": "[TODO en: 120]",
+      "calendarAccount": "[TODO en: Calendar account (for email CTA)]",
+      "calendarAccountHint": "[TODO en: The Google account the email's 'Add to my calendar' button targets.]",
+      "calendarAccountPlaceholder": "[TODO en: you@agency.be]",
+      "calendarDate": "[TODO en: Internal calendar date]",
+      "calendarDateHint": "[TODO en: Overrides the planned date when pushing to calendars. Customer's date stays untouched.]",
+      "city": "[TODO en: City]",
+      "cityPlaceholder": "[TODO en: Antwerpen]",
+      "contactEmail": "[TODO en: Email]",
+      "contactEmailPlaceholder": "[TODO en: info@vastgoedantwerp.be]",
+      "contactPhone": "[TODO en: Phone]",
+      "contactPhonePlaceholder": "[TODO en: +32 3 123 45 67]",
+      "contactSubtitle": "[TODO en: The realtor or agency person the inspector should contact. Shown on the calendar event under \"Makelaar\".]",
+      "contactTitle": "[TODO en: Contact person]",
+      "filesHint": "[TODO en: PDF, JPG, PNG, WebP · up to {maxMB} MB each · up to {maxFiles} files]",
+      "filesLabel": "[TODO en: Drop floor plans, photos or notes]",
+      "filesNone": "[TODO en: No files picked yet.]",
+      "filesReady": "[TODO en: {count, plural, one {# file ready to upload.} other {# files ready to upload.}}]",
+      "filesSubtitle": "[TODO en: Attach floor plans, photos, or notes the inspector should see. You can also add files later from the Files tab.]",
+      "filesTitle": "[TODO en: Supporting files (optional)]",
+      "freelancer": "[TODO en: Assign freelancer]",
+      "freelancerHint": "[TODO en: Optional — leave as Unassigned to assign later.]",
+      "freelancerUnassigned": "[TODO en: — Unassigned —]",
+      "initialComment": "[TODO en: Initial comment]",
+      "initialCommentPlaceholder": "[TODO en: First message for the thread (optional) — visible to everyone on the assignment.]",
+      "keyPickup": "[TODO en: A key needs to be picked up before the inspection]",
+      "keyPickupAddress": "[TODO en: Pickup address]",
+      "keyPickupAddressHint": "[TODO en: Full address where the inspector can pick up the key.]",
+      "keyPickupAddressPlaceholder": "[TODO en: Street, number, postal code, city…]",
+      "keyPickupOffice": "[TODO en: At the agency office]",
+      "keyPickupOther": "[TODO en: At a different address]",
+      "keyPickupWhere": "[TODO en: Where is the key picked up?]",
+      "notes": "[TODO en: Notes for the inspector]",
+      "notesPlaceholder": "[TODO en: Parking, access codes, pets — anything worth knowing.]",
+      "odooUnreachable": "[TODO en: Odoo is unreachable — pricelist pickers won't load. New assignments will use the team's base price as a fallback.]",
+      "ownerAddress": "[TODO en: Address]",
+      "ownerAddressPlaceholder": "[TODO en: Meir 42]",
+      "ownerCity": "[TODO en: City]",
+      "ownerCityPlaceholder": "[TODO en: Antwerpen]",
+      "ownerEmail": "[TODO en: Email]",
+      "ownerEmailPlaceholder": "[TODO en: els@example.com]",
+      "ownerFirm": "[TODO en: Bedrijf]",
+      "ownerFullName": "[TODO en: Full name]",
+      "ownerFullNamePlaceholder": "[TODO en: Els Vermeulen]",
+      "ownerParticulier": "[TODO en: Particulier]",
+      "ownerPhone": "[TODO en: Phone]",
+      "ownerPhonePlaceholder": "[TODO en: +32 476 12 34 56]",
+      "ownerPostal": "[TODO en: Postal code]",
+      "ownerPostalPlaceholder": "[TODO en: 2000]",
+      "ownerSubtitle": "[TODO en: The person signing the assignment form.]",
+      "ownerTitle": "[TODO en: Owner]",
+      "ownerTypeAriaLabel": "[TODO en: Owner type]",
+      "ownerVat": "[TODO en: VAT number]",
+      "ownerVatHint": "[TODO en: Required for firm invoices (e.g. BE 0712.345.678).]",
+      "ownerVatPlaceholder": "[TODO en: BE 0712.345.678]",
+      "photographerLabel": "[TODO en: Contact person for photographer]",
+      "photographerOwner": "[TODO en: Owner]",
+      "photographerRealtor": "[TODO en: Realtor]",
+      "photographerTenant": "[TODO en: Tenant]",
+      "plannedDate": "[TODO en: Planned date]",
+      "plannedDateHint": "[TODO en: We confirm within 24 hours by email.]",
+      "postal": "[TODO en: Postal code]",
+      "postalPlaceholder": "[TODO en: 2000]",
+      "productClearAriaLabel": "[TODO en: Clear pricelist selection]",
+      "productLabel": "[TODO en: Product from team pricelist]",
+      "productNoMatches": "[TODO en: No matching products.]",
+      "productSearchPlaceholder": "[TODO en: Type to search…]",
+      "propertySubtitle": "[TODO en: Where is the inspection taking place?]",
+      "propertyTitle": "[TODO en: Property]",
+      "propertyType": "[TODO en: Property type]",
+      "propertyTypeApartment": "[TODO en: Apartment]",
+      "propertyTypeCommercial": "[TODO en: Commercial]",
+      "propertyTypeHouse": "[TODO en: House]",
+      "propertyTypeStudio": "[TODO en: Studio]",
+      "propertyTypeStudioRoom": "[TODO en: Student room]",
+      "requiredHint": "[TODO en: Required]",
+      "schedulingTitle": "[TODO en: Scheduling]",
+      "servicesSubtitle": "[TODO en: Pick one or more. We handle scheduling and delivery.]",
+      "servicesTitle": "[TODO en: Services]",
+      "submitCreate": "[TODO en: Create assignment]",
+      "submitEdit": "[TODO en: Save changes]",
+      "tenantEmail": "[TODO en: Email]",
+      "tenantEmailPlaceholder": "[TODO en: marc@example.com]",
+      "tenantFullName": "[TODO en: Full name]",
+      "tenantFullNamePlaceholder": "[TODO en: Marc De Smet]",
+      "tenantPhone": "[TODO en: Phone]",
+      "tenantPhonePlaceholder": "[TODO en: +32 479 98 76 54]",
+      "tenantSubtitle": "[TODO en: Add if the property is currently occupied — optional.]",
+      "tenantTitle": "[TODO en: Tenant]",
+      "year": "[TODO en: Construction year]",
+      "yearPlaceholder": "[TODO en: 1985]"
+    },
+    "brandingCard": {
+      "logoAlt": "[TODO en: {teamName} logo]",
+      "logoConstraints": "[TODO en: PNG, JPG, WebP or GIF — max {max} MB.]",
+      "logoDescription": "[TODO en: Used in the opdrachtformulier header and on the team detail page.]",
+      "logoNoneAlt": "[TODO en: No logo]",
+      "logoRemoved": "[TODO en: Logo removed.]",
+      "logoTitle": "[TODO en: Team logo]",
+      "logoUpdated": "[TODO en: Logo updated.]",
+      "remove": "[TODO en: Remove]",
+      "signatureAlt": "[TODO en: {teamName} signature]",
+      "signatureConstraints": "[TODO en: PNG or JPG — max {max} MB. SVG not supported — PDFs stamp raster.]",
+      "signatureDescription": "[TODO en: Stamped into the signature box on the opdrachtformulier PDF. PNG with a transparent background renders cleanest.]",
+      "signatureNoneAlt": "[TODO en: No signature]",
+      "signatureRemoved": "[TODO en: Signature removed.]",
+      "signatureTitle": "[TODO en: Signature image]",
+      "signatureUpdated": "[TODO en: Signature updated.]"
+    },
+    "common": {
+      "cancel": "[TODO en: Cancel]",
+      "discard": "[TODO en: Discard]",
+      "optional": "[TODO en: Optional]",
+      "remove": "[TODO en: Remove]",
+      "required": "[TODO en: Required]",
+      "save": "[TODO en: Save]",
+      "saveChanges": "[TODO en: Save changes]",
+      "saving": "[TODO en: Saving…]",
+      "uploading": "[TODO en: Uploading…]"
+    },
+    "confirmDialog": {
+      "cancel": "[TODO en: Cancel]",
+      "confirm": "[TODO en: Confirm]"
+    },
+    "legalBillingDisplay": {
+      "addDetailsCta": "[TODO en: Add billing details →]",
+      "company": "[TODO en: Company]",
+      "incompleteBody": "[TODO en: Required before payouts can be issued. Add the inspector's VAT number, IBAN, and billing address.]",
+      "incompleteTitle": "[TODO en: Billing details incomplete]",
+      "labelBillingAddress": "[TODO en: Billing address]",
+      "labelBillingEmail": "[TODO en: Billing email]",
+      "labelBillingPhone": "[TODO en: Billing phone]",
+      "labelIban": "[TODO en: IBAN]",
+      "labelLegalName": "[TODO en: Legal name]",
+      "labelVatKbo": "[TODO en: VAT / KBO]",
+      "soleTrader": "[TODO en: Sole trader]",
+      "title": "[TODO en: Legal & billing]"
+    },
+    "legalBillingFields": {
+      "billingAddress": "[TODO en: Billing address]",
+      "billingAddressPlaceholder": "[TODO en: Street + number]",
+      "billingCity": "[TODO en: City]",
+      "billingCityPlaceholder": "[TODO en: Antwerpen]",
+      "billingEmail": "[TODO en: Billing email]",
+      "billingEmailHint": "[TODO en: Where invoices and statements are sent.]",
+      "billingEmailPlaceholder": "[TODO en: billing@agency.be]",
+      "billingPhone": "[TODO en: Billing phone]",
+      "billingPhonePlaceholder": "[TODO en: +32 3 234 56 78]",
+      "billingPostal": "[TODO en: Postal code]",
+      "billingPostalPlaceholder": "[TODO en: 2000]",
+      "businessType": "[TODO en: Business type]",
+      "businessTypeAriaLabel": "[TODO en: Business type]",
+      "company": "[TODO en: Company]",
+      "companyDescription": "[TODO en: BV / SRL or other legal entity.]",
+      "country": "[TODO en: Country]",
+      "iban": "[TODO en: IBAN]",
+      "ibanError": "[TODO en: Format looks off — expected BE + 14 digits.]",
+      "ibanHint": "[TODO en: Belgian IBAN: BE + 14 digits.]",
+      "ibanPlaceholder": "[TODO en: BE68 5390 0754 7034]",
+      "intro": "[TODO en: Used on issued invoices and the assignment form. Optional now, but needed before billing.]",
+      "kboHint": "[TODO en: Same digits as VAT, without the BE prefix.]",
+      "kboNumber": "[TODO en: KBO / BCE number]",
+      "kboPlaceholder": "[TODO en: 0712345678]",
+      "legalName": "[TODO en: Legal name]",
+      "legalNameHint": "[TODO en: As registered with the KBO/BCE.]",
+      "legalNamePlaceholder": "[TODO en: e.g. Acme Inspections BV]",
+      "optionalBadge": "[TODO en: Optional]",
+      "soleTrader": "[TODO en: Sole trader]",
+      "soleTraderDescription": "[TODO en: Eenmanszaak — invoices issued under personal name.]",
+      "title": "[TODO en: Legal & billing]",
+      "vatError": "[TODO en: Format should be BE + 10 digits.]",
+      "vatHint": "[TODO en: Belgian format: BE + 10 digits]",
+      "vatNumber": "[TODO en: VAT number]",
+      "vatPlaceholder": "[TODO en: BE 0712.345.678]"
+    },
+    "mobileTopbar": {
+      "close": "[TODO en: Close navigation]",
+      "homeAriaLabel": "[TODO en: immoplatform.be — dashboard]",
+      "items": {
+        "announcements": "[TODO en: Announcements]",
+        "assignments": "[TODO en: Assignments]",
+        "calendar": "[TODO en: Calendar]",
+        "overview": "[TODO en: Overview]",
+        "revenue": "[TODO en: Revenue]",
+        "settings": "[TODO en: Settings]",
+        "teams": "[TODO en: Teams]",
+        "users": "[TODO en: Users]"
+      },
+      "open": "[TODO en: Open navigation]",
+      "profile": "[TODO en: Your profile]",
+      "signOut": "[TODO en: Sign out]"
+    },
+    "pricingCard": {
+      "discount": "[TODO en: Discount]",
+      "intro": "[TODO en: Prices are snapshotted at creation — later price-list edits won't change this invoice.]",
+      "subtotal": "[TODO en: Subtotal]",
+      "surchargeLabel": "[TODO en: Large-property surcharge]",
+      "title": "[TODO en: Pricing]",
+      "total": "[TODO en: Total]"
+    },
+    "searchInput": {
+      "placeholder": "[TODO en: Search…]"
+    },
+    "settingsSaveBar": {
+      "ariaLabel": "[TODO en: Save changes]",
+      "discard": "[TODO en: Discard]",
+      "hint": "[TODO en: Don't forget to save before leaving the page.]",
+      "save": "[TODO en: Save changes]",
+      "saving": "[TODO en: Saving…]",
+      "title": "[TODO en: Unsaved changes]"
+    },
+    "settingsScopeBanner": {
+      "ariaLabel": "[TODO en: {title} scope]",
+      "orgDescription": "[TODO en: Changes here apply to every member of your workspace. Only admins can edit these.]",
+      "orgTitle": "[TODO en: Organization setting]",
+      "personalDescription": "[TODO en: Changes here only affect your account. Other team members keep their own preferences.]",
+      "personalTitle": "[TODO en: Personal setting]"
+    },
+    "sidebar": {
+      "homeAriaLabel": "[TODO en: immoplatform.be — dashboard]",
+      "items": {
+        "announcements": "[TODO en: Announcements]",
+        "assignments": "[TODO en: Assignments]",
+        "calendar": "[TODO en: Calendar]",
+        "commissions": "[TODO en: Commissions]",
+        "messages": "[TODO en: Messages]",
+        "odooProducts": "[TODO en: Odoo products]",
+        "overview": "[TODO en: Overview]",
+        "revenue": "[TODO en: Revenue]",
+        "settings": "[TODO en: Settings]",
+        "signOut": "[TODO en: Sign out]",
+        "teams": "[TODO en: Teams]",
+        "users": "[TODO en: Users]"
+      },
+      "sectionAdmin": "[TODO en: Admin]",
+      "userFallbackName": "[TODO en: Jordan Remy]",
+      "userFallbackRole": "[TODO en: admin]"
+    },
+    "teamForm": {
+      "badge": "[TODO en: Badge]",
+      "badgeHint": "[TODO en: 1–3 letters shown on team cards until a logo image is uploaded. Leave blank to derive from the team name.]",
+      "badgePlaceholder": "[TODO en: VA]",
+      "basicsDescription": "[TODO en: Name, location, and the badge shown on cards across the dashboard.]",
+      "basicsTitle": "[TODO en: Team basics]",
+      "billingAddress": "[TODO en: Billing address]",
+      "billingAddressPlaceholder": "[TODO en: Street + number]",
+      "billingCity": "[TODO en: Billing city]",
+      "billingCityPlaceholder": "[TODO en: Antwerpen]",
+      "billingEmail": "[TODO en: Billing email]",
+      "billingEmailPlaceholder": "[TODO en: billing@agency.be]",
+      "billingPhone": "[TODO en: Billing phone]",
+      "billingPhonePlaceholder": "[TODO en: +32 3 234 56 78]",
+      "billingPostal": "[TODO en: Postal code]",
+      "billingPostalPlaceholder": "[TODO en: 2000]",
+      "cancel": "[TODO en: Cancel]",
+      "city": "[TODO en: City]",
+      "cityPlaceholder": "[TODO en: Antwerpen]",
+      "color": "[TODO en: Color]",
+      "commissionDescription": "[TODO en: How much the team keeps per delivered assignment. Set once, applies platform-wide.]",
+      "commissionFixed": "[TODO en: Fixed amount per order]",
+      "commissionModel": "[TODO en: Model]",
+      "commissionNone": "[TODO en: No commission]",
+      "commissionPercentage": "[TODO en: Percentage of order]",
+      "commissionTitle": "[TODO en: Commission]",
+      "commissionValue": "[TODO en: Value]",
+      "commissionValueHint": "[TODO en: Percentage: basis points (1500 = 15%). Fixed: cents (2500 = €25.00).]",
+      "country": "[TODO en: Country]",
+      "countryPlaceholder": "[TODO en: Belgium]",
+      "email": "[TODO en: Team email]",
+      "emailHint": "[TODO en: Shared inbox — used on invoices.]",
+      "emailPlaceholder": "[TODO en: contact@agency.be]",
+      "firm": "[TODO en: Firm (bedrijf)]",
+      "iban": "[TODO en: IBAN]",
+      "ibanPlaceholder": "[TODO en: BE68 5390 0754 7034]",
+      "invoiceRecipient": "[TODO en: Invoice recipient default]",
+      "invoiceRecipientHint": "[TODO en: Drives which contact block prints on invoices. Overridable per assignment.]",
+      "kboNumber": "[TODO en: Chamber of Commerce (KBO)]",
+      "kboPlaceholder": "[TODO en: 0712345678]",
+      "legalDescription": "[TODO en: Used on issued invoices and the opdrachtformulier. Optional now, but needed before billing.]",
+      "legalName": "[TODO en: Legal name]",
+      "legalNamePlaceholder": "[TODO en: Vastgoed Antwerp BV]",
+      "legalTitle": "[TODO en: Legal + billing]",
+      "name": "[TODO en: Team name]",
+      "namePlaceholder": "[TODO en: Vastgoed Antwerp]",
+      "noDefault": "[TODO en: No default]",
+      "particulier": "[TODO en: Particulier (owner)]",
+      "requiredHint": "[TODO en: Required]",
+      "shortDescription": "[TODO en: Short description]",
+      "shortDescriptionPlaceholder": "[TODO en: e.g. Residential specialists in Flanders]",
+      "stampLogo": "[TODO en: Stamp team logo on property photos]",
+      "stampLogoDescription": "[TODO en: When on, the team's branding is overlaid on listing photos generated by the platform.]",
+      "submitCreate": "[TODO en: Create team]",
+      "submitEdit": "[TODO en: Save changes]",
+      "vatNumber": "[TODO en: VAT number]",
+      "vatPlaceholder": "[TODO en: BE 0712.345.678]"
+    },
+    "teamSwitcher": {
+      "actingAs": "[TODO en: Acting as]",
+      "ariaLabel": "[TODO en: Switch team]",
+      "createTeam": "[TODO en: Create a team]",
+      "manageAll": "[TODO en: Manage all teams]"
+    },
+    "topbar": {
+      "newAssignment": "[TODO en: New assignment]"
+    },
+    "unsavedChanges": {
+      "cancelLabel": "[TODO en: Keep editing]",
+      "confirmLabel": "[TODO en: Discard changes]",
+      "description": "[TODO en: You have unsaved changes on this page. If you leave now, they'll be lost.]",
+      "title": "[TODO en: Leave without saving?]"
+    }
+  },
+  "teams": {
+    "detail": {
+      "assignments": {
+        "columns": {
+          "date": "[TODO en: Date]",
+          "freelancer": "[TODO en: Freelancer]",
+          "property": "[TODO en: Property]",
+          "reference": "[TODO en: Reference]",
+          "services": "[TODO en: Services]",
+          "status": "[TODO en: Status]"
+        },
+        "description": "[TODO en: All work carried out for this team.]",
+        "empty": "[TODO en: No assignments yet.]",
+        "new": "[TODO en: New]",
+        "noDate": "[TODO en: —]",
+        "title": "[TODO en: Assignments]",
+        "unassigned": "[TODO en: Unassigned]"
+      },
+      "billing": {
+        "description": "[TODO en: Legal entity details for invoices issued to and from this team.]",
+        "fields": {
+          "address": "[TODO en: Address]",
+          "addressPlaceholder": "[TODO en: Street + number]",
+          "billingEmail": "[TODO en: Billing email]",
+          "billingEmailHint": "[TODO en: Invoice delivery address]",
+          "billingEmailPlaceholder": "[TODO en: billing@team.be]",
+          "billingPhone": "[TODO en: Billing phone]",
+          "billingPhonePlaceholder": "[TODO en: +32 …]",
+          "city": "[TODO en: City]",
+          "cityPlaceholder": "[TODO en: Antwerpen]",
+          "contactEmail": "[TODO en: Contact email]",
+          "contactEmailHint": "[TODO en: Team-wide inbox for notifications]",
+          "contactEmailPlaceholder": "[TODO en: contact@team.be]",
+          "country": "[TODO en: Country]",
+          "defaultRecipient": "[TODO en: Default invoice recipient]",
+          "defaultRecipientHint": "[TODO en: Fallback when creating assignments]",
+          "description": "[TODO en: Description / internal notes]",
+          "descriptionPlaceholder": "[TODO en: Anything worth remembering about this team — primary contact, scheduling quirks, …]",
+          "firmOption": "[TODO en: Firm / agency]",
+          "iban": "[TODO en: IBAN]",
+          "ibanPlaceholder": "[TODO en: BE68 5390 0754 7034]",
+          "kbo": "[TODO en: KBO / Chamber of Commerce]",
+          "kboPlaceholder": "[TODO en: 0xxxxxxxxx]",
+          "legalName": "[TODO en: Legal name]",
+          "legalNameHint": "[TODO en: Official entity name on invoices]",
+          "legalNamePlaceholder": "[TODO en: e.g. Vastgoed Antwerp BVBA]",
+          "ownerOption": "[TODO en: Property owner]",
+          "perAssignment": "[TODO en: — Pick per assignment —]",
+          "postal": "[TODO en: Postal]",
+          "postalPlaceholder": "[TODO en: 2000]",
+          "vatNumber": "[TODO en: VAT number]",
+          "vatNumberHint": "[TODO en: Belgian format: BE 0xxx.xxx.xxx]",
+          "vatPlaceholder": "[TODO en: BE 0xxx.xxx.xxx]"
+        },
+        "save": "[TODO en: Save billing details]",
+        "title": "[TODO en: Billing & legal]"
+      },
+      "branding": {
+        "description": "[TODO en: Logo and signature used on PDF certificates issued on behalf of this team.]",
+        "logoAlt": "[TODO en: {name} logo]",
+        "logoEdit": "[TODO en: Upload or replace in Edit →]",
+        "logoHint": "[TODO en: Shown on dashboards, assignments, and team cards.]",
+        "logoLabel": "[TODO en: Team logo]",
+        "noLogo": "[TODO en: No logo]",
+        "noSignature": "[TODO en: No signature]",
+        "signatureAlt": "[TODO en: {name} signature]",
+        "signatureEdit": "[TODO en: Upload or replace in Edit →]",
+        "signatureHint": "[TODO en: Stamped on certificates and signed assignment forms.]",
+        "signatureLabel": "[TODO en: Signature image]",
+        "title": "[TODO en: Branding]"
+      },
+      "breadcrumbTeams": "[TODO en: Teams]",
+      "commission": {
+        "accruing": "[TODO en: Accruing]",
+        "activityEmpty": "[TODO en: No commission accrued yet. Lines are recorded when an assignment is marked completed.]",
+        "activityTitle": "[TODO en: Commission activity]",
+        "amountHintFixed": "[TODO en: Flat euro amount per delivered assignment.]",
+        "amountHintPercentage": "[TODO en: Of the invoice total, excluding VAT.]",
+        "amountLabel": "[TODO en: Amount]",
+        "cadence": {
+          "biweekly": "[TODO en: Bi-weekly]",
+          "monthly": "[TODO en: Monthly]",
+          "weekly": "[TODO en: Weekly]"
+        },
+        "cadenceLabel": "[TODO en: Payout cadence]",
+        "descriptionLink": "[TODO en: Commissions page]",
+        "descriptionPrefix": "[TODO en: How this team is rewarded per delivered assignment. Payouts are tracked on the]",
+        "descriptionSuffix": "[TODO en: .]",
+        "options": {
+          "fixed": {
+            "description": "[TODO en: A flat fee per delivered assignment.]",
+            "label": "[TODO en: Fixed amount]"
+          },
+          "none": {
+            "description": "[TODO en: This team doesn't earn commission.]",
+            "label": "[TODO en: None]"
+          },
+          "percentage": {
+            "description": "[TODO en: A share of the assignment price.]",
+            "label": "[TODO en: Percentage]"
+          }
+        },
+        "paid": "[TODO en: Paid {date}]",
+        "percentageLabel": "[TODO en: Percentage]",
+        "quarterLabel": "[TODO en: Q{quarter} {year}]",
+        "title": "[TODO en: Commission configuration]"
+      },
+      "delete": {
+        "cancelLabel": "[TODO en: Keep it]",
+        "confirmDescription": "[TODO en: Members, invites, service-price overrides, commission lines and payout history are all removed. Blocked when assignments still reference this team — delete or reassign those first.]",
+        "confirmLabel": "[TODO en: Delete team]",
+        "confirmTitle": "[TODO en: Delete {name}?]",
+        "trigger": "[TODO en: Delete team]"
+      },
+      "footer": {
+        "adminOnlyDelete": "[TODO en: Only admins can delete this team.]",
+        "editTeam": "[TODO en: Edit team]"
+      },
+      "hero": {
+        "allTeams": "[TODO en: ← All teams]",
+        "createdLabel": "[TODO en: Team · created {date}]",
+        "editTeam": "[TODO en: Edit team]",
+        "inviteMember": "[TODO en: Invite member]",
+        "ownerLabel": "[TODO en: Owner:]"
+      },
+      "members": {
+        "columns": {
+          "email": "[TODO en: Email]",
+          "joined": "[TODO en: Joined]",
+          "name": "[TODO en: Name]",
+          "platformRole": "[TODO en: Platform role]",
+          "teamRole": "[TODO en: Team role]"
+        },
+        "empty": "[TODO en: No members yet. Invite someone to get started.]",
+        "inviteMember": "[TODO en: Invite member]",
+        "member": "[TODO en: Member]",
+        "noExpiry": "[TODO en: —]",
+        "owner": "[TODO en: Owner]",
+        "pendingColumns": {
+          "email": "[TODO en: Email]",
+          "expires": "[TODO en: Expires]",
+          "invited": "[TODO en: Invited]",
+          "role": "[TODO en: Role]",
+          "teamRole": "[TODO en: Team role]"
+        },
+        "pendingSummary": "[TODO en: {count, plural, one {# invite} other {# invites}} awaiting acceptance]",
+        "pendingTitle": "[TODO en: Pending invites]",
+        "removeDash": "[TODO en: —]",
+        "summary": "[TODO en: {count, plural, one {# person has} other {# people have}} access to this team.]",
+        "title": "[TODO en: Members]",
+        "transferOwnership": "[TODO en: Transfer ownership]"
+      },
+      "overview": {
+        "emptyAssignments": "[TODO en: No assignments yet for this team.]",
+        "facts": {
+          "defaultRecipient": "[TODO en: Default invoice recipient]",
+          "iban": "[TODO en: IBAN]",
+          "kboNumber": "[TODO en: KBO number]",
+          "legalName": "[TODO en: Legal name]",
+          "logoDisabled": "[TODO en: Disabled]",
+          "logoEnabled": "[TODO en: Enabled]",
+          "logoOnPhotos": "[TODO en: Logo on photo exports]",
+          "notSet": "[TODO en: Not set]",
+          "recipientFirm": "[TODO en: Firm / agency]",
+          "recipientOwner": "[TODO en: Property owner]",
+          "vatNumber": "[TODO en: VAT number]"
+        },
+        "factsTitle": "[TODO en: Team facts]",
+        "quickActions": {
+          "adjustCommission": "[TODO en: Adjust commission]",
+          "createAssignment": "[TODO en: Create assignment]",
+          "editBilling": "[TODO en: Edit billing details]",
+          "inviteMember": "[TODO en: Invite member]"
+        },
+        "quickActionsTitle": "[TODO en: Quick actions]",
+        "recentDescription": "[TODO en: Latest work carried out for this team.]",
+        "recentTitle": "[TODO en: Recent assignments]",
+        "serviceMixDescription": "[TODO en: What this team orders most.]",
+        "serviceMixTitle": "[TODO en: Service mix]",
+        "viewAll": "[TODO en: View all →]"
+      },
+      "removeMember": {
+        "cancelLabel": "[TODO en: Keep]",
+        "confirmDescription": "[TODO en: They lose access to this team's assignments immediately. Their account and any assignments they personally created stay put.]",
+        "confirmLabel": "[TODO en: Remove member]",
+        "confirmTitle": "[TODO en: Remove {member} from {team}?]",
+        "trigger": "[TODO en: Remove]"
+      },
+      "services": {
+        "columns": {
+          "effective": "[TODO en: Effective]",
+          "master": "[TODO en: Master]",
+          "override": "[TODO en: Team override]",
+          "service": "[TODO en: Service]"
+        },
+        "description": "[TODO en: Per-team prices override the master price list. Leave blank to use the master price shown.]",
+        "overrideBadge": "[TODO en: (override)]",
+        "overridePlaceholder": "[TODO en: —]",
+        "title": "[TODO en: Services & price overrides]"
+      },
+      "stats": {
+        "active": "[TODO en: Active]",
+        "activeHint": "[TODO en: Scheduled or in progress]",
+        "commission": "[TODO en: Commission]",
+        "commissionFlatFee": "[TODO en: {rate} flat fee]",
+        "commissionInvoicesFirm": "[TODO en: Invoices firm by default]",
+        "commissionInvoicesOwner": "[TODO en: Invoices owner by default]",
+        "commissionNotConfigured": "[TODO en: Not configured]",
+        "commissionPercentageOf": "[TODO en: {rate} of revenue]",
+        "deliveredMtd": "[TODO en: Delivered (MTD)]",
+        "deliveredMtdHint": "[TODO en: Since {date}]",
+        "members": "[TODO en: Members]",
+        "membersHasOwner": "[TODO en: Has an owner]",
+        "membersNoOwner": "[TODO en: No owner assigned]"
+      },
+      "tabs": {
+        "assignments": "[TODO en: Assignments]",
+        "billing": "[TODO en: Billing]",
+        "branding": "[TODO en: Branding]",
+        "commission": "[TODO en: Commission]",
+        "members": "[TODO en: Members]",
+        "overview": "[TODO en: Overview]",
+        "services": "[TODO en: Services & pricing]"
+      },
+      "topbarSubtitleNoCity": "[TODO en: — · {count, plural, one {# member} other {# members}}]",
+      "topbarSubtitleWithCity": "[TODO en: {city} · {count, plural, one {# member} other {# members}}]",
+      "transferOwnership": {
+        "cancel": "[TODO en: Cancel]",
+        "confirm": "[TODO en: Confirm transfer]",
+        "eligibleHint": "[TODO en: Only realtors and admins who are currently members of this team appear here. Freelancer members cannot own the team.]",
+        "inviteTeammate": "[TODO en: Invite a teammate]",
+        "modalDescription": "[TODO en: Pick a new owner for {team}. They'll get full edit + invite rights; you'll become a regular member.]",
+        "modalTitle": "[TODO en: Transfer team ownership]",
+        "newOwnerLabel": "[TODO en: New owner]",
+        "newOwnerPlaceholder": "[TODO en: Pick an eligible teammate…]",
+        "newOwnerSearchPlaceholder": "[TODO en: Type a name or email…]",
+        "noEligible": "[TODO en: You're the only eligible owner of this team. Invite another realtor first — once they accept, you'll be able to transfer ownership to them here.]",
+        "trigger": "[TODO en: Transfer ownership]"
+      }
+    },
+    "edit": {
+      "priceOverrides": {
+        "basePrice": "[TODO en: Base price {price}]",
+        "itemsColumnPrice": "[TODO en: Price]",
+        "itemsColumnProduct": "[TODO en: Product]",
+        "itemsEmpty": "[TODO en: No items configured in Odoo for this pricelist.]",
+        "itemsHeading": "[TODO en: Items in this pricelist]",
+        "odooUnreachable": "[TODO en: Odoo is unreachable — pricelist bindings can't be loaded or changed right now. Existing bindings are still in effect.]",
+        "overrideAriaLabel": "[TODO en: Override price for {label}]",
+        "overrideError": "[TODO en: Enter a positive number (e.g. 145 or 145.50).]",
+        "pricelistEmpty": "[TODO en: No pricelists in Odoo (or Odoo is unreachable).]",
+        "pricelistLabel": "[TODO en: Pricelist]",
+        "pricelistMissing": "[TODO en: #{id} (missing in Odoo)]",
+        "pricelistNone": "[TODO en: — None —]",
+        "reset": "[TODO en: Reset]",
+        "save": "[TODO en: Save]"
+      },
+      "servicesDescription": "[TODO en: Custom pricing per service. Some services bind to an Odoo pricelist; others use a fixed override price (leave blank for the base price). Existing assignments keep their snapshotted price — changes apply to new work only.]",
+      "servicesTitle": "[TODO en: Services & pricing]",
+      "topbarSubtitle": "[TODO en: Update agency details, billing info, pricing, and commission config.]",
+      "topbarTitle": "[TODO en: Edit {name}]"
+    },
+    "list": {
+      "columns": {
+        "assignments": "[TODO en: Assignments]",
+        "members": "[TODO en: Members]",
+        "office": "[TODO en: Office]",
+        "owner": "[TODO en: Owner]"
+      },
+      "createTeam": "[TODO en: Create team]",
+      "empty": {
+        "createFirst": "[TODO en: Create first team]",
+        "noMatchDescription": "[TODO en: Nothing found for \"{query}\". Try a different name, city, or owner.]",
+        "noMatchTitle": "[TODO en: No teams match that search]",
+        "noTeamsDescription": "[TODO en: Create your first agency office. You'll be able to add members, set commission rules and order certificates on their behalf.]",
+        "noTeamsTitle": "[TODO en: No teams yet]"
+      },
+      "founderBanner": {
+        "bodyCanFound": "[TODO en: Create your office to get started — you can invite teammates and order certificates afterwards.]",
+        "bodyCannotFound": "[TODO en: Ask an administrator to create your office, or contact support if you're a new agency owner.]",
+        "contactSupport": "[TODO en: Contact support]",
+        "createOffice": "[TODO en: Create your office]",
+        "titleDefault": "[TODO en: Your agency isn't set up yet.]",
+        "titleFromGate": "[TODO en: You need a team before you can use that section.]"
+      },
+      "headline": "[TODO en: {count, plural, one {# partner office} other {# partner offices}} across Belgium]",
+      "mobile": {
+        "assignments": "[TODO en: Assignments]",
+        "members": "[TODO en: Members]",
+        "owner": "[TODO en: Owner]"
+      },
+      "noCity": "[TODO en: —]",
+      "noOwner": "[TODO en: —]",
+      "searchPlaceholder": "[TODO en: Search by team name, city or owner…]",
+      "topbarSubtitle": "[TODO en: {count, plural, one {# office} other {# offices}}]",
+      "topbarTitle": "[TODO en: Teams]"
+    },
+    "new": {
+      "topbarSubtitle": "[TODO en: Start a new agency office. You'll become its owner.]",
+      "topbarTitle": "[TODO en: Create team]"
+    }
+  },
+  "users": {
+    "detail": {
+      "about": "[TODO en: About]",
+      "actions": {
+        "edit": "[TODO en: Edit]",
+        "message": "[TODO en: Message]"
+      },
+      "atAGlance": {
+        "active": "[TODO en: Active]",
+        "closed": "[TODO en: Closed]",
+        "delivered": "[TODO en: Delivered]",
+        "services": "[TODO en: Services]",
+        "teams": "[TODO en: Teams]",
+        "title": "[TODO en: At a glance]",
+        "total": "[TODO en: Total]"
+      },
+      "breadcrumbUsers": "[TODO en: Users]",
+      "certifications": {
+        "description": "[TODO en: Services this inspector is certified to perform.]",
+        "title": "[TODO en: Certifications]"
+      },
+      "contact": {
+        "joined": "[TODO en: Joined {date}]",
+        "membershipsExtra": "[TODO en: +{count} more]",
+        "title": "[TODO en: Contact]"
+      },
+      "lastSeen": "[TODO en: Last seen {when}]",
+      "neverSignedIn": "[TODO en: Never signed in]",
+      "online": "[TODO en: Online now]",
+      "recentActivity": {
+        "empty": "[TODO en: No recent activity.]",
+        "title": "[TODO en: Recent activity]"
+      },
+      "recentWork": {
+        "emptyAdminStaff": "[TODO en: Admin & staff accounts don't carry assignments directly.]",
+        "emptyDefault": "[TODO en: No assignments linked to this user yet.]",
+        "showingOf": "[TODO en: Showing last {shown} of {total}]",
+        "title": "[TODO en: Recent work]"
+      },
+      "relativeTime": {
+        "daysAgo": "[TODO en: {count}d ago]",
+        "hoursAgo": "[TODO en: {count}h ago]",
+        "justNow": "[TODO en: just now]",
+        "minutesAgo": "[TODO en: {count}m ago]",
+        "monthsAgo": "[TODO en: {count}mo ago]",
+        "yearsAgo": "[TODO en: {count}y ago]"
+      },
+      "roleAccess": {
+        "admin": {
+          "billingPriceLists": "[TODO en: Billing & price lists]",
+          "fullAccess": "[TODO en: Full platform access]",
+          "manageUsersTeams": "[TODO en: Manage users & teams]"
+        },
+        "freelancer": {
+          "acceptAssignments": "[TODO en: Accept assignments]",
+          "setAvailability": "[TODO en: Set availability]",
+          "uploadDeliverables": "[TODO en: Upload deliverables]"
+        },
+        "realtor": {
+          "createAssignments": "[TODO en: Create assignments]",
+          "inviteTeammates": "[TODO en: Invite teammates]",
+          "seeTeamActivity": "[TODO en: See team activity]"
+        },
+        "staff": {
+          "createAssign": "[TODO en: Create & assign work]",
+          "supportConsole": "[TODO en: Support console]",
+          "viewAllTeams": "[TODO en: View all teams]"
+        },
+        "title": "[TODO en: Role & access]",
+        "yes": "[TODO en: Yes]"
+      },
+      "subtitleNoTeam": "[TODO en: No team]",
+      "verbs": {
+        "announcementCreated": "[TODO en: Published an announcement]",
+        "assignmentCancelled": "[TODO en: Cancelled an assignment]",
+        "assignmentCommissionApplied": "[TODO en: Commission recorded]",
+        "assignmentCompleted": "[TODO en: Signed off on an assignment]",
+        "assignmentCreated": "[TODO en: Created an assignment]",
+        "assignmentDeleted": "[TODO en: Deleted an assignment]",
+        "assignmentDelivered": "[TODO en: Delivered an inspection]",
+        "assignmentFileDeleted": "[TODO en: Removed a file]",
+        "assignmentFileUploaded": "[TODO en: Uploaded files]",
+        "assignmentReassigned": "[TODO en: Reassigned an inspector]",
+        "assignmentStarted": "[TODO en: Started an inspection]",
+        "assignmentUpdated": "[TODO en: Updated an assignment]",
+        "calendarConnected": "[TODO en: Connected a calendar]",
+        "calendarDisconnected": "[TODO en: Disconnected a calendar]",
+        "commissionQuarterPaid": "[TODO en: Marked a quarter paid]",
+        "commissionQuarterUnpaid": "[TODO en: Reopened a quarter]",
+        "inviteAccepted": "[TODO en: Invite accepted]",
+        "inviteSent": "[TODO en: Sent an invite]",
+        "revenueAdjustmentCreated": "[TODO en: Added a revenue adjustment]",
+        "teamCreated": "[TODO en: Created a team]",
+        "teamDeleted": "[TODO en: Deleted a team]",
+        "teamMemberAdded": "[TODO en: Added a team member]",
+        "teamMemberRemoved": "[TODO en: Removed a team member]",
+        "teamOwnershipTransferred": "[TODO en: Transferred ownership]",
+        "teamUpdated": "[TODO en: Updated a team]",
+        "userCreated": "[TODO en: Created a user]",
+        "userDeleted": "[TODO en: Deleted a user]",
+        "userEmailChanged": "[TODO en: Changed email]",
+        "userPasswordChanged": "[TODO en: Changed password]",
+        "userProfileUpdated": "[TODO en: Updated profile]",
+        "userRoleChanged": "[TODO en: Changed role]",
+        "userSignedIn": "[TODO en: Signed in]",
+        "userSignedOut": "[TODO en: Signed out]"
+      }
+    },
+    "edit": {
+      "breadcrumbEdit": "[TODO en: Edit]",
+      "breadcrumbUsers": "[TODO en: Users]",
+      "delete": {
+        "cancelLabel": "[TODO en: Keep]",
+        "confirmDescription": "[TODO en: The account is soft-deleted — they can no longer sign in and every active session is revoked. Assignments and comments they created stay in place, attributed to their name.]",
+        "confirmLabel": "[TODO en: Delete user]",
+        "confirmTitle": "[TODO en: Delete {name}?]",
+        "trigger": "[TODO en: Delete]"
+      },
+      "passwordReset": {
+        "confirmPassword": "[TODO en: Confirm new password]",
+        "description": "[TODO en: Sets a new password for this user. Every active session is revoked so the old password stops working immediately. The user is not emailed — share the new password out-of-band.]",
+        "newPassword": "[TODO en: New password]",
+        "newPasswordHint": "[TODO en: At least 8 characters including a letter and a number.]",
+        "submit": "[TODO en: Reset password]",
+        "success": "[TODO en: Password reset. Other sessions signed out.]",
+        "title": "[TODO en: Reset password]"
+      },
+      "profile": {
+        "description": "[TODO en: Changing the email does not re-verify it — trusted admin update.]",
+        "email": "[TODO en: Email]",
+        "firstName": "[TODO en: First name]",
+        "lastName": "[TODO en: Last name]",
+        "role": "[TODO en: Role]",
+        "roleHint": "[TODO en: Controls what this person can access across the platform.]",
+        "save": "[TODO en: Save profile]",
+        "title": "[TODO en: Profile]"
+      },
+      "topbarSubtitle": "[TODO en: Admin user management]",
+      "topbarTitle": "[TODO en: Edit {name}]"
+    },
+    "invite": {
+      "breadcrumbInvite": "[TODO en: Invite]",
+      "breadcrumbUsers": "[TODO en: Users]",
+      "footer": {
+        "cancel": "[TODO en: Cancel]",
+        "requiredHint": "[TODO en: Required]",
+        "submit": "[TODO en: Send invite]"
+      },
+      "needTeamFirst": {
+        "backToDashboard": "[TODO en: Back to dashboard]",
+        "body": "[TODO en: Realtors can only invite people into teams they own. You're not an owner of any team yet — ask your agency admin to transfer ownership to you, or create a new team.]",
+        "createTeam": "[TODO en: Create a team]",
+        "title": "[TODO en: You need to own a team before you can invite anyone]"
+      },
+      "preview": {
+        "bodyWithoutTeam": "[TODO en: You've been invited to join <brand></brand> as a <strong>{role}</strong>.]",
+        "bodyWithTeam": "[TODO en: You've been invited to join <brand></brand> as a <strong>{role}</strong> on team <strong>{team}</strong> ({teamRole}).]",
+        "cta": "[TODO en: Accept invitation →]",
+        "description": "[TODO en: This is what they'll receive.]",
+        "expiry": "[TODO en: This link expires in 7 days.]",
+        "from": "[TODO en: From:]",
+        "subject": "[TODO en: You're invited to join <brand></brand>]",
+        "title": "[TODO en: Preview email]",
+        "to": "[TODO en: To:]",
+        "toFallback": "[TODO en: colleague@agency.be]"
+      },
+      "roleCard": {
+        "description": "[TODO en: Determines what they can see and do on the platform.]",
+        "roles": {
+          "admin": {
+            "description": "[TODO en: Full platform access — billing, price lists, user management.]",
+            "label": "[TODO en: Admin]"
+          },
+          "freelancer": {
+            "description": "[TODO en: Certified inspector — accepts assignments and uploads deliverables.]",
+            "label": "[TODO en: Freelancer]"
+          },
+          "realtor": {
+            "description": "[TODO en: Creates assignments, tracks their agency's work, invites teammates.]",
+            "label": "[TODO en: Realtor]"
+          },
+          "staff": {
+            "description": "[TODO en: immoplatform support — can view all teams and help users.]",
+            "label": "[TODO en: Staff]"
+          }
+        },
+        "title": "[TODO en: Role]"
+      },
+      "teamCard": {
+        "descriptionFreelancer": "[TODO en: Attach this freelancer to a team they regularly work with.]",
+        "descriptionLocked": "[TODO en: Inviting into {teamName}. Open the invite from the Users page if you need to pick a different team.]",
+        "descriptionLockedFallback": "[TODO en: Inviting into this team. Open the invite from the Users page if you need to pick a different team.]",
+        "descriptionRealtor": "[TODO en: Attach this realtor to an agency team.]",
+        "noTeamOption": "[TODO en: No team (optional)]",
+        "ownerTakenExplain": "[TODO en: {ownerName} already owns {teamName}. New invites can only join as members. To change the owner, transfer ownership first from the team settings.]",
+        "ownerTakenLabel": "[TODO en: Taken]",
+        "ownerTakenReason": "[TODO en: {ownerName} already owns this team]",
+        "teamFieldLabel": "[TODO en: Team / office]",
+        "teamPlaceholder": "[TODO en: Search a team…]",
+        "teamRoleHeading": "[TODO en: Team role]",
+        "teamRoles": {
+          "member": {
+            "description": "[TODO en: Can create and see assignments for the team.]",
+            "label": "[TODO en: Member]"
+          },
+          "owner": {
+            "description": "[TODO en: Member + can invite, edit team settings & remove others.]",
+            "label": "[TODO en: Owner]"
+          }
+        },
+        "teamSearchPlaceholder": "[TODO en: Type a team name or city…]",
+        "title": "[TODO en: Team]",
+        "titleOptional": "[TODO en: Team (optional)]"
+      },
+      "topbarSubtitle": "[TODO en: Send an email invite to join your workspace]",
+      "topbarTitle": "[TODO en: Invite user]",
+      "whoCard": {
+        "description": "[TODO en: We'll email them a secure link to create their account.]",
+        "emailLabel": "[TODO en: Work email]",
+        "emailPlaceholder": "[TODO en: colleague@agency.be]",
+        "noteHint": "[TODO en: Shown on the accept-invite page. Nice for context.]",
+        "noteLabel": "[TODO en: Optional note]",
+        "notePlaceholder": "[TODO en: Hi Lucas — welcome to our immoplatform workspace.]",
+        "title": "[TODO en: Who are you inviting?]"
+      }
+    },
+    "list": {
+      "columns": {
+        "actions": "[TODO en: Actions]",
+        "joined": "[TODO en: Joined]",
+        "lastSeen": "[TODO en: Last seen]",
+        "role": "[TODO en: Role]",
+        "team": "[TODO en: Team]",
+        "user": "[TODO en: User]"
+      },
+      "filterAll": "[TODO en: All]",
+      "inviteUser": "[TODO en: Invite user]",
+      "lastSeen": {
+        "daysAgo": "[TODO en: {count}d ago]",
+        "hoursAgo": "[TODO en: {count}h ago]",
+        "justNow": "[TODO en: Just now]",
+        "minutesAgo": "[TODO en: {count}m ago]",
+        "monthsAgo": "[TODO en: {count}mo ago]",
+        "never": "[TODO en: Never]",
+        "online": "[TODO en: Online]",
+        "yearsAgo": "[TODO en: {count}y ago]"
+      },
+      "noTeam": "[TODO en: —]",
+      "searchPlaceholder": "[TODO en: Search by name or email…]",
+      "topbarSubtitle": "[TODO en: {count, plural, one {# person} other {# people}}]",
+      "topbarTitle": "[TODO en: Users]",
+      "viewUserAriaLabel": "[TODO en: View {name}]"
+    },
+    "pendingInvites": {
+      "ariaLabel": "[TODO en: Pending invites · {count} awaiting acceptance]",
+      "inviteUser": "[TODO en: Invite user]",
+      "next": "[TODO en: Next]",
+      "previous": "[TODO en: Previous]",
+      "row": {
+        "cancelLabel": "[TODO en: Keep it]",
+        "confirmDescription": "[TODO en: They won't be able to use the accept link anymore. Sending a fresh invite is still possible afterwards.]",
+        "confirmLabel": "[TODO en: Revoke invite]",
+        "confirmTitle": "[TODO en: Revoke invite for {email}?]",
+        "metaSentBy": "[TODO en: Sent by {name} on {date}]",
+        "resend": "[TODO en: Resend]",
+        "revoke": "[TODO en: Revoke]"
+      },
+      "showingRange": "[TODO en: Showing {start}–{end} of {total}]",
+      "title": "[TODO en: Pending invites]"
+    },
+    "roles": {
+      "admin": "[TODO en: Admin]",
+      "freelancer": "[TODO en: Freelancer]",
+      "realtor": "[TODO en: Realtor]",
+      "staff": "[TODO en: Staff]"
+    }
+  }
+}

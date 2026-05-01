@@ -1,11 +1,12 @@
 /**
  * Password-reset email. Transactional: always sends regardless of prefs.
- * Copy preserved from `passwordResetEmail` string template.
+ * Copy lives under `emails.passwordReset.*`.
  */
 
 import * as React from "react";
 import { Link } from "@react-email/components";
-import { BrandMark, CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
+import { useTranslations } from "next-intl";
+import { CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
 import { BRAND_NAME } from "@/lib/site";
 
 export type PasswordResetEmailProps = {
@@ -13,28 +14,28 @@ export type PasswordResetEmailProps = {
   resetUrl: string;
 };
 
-export const subject = (_p: PasswordResetEmailProps) =>
-  `Reset your ${BRAND_NAME} password`;
+export const subjectKey = "emails.passwordReset.subject";
+
+export function subjectArgs(_p: PasswordResetEmailProps): Record<string, unknown> {
+  return { brand: BRAND_NAME };
+}
 
 export default function PasswordReset(props: PasswordResetEmailProps) {
+  const t = useTranslations("emails.passwordReset");
+  const tCommon = useTranslations("emails.common");
   return (
     <EmailLayout
-      preview={`Reset your ${BRAND_NAME} password`}
-      title="Reset your password"
+      preview={t("preview", { brand: BRAND_NAME })}
+      title={t("title")}
     >
-      <P>Hi {props.name},</P>
-      <P>
-        Someone requested a password reset for your <BrandMark size={15} />{" "}
-        account. If this was you, open the link below to choose a new password.
-        The link expires in 1 hour.
-      </P>
-      <CtaButton href={props.resetUrl}>Choose a new password</CtaButton>
+      <P>{tCommon("hi", { name: props.name })}</P>
+      <P>{t("intro", { brand: BRAND_NAME })}</P>
+      <CtaButton href={props.resetUrl}>{t("ctaButton")}</CtaButton>
       <P style={mutedStyle}>
-        Or open this URL: <Link href={props.resetUrl}>{props.resetUrl}</Link>
+        {tCommon("openUrlPrefix")}{" "}
+        <Link href={props.resetUrl}>{props.resetUrl}</Link>
       </P>
-      <P style={mutedStyle}>
-        If you didn&rsquo;t request this, you can safely ignore this email.
-      </P>
+      <P style={mutedStyle}>{t("ignoreNotice")}</P>
     </EmailLayout>
   );
 }

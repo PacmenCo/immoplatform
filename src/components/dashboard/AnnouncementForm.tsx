@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
@@ -9,6 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
 import { useFormDirty } from "@/lib/useFormDirty";
+import { useTranslateError } from "@/i18n/error";
 import { IconMegaphone, IconCheck } from "@/components/ui/Icons";
 import type { ActionResult } from "@/app/actions/_types";
 
@@ -34,12 +36,12 @@ type Props = {
 
 const TYPE_STYLES: Record<
   AnnouncementFormInitial["type"],
-  { bg: string; fg: string; label: string }
+  { bg: string; fg: string }
 > = {
-  info:    { bg: "#eff6ff", fg: "#1d4ed8", label: "Info" },
-  success: { bg: "#ecfdf5", fg: "#047857", label: "Success" },
-  warning: { bg: "#fef3c7", fg: "#b45309", label: "Warning" },
-  danger:  { bg: "#fef2f2", fg: "#b91c1c", label: "Danger" },
+  info:    { bg: "#eff6ff", fg: "#1d4ed8" },
+  success: { bg: "#ecfdf5", fg: "#047857" },
+  warning: { bg: "#fef3c7", fg: "#b45309" },
+  danger:  { bg: "#fef2f2", fg: "#b91c1c" },
 };
 
 function todayIso() {
@@ -53,6 +55,8 @@ function plusDaysIso(days: number) {
 }
 
 export function AnnouncementForm({ action, initial, submitLabel, cancelHref }: Props) {
+  const t = useTranslations("dashboard.shared.announcementForm");
+  const tErr = useTranslateError();
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
     FormData
@@ -66,33 +70,39 @@ export function AnnouncementForm({ action, initial, submitLabel, cancelHref }: P
   const formRef = useRef<HTMLFormElement>(null);
   useUnsavedChanges(useFormDirty(formRef));
 
-  const submit = submitLabel ?? (initial ? "Save changes" : "Publish announcement");
+  const submit = submitLabel ?? (initial ? t("submitEdit") : t("submitCreate"));
   const preview = TYPE_STYLES[type];
+  const TYPE_LABELS = {
+    info: t("typeInfo"),
+    success: t("typeSuccess"),
+    warning: t("typeWarning"),
+    danger: t("typeDanger"),
+  } as const;
 
   return (
     <form ref={formRef} action={formAction} className="max-w-[960px] p-8 pb-28 space-y-6">
-      {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
+      {state && !state.ok && <ErrorAlert>{tErr(state.error)}</ErrorAlert>}
 
       <Card>
-        <CardHeader><CardTitle>Content</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("contentTitle")}</CardTitle></CardHeader>
         <CardBody className="space-y-6">
-          <Field label="Title" id="title" hint="Shown in bold on the banner" required>
+          <Field label={t("title")} id="title" hint={t("titleHint")} required>
             <Input
               id="title"
               name="title"
-              placeholder="e.g. Scheduled maintenance on April 20"
+              placeholder={t("titlePlaceholder")}
               defaultValue={initial?.title ?? ""}
               onChange={(e) => setTitle(e.currentTarget.value)}
               maxLength={200}
               required
             />
           </Field>
-          <Field label="Body" id="body" hint="One or two short sentences work best" required>
+          <Field label={t("body")} id="body" hint={t("bodyHint")} required>
             <Textarea
               id="body"
               name="body"
               rows={5}
-              placeholder="Describe what is happening, when, and what users should do."
+              placeholder={t("bodyPlaceholder")}
               defaultValue={initial?.body ?? ""}
               onChange={(e) => setBody(e.currentTarget.value)}
               maxLength={2000}
@@ -100,20 +110,20 @@ export function AnnouncementForm({ action, initial, submitLabel, cancelHref }: P
             />
           </Field>
           <div className="grid gap-6 md:grid-cols-3">
-            <Field label="Type" id="type">
+            <Field label={t("type")} id="type">
               <Select
                 id="type"
                 name="type"
                 defaultValue={initial?.type ?? "info"}
                 onChange={(e) => setType(e.currentTarget.value as AnnouncementFormInitial["type"])}
               >
-                <option value="info">Info</option>
-                <option value="success">Success</option>
-                <option value="warning">Warning</option>
-                <option value="danger">Danger</option>
+                <option value="info">{t("typeInfo")}</option>
+                <option value="success">{t("typeSuccess")}</option>
+                <option value="warning">{t("typeWarning")}</option>
+                <option value="danger">{t("typeDanger")}</option>
               </Select>
             </Field>
-            <Field label="Start date" id="startsAt" required>
+            <Field label={t("startDate")} id="startsAt" required>
               <Input
                 id="startsAt"
                 name="startsAt"
@@ -122,7 +132,7 @@ export function AnnouncementForm({ action, initial, submitLabel, cancelHref }: P
                 required
               />
             </Field>
-            <Field label="End date" id="endsAt" required>
+            <Field label={t("endDate")} id="endsAt" required>
               <Input
                 id="endsAt"
                 name="endsAt"
@@ -136,27 +146,27 @@ export function AnnouncementForm({ action, initial, submitLabel, cancelHref }: P
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Visibility</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("visibilityTitle")}</CardTitle></CardHeader>
         <CardBody className="space-y-4">
           <Switch
             id="isActive"
             name="isActive"
-            label="Active"
-            description="Uncheck to save as a draft without publishing."
+            label={t("active")}
+            description={t("activeDescription")}
             defaultChecked={initial?.isActive ?? true}
           />
           <Switch
             id="isDismissible"
             name="isDismissible"
-            label="Dismissible"
-            description="Let each user close the banner for themselves. Sticky announcements can only be closed by an admin."
+            label={t("dismissible")}
+            description={t("dismissibleDescription")}
             defaultChecked={initial?.isDismissible ?? true}
           />
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Preview</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("previewTitle")}</CardTitle></CardHeader>
         <CardBody>
           <div className="flex items-start gap-4 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-4">
             <span
@@ -169,12 +179,12 @@ export function AnnouncementForm({ action, initial, submitLabel, cancelHref }: P
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-semibold text-[var(--color-ink)]">
-                  {title || "Your title shows here"}
+                  {title || t("previewTitleFallback")}
                 </h3>
-                <Badge bg={preview.bg} fg={preview.fg}>{preview.label}</Badge>
+                <Badge bg={preview.bg} fg={preview.fg}>{TYPE_LABELS[type]}</Badge>
               </div>
               <p className="mt-1 text-sm text-[var(--color-ink-soft)] whitespace-pre-line">
-                {body || "Body text previews like this for all users in the active window."}
+                {body || t("previewBodyFallback")}
               </p>
             </div>
           </div>
@@ -182,7 +192,7 @@ export function AnnouncementForm({ action, initial, submitLabel, cancelHref }: P
       </Card>
 
       <div className="flex items-center justify-end gap-2 pt-2">
-        <Button href={cancelHref} variant="ghost" size="md">Cancel</Button>
+        <Button href={cancelHref} variant="ghost" size="md">{t("cancel")}</Button>
         <Button type="submit" size="md" loading={pending}>
           <IconCheck size={16} />
           {submit}

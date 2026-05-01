@@ -63,7 +63,7 @@ describe("changeAssignmentStatusInner — role allowlist", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Your role can't set this status.",
+      error: "errors.assignment.roleCannotSetStatus",
     });
     const after = await prisma.assignment.findUniqueOrThrow({
       where: { id: asg.id },
@@ -85,7 +85,7 @@ describe("changeAssignmentStatusInner — role allowlist", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Your role can't set this status.",
+      error: "errors.assignment.roleCannotSetStatus",
     });
   });
 
@@ -116,7 +116,7 @@ describe("changeAssignmentStatusInner — role allowlist", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Your role can't set this status.",
+      error: "errors.assignment.roleCannotSetStatus",
     });
   });
 
@@ -236,8 +236,7 @@ describe("changeAssignmentStatusInner — target-specific policy gates", () => {
     });
     expect(res.ok).toBe(false);
     if (!res.ok) {
-      expect(res.error).toMatch(/Q1 2026/);
-      expect(res.error).toMatch(/marked paid/);
+      expect(res.error).toBe("errors.assignment.commissionPaidLocksReopen");
     }
     // Commission line and assignment status untouched.
     const after = await prisma.assignment.findUniqueOrThrow({
@@ -258,7 +257,7 @@ describe("changeAssignmentStatusInner — miscellaneous", () => {
     const res = await changeAssignmentStatusInner(admin, "a_missing", {
       to: "scheduled",
     });
-    expect(res).toEqual({ ok: false, error: "Assignment not found." });
+    expect(res).toEqual({ ok: false, error: "errors.assignment.notFound" });
   });
 
   it("rejects invalid target status values", async () => {
@@ -272,7 +271,7 @@ describe("changeAssignmentStatusInner — miscellaneous", () => {
       // Intentional: bypass TS union to feed bad data through the action.
       to: "enchanted" as unknown as "scheduled",
     });
-    expect(res).toEqual({ ok: false, error: "Invalid status." });
+    expect(res).toEqual({ ok: false, error: "errors.validation.invalidStatus" });
   });
 
   it("emits an audit row tagged with the canonical verb for the target", async () => {

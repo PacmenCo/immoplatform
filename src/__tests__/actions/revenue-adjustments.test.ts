@@ -39,7 +39,7 @@ describe("createRevenueAdjustmentInner — role gate", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can add revenue adjustments.",
+      error: "errors.revenueAdjustment.addAdminsOnly",
     });
   });
 
@@ -54,7 +54,7 @@ describe("createRevenueAdjustmentInner — role gate", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can add revenue adjustments.",
+      error: "errors.revenueAdjustment.addAdminsOnly",
     });
   });
 
@@ -151,7 +151,7 @@ describe("createRevenueAdjustmentInner — amount parsing", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Amount must be a non-zero number.",
+      error: "errors.revenueAdjustment.amountNonZero",
     });
   });
 
@@ -191,7 +191,7 @@ describe("createRevenueAdjustmentInner — other validation", () => {
       description: "x",
       amountEuros: "1",
     });
-    expect(res).toEqual({ ok: false, error: "Team not found." });
+    expect(res).toEqual({ ok: false, error: "errors.team.notFound" });
   });
 
   it("month out of range (13) → zod rejects", async () => {
@@ -313,7 +313,7 @@ describe("deleteRevenueAdjustmentInner", () => {
     const res = await deleteRevenueAdjustmentInner(realtor, id);
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can remove revenue adjustments.",
+      error: "errors.revenueAdjustment.removeAdminsOnly",
     });
     const row = await prisma.revenueAdjustment.findUnique({ where: { id } });
     expect(row).not.toBeNull();
@@ -322,13 +322,13 @@ describe("deleteRevenueAdjustmentInner", () => {
   it("missing row → 'Adjustment not found.'", async () => {
     const { admin } = await seedBaseline();
     const res = await deleteRevenueAdjustmentInner(admin, "ra_missing");
-    expect(res).toEqual({ ok: false, error: "Adjustment not found." });
+    expect(res).toEqual({ ok: false, error: "errors.revenueAdjustment.notFound" });
   });
 
   it("deleting twice → second call returns 'Adjustment not found.' (non-idempotent by design)", async () => {
     const { id, admin } = await seedAdjustment();
     await deleteRevenueAdjustmentInner(admin, id);
     const second = await deleteRevenueAdjustmentInner(admin, id);
-    expect(second).toEqual({ ok: false, error: "Adjustment not found." });
+    expect(second).toEqual({ ok: false, error: "errors.revenueAdjustment.notFound" });
   });
 });

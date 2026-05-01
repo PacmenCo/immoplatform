@@ -79,8 +79,15 @@
 @theme inline {
   --color-background: var(--color-bg);
   --color-foreground: var(--color-ink);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Single source of truth: every text role resolves to Montserrat (the
+     Proxima Nova stand-in). `--font-geist-sans` was never loaded — this
+     used to silently fall through to system fonts. Tailwind's `font-mono`
+     utility picks `--font-mono` up automatically; pointing it at the same
+     variable keeps reference codes / activity timestamps consistent with
+     the rest of the app. To restore monospaced code blocks later, load a
+     mono font and point `--font-mono` at it. */
+  --font-sans: var(--font-proxima);
+  --font-mono: var(--font-proxima);
 }
 
 * {

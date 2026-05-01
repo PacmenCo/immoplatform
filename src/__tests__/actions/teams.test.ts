@@ -63,7 +63,7 @@ describe("createTeamInner — role gate", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to create teams.",
+      error: "errors.team.cannotCreate",
     });
   });
 
@@ -72,7 +72,7 @@ describe("createTeamInner — role gate", () => {
     const res = await createTeamInner(staff, undefined, teamForm());
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to create teams.",
+      error: "errors.team.cannotCreate",
     });
   });
 
@@ -81,7 +81,7 @@ describe("createTeamInner — role gate", () => {
     const res = await createTeamInner(freelancer, undefined, teamForm());
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to create teams.",
+      error: "errors.team.cannotCreate",
     });
   });
 });
@@ -147,7 +147,7 @@ describe("createTeamInner — realtor founder flow", () => {
     );
     expect(second).toEqual({
       ok: false,
-      error: "You don't have permission to create teams.",
+      error: "errors.team.cannotCreate",
     });
   });
 });
@@ -289,7 +289,7 @@ describe("updateTeamInner", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to edit this team.",
+      error: "errors.team.cannotEdit",
     });
   });
 });
@@ -311,8 +311,7 @@ describe("deleteTeamInner", () => {
     const res = await deleteTeamInner(admin, teams.t1.id);
     expect(res.ok).toBe(false);
     if (!res.ok) {
-      expect(res.error).toMatch(/2 assignments on record/);
-      expect(res.error).toMatch(/Delete or reassign/);
+      expect(res.error).toBe("errors.team.stillHasAssignments");
     }
     // Team still exists.
     const after = await prisma.team.findUnique({ where: { id: teams.t1.id } });
@@ -322,7 +321,7 @@ describe("deleteTeamInner", () => {
   it("non-existent team → 'Team not found.'", async () => {
     const { admin } = await seedBaseline();
     const res = await deleteTeamInner(admin, "t_missing");
-    expect(res).toEqual({ ok: false, error: "Team not found." });
+    expect(res).toEqual({ ok: false, error: "errors.team.notFound" });
   });
 
   it("realtor rejected even when they own the team (admin-only per v1)", async () => {
@@ -330,7 +329,7 @@ describe("deleteTeamInner", () => {
     const res = await deleteTeamInner(realtor, teams.t1.id);
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can delete teams.",
+      error: "errors.team.deleteOnlyAdmins",
     });
   });
 
@@ -343,7 +342,7 @@ describe("deleteTeamInner", () => {
     const res = await deleteTeamInner(outsider, "t_test_1");
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can delete teams.",
+      error: "errors.team.deleteOnlyAdmins",
     });
   });
 
@@ -409,7 +408,7 @@ describe("removeTeamMemberInner", () => {
     const res = await removeTeamMemberInner(admin, teams.t1.id, realtor.user.id);
     expect(res).toEqual({
       ok: false,
-      error: "Transfer ownership to another member before removing the current owner.",
+      error: "errors.team.transferOwnerFirst",
     });
     // Membership still present.
     const ownership = await prisma.teamMember.findUniqueOrThrow({
@@ -425,7 +424,7 @@ describe("removeTeamMemberInner", () => {
     const res = await removeTeamMemberInner(admin, teams.t1.id, freelancer.user.id);
     expect(res).toEqual({
       ok: false,
-      error: "That user is not on this team.",
+      error: "errors.team.memberNotInTeam",
     });
   });
 });
@@ -476,27 +475,27 @@ describe("setTeamServiceOverrideInner — money path", () => {
     const { admin, teams } = await seedBaseline();
     const res = await setTeamServiceOverrideInner(admin, teams.t1.id, "asbestos", 0);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/greater than 0/);
+    if (!res.ok) expect(res.error).toBe("errors.team.priceMustBePositive");
   });
 
   it("negative priceCents → rejected", async () => {
     const { admin, teams } = await seedBaseline();
     const res = await setTeamServiceOverrideInner(admin, teams.t1.id, "asbestos", -500);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/greater than 0/);
+    if (!res.ok) expect(res.error).toBe("errors.team.priceMustBePositive");
   });
 
   it("priceCents > €1M → rejected (typo guard — user probably typed euros not cents)", async () => {
     const { admin, teams } = await seedBaseline();
     const res = await setTeamServiceOverrideInner(admin, teams.t1.id, "asbestos", 2_000_000_00);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/use cents/);
+    if (!res.ok) expect(res.error).toBe("errors.team.priceLooksOff");
   });
 
   it("unknown serviceKey → 'Unknown service.'", async () => {
     const { admin, teams } = await seedBaseline();
     const res = await setTeamServiceOverrideInner(admin, teams.t1.id, "bogus-key", 10_000);
-    expect(res).toEqual({ ok: false, error: "Unknown service." });
+    expect(res).toEqual({ ok: false, error: "errors.team.unknownService" });
   });
 
   it("permissions — realtor rejected even when they own the team (admin-only per v1)", async () => {
@@ -509,7 +508,7 @@ describe("setTeamServiceOverrideInner — money path", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can change team price overrides.",
+      error: "errors.team.overrideAdminsOnly",
     });
   });
 
@@ -527,7 +526,7 @@ describe("setTeamServiceOverrideInner — money path", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can change team price overrides.",
+      error: "errors.team.overrideAdminsOnly",
     });
   });
 
@@ -627,27 +626,27 @@ describe("setTeamServicePricelistInner", () => {
     const { admin, teams } = await seedBaseline();
     const res = await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", 0);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/Invalid pricelist id/);
+    if (!res.ok) expect(res.error).toBe("errors.team.invalidPricelistId");
   });
 
   it("negative id → rejected", async () => {
     const { admin, teams } = await seedBaseline();
     const res = await setTeamServicePricelistInner(admin, teams.t1.id, "asbestos", -3);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/Invalid pricelist id/);
+    if (!res.ok) expect(res.error).toBe("errors.team.invalidPricelistId");
   });
 
   it("unknown serviceKey → 'Unknown service.'", async () => {
     const { admin, teams } = await seedBaseline();
     const res = await setTeamServicePricelistInner(admin, teams.t1.id, "bogus", 16);
-    expect(res).toEqual({ ok: false, error: "Unknown service." });
+    expect(res).toEqual({ ok: false, error: "errors.team.unknownService" });
   });
 
   it("permissions — realtor rejected (admin-only, parity with override action)", async () => {
     const { realtor, teams } = await seedBaseline();
     const res = await setTeamServicePricelistInner(realtor, teams.t1.id, "asbestos", 16);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/Only admins/);
+    if (!res.ok) expect(res.error).toBe("errors.team.pricelistAdminsOnly");
     const row = await prisma.teamServiceOverride.findUnique({
       where: { teamId_serviceKey: { teamId: teams.t1.id, serviceKey: "asbestos" } },
     });
@@ -724,7 +723,7 @@ describe("transferTeamOwnershipInner", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can transfer team ownership.",
+      error: "errors.team.transferOnlyAdmins",
     });
   });
 
@@ -732,7 +731,7 @@ describe("transferTeamOwnershipInner", () => {
     const { admin, teams } = await seedBaseline();
     const res = await transferTeamOwnershipInner(admin, teams.t1.id, "u_nonmember");
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/no longer a member/);
+    if (!res.ok) expect(res.error).toBe("errors.team.transferTargetMissing");
   });
 
   it("target already is the owner → 'already the team owner'", async () => {
@@ -742,7 +741,7 @@ describe("transferTeamOwnershipInner", () => {
       teams.t1.id,
       outgoing.user.id,
     );
-    expect(res).toEqual({ ok: false, error: "That user is already the team owner." });
+    expect(res).toEqual({ ok: false, error: "errors.team.alreadyOwner" });
   });
 
   it("target is a freelancer → rejected (only realtor/admin eligible)", async () => {
@@ -760,7 +759,7 @@ describe("transferTeamOwnershipInner", () => {
       freelancer.user.id,
     );
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/realtor or admin/);
+    if (!res.ok) expect(res.error).toBe("errors.team.transferTargetIneligible");
   });
 
   it("target is soft-deleted → 'account is deactivated.'", async () => {
@@ -774,7 +773,7 @@ describe("transferTeamOwnershipInner", () => {
       teams.t1.id,
       incoming.user.id,
     );
-    expect(res).toEqual({ ok: false, error: "That account is deactivated." });
+    expect(res).toEqual({ ok: false, error: "errors.auth.accountDeactivated" });
   });
 
   it("outsider realtor (not owner, not admin) → 'no permission'", async () => {
@@ -794,7 +793,7 @@ describe("transferTeamOwnershipInner", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can transfer team ownership.",
+      error: "errors.team.transferOnlyAdmins",
     });
   });
 

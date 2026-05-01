@@ -48,7 +48,7 @@ describe("createAnnouncementInner — role gate", () => {
     const res = await createAnnouncementInner(staff, undefined, form());
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can publish announcements.",
+      error: "errors.announcement.publishAdminsOnly",
     });
   });
 
@@ -57,7 +57,7 @@ describe("createAnnouncementInner — role gate", () => {
     const res = await createAnnouncementInner(realtor, undefined, form());
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can publish announcements.",
+      error: "errors.announcement.publishAdminsOnly",
     });
   });
 
@@ -96,7 +96,7 @@ describe("createAnnouncementInner — validation + persistence", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "End date must be on or after the start date.",
+      error: "errors.announcement.endBeforeStart",
     });
   });
 
@@ -182,14 +182,14 @@ describe("updateAnnouncementInner", () => {
     const res = await updateAnnouncementInner(realtor, id, undefined, form());
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can edit announcements.",
+      error: "errors.announcement.editAdminsOnly",
     });
   });
 
   it("missing row → 'Announcement not found.'", async () => {
     const { admin } = await seedBaseline();
     const res = await updateAnnouncementInner(admin, "a_missing", undefined, form());
-    expect(res).toEqual({ ok: false, error: "Announcement not found." });
+    expect(res).toEqual({ ok: false, error: "errors.announcement.notFound" });
   });
 
   it("emits announcement.updated audit on success", async () => {
@@ -241,14 +241,14 @@ describe("deleteAnnouncementInner", () => {
     const res = await deleteAnnouncementInner(realtor, created.data.id);
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can delete announcements.",
+      error: "errors.announcement.deleteAdminsOnly",
     });
   });
 
   it("missing row → 'Announcement not found.'", async () => {
     const { admin } = await seedBaseline();
     const res = await deleteAnnouncementInner(admin, "a_missing");
-    expect(res).toEqual({ ok: false, error: "Announcement not found." });
+    expect(res).toEqual({ ok: false, error: "errors.announcement.notFound" });
   });
 });
 
@@ -295,13 +295,13 @@ describe("dismissAnnouncementInner", () => {
     const res = await dismissAnnouncementInner(reader, id);
     expect(res).toEqual({
       ok: false,
-      error: "This announcement cannot be dismissed.",
+      error: "errors.announcement.cannotDismiss",
     });
   });
 
   it("missing row → 'Announcement not found.'", async () => {
     const { freelancer } = await seedBaseline();
     const res = await dismissAnnouncementInner(freelancer, "a_missing");
-    expect(res).toEqual({ ok: false, error: "Announcement not found." });
+    expect(res).toEqual({ ok: false, error: "errors.announcement.notFound" });
   });
 });

@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { getTranslations } from "next-intl/server";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { IconAlert, IconBuilding, IconMail, IconPhone, IconMapPin, IconWallet } from "@/components/ui/Icons";
 
@@ -32,7 +33,7 @@ function present(v: string | null | undefined): v is string {
   return typeof v === "string" && v.trim().length > 0;
 }
 
-export function LegalBillingDisplay({
+export async function LegalBillingDisplay({
   data,
   editHref,
   canEdit = false,
@@ -42,6 +43,7 @@ export function LegalBillingDisplay({
   editHref?: string;
   canEdit?: boolean;
 }) {
+  const t = await getTranslations("dashboard.shared.legalBillingDisplay");
   // Empty state — none of the billing fields are populated.
   const fullyEmpty =
     !data ||
@@ -57,7 +59,7 @@ export function LegalBillingDisplay({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Legal &amp; billing</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardBody>
           <div className="flex items-start gap-3 rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-bg-alt)] p-4">
@@ -67,18 +69,17 @@ export function LegalBillingDisplay({
             />
             <div className="flex-1">
               <p className="text-sm font-medium text-[var(--color-ink)]">
-                Billing details incomplete
+                {t("incompleteTitle")}
               </p>
               <p className="mt-0.5 text-xs text-[var(--color-ink-soft)]">
-                Required before payouts can be issued. Add the inspector&apos;s
-                VAT number, IBAN, and billing address.
+                {t("incompleteBody")}
               </p>
               {canEdit && editHref && (
                 <Link
                   href={editHref}
                   className="mt-2 inline-flex items-center text-xs font-medium text-[var(--color-brand)] hover:underline"
                 >
-                  Add billing details →
+                  {t("addDetailsCta")}
                 </Link>
               )}
             </div>
@@ -107,7 +108,7 @@ export function LegalBillingDisplay({
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <CardTitle>Legal &amp; billing</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
           <span
             className={
               "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider " +
@@ -116,25 +117,25 @@ export function LegalBillingDisplay({
                 : "bg-[var(--color-bg-muted)] text-[var(--color-ink-muted)]")
             }
           >
-            {data.entityType === "company" ? "Company" : "Sole trader"}
+            {data.entityType === "company" ? t("company") : t("soleTrader")}
           </span>
         </div>
       </CardHeader>
       <CardBody>
         <dl className="divide-y divide-[var(--color-border)] text-sm">
           {present(data.legalName) && (
-            <Row icon={<IconBuilding size={14} />} label="Legal name" value={data.legalName} />
+            <Row icon={<IconBuilding size={14} />} label={t("labelLegalName")} value={data.legalName} />
           )}
           {vatLine && (
-            <Row icon={<IconWallet size={14} />} label="VAT / KBO" value={vatLine} mono />
+            <Row icon={<IconWallet size={14} />} label={t("labelVatKbo")} value={vatLine} mono />
           )}
           {present(data.iban) && (
-            <Row icon={<IconWallet size={14} />} label="IBAN" value={maskIban(data.iban)} mono />
+            <Row icon={<IconWallet size={14} />} label={t("labelIban")} value={maskIban(data.iban)} mono />
           )}
           {present(data.billingEmail) && (
             <Row
               icon={<IconMail size={14} />}
-              label="Billing email"
+              label={t("labelBillingEmail")}
               value={
                 <a
                   href={`mailto:${data.billingEmail}`}
@@ -148,7 +149,7 @@ export function LegalBillingDisplay({
           {present(data.billingPhone) && (
             <Row
               icon={<IconPhone size={14} />}
-              label="Billing phone"
+              label={t("labelBillingPhone")}
               value={
                 <a
                   href={`tel:${data.billingPhone}`}
@@ -160,7 +161,7 @@ export function LegalBillingDisplay({
             />
           )}
           {addressLine && (
-            <Row icon={<IconMapPin size={14} />} label="Billing address" value={addressLine} />
+            <Row icon={<IconMapPin size={14} />} label={t("labelBillingAddress")} value={addressLine} />
           )}
         </dl>
       </CardBody>

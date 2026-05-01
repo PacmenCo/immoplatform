@@ -1,0 +1,49 @@
+{
+  "actions": {
+    "about": "About",
+    "contact": "Contact",
+    "login": "Log in",
+    "register": "Register"
+  },
+  "footer": {
+    "brandsLine": "Asbest Experts · EPC Partner · Elec Inspect · Tank Check",
+    "columns": {
+      "account": {
+        "title": "Account"
+      },
+      "company": {
+        "title": "Company"
+      },
+      "legal": {
+        "links": {
+          "cookies": "Cookies",
+          "privacy": "Privacy",
+          "terms": "Terms"
+        },
+        "title": "Legal"
+      },
+      "services": {
+        "links": {
+          "asbestos": "Asbestos Inventory Attest (AIV)",
+          "electrical": "Electrical Inspection (EK)",
+          "epc": "Energy Performance Certificate (EPC)",
+          "fuel": "Fuel Tank Check (TK)"
+        },
+        "title": "Services"
+      }
+    },
+    "copyright": "© {year} {brand}. All rights reserved.",
+    "tagline": "One platform for every real-estate certificate in Belgium."
+  },
+  "localeSwitcher": {
+    "en": "English",
+    "label": "Language",
+    "nl-BE": "Nederlands"
+  },
+  "nav": {
+    "homeAriaLabel": "immoplatform.be — home",
+    "howItWorks": "How it works",
+    "register": "Register as agent",
+    "services": "Services"
+  }
+}

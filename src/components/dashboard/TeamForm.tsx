@@ -1,10 +1,12 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
 import { useFormDirty } from "@/lib/useFormDirty";
+import { useTranslateError } from "@/i18n/error";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
@@ -66,6 +68,9 @@ export function TeamForm({
   cancelHref,
   isAdmin = false,
 }: Props) {
+  const t = useTranslations("dashboard.shared.teamForm");
+  const tCommon = useTranslations("dashboard.shared.common");
+  const tErr = useTranslateError();
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
     FormData
@@ -78,26 +83,26 @@ export function TeamForm({
   const formRef = useRef<HTMLFormElement>(null);
   useUnsavedChanges(useFormDirty(formRef));
 
-  const submit = submitLabel ?? (initial ? "Save changes" : "Create team");
+  const submit = submitLabel ?? (initial ? t("submitEdit") : t("submitCreate"));
 
   return (
     <form ref={formRef} action={formAction} className="max-w-[960px] p-8 pb-28 space-y-6">
-      {state && !state.ok && <ErrorAlert>{state.error}</ErrorAlert>}
+      {state && !state.ok && <ErrorAlert>{tErr(state.error)}</ErrorAlert>}
 
       <Card>
         <CardHeader>
-          <CardTitle>Team basics</CardTitle>
+          <CardTitle>{t("basicsTitle")}</CardTitle>
           <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-            Name, location, and the badge shown on cards across the dashboard.
+            {t("basicsDescription")}
           </p>
         </CardHeader>
         <CardBody className="grid gap-5 sm:grid-cols-6">
           <div className="sm:col-span-4">
-            <Field label="Team name" id="name" required>
+            <Field label={t("name")} id="name" required>
               <Input
                 id="name"
                 name="name"
-                placeholder="Vastgoed Antwerp"
+                placeholder={t("namePlaceholder")}
                 defaultValue={initial?.name ?? ""}
                 autoComplete="off"
                 required
@@ -105,40 +110,40 @@ export function TeamForm({
             </Field>
           </div>
           <div className="sm:col-span-2">
-            <Field label="City" id="city">
+            <Field label={t("city")} id="city">
               <Input
                 id="city"
                 name="city"
-                placeholder="Antwerpen"
+                placeholder={t("cityPlaceholder")}
                 defaultValue={initial?.city ?? ""}
                 autoComplete="off"
               />
             </Field>
           </div>
           <div className="sm:col-span-3">
-            <Field label="Team email" id="email" hint="Shared inbox — used on invoices.">
+            <Field label={t("email")} id="email" hint={t("emailHint")}>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="contact@agency.be"
+                placeholder={t("emailPlaceholder")}
                 defaultValue={initial?.email ?? ""}
                 autoComplete="off"
               />
             </Field>
           </div>
           <div className="sm:col-span-3">
-            <Field label="Short description" id="description">
+            <Field label={t("shortDescription")} id="description">
               <Input
                 id="description"
                 name="description"
-                placeholder="e.g. Residential specialists in Flanders"
+                placeholder={t("shortDescriptionPlaceholder")}
                 defaultValue={initial?.description ?? ""}
               />
             </Field>
           </div>
           <div className="sm:col-span-6">
-            <Field label="Badge" id="logo" hint="1–3 letters shown on team cards until a logo image is uploaded. Leave blank to derive from the team name.">
+            <Field label={t("badge")} id="logo" hint={t("badgeHint")}>
               <div className="flex items-center gap-4">
                 <LogoPreview logo={logo} color={logoColor} />
                 <Input
@@ -146,12 +151,12 @@ export function TeamForm({
                   name="logo"
                   className="max-w-[100px]"
                   maxLength={3}
-                  placeholder="VA"
+                  placeholder={t("badgePlaceholder")}
                   value={logo}
                   onChange={(e) => setLogo(e.target.value)}
                 />
                 <label className="flex items-center gap-2 text-sm text-[var(--color-ink-soft)]">
-                  Color
+                  {t("color")}
                   <input
                     type="color"
                     name="logoColor"
@@ -167,8 +172,8 @@ export function TeamForm({
             <Switch
               id="prefersLogoOnPhotos"
               name="prefersLogoOnPhotos"
-              label="Stamp team logo on property photos"
-              description="When on, the team's branding is overlaid on listing photos generated by the platform."
+              label={t("stampLogo")}
+              description={t("stampLogoDescription")}
               defaultChecked={initial?.prefersLogoOnPhotos ?? false}
             />
           </div>
@@ -181,9 +186,9 @@ export function TeamForm({
       >
         <summary className="flex cursor-pointer items-center justify-between p-6 [&::-webkit-details-marker]:hidden">
           <div>
-            <h3 className="text-base font-semibold text-[var(--color-ink)]">Legal + billing</h3>
+            <h3 className="text-base font-semibold text-[var(--color-ink)]">{t("legalTitle")}</h3>
             <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-              Used on issued invoices and the opdrachtformulier. Optional now, but needed before billing.
+              {t("legalDescription")}
             </p>
           </div>
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--color-border)] text-[var(--color-ink-muted)] transition-transform group-open:rotate-45">
@@ -193,58 +198,58 @@ export function TeamForm({
           </span>
         </summary>
         <div className="grid gap-5 border-t border-[var(--color-border)] p-6 sm:grid-cols-2">
-          <Field label="Legal name" id="legalName">
-            <Input id="legalName" name="legalName" placeholder="Vastgoed Antwerp BV" defaultValue={initial?.legalName ?? ""} autoComplete="off" />
+          <Field label={t("legalName")} id="legalName">
+            <Input id="legalName" name="legalName" placeholder={t("legalNamePlaceholder")} defaultValue={initial?.legalName ?? ""} autoComplete="off" />
           </Field>
-          <Field label="VAT number" id="vatNumber">
-            <Input id="vatNumber" name="vatNumber" placeholder="BE 0712.345.678" defaultValue={initial?.vatNumber ?? ""} autoComplete="off" />
+          <Field label={t("vatNumber")} id="vatNumber">
+            <Input id="vatNumber" name="vatNumber" placeholder={t("vatPlaceholder")} defaultValue={initial?.vatNumber ?? ""} autoComplete="off" />
           </Field>
-          <Field label="Chamber of Commerce (KBO)" id="kboNumber">
-            <Input id="kboNumber" name="kboNumber" placeholder="0712345678" defaultValue={initial?.kboNumber ?? ""} autoComplete="off" />
+          <Field label={t("kboNumber")} id="kboNumber">
+            <Input id="kboNumber" name="kboNumber" placeholder={t("kboPlaceholder")} defaultValue={initial?.kboNumber ?? ""} autoComplete="off" />
           </Field>
-          <Field label="IBAN" id="iban">
-            <Input id="iban" name="iban" placeholder="BE68 5390 0754 7034" defaultValue={initial?.iban ?? ""} autoComplete="off" />
+          <Field label={t("iban")} id="iban">
+            <Input id="iban" name="iban" placeholder={t("ibanPlaceholder")} defaultValue={initial?.iban ?? ""} autoComplete="off" />
           </Field>
-          <Field label="Billing email" id="billingEmail">
-            <Input id="billingEmail" name="billingEmail" type="email" placeholder="billing@agency.be" defaultValue={initial?.billingEmail ?? ""} autoComplete="off" />
+          <Field label={t("billingEmail")} id="billingEmail">
+            <Input id="billingEmail" name="billingEmail" type="email" placeholder={t("billingEmailPlaceholder")} defaultValue={initial?.billingEmail ?? ""} autoComplete="off" />
           </Field>
-          <Field label="Billing phone" id="billingPhone">
-            <Input id="billingPhone" name="billingPhone" placeholder="+32 3 234 56 78" defaultValue={initial?.billingPhone ?? ""} autoComplete="off" />
+          <Field label={t("billingPhone")} id="billingPhone">
+            <Input id="billingPhone" name="billingPhone" placeholder={t("billingPhonePlaceholder")} defaultValue={initial?.billingPhone ?? ""} autoComplete="off" />
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Billing address" id="billingAddress">
+            <Field label={t("billingAddress")} id="billingAddress">
               <Textarea
                 id="billingAddress"
                 name="billingAddress"
                 rows={2}
-                placeholder="Street + number"
+                placeholder={t("billingAddressPlaceholder")}
                 defaultValue={initial?.billingAddress ?? ""}
                 autoComplete="off"
               />
             </Field>
           </div>
-          <Field label="Postal code" id="billingPostal">
-            <Input id="billingPostal" name="billingPostal" placeholder="2000" defaultValue={initial?.billingPostal ?? ""} autoComplete="off" />
+          <Field label={t("billingPostal")} id="billingPostal">
+            <Input id="billingPostal" name="billingPostal" placeholder={t("billingPostalPlaceholder")} defaultValue={initial?.billingPostal ?? ""} autoComplete="off" />
           </Field>
-          <Field label="Billing city" id="billingCity">
-            <Input id="billingCity" name="billingCity" placeholder="Antwerpen" defaultValue={initial?.billingCity ?? ""} autoComplete="off" />
+          <Field label={t("billingCity")} id="billingCity">
+            <Input id="billingCity" name="billingCity" placeholder={t("billingCityPlaceholder")} defaultValue={initial?.billingCity ?? ""} autoComplete="off" />
           </Field>
-          <Field label="Country" id="billingCountry">
-            <Input id="billingCountry" name="billingCountry" placeholder="Belgium" defaultValue={initial?.billingCountry ?? "Belgium"} autoComplete="off" />
+          <Field label={t("country")} id="billingCountry">
+            <Input id="billingCountry" name="billingCountry" placeholder={t("countryPlaceholder")} defaultValue={initial?.billingCountry ?? "Belgium"} autoComplete="off" />
           </Field>
           <Field
-            label="Invoice recipient default"
+            label={t("invoiceRecipient")}
             id="defaultClientType"
-            hint="Drives which contact block prints on invoices. Overridable per assignment."
+            hint={t("invoiceRecipientHint")}
           >
             <Select
               id="defaultClientType"
               name="defaultClientType"
               defaultValue={initial?.defaultClientType ?? ""}
             >
-              <option value="">No default</option>
-              <option value="owner">Particulier (owner)</option>
-              <option value="firm">Firm (bedrijf)</option>
+              <option value="">{t("noDefault")}</option>
+              <option value="owner">{t("particulier")}</option>
+              <option value="firm">{t("firm")}</option>
             </Select>
           </Field>
         </div>
@@ -257,9 +262,9 @@ export function TeamForm({
         >
           <summary className="flex cursor-pointer items-center justify-between p-6 [&::-webkit-details-marker]:hidden">
             <div>
-              <h3 className="text-base font-semibold text-[var(--color-ink)]">Commission</h3>
+              <h3 className="text-base font-semibold text-[var(--color-ink)]">{t("commissionTitle")}</h3>
               <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-                How much the team keeps per delivered assignment. Set once, applies platform-wide.
+                {t("commissionDescription")}
               </p>
             </div>
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--color-border)] text-[var(--color-ink-muted)] transition-transform group-open:rotate-45">
@@ -269,21 +274,21 @@ export function TeamForm({
             </span>
           </summary>
           <div className="grid gap-5 border-t border-[var(--color-border)] p-6 sm:grid-cols-2">
-            <Field label="Model" id="commissionType">
+            <Field label={t("commissionModel")} id="commissionType">
               <Select
                 id="commissionType"
                 name="commissionType"
                 defaultValue={initial?.commissionType ?? "none"}
               >
-                <option value="none">No commission</option>
-                <option value="percentage">Percentage of order</option>
-                <option value="fixed">Fixed amount per order</option>
+                <option value="none">{t("commissionNone")}</option>
+                <option value="percentage">{t("commissionPercentage")}</option>
+                <option value="fixed">{t("commissionFixed")}</option>
               </Select>
             </Field>
             <Field
-              label="Value"
+              label={t("commissionValue")}
               id="commissionValue"
-              hint="Percentage: basis points (1500 = 15%). Fixed: cents (2500 = €25.00)."
+              hint={t("commissionValueHint")}
             >
               <Input
                 id="commissionValue"
@@ -301,11 +306,11 @@ export function TeamForm({
       <div className="sticky bottom-0 z-30 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
         <div className="flex items-center justify-between gap-3 px-8 py-4">
           <p className="text-xs text-[var(--color-ink-muted)]">
-            <span aria-hidden className="text-[var(--color-asbestos)]">*</span> Required
+            <span aria-hidden className="text-[var(--color-asbestos)]">*</span> {tCommon("required")}
           </p>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="md" href={cancelHref}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button type="submit" size="md" loading={pending}>
               {submit}

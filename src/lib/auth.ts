@@ -6,7 +6,7 @@ import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import type { Prisma, Session, User } from "@prisma/client";
 import { prisma } from "./db";
-import type { NoAccessSection } from "@/app/no-access/page";
+import type { NoAccessSection } from "@/app/[locale]/no-access/page";
 
 export { generateToken, hashToken } from "./auth-crypto";
 
@@ -219,6 +219,7 @@ export type AuditVerb =
   | "assignment.completed"
   | "assignment.cancelled"
   | "assignment.reassigned"
+  | "assignment.key_pickup_updated"
   | "assignment.file_uploaded"
   | "assignment.file_deleted"
   | "assignment.files_reaped"

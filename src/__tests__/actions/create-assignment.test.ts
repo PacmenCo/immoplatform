@@ -43,7 +43,7 @@ describe("createAssignmentInner — role gates", () => {
     const res = await createAssignmentInner(freelancer, undefined, buildCreateForm());
     expect(res).toEqual({
       ok: false,
-      error: "Freelancers can't create assignments. Ask the realtor who hired you.",
+      error: "errors.assignment.freelancerCannotCreate",
     });
   });
 
@@ -57,7 +57,7 @@ describe("createAssignmentInner — role gates", () => {
     const res = await createAssignmentInner(loneRealtor, undefined, buildCreateForm());
     expect(res).toEqual({
       ok: false,
-      error: "You need to own a team before you can create an assignment.",
+      error: "errors.assignment.needsTeamToCreate",
     });
   });
 
@@ -208,7 +208,7 @@ describe("createAssignmentInner — freelancer pre-assign gate", () => {
     const res = await createAssignmentInner(admin, undefined, fd);
     expect(res).toEqual({
       ok: false,
-      error: "That user isn't an active freelancer.",
+      error: "errors.assignment.freelancerNotEligible",
     });
   });
 
@@ -464,7 +464,7 @@ describe("createAssignmentInner — realtor-lane file attach", () => {
     const res = await createAssignmentInner(realtor, undefined, fd);
     expect(res).toEqual({
       ok: false,
-      error: "Up to 10 files at a time.",
+      error: "errors.assignment.tooManyRealtorFiles",
     });
     // No row created — pre-create gate stopped us before prisma.create.
     const after = await prisma.assignment.count();

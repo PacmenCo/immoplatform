@@ -195,7 +195,7 @@ describe("uploadAssignmentFilesInner — freelancer lane", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "Only the assigned freelancer can upload deliverables.",
+      error: "errors.file.freelancerOnlyDeliverables",
     });
 
     // Assignment untouched, no file rows, no audits from the intruder.
@@ -227,7 +227,7 @@ describe("uploadAssignmentFilesInner — freelancer lane", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "This assignment is completed — uploads are closed.",
+      error: "errors.assignment.uploadsClosed",
     });
 
     const files = await prisma.assignmentFile.count({ where: { assignmentId: asg.id } });
@@ -252,7 +252,7 @@ describe("uploadAssignmentFilesInner — freelancer lane", () => {
       undefined,
       uploadForm(makeUploadFile("x.pdf")),
     );
-    expect(res).toEqual({ ok: false, error: "Invalid file lane." });
+    expect(res).toEqual({ ok: false, error: "errors.file.invalidLane" });
   });
 
   it("rejects non-allowlisted MIME types on the freelancer lane", async () => {
@@ -276,8 +276,7 @@ describe("uploadAssignmentFilesInner — freelancer lane", () => {
     );
     expect(res.ok).toBe(false);
     if (!res.ok) {
-      expect(res.error).toMatch(/isn't an allowed file type/);
-      expect(res.error).toMatch(/malicious\.html/);
+      expect(res.error).toBe("errors.file.typeNotAllowed");
     }
   });
 
@@ -297,7 +296,7 @@ describe("uploadAssignmentFilesInner — freelancer lane", () => {
       undefined,
       new FormData(),
     );
-    expect(res).toEqual({ ok: false, error: "Pick a file to upload." });
+    expect(res).toEqual({ ok: false, error: "errors.file.pickFile" });
   });
 });
 
@@ -397,7 +396,7 @@ describe("uploadAssignmentFilesInner — realtor lane", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "Only the assignment's agency can upload supporting files.",
+      error: "errors.file.agencyOnlySupporting",
     });
   });
 });
@@ -412,6 +411,6 @@ describe("uploadAssignmentFilesInner — shared paths", () => {
       undefined,
       uploadForm(makeUploadFile("ghost.pdf")),
     );
-    expect(res).toEqual({ ok: false, error: "Assignment not found." });
+    expect(res).toEqual({ ok: false, error: "errors.assignment.notFound" });
   });
 });

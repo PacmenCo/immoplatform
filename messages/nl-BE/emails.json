@@ -1,0 +1,168 @@
+{
+  "addedToTeam": {
+    "callToAction": "Meld je aan om de opdrachten van het team te zien:",
+    "ctaButton": "Aanmelden",
+    "intro": "{inviterName} heeft je toegevoegd aan het team {teamName} op {brand} als {teamRole}.",
+    "preview": "Je bent toegevoegd aan {teamName}",
+    "subject": "Je bent toegevoegd aan {teamName} op {brand}",
+    "title": "Welkom bij {teamName}"
+  },
+  "assignment": {
+    "calendarPrompt": "Voeg deze afspraak toe aan je Google-agenda:",
+    "openCta": "Opdracht openen"
+  },
+  "assignmentCancelled": {
+    "body": "{cancelledByName} heeft {reference} ({address}) geannuleerd.",
+    "preview": "{reference} is geannuleerd",
+    "reasonLabel": "Reden: {reason}",
+    "subject": "Geannuleerd: {address} ({reference})",
+    "title": "Opdracht geannuleerd"
+  },
+  "assignmentCompleted": {
+    "body": "{completedByName} heeft {reference} ({address}) afgetekend. De opdracht is afgesloten en verlaat de actieve wachtrij.",
+    "preview": "{reference} afgetekend",
+    "subject": "Afgerond: {address} ({reference})",
+    "title": "Opdracht afgerond"
+  },
+  "assignmentDateUpdated": {
+    "body": "De geplande datum voor {reference} ({address}) is gewijzigd.",
+    "newLabel": "Nieuw: {date}",
+    "preview": "Datum gewijzigd voor {reference}",
+    "previousLabel": "Vorige: {date}",
+    "subject": "Datum gewijzigd: {address} ({reference})",
+    "title": "Geplande datum gewijzigd",
+    "unscheduled": "niet ingepland"
+  },
+  "assignmentDelivered": {
+    "bodyDirect": "{actorName} heeft de inspectie op {address} ({reference}) als opgeleverd gemarkeerd. Bekijk de bestanden en teken af wanneer je klaar bent.",
+    "bodyWithFreelancer": "{actorName} heeft de inspectie van {freelancerName} op {address} ({reference}) als opgeleverd gemarkeerd. Bekijk de bestanden en teken af wanneer je klaar bent.",
+    "preview": "{reference} opgeleverd — bekijk de bestanden",
+    "subject": "Opgeleverd: {address} ({reference})",
+    "title": "Opdracht opgeleverd"
+  },
+  "assignmentReassigned": {
+    "body": "Je bent toegewezen aan {reference} ({address}).",
+    "plannedDateLabel": "Geplande datum: {date}",
+    "preview": "Nieuwe inspectie: {reference}",
+    "subject": "Nieuwe inspectie: {address} ({reference})",
+    "title": "Je bent toegewezen aan een nieuwe inspectie"
+  },
+  "assignmentScheduled": {
+    "body": "{reference} op {address} is ingepland voor {date}.",
+    "inspectorLine": "Inspecteur: {name}",
+    "inspectorUnassigned": "Inspecteur: nog niet toegewezen",
+    "preview": "{reference} ingepland voor {date}",
+    "subject": "Ingepland: {address} — {date} ({reference})",
+    "title": "Opdracht ingepland"
+  },
+  "assignmentUnassigned": {
+    "body": "Je bent verwijderd uit {reference} ({address}). Je hoeft niets te ondernemen.",
+    "preview": "Je bent verwijderd uit {reference}",
+    "subject": "Niet meer toegewezen: {address} ({reference})",
+    "title": "Verwijderd uit een opdracht"
+  },
+  "commentPosted": {
+    "intro": "{authorName} reageerde op {reference} ({address}):",
+    "preview": "{authorName} reageerde op {reference}",
+    "replyPrompt": "Antwoord in het gesprek:",
+    "subject": "Nieuwe reactie: {address} ({reference})",
+    "title": "Nieuwe reactie"
+  },
+  "common": {
+    "automatedNotice": "Dit is een automatische melding van het platform.",
+    "footerLine": "Je ontvangt deze e-mail van {brand}. Beheer je notificatievoorkeuren in <accountSettings>je accountinstellingen</accountSettings>.",
+    "hi": "Hi {name},",
+    "openUrlPrefix": "Of open deze URL:"
+  },
+  "contactSubmission": {
+    "ctaButton": "Openen in admin-dashboard",
+    "emailLabel": "E-mail:",
+    "intro": "Iemand heeft het contactformulier op immoplatform.be ingediend:",
+    "messageHeading": "Bericht",
+    "nameLabel": "Naam:",
+    "phoneLabel": "Telefoon:",
+    "preview": "{name} nam contact op via de website",
+    "replyNotice": "Een antwoord op deze e-mail gaat rechtstreeks naar {email}.",
+    "subject": "Nieuw contact: {name}",
+    "subjectLabel": "Onderwerp:",
+    "title": "Nieuw contactformulier ingediend"
+  },
+  "emailVerification": {
+    "ctaButton": "E-mail bevestigen",
+    "ignoreNotice": "Heb je je e-mailadres niet gewijzigd op {brand}? Dan kan je deze e-mail veilig negeren — je account blijft op het vorige adres.",
+    "intro": "Bevestig dat dit je e-mailadres is, zodat we je accountmeldingen kunnen sturen. De link vervalt over 24 uur.",
+    "preview": "Bevestig je e-mailadres bij {brand}",
+    "subject": "Bevestig je e-mailadres bij {brand}",
+    "title": "Bevestig je e-mailadres"
+  },
+  "filesUploaded": {
+    "body": "{uploaderName} {what} bij {reference} ({address}).",
+    "ctaButton": "Bestanden bekijken",
+    "freelancerPlural": "leverde {count} bestanden op",
+    "freelancerSingular": "leverde {count} bestand op",
+    "preview": "{uploaderName} {what} bij {reference}",
+    "realtorPlural": "uploadde {count} ondersteunende bestanden",
+    "realtorSingular": "uploadde {count} ondersteunend bestand",
+    "subject": "Nieuwe bestanden: {address} ({reference})",
+    "title": "Nieuwe bestanden geüpload"
+  },
+  "invite": {
+    "callToAction": "Aanvaard je uitnodiging en stel een wachtwoord in:",
+    "ctaButton": "Uitnodiging aanvaarden",
+    "expiresOn": "Deze link vervalt op {date}.",
+    "intro": "{inviterName} heeft je uitgenodigd om deel te nemen aan {brand}.",
+    "noteHeading": "Bericht van {inviterName}:",
+    "preview": "{inviterName} heeft je uitgenodigd voor {brand}.",
+    "roleLine": "Rol: {role}",
+    "subject": "Je bent uitgenodigd voor {brand} als {role}",
+    "teamLine": "Team: {teamName}",
+    "teamLineWithRole": "Team: {teamName} ({teamRole})",
+    "title": "Je bent uitgenodigd voor {brand}"
+  },
+  "monthlyInvoiceReminder": {
+    "body": "Let op: het einde van {monthLabel} nadert. Bekijk de afgewerkte opdrachten van deze maand en maak facturen aan voor wat nog openstaat.",
+    "ctaButton": "Naar overzicht",
+    "footerNote": "Je krijgt dit als facturatiecontact van het platform.",
+    "greeting": "Hallo,",
+    "preview": "Let op: het einde van {monthLabel} nadert.",
+    "subject": "Facturen openstaand — {monthLabel}",
+    "title": "Facturen openstaand — {monthLabel}"
+  },
+  "odooSyncFailed": {
+    "addressLabel": "Adres:",
+    "ctaButton": "Opdracht openen",
+    "errorHeading": "Fout:",
+    "intro": "De synchronisatie met Odoo voor onderstaande opdracht is mislukt. Klik door naar het dashboard om opnieuw te proberen zodra het probleem is opgelost.",
+    "odooContactIdLabel": "Odoo Contact-ID:",
+    "odooNotCreated": "Niet aangemaakt",
+    "odooOrderIdLabel": "Odoo Order-ID:",
+    "ownerLabel": "Eigenaar:",
+    "ownerNoEmail": "geen e-mail",
+    "ownerUnknown": "Onbekend",
+    "preview": "Odoo-sync mislukt voor {reference}",
+    "propertyTypeLabel": "Type woning:",
+    "propertyTypeUnknown": "Niet opgegeven",
+    "referenceLabel": "Referentie:",
+    "subject": "Odoo-sync mislukt — {address}",
+    "title": "Odoo-sync mislukt"
+  },
+  "passwordReset": {
+    "ctaButton": "Kies een nieuw wachtwoord",
+    "ignoreNotice": "Heb je dit niet aangevraagd? Dan kan je deze e-mail veilig negeren.",
+    "intro": "Iemand heeft een wachtwoordherstel aangevraagd voor je {brand}-account. Als jij dat was, open de onderstaande link om een nieuw wachtwoord te kiezen. De link vervalt over 1 uur.",
+    "preview": "Stel je {brand}-wachtwoord opnieuw in",
+    "subject": "Stel je {brand}-wachtwoord opnieuw in",
+    "title": "Wachtwoord opnieuw instellen"
+  },
+  "userRegistered": {
+    "agencyLabel": "Kantoor:",
+    "ctaButton": "Gebruikers bekijken",
+    "emailLabel": "E-mail:",
+    "greeting": "Hallo,",
+    "intro": "{name} heeft zich net geregistreerd als {role}.",
+    "preview": "{name} heeft zich net geregistreerd als {role}.",
+    "regionLabel": "Regio:",
+    "subject": "Nieuwe {role} aangemeld: {name}",
+    "title": "Nieuwe gebruiker aangemeld"
+  }
+}

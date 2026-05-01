@@ -1,12 +1,37 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@react-email/render";
 import * as React from "react";
+import { IntlProvider } from "use-intl/react";
+import enEmails from "../../../messages/en/emails.json" with { type: "json" };
 import {
   AssignmentCta,
   addressLine,
   demoCtx,
   type AssignmentEmailCtx,
 } from "@/emails/_assignment";
+
+/**
+ * AssignmentCta calls `useTranslations()` so it needs an IntlProvider in
+ * scope — `email.tsx#renderTemplate` provides one in production. Inline
+ * the same wrap here so each render assertion sees the EN catalog.
+ */
+function withProvider(node: React.ReactElement): React.ReactElement {
+  // The provider's typed props require a `children` field, but
+  // `React.createElement(component, props, ...children)` assigns children
+  // positionally — cast through `unknown` to escape the strict overload.
+  return React.createElement(
+    IntlProvider as unknown as React.ComponentType<{
+      locale: string;
+      messages: Record<string, unknown>;
+      children?: React.ReactNode;
+    }>,
+    {
+      locale: "en",
+      messages: { emails: enEmails } as Record<string, unknown>,
+    },
+    node,
+  );
+}
 
 // Platform parity — Assignment::getFullAddressWithZipAttribute.
 // `addressLine` feeds ALL 8 assignment-lifecycle email templates + the
@@ -49,11 +74,13 @@ describe("addressLine", () => {
 
 describe("AssignmentCta — rendered HTML", () => {
   async function renderCta(ctx: AssignmentEmailCtx): Promise<string> {
-    return render(React.createElement(AssignmentCta, { ctx }));
+    return render(withProvider(React.createElement(AssignmentCta, { ctx })));
   }
 
   async function renderCtaText(ctx: AssignmentEmailCtx): Promise<string> {
-    return render(React.createElement(AssignmentCta, { ctx }), { plainText: true });
+    return render(withProvider(React.createElement(AssignmentCta, { ctx })), {
+      plainText: true,
+    });
   }
 
   it("includes 'Open assignment' button pointing at assignmentUrl", async () => {

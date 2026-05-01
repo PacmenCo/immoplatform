@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/Avatar";
 import {
   IconHome,
@@ -31,72 +32,6 @@ type NavItem = {
   visibleFor?: NavRole[]; // omitted = everyone
 };
 
-const sections: Array<{ heading?: string; headingHref?: string; items: NavItem[] }> = [
-  {
-    items: [
-      { href: "/dashboard/assignments", label: "Assignments", icon: IconList },
-    ],
-  },
-  {
-    items: [
-      {
-        href: "/dashboard/users",
-        label: "Users",
-        icon: IconUsers,
-        visibleFor: ["admin", "staff"],
-      },
-      {
-        href: "/dashboard/teams",
-        label: "Teams",
-        icon: IconBuilding,
-        visibleFor: ["admin", "staff", "realtor"],
-      },
-    ],
-  },
-  {
-    items: [
-      { href: "/dashboard", label: "Overview", icon: IconHome },
-      { href: "/dashboard/calendar", label: "Calendar", icon: IconCalendar },
-    ],
-  },
-  {
-    heading: "Admin",
-    headingHref: "/dashboard/admin",
-    items: [
-      {
-        href: "/dashboard/overview",
-        label: "Revenue",
-        icon: IconChart,
-        visibleFor: ["admin"],
-      },
-      {
-        href: "/dashboard/commissions",
-        label: "Commissions",
-        icon: IconWallet,
-        visibleFor: ["admin"],
-      },
-      {
-        href: "/dashboard/contact-messages",
-        label: "Messages",
-        icon: IconMail,
-        visibleFor: ["admin"],
-      },
-      {
-        href: "/dashboard/announcements",
-        label: "Announcements",
-        icon: IconMegaphone,
-        visibleFor: ["admin"],
-      },
-      {
-        href: "/dashboard/admin/odoo-products",
-        label: "Odoo products",
-        icon: IconPlug,
-        visibleFor: ["admin"],
-      },
-    ],
-  },
-];
-
 function isActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
   if (href === "/dashboard") return pathname === "/dashboard";
@@ -121,8 +56,79 @@ type SidebarProps = {
 
 export function Sidebar({ user, unreadContactCount }: SidebarProps) {
   const pathname = usePathname();
+  const t = useTranslations("dashboard.shared.sidebar");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Sections rebuild on locale change (useTranslations is reactive to it).
+  const sections = useMemo<Array<{ heading?: string; headingHref?: string; items: NavItem[] }>>(
+    () => [
+      {
+        items: [
+          { href: "/dashboard/assignments", label: t("items.assignments"), icon: IconList },
+        ],
+      },
+      {
+        items: [
+          {
+            href: "/dashboard/users",
+            label: t("items.users"),
+            icon: IconUsers,
+            visibleFor: ["admin", "staff"],
+          },
+          {
+            href: "/dashboard/teams",
+            label: t("items.teams"),
+            icon: IconBuilding,
+            visibleFor: ["admin", "staff", "realtor"],
+          },
+        ],
+      },
+      {
+        items: [
+          { href: "/dashboard", label: t("items.overview"), icon: IconHome },
+          { href: "/dashboard/calendar", label: t("items.calendar"), icon: IconCalendar },
+        ],
+      },
+      {
+        heading: t("sectionAdmin"),
+        headingHref: "/dashboard/admin",
+        items: [
+          {
+            href: "/dashboard/overview",
+            label: t("items.revenue"),
+            icon: IconChart,
+            visibleFor: ["admin"],
+          },
+          {
+            href: "/dashboard/commissions",
+            label: t("items.commissions"),
+            icon: IconWallet,
+            visibleFor: ["admin"],
+          },
+          {
+            href: "/dashboard/contact-messages",
+            label: t("items.messages"),
+            icon: IconMail,
+            visibleFor: ["admin"],
+          },
+          {
+            href: "/dashboard/announcements",
+            label: t("items.announcements"),
+            icon: IconMegaphone,
+            visibleFor: ["admin"],
+          },
+          {
+            href: "/dashboard/admin/odoo-products",
+            label: t("items.odooProducts"),
+            icon: IconPlug,
+            visibleFor: ["admin"],
+          },
+        ],
+      },
+    ],
+    [t],
+  );
 
   useEffect(() => {
     setMenuOpen(false);
@@ -150,7 +156,7 @@ export function Sidebar({ user, unreadContactCount }: SidebarProps) {
   return (
     <aside className="hidden md:flex h-screen w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-bg)] sticky top-0">
       <div className="flex items-center px-6 h-16 border-b border-[var(--color-border)]">
-        <Link href="/dashboard" aria-label="immoplatform.be — dashboard">
+        <Link href="/dashboard" aria-label={t("homeAriaLabel")}>
           <BrandLogo className="h-9 w-auto" />
         </Link>
       </div>
@@ -257,10 +263,10 @@ export function Sidebar({ user, unreadContactCount }: SidebarProps) {
           />
           <div className="flex flex-col min-w-0 flex-1">
             <span className="text-sm font-medium text-[var(--color-ink)] truncate">
-              {user ? `${user.firstName} ${user.lastName}` : "Jordan Remy"}
+              {user ? `${user.firstName} ${user.lastName}` : t("userFallbackName")}
             </span>
             <span className="text-xs capitalize text-[var(--color-ink-muted)] truncate">
-              {user?.role ?? "admin"}
+              {user?.role ?? t("userFallbackRole")}
             </span>
           </div>
           <svg
@@ -293,7 +299,7 @@ export function Sidebar({ user, unreadContactCount }: SidebarProps) {
               className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
             >
               <IconSettings size={16} className="shrink-0 text-[var(--color-ink-muted)]" />
-              Settings
+              {t("items.settings")}
             </Link>
             <form action={logout}>
               <button
@@ -302,7 +308,7 @@ export function Sidebar({ user, unreadContactCount }: SidebarProps) {
                 className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
               >
                 <IconLogout size={16} className="shrink-0 text-[var(--color-ink-muted)]" />
-                Sign out
+                {t("items.signOut")}
               </button>
             </form>
           </div>

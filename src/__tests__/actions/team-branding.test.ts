@@ -69,7 +69,7 @@ describe("uploadTeamBrandingInner — logo path", () => {
     const res = await uploadTeamBrandingInner(outsider, "t_test_1", "logo", form("logo", png));
     expect(res).toEqual({
       ok: false,
-      error: "Only admins and team owners can change team branding.",
+      error: "errors.team.brandingOwnersOnly",
     });
   });
 
@@ -83,7 +83,7 @@ describe("uploadTeamBrandingInner — logo path", () => {
   it("empty form → 'Pick a logo image to upload.'", async () => {
     const { admin, teams } = await seedBaseline();
     const res = await uploadTeamBrandingInner(admin, teams.t1.id, "logo", new FormData());
-    expect(res).toEqual({ ok: false, error: "Pick a logo image to upload." });
+    expect(res).toEqual({ ok: false, error: "errors.profile.pickBrandingImage" });
   });
 
   it("oversize logo → rejected with MB hint", async () => {
@@ -91,7 +91,7 @@ describe("uploadTeamBrandingInner — logo path", () => {
     const tooBig = makeImageFile("image/png", TEAM_LOGO_MAX_BYTES + 1);
     const res = await uploadTeamBrandingInner(admin, teams.t1.id, "logo", form("logo", tooBig));
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/2 MB or smaller/);
+    if (!res.ok) expect(res.error).toBe("errors.profile.brandingImageTooLarge");
   });
 
   it("disallowed MIME (PDF) → 'Use PNG, JPG, WebP, or GIF for the logo.'", async () => {
@@ -100,10 +100,9 @@ describe("uploadTeamBrandingInner — logo path", () => {
     const res = await uploadTeamBrandingInner(admin, teams.t1.id, "logo", form("logo", pdf));
     expect(res.ok).toBe(false);
     if (!res.ok) {
-      expect(res.error).toMatch(/PNG/);
+      expect(res.error).toBe("errors.profile.brandingImageWrongFormat");
       // SVG removed from allowlist — the message should no longer mention it.
       expect(res.error).not.toMatch(/SVG/);
-      expect(res.error).toMatch(/logo/);
     }
   });
 
@@ -150,7 +149,7 @@ describe("uploadTeamBrandingInner — SVG dropped from logo allowlist (security)
     expect(res.ok).toBe(false);
     if (!res.ok) {
       // Generic MIME-allowlist message — should NOT mention SVG anymore.
-      expect(res.error).toMatch(/PNG/);
+      expect(res.error).toBe("errors.profile.brandingImageWrongFormat");
       expect(res.error).not.toMatch(/SVG/);
     }
   });
@@ -250,7 +249,7 @@ describe("uploadTeamBrandingInner — signature path (raster-only)", () => {
     if (!res.ok) {
       // Signature format list should NOT include SVG.
       expect(res.error).not.toMatch(/SVG/);
-      expect(res.error).toMatch(/PNG/);
+      expect(res.error).toBe("errors.profile.brandingImageWrongFormat");
     }
   });
 
@@ -264,7 +263,7 @@ describe("uploadTeamBrandingInner — signature path (raster-only)", () => {
       form("signature", tooBig),
     );
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/2 MB or smaller/);
+    if (!res.ok) expect(res.error).toBe("errors.profile.brandingImageTooLarge");
   });
 });
 
@@ -311,7 +310,7 @@ describe("removeTeamBrandingInner", () => {
     const res = await removeTeamBrandingInner(outsider, "t_test_1", "logo");
     expect(res).toEqual({
       ok: false,
-      error: "Only admins and team owners can change team branding.",
+      error: "errors.team.brandingOwnersOnly",
     });
   });
 });

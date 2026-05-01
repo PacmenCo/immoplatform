@@ -55,6 +55,80 @@ Defined in `globals.css` as CSS custom properties. Use via arbitrary Tailwind va
 - Electrical → `--color-electrical` (amber)
 - Fuel Tank → `--color-fuel` (sky)
 
+## Internationalization (i18n)
+
+`next-intl` powers EN + Flemish (`nl-BE`), structured so adding more locales is a one-line change in `src/i18n/routing.ts`.
+
+- **URL shape:** `/en/...` and `/nl/...`. Internal locale IDs are `en` and `nl-BE` (region-tagged so copy can lean Flemish; `fr-BE` slots in symmetrically later). The `[locale]` segment lives at `src/app/[locale]/`; API routes, server actions, and root metadata files (`manifest.ts`, `sitemap.ts`, `robots.ts`, `opengraph-image.tsx`) stay at `src/app/`.
+- **Default + negotiation:** `src/middleware.ts` wraps `next-intl/middleware` with a `Vary: Accept-Language, Cookie` append. First-hit negotiation reads `Accept-Language`, persists choice via `NEXT_LOCALE` cookie, and falls back to `nl-BE`.
+- **Build wiring:** `next.config.ts` wraps the config with `createNextIntlPlugin("./src/i18n/request.ts")`. Without this, server-side translation lookups (`getTranslations`, `useTranslations`) throw at request time.
+- **Message catalog:** `messages/<locale>/<namespace>.json`. Namespaces (`common`, `home`, `services`, `legal`, `auth`, `dashboard`, `errors`, `emails`, `calendar`) are loaded by `src/i18n/request.ts`. The list + the `AppConfig.Messages` augmentation are CODEGEN'd from `messages/en/*.json` — drop a new namespace JSON file, run `npm run i18n:codegen`, and both register automatically.
+- **Type-safe keys:** `src/types/messages.d.ts` (generated) augments `use-intl`'s `AppConfig` with the EN catalog shape. `t('cards.epc.titel')` is a compile error, not a runtime `MISSING_MESSAGE`.
+- **In components:**
+  ```ts
+  import { useTranslations } from "next-intl";
+  const t = useTranslations("home.hero");
+  return <h1>{t("title")}</h1>;
+  ```
+  Outside the request scope (emails, route handlers, calendar payloads): `await getTranslations({ locale, namespace })`. Pass the recipient's `User.locale` explicitly — `getLocale()` won't resolve outside a request.
+- **Internal links and redirects:** import `Link`, `usePathname`, `useRouter` from `@/i18n/navigation` instead of `next/link` / `next/navigation`. For server-side redirects from anywhere inside a request scope (server actions, server components under `[locale]/`), use `localeRedirect(href)` from `@/i18n/navigation` — it resolves the active locale and prefixes the path for you. The lower-level `redirect({ href, locale })` from `@/i18n/navigation` is still exported for outside-request-scope callers (emails, cron) where you must pass the recipient's locale explicitly. For redirects to fully external URLs (Google/Outlook OAuth initiate), use `redirect` from `next/navigation` directly.
+- **Per-page hreflang + canonical:** every page that wants SEO alternates calls `buildLocaleAlternates(pathnameWithoutLocale)` from `@/i18n/metadata` inside `generateMetadata`. Layout-level `alternates.languages` would point hreflang at the wrong URL on every nested page (Next's metadata resolver only re-bases relative paths) — do NOT set it there.
+- **`revalidatePath` after mutations:** use `revalidatePath("/[locale]/some/path", "page")` — the literal `[locale]` segment plus the `"page"` second argument so all locale variants invalidate. Plain `revalidatePath("/some/path")` only invalidates the unprefixed cache entry, which doesn't exist for routes inside `[locale]/`.
+- **Locale switcher:** `src/components/i18n/LocaleSwitcher.tsx`, mounted in marketing `Nav` and dashboard `Topbar`. Preserves the rest of the path and any dynamic params on swap.
+- **`<html lang>`:** flows from the URL segment in `src/app/[locale]/layout.tsx` — `nl-BE` or `en`, never the URL form.
+
+### Translation patterns + conventions
+
+Pick the right shape per surface; don't reinvent.
+
+**1. Server-action errors return keys, not strings.** `ActionResult.error` carries an `errors.<domain>.<reason>` key (e.g. `errors.session.expired`, `errors.assignment.notFound`, `errors.permission.forbidden`). Add new error conditions to `messages/en/errors.json` first, then return that key from the action. Never return a human English string.
+
+UI display sites (toasts, inline form errors, anywhere user-visible) resolve via the **`useTranslateError` hook** (`src/i18n/error.ts`):
+```tsx
+const tErr = useTranslateError();
+const res = await someAction();
+if (!res.ok) toast.error(tErr(res.error));
+```
+The hook detects `errors.*` prefixed strings and resolves them against the `errors` namespace; pass-through for non-keys. Keeps Toast (and similar primitives) framework-agnostic.
+
+**2. Page `metadata.title` flows through the catalog.** Replace `export const metadata = { title: "Users" }` with:
+```ts
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("dashboard.pageTitles");
+  return { title: t("users") };
+}
+```
+Browser tab titles + SERP previews then localize naturally.
+
+**3. Legal pages use per-locale source files, not catalog entries.** Privacy/terms/cookies copy is dense legal text reviewed end-to-end per language. The shape is `legal/<page>/page.tsx` (a thin loader) + `legal/<page>/<locale>.tsx` (the actual content per locale). Loader reads the active locale and dynamically imports the matching module. Translators (or legal counsel) edit the per-locale `.tsx` files as complete documents — never as fragmented JSON keys.
+
+**4. Email + calendar templates accept the recipient's locale.** `sendEmail({ ..., locale })` and `buildEventPayload(input, locale)` thread `User.locale` (set at registration to the active request locale) through every transactional template. Build subjects + bodies via `getTranslations({ locale, namespace })`.
+
+**5. PDF generation stays English for now** — deferred until a translator review of legal-document tone is available. Existing `nl-BE` formatting (dates, currency) inside PDFs is correct for the Belgian market and shouldn't be reverted.
+
+### Don't-translate list
+
+These tokens stay English (or unchanged) regardless of locale. Skip them during extraction; document inline if the surrounding string makes the choice non-obvious.
+
+- **Brand identifiers:** `immoplatform`, `Immoplatform BV`, `immo`, `platform`, `Asbest Experts`, `EPC Partner`, `Elec Inspect`, `Tank Check`.
+- **Service codes:** `EPC`, `AIV`, `EK`, `TK`, `PH`, `SG`, `OPDRACHTFORMULIER`.
+- **Domain references:** `Belgium`, `Flanders`, `Wallonia`, `Brussels`, `EU`, `AREI`, `RGIE`, `OVAM`, `KBO`, VAT numbers, postal codes.
+- **Audit log content** (`audit({ verb, metadata })`): admin-only, never customer-facing. The `verb` is an enum; `metadata` is structured JSON. No prose to translate.
+- **Odoo product mapping IDs / external system identifiers**: stable codes used for cross-system lookups, never user-prose.
+- **Email addresses, URLs, file paths, environment variable names, technical config strings.**
+
+When in doubt: if a Belgian Flemish customer would read this string and form an impression about your product, translate it. Otherwise, leave it.
+
+### Staleness contract — when EN changes, which non-EN keys need re-translation
+
+Every translated entry has a sidecar SHA-256 hash of the EN source string captured at translation time, stored in `messages/_hashes.json`. Two scripts enforce the contract:
+
+- `npm run i18n:check` — reports `missing` / `stale` / `todo` / `orphan` / `extra` / `namespace-missing` drift. Exits non-zero on any drift. **Run before deploying.** CI runs it on every PR touching the catalog or i18n code.
+- `npm run i18n:codegen -- --check` — catches drift between the catalog and committed `_generated/namespaces.ts` + `messages.d.ts`. Also runs in CI.
+- `npm run i18n:sync` — adds missing EN keys to non-EN files as `[TODO en: <english>]` placeholders, removes orphans, records sidecar hashes for **newly translated** entries only. Sync never overwrites an existing hash — staleness must surface, not be auto-silenced. To acknowledge a re-translation against new EN, delete the relevant `_hashes.json` entry and re-run sync.
+
+Translator workflow: edit EN → `npm run i18n:sync` (adds TODOs) → replace TODOs with real translations → `npm run i18n:check` (must pass).
+
 ## Performance requirements
 
 **Hard requirement: pages feel instant on click.** Two rules:

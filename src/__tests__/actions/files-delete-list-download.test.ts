@@ -93,7 +93,7 @@ describe("deleteAssignmentFileInner — uploader policy", () => {
     const res = await deleteAssignmentFileInner(realtor, fileId);
     expect(res).toEqual({
       ok: false,
-      error: "You can only delete files you uploaded.",
+      error: "errors.file.cannotDeleteOthers",
     });
   });
 
@@ -108,7 +108,7 @@ describe("deleteAssignmentFileInner — uploader policy", () => {
       userId: "u_file_outsider",
     });
     const res = await deleteAssignmentFileInner(outsider, fileId);
-    expect(res).toEqual({ ok: false, error: "File not found." });
+    expect(res).toEqual({ ok: false, error: "errors.file.notFound" });
   });
 });
 
@@ -125,13 +125,13 @@ describe("deleteAssignmentFileInner — state guards", () => {
     });
     const res = await deleteAssignmentFileInner(freelancer, fileId);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/completed.*closed/i);
+    if (!res.ok) expect(res.error).toBe("errors.assignment.fileEditsClosed");
   });
 
   it("missing file → 'File not found.'", async () => {
     const { admin } = await seedBaseline();
     const res = await deleteAssignmentFileInner(admin, "f_missing");
-    expect(res).toEqual({ ok: false, error: "File not found." });
+    expect(res).toEqual({ ok: false, error: "errors.file.notFound" });
   });
 
   it("already-deleted file → idempotent ok (no second audit)", async () => {
@@ -214,7 +214,7 @@ describe("listAssignmentFilesInner", () => {
   it("missing assignment → 'Assignment not found.'", async () => {
     const { admin } = await seedBaseline();
     const res = await listAssignmentFilesInner(admin, "a_missing");
-    expect(res).toEqual({ ok: false, error: "Assignment not found." });
+    expect(res).toEqual({ ok: false, error: "errors.assignment.notFound" });
   });
 
   it("outsider realtor rejected with 'no permission' error", async () => {
@@ -230,7 +230,7 @@ describe("listAssignmentFilesInner", () => {
     const res = await listAssignmentFilesInner(outsider, assignmentId);
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to see this assignment's files.",
+      error: "errors.file.cannotViewAssignmentFiles",
     });
   });
 
@@ -288,7 +288,7 @@ describe("getAssignmentFileDownloadUrlInner", () => {
     });
     await deleteAssignmentFileInner(freelancer, fileId);
     const res = await getAssignmentFileDownloadUrlInner(freelancer, fileId);
-    expect(res).toEqual({ ok: false, error: "File not found." });
+    expect(res).toEqual({ ok: false, error: "errors.file.notFound" });
   });
 
   it("outsider → 'File not found.' (no enumeration leak)", async () => {
@@ -302,12 +302,12 @@ describe("getAssignmentFileDownloadUrlInner", () => {
       userId: "u_download_outsider",
     });
     const res = await getAssignmentFileDownloadUrlInner(outsider, fileId);
-    expect(res).toEqual({ ok: false, error: "File not found." });
+    expect(res).toEqual({ ok: false, error: "errors.file.notFound" });
   });
 
   it("missing file → 'File not found.'", async () => {
     const { admin } = await seedBaseline();
     const res = await getAssignmentFileDownloadUrlInner(admin, "f_missing");
-    expect(res).toEqual({ ok: false, error: "File not found." });
+    expect(res).toEqual({ ok: false, error: "errors.file.notFound" });
   });
 });

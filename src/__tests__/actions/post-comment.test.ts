@@ -84,7 +84,7 @@ describe("postCommentInner — permission gate", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "You can't comment on this assignment.",
+      error: "errors.assignment.cannotComment",
     });
     const comments = await prisma.assignmentComment.count({
       where: { assignmentId: asg.id },
@@ -99,7 +99,7 @@ describe("postCommentInner — permission gate", () => {
       undefined,
       form("a_missing", "hello"),
     );
-    expect(res).toEqual({ ok: false, error: "Assignment not found." });
+    expect(res).toEqual({ ok: false, error: "errors.assignment.notFound" });
   });
 });
 
@@ -111,7 +111,7 @@ describe("postCommentInner — body validation", () => {
       teamId: teams.t1.id,
     });
     const res = await postCommentInner(admin, undefined, form(asg.id, ""));
-    expect(res).toEqual({ ok: false, error: "Comment can't be empty." });
+    expect(res).toEqual({ ok: false, error: "errors.assignment.commentEmpty" });
   });
 
   it("whitespace-only body → rejected (trimmed before validation)", async () => {
@@ -121,7 +121,7 @@ describe("postCommentInner — body validation", () => {
       teamId: teams.t1.id,
     });
     const res = await postCommentInner(admin, undefined, form(asg.id, "    "));
-    expect(res).toEqual({ ok: false, error: "Comment can't be empty." });
+    expect(res).toEqual({ ok: false, error: "errors.assignment.commentEmpty" });
   });
 
   it("body > 4000 chars → rejected", async () => {

@@ -1,9 +1,10 @@
 /**
  * Comment-posted email. Sent to participants on an assignment thread when
- * someone else comments.
+ * someone else comments. Copy lives under `emails.commentPosted.*`.
  */
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { EmailLayout, P } from "./_layout";
 import {
   AssignmentCta,
@@ -18,8 +19,13 @@ export type CommentPostedEmailProps = AssignmentEmailCtx & {
   body: string;
 };
 
-export const subject = (p: CommentPostedEmailProps) =>
-  `New comment: ${addressLine(p)} (${p.reference})`;
+export const subjectKey = "emails.commentPosted.subject";
+
+export function subjectArgs(
+  p: CommentPostedEmailProps,
+): Record<string, unknown> {
+  return { address: addressLine(p), reference: p.reference };
+}
 
 /**
  * Grapheme-aware truncate — `.slice` splits surrogate pairs and emoji ZWJs
@@ -32,16 +38,24 @@ function preview(body: string): string {
 }
 
 export default function CommentPosted(props: CommentPostedEmailProps) {
+  const t = useTranslations("emails.commentPosted");
+  const tCommon = useTranslations("emails.common");
   const snippet = preview(props.body);
   return (
     <EmailLayout
-      preview={`${props.authorName} commented on ${props.reference}`}
-      title="New comment"
+      preview={t("preview", {
+        authorName: props.authorName,
+        reference: props.reference,
+      })}
+      title={t("title")}
     >
-      <P>Hi {props.recipientName},</P>
+      <P>{tCommon("hi", { name: props.recipientName })}</P>
       <P>
-        {props.authorName} commented on <strong>{props.reference}</strong> (
-        {addressLine(props)}):
+        {t("intro", {
+          authorName: props.authorName,
+          reference: props.reference,
+          address: addressLine(props),
+        })}
       </P>
       <P
         style={{
@@ -53,7 +67,7 @@ export default function CommentPosted(props: CommentPostedEmailProps) {
       >
         &ldquo;{snippet}&rdquo;
       </P>
-      <P>Reply on the thread:</P>
+      <P>{t("replyPrompt")}</P>
       <AssignmentCta ctx={props} />
     </EmailLayout>
   );

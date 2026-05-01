@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { switchToAccount } from "@/app/actions/account-switcher";
 
 export type SwitcherAccount = {
@@ -32,6 +33,7 @@ export function AccountSwitcher({
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const t = useTranslations("dashboard.shared.accountSwitcher");
 
   if (accounts.length === 0) return null;
 
@@ -48,7 +50,7 @@ export function AccountSwitcher({
       // a full toast system.
       if (res && !res.ok) {
         // eslint-disable-next-line no-alert
-        alert(`Switch failed: ${res.error}`);
+        alert(t("switchFailed", { error: res.error }));
       } else {
         // Success — full reload to evict any stale React state for the old
         // session. The action's redirect handles routing.
@@ -66,14 +68,14 @@ export function AccountSwitcher({
     >
       <summary
         className="flex cursor-pointer items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-sm hover:bg-[var(--color-bg-alt)] [&::-webkit-details-marker]:hidden"
-        aria-label="Switch account"
+        aria-label={t("ariaLabel")}
         aria-expanded={open}
       >
         <span aria-hidden className="text-xs text-[var(--color-ink-muted)]">
-          dev
+          {t("devTag")}
         </span>
         <span className="text-xs font-medium text-[var(--color-ink)]">
-          Switch user
+          {t("trigger")}
         </span>
         <svg
           width="10"
@@ -92,7 +94,7 @@ export function AccountSwitcher({
         className="absolute right-0 z-50 mt-1 w-72 overflow-hidden rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] shadow-[var(--shadow-md)]"
       >
         <div className="border-b border-[var(--color-border)] px-3 py-2 text-xs text-[var(--color-ink-muted)]">
-          Currently:{" "}
+          {t("currentlyPrefix")}{" "}
           <span className="font-medium text-[var(--color-ink)]">{currentEmail}</span>
         </div>
         <ul className="max-h-80 overflow-y-auto py-1">

@@ -63,10 +63,10 @@ function parseDates(startsAt: string, endsAt: string): ParsedDates {
   const start = new Date(`${startsAt}T00:00:00.000Z`);
   const end = new Date(`${endsAt}T23:59:59.999Z`);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return { ok: false, error: "Invalid date." };
+    return { ok: false, error: "errors.validation.invalidDate" };
   }
   if (end < start) {
-    return { ok: false, error: "End date must be on or after the start date." };
+    return { ok: false, error: "errors.announcement.endBeforeStart" };
   }
   return { ok: true, start, end };
 }
@@ -83,11 +83,11 @@ export async function createAnnouncementInner(
   formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
   if (!canManageAnnouncements(session)) {
-    return { ok: false, error: "Only admins can publish announcements." };
+    return { ok: false, error: "errors.announcement.publishAdminsOnly" };
   }
   const parsed = announcementSchema.safeParse(readAnnouncementFormData(formData));
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "errors.validation.invalidInput" };
   }
   const dates = parseDates(parsed.data.startsAt, parsed.data.endsAt);
   if (!dates.ok) return { ok: false, error: dates.error };
@@ -142,17 +142,17 @@ export async function updateAnnouncementInner(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!canManageAnnouncements(session)) {
-    return { ok: false, error: "Only admins can edit announcements." };
+    return { ok: false, error: "errors.announcement.editAdminsOnly" };
   }
   const existing = await prisma.announcement.findUnique({
     where: { id },
     select: { id: true },
   });
-  if (!existing) return { ok: false, error: "Announcement not found." };
+  if (!existing) return { ok: false, error: "errors.announcement.notFound" };
 
   const parsed = announcementSchema.safeParse(readAnnouncementFormData(formData));
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "errors.validation.invalidInput" };
   }
   const dates = parseDates(parsed.data.startsAt, parsed.data.endsAt);
   if (!dates.ok) return { ok: false, error: dates.error };
@@ -205,13 +205,13 @@ export async function deleteAnnouncementInner(
   id: string,
 ): Promise<ActionResult> {
   if (!canManageAnnouncements(session)) {
-    return { ok: false, error: "Only admins can delete announcements." };
+    return { ok: false, error: "errors.announcement.deleteAdminsOnly" };
   }
   const existing = await prisma.announcement.findUnique({
     where: { id },
     select: { id: true, title: true },
   });
-  if (!existing) return { ok: false, error: "Announcement not found." };
+  if (!existing) return { ok: false, error: "errors.announcement.notFound" };
 
   await prisma.announcement.delete({ where: { id } });
 
@@ -248,9 +248,9 @@ export async function dismissAnnouncementInner(
     where: { id },
     select: { id: true, isDismissible: true },
   });
-  if (!announcement) return { ok: false, error: "Announcement not found." };
+  if (!announcement) return { ok: false, error: "errors.announcement.notFound" };
   if (!announcement.isDismissible) {
-    return { ok: false, error: "This announcement cannot be dismissed." };
+    return { ok: false, error: "errors.announcement.cannotDismiss" };
   }
 
   await prisma.announcementDismissal.upsert({

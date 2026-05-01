@@ -1,0 +1,223 @@
+{
+  "about": {
+    "cta": {
+      "body": "Register your agency and start routing every EPC, asbestos, electrical and fuel-tank check from a single dashboard.",
+      "contact": "Talk to us",
+      "heading": "Four certificates, one workflow.",
+      "register": "Register your agency"
+    },
+    "hero": {
+      "badgePrefix": "About",
+      "subtitle": "We brought together the four Belgian certification practices our customers were already using — and rebuilt the paperwork around one dashboard. No more juggling three invoices and four inspectors for a single property sale.",
+      "title": "Four specialists, one team."
+    },
+    "timeline": {
+      "heading": "How we got here",
+      "items": {
+        "electrical2018": {
+          "body": "AREI-accredited electrical inspectors bring installation checks into the portfolio, making pre-sale compliance a one-stop service.",
+          "title": "Elec Inspect comes aboard",
+          "year": "2018"
+        },
+        "epc2015": {
+          "body": "A dedicated EPC specialist with certified assessors across Flanders and Brussels merges to offer energy certificates under the same roof.",
+          "title": "EPC Partner joins",
+          "year": "2015"
+        },
+        "founded2011": {
+          "body": "The oldest of the four — started as a two-person asbestos inventory practice in Antwerp and grew into a region-wide operation.",
+          "title": "Asbest Experts founded",
+          "year": "2011"
+        },
+        "fuel2021": {
+          "body": "The last specialist — certified fuel-tank inspectors — joins, covering above-ground and buried tanks for residential and commercial clients.",
+          "title": "Tank Check completes the team",
+          "year": "2021"
+        },
+        "launch2026": {
+          "body": "Four specialists, one brand, one platform. We open our shared dashboard to every real-estate agency in Belgium.",
+          "title": "immoplatform launches",
+          "year": "2026"
+        }
+      },
+      "subheading": "Fifteen years of independent craft, three acquisitions, and one shared platform."
+    },
+    "values": {
+      "heading": "What we believe",
+      "items": {
+        "belgium": {
+          "body": "Built for the regional quirks — Flemish EPC, Brussels electrical, Walloon asbestos. Local rules, national coverage.",
+          "title": "Belgium first"
+        },
+        "inspectorFriendly": {
+          "body": "Our freelancers get fair rates, clean scheduling and tools that actually help in the field.",
+          "title": "Inspector-friendly"
+        },
+        "oneFile": {
+          "body": "Every certificate, report and invoice lives in the same folder. No email threads, no spreadsheets.",
+          "title": "One file, one truth"
+        },
+        "receipts": {
+          "body": "Every document is retained for 10 years, indexed and exportable in one click.",
+          "title": "Keep the receipts"
+        },
+        "specialists": {
+          "body": "Every service is delivered by a certified, accredited inspector — never a generalist.",
+          "title": "Specialists only"
+        },
+        "transparent": {
+          "body": "Flat rates, no hidden fees, and real-time status visible to every party on the assignment.",
+          "title": "Transparent by default"
+        }
+      },
+      "subheading": "Six principles that shape the way we build, inspect and invoice."
+    }
+  },
+  "contact": {
+    "form": {
+      "heading": "Send us a message",
+      "subheading": "We reply within 4 business hours on weekdays."
+    },
+    "hero": {
+      "badge": "Contact",
+      "subtitle": "Whether you're scoping a new agency account, troubleshooting a delivered file, or just curious about coverage in your province — we'll get back the same business day.",
+      "title": "Talk to a real human. Usually within the hour."
+    }
+  },
+  "cta": {
+    "body": "Set up your agency in minutes. First assignment on us.",
+    "contact": "Talk to us",
+    "heading": "Ready to simplify your workflow?",
+    "register": "Register your office"
+  },
+  "hero": {
+    "badge": "4 companies. 1 platform.",
+    "ctaRegister": "Register your office",
+    "ctaSeeServices": "See services",
+    "preview": {
+      "address": "Rue Belliard 12",
+      "addressDetail": "1040 Brussels · Apartment, 120 m²",
+      "freelancerLabel": "Freelancer",
+      "freelancerName": "Tim De Vries",
+      "ref": "ASG-2041",
+      "status": "Delivered",
+      "toastBody": "Signed by owner · just now",
+      "toastTitle": "Certificate sent",
+      "turnaroundLabel": "Turnaround",
+      "turnaroundValue": "4 days"
+    },
+    "subtitle": "Energy Performance Certificates, Asbestos Inventory Attests, Electrical Inspections and Fuel Tank Checks — ordered, tracked and delivered from a single dashboard. Built for real-estate agents in Belgium.",
+    "title": "One platform for every real-estate certificate."
+  },
+  "howItWorks": {
+    "eyebrow": "How it works",
+    "heading": "From listing to certificate, in three steps.",
+    "steps": {
+      "create": {
+        "body": "Add the property address, owner and tenant contacts, and any notes — just like you do today.",
+        "n": "02",
+        "title": "Create an assignment"
+      },
+      "pick": {
+        "body": "Tick EPC, AIV, EK or TK — one, some or all. We schedule the rest.",
+        "n": "03",
+        "title": "Pick the services you need"
+      },
+      "register": {
+        "body": "Create an account for your agency. Invite your colleagues and set your branding preferences.",
+        "n": "01",
+        "title": "Register your office"
+      }
+    }
+  },
+  "merger": {
+    "brands": {
+      "asbestos": {
+        "name": "Asbest Experts",
+        "service": "Asbestos Inventory Attest (AIV)"
+      },
+      "electrical": {
+        "name": "Elec Inspect",
+        "service": "Electrical Inspection (EK)"
+      },
+      "epc": {
+        "name": "EPC Partner",
+        "service": "Energy Performance Certificate (EPC)"
+      },
+      "fuel": {
+        "name": "Tank Check",
+        "service": "Fuel Tank Check (TK)"
+      }
+    },
+    "eyebrow": "The story",
+    "heading": "Four specialists. One team.",
+    "lead1": "For years, real-estate agents juggled four different inspectors, four invoices and four inboxes to close a single sale. We brought the best of each discipline together so you don't have to.",
+    "lead2": "One login, one point of contact and one delivery timeline — backed by the same certified experts you already trusted.",
+    "stats": {
+      "oneContact": {
+        "body": "A single account manager per office.",
+        "label": "One contact"
+      },
+      "oneDashboard": {
+        "body": "Track every assignment in real time.",
+        "label": "One dashboard"
+      },
+      "oneInvoice": {
+        "body": "All services, one monthly statement.",
+        "label": "One invoice"
+      }
+    }
+  },
+  "services": {
+    "cards": {
+      "asbestos": {
+        "description": "Mandatory in Flanders since November 2022 for the sale of any residential property built before 2001. Issued by an OVAM-certified inspector after a non-destructive site inventory.",
+        "tagline": "AIV",
+        "title": "Asbestos Inventory Attest",
+        "validity": "Up to 10 years",
+        "whenNeeded": "Sale of pre-2001 buildings (Flanders)"
+      },
+      "electrical": {
+        "description": "AREI/RGIE installation check covering the safety of the electrical system. Required at every residential sale and after major renovations of the installation.",
+        "tagline": "EK",
+        "title": "Electrical Inspection",
+        "validity": "25 years if approved · 18 months to remediate if not",
+        "whenNeeded": "On every residential sale"
+      },
+      "epc": {
+        "description": "Energy-performance rating shown on the property listing. The certificate displays the energy class (A → G) and must be available before the property is advertised for sale or rent.",
+        "tagline": "EPC",
+        "title": "Energy Performance Certificate",
+        "validity": "10 years",
+        "whenNeeded": "Before advertising a sale or rental"
+      },
+      "fuel": {
+        "description": "Periodic inspection of residential heating-oil tanks, above-ground or buried. The certificate confirms the tank meets regional regulations and may continue to be used.",
+        "tagline": "TK",
+        "title": "Fuel Tank Check",
+        "validity": "Reissued at each inspection",
+        "whenNeeded": "Periodic — frequency depends on tank type"
+      },
+      "photos": {
+        "description": "Wide-angle, professionally-lit listing photography for sales and rentals. Edited and delivered the same day so your listing goes live without a wait.",
+        "tagline": "PH",
+        "title": "Property Photography",
+        "validity": "Same-day delivery",
+        "whenNeeded": "Before publishing the listing"
+      },
+      "signage": {
+        "description": "We deliver and mount For-Sale or For-Rent signage at the property, branded with your agency. Pickup and removal handled when the listing closes.",
+        "tagline": "SG",
+        "title": "On-site Signage",
+        "validity": "Removed when the listing closes",
+        "whenNeeded": "Day the listing goes live"
+      }
+    },
+    "eyebrow": "Services",
+    "heading": "Every certificate a property needs, under one roof.",
+    "lead": "Pick one service or bundle all four on the same assignment. One invoice, one point of contact, one dashboard.",
+    "learnMore": "Learn more",
+    "validityLabel": "Validity",
+    "whenLabel": "When"
+  }
+}

@@ -131,7 +131,7 @@ describe("changePasswordInner — guard clauses", () => {
         confirmPassword: "new-password-9",
       }),
     );
-    expect(res).toEqual({ ok: false, error: "Current password is incorrect." });
+    expect(res).toEqual({ ok: false, error: "errors.auth.currentPasswordIncorrect" });
     const after = await prisma.user.findUniqueOrThrow({ where: { id: session.user.id } });
     expect(after.passwordHash).toBe(before.passwordHash);
   });
@@ -224,7 +224,7 @@ describe("changePasswordInner — guard clauses", () => {
       }),
     );
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/forgot-password/);
+    if (!res.ok) expect(res.error).toBe("errors.auth.noPasswordSet");
   });
 });
 
@@ -276,7 +276,7 @@ describe("deleteOwnAccountInner", () => {
       undefined,
       form({ password: "guess" }),
     );
-    expect(res).toEqual({ ok: false, error: "Password is incorrect." });
+    expect(res).toEqual({ ok: false, error: "errors.auth.passwordIncorrect" });
     const user = await prisma.user.findUniqueOrThrow({ where: { id: session.user.id } });
     expect(user.deletedAt).toBeNull();
   });
@@ -292,7 +292,7 @@ describe("deleteOwnAccountInner", () => {
       form({ password: "anything" }),
     );
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/no password set/);
+    if (!res.ok) expect(res.error).toBe("errors.auth.noPasswordSetForDeletion");
   });
 
   it("last admin → BLOCKED (prevents zero-admin lockout)", async () => {
@@ -309,7 +309,7 @@ describe("deleteOwnAccountInner", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "You are the last admin. Promote another user before deleting your account.",
+      error: "errors.auth.lastAdminCannotDelete",
     });
     const user = await prisma.user.findUniqueOrThrow({ where: { id: session.user.id } });
     expect(user.deletedAt).toBeNull();
@@ -392,7 +392,7 @@ describe("revokeSessionInner", () => {
     const me = await makeSession({ role: "realtor", userId: "u_alice_revoker" });
     const them = await makeSession({ role: "realtor", userId: "u_bob_victim" });
     const res = await revokeSessionInner(me, them.id);
-    expect(res).toEqual({ ok: false, error: "Session not found." });
+    expect(res).toEqual({ ok: false, error: "errors.session.notFound" });
     const theirs = await prisma.session.findUniqueOrThrow({ where: { id: them.id } });
     expect(theirs.revokedAt).toBeNull();
   });
@@ -400,7 +400,7 @@ describe("revokeSessionInner", () => {
   it("non-existent session id → 'Session not found.'", async () => {
     const me = await makeSession({ role: "realtor", userId: "u_ghost_hunter" });
     const res = await revokeSessionInner(me, "s_does_not_exist");
-    expect(res).toEqual({ ok: false, error: "Session not found." });
+    expect(res).toEqual({ ok: false, error: "errors.session.notFound" });
   });
 
   it("already-revoked session → ok (idempotent)", async () => {
@@ -420,7 +420,7 @@ describe("revokeSessionInner", () => {
   it("empty string session id → 'Invalid session id.'", async () => {
     const me = await makeSession({ role: "realtor", userId: "u_empty_id" });
     const res = await revokeSessionInner(me, "");
-    expect(res).toEqual({ ok: false, error: "Invalid session id." });
+    expect(res).toEqual({ ok: false, error: "errors.session.invalidId" });
   });
 });
 

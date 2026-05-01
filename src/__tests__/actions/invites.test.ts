@@ -63,7 +63,7 @@ describe("createInviteInner — role gate", () => {
       );
       expect(res).toEqual({
         ok: false,
-        error: "You don't have permission to invite users.",
+        error: "errors.invite.cannotInvite",
       });
     }
   });
@@ -78,7 +78,7 @@ describe("createInviteInner — role gate", () => {
       );
       expect(res).toEqual({
         ok: false,
-        error: "Only admins can invite admin or staff users.",
+        error: "errors.invite.adminOnlyForAdminStaff",
       });
     }
   });
@@ -92,7 +92,7 @@ describe("createInviteInner — role gate", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "You must assign the invitee to your team.",
+      error: "errors.invite.mustAssignToYourTeam",
     });
   });
 
@@ -113,7 +113,7 @@ describe("createInviteInner — role gate", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "You can only invite to teams you own.",
+      error: "errors.invite.onlyTeamsYouOwn",
     });
   });
 
@@ -126,7 +126,7 @@ describe("createInviteInner — role gate", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to invite users.",
+      error: "errors.invite.cannotInvite",
     });
   });
 });
@@ -142,7 +142,7 @@ describe("createInviteInner — team pairing", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "Pick a team role (Member or Owner).",
+      error: "errors.invite.pickTeamRole",
     });
   });
 
@@ -155,7 +155,7 @@ describe("createInviteInner — team pairing", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "Pick a team before setting a team role.",
+      error: "errors.invite.pickTeamFirst",
     });
   });
 
@@ -174,8 +174,7 @@ describe("createInviteInner — team pairing", () => {
     );
     expect(res.ok).toBe(false);
     if (!res.ok) {
-      expect(res.error).toMatch(/already has an owner/);
-      expect(res.error).toMatch(/Test Realtor/); // existing owner's name
+      expect(res.error).toBe("errors.invite.ownerExists");
     }
   });
 });
@@ -245,7 +244,7 @@ describe("createInviteInner — existing user path", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "This email already has an account. Pick a team to add them to.",
+      error: "errors.invite.existingUserNeedsTeam",
     });
   });
 
@@ -350,7 +349,7 @@ describe("createInviteInner — invite creation + shape", () => {
     );
     expect(second).toEqual({
       ok: false,
-      error: "There's already a pending invite for this email. Revoke it first.",
+      error: "errors.invite.alreadyPending",
     });
   });
 });
@@ -494,7 +493,7 @@ describe("acceptInviteInner", () => {
         confirm: "password-two",
       }),
     );
-    expect(res).toEqual({ ok: false, error: "Passwords don't match." });
+    expect(res).toEqual({ ok: false, error: "errors.validation.passwordsMismatch" });
   });
 
   it("unknown token → 'This invite doesn\\'t exist.'", async () => {
@@ -509,7 +508,7 @@ describe("acceptInviteInner", () => {
         confirm: "long-enough-password",
       }),
     );
-    expect(res).toEqual({ ok: false, error: "This invite doesn't exist." });
+    expect(res).toEqual({ ok: false, error: "errors.invite.doesNotExist" });
   });
 
   it("expired invite → friendly 'expired' message", async () => {
@@ -538,7 +537,7 @@ describe("acceptInviteInner", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "This invite has expired. Ask to be re-invited.",
+      error: "errors.invite.expiredAskAgain",
     });
   });
 
@@ -569,7 +568,7 @@ describe("acceptInviteInner", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "This invite has been revoked.",
+      error: "errors.invite.revokedAlt",
     });
   });
 
@@ -600,7 +599,7 @@ describe("acceptInviteInner", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "This invite has already been used.",
+      error: "errors.invite.alreadyUsed",
     });
   });
 
@@ -628,7 +627,7 @@ describe("acceptInviteInner", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "An account with this email already exists. Try signing in.",
+      error: "errors.invite.existingUserSignIn",
     });
   });
 });
@@ -672,7 +671,7 @@ describe("resendInviteInner", () => {
       data: { acceptedAt: new Date() },
     });
     const res = await resendInviteInner(admin, invite.id);
-    expect(res).toEqual({ ok: false, error: "Invite already accepted." });
+    expect(res).toEqual({ ok: false, error: "errors.invite.alreadyAccepted" });
   });
 
   it("revoked invite → rejected", async () => {
@@ -682,7 +681,7 @@ describe("resendInviteInner", () => {
       data: { revokedAt: new Date() },
     });
     const res = await resendInviteInner(admin, invite.id);
-    expect(res).toEqual({ ok: false, error: "Invite revoked." });
+    expect(res).toEqual({ ok: false, error: "errors.invite.revoked" });
   });
 
   it("rate limit — 3 resends in 1h then blocked", async () => {
@@ -692,7 +691,7 @@ describe("resendInviteInner", () => {
     await resendInviteInner(admin, invite.id);
     const blocked = await resendInviteInner(admin, invite.id);
     expect(blocked.ok).toBe(false);
-    if (!blocked.ok) expect(blocked.error).toMatch(/Rate limited/);
+    if (!blocked.ok) expect(blocked.error).toBe("errors.invite.resendRateLimited");
   });
 
   it("rate limit RESETS after the window elapses (last resend >1h ago)", async () => {
@@ -725,7 +724,7 @@ describe("resendInviteInner", () => {
     const res = await resendInviteInner(outsider, invite.id);
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to resend this invite.",
+      error: "errors.invite.cannotResend",
     });
   });
 
@@ -737,7 +736,7 @@ describe("resendInviteInner", () => {
     const res = await resendInviteInner(staff, invite.id);
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to resend this invite.",
+      error: "errors.invite.cannotResend",
     });
   });
 
@@ -820,7 +819,7 @@ describe("revokeInviteInner", () => {
   it("revoking a non-existent invite → 'Invite not found.'", async () => {
     const { admin } = await seedBaseline();
     const res = await revokeInviteInner(admin, "i_ghost");
-    expect(res).toEqual({ ok: false, error: "Invite not found." });
+    expect(res).toEqual({ ok: false, error: "errors.invite.notFound" });
   });
 
   it("revoking an already-revoked invite is idempotent (ok, no new audit)", async () => {
@@ -841,7 +840,7 @@ describe("revokeInviteInner", () => {
       data: { acceptedAt: new Date() },
     });
     const res = await revokeInviteInner(admin, invite.id);
-    expect(res).toEqual({ ok: false, error: "Invite already accepted." });
+    expect(res).toEqual({ ok: false, error: "errors.invite.alreadyAccepted" });
   });
 
   it("outsider realtor rejected", async () => {
@@ -855,7 +854,7 @@ describe("revokeInviteInner", () => {
     const res = await revokeInviteInner(outsider, invite.id);
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to revoke this invite.",
+      error: "errors.invite.cannotRevoke",
     });
   });
 
@@ -864,7 +863,7 @@ describe("revokeInviteInner", () => {
     const res = await revokeInviteInner(staff, invite.id);
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to revoke this invite.",
+      error: "errors.invite.cannotRevoke",
     });
   });
 });

@@ -27,6 +27,11 @@ export default defineConfig({
       // catch to assert target URL. Without this, the raw framework redirect
       // error escapes as an ordinary Error.
       "next/navigation": resolve(__dirname, "src/__tests__/_helpers/next-navigation-stub.ts"),
+      // `next-intl/server`: getLocale() reads request-scoped config that the
+      // Next.js dispatcher sets up. Outside a request context (vitest), the
+      // real module throws "not supported in Client Components". Stub returns
+      // the routing default so locale-aware redirects in server actions work.
+      "next-intl/server": resolve(__dirname, "src/__tests__/_helpers/next-intl-server-stub.ts"),
     },
   },
   test: {
@@ -35,6 +40,12 @@ export default defineConfig({
     include: ["src/__tests__/**/*.test.ts", "src/__tests__/**/*.test.tsx"],
     exclude: ["**/node_modules/**", "**/.next/**", "**/dist/**"],
     setupFiles: ["src/__tests__/_helpers/env.ts"],
+    // next-intl's runtime imports `next/navigation`; without inlining, Vite
+    // doesn't transform that transitive import and the `next/navigation`
+    // alias above (→ stub) doesn't apply, so the actual `next/navigation`
+    // is loaded via Node ESM and fails resolution. Inlining forces Vite to
+    // transform next-intl, which propagates the alias.
+    server: { deps: { inline: ["next-intl"] } },
     // Forks pool with one Postgres SCHEMA per worker (see env.ts +
     // _helpers/db.ts). Worker 1 lands in `public` so a serial single-fork
     // run / CI works unchanged; workers >1 use `test_wN`. Each worker

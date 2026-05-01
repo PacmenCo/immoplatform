@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { IconShield, IconBuilding } from "@/components/ui/Icons";
 
 /**
@@ -21,19 +22,11 @@ type Props = {
   description?: string;
 };
 
-const DEFAULTS: Record<Scope, { title: string; description: string }> = {
-  personal: {
-    title: "Personal setting",
-    description: "Changes here only affect your account. Other team members keep their own preferences.",
-  },
-  org: {
-    title: "Organization setting",
-    description: "Changes here apply to every member of your workspace. Only admins can edit these.",
-  },
-};
-
-export function SettingsScopeBanner({ scope, title, description }: Props) {
-  const copy = DEFAULTS[scope];
+export async function SettingsScopeBanner({ scope, title, description }: Props) {
+  const t = await getTranslations("dashboard.shared.settingsScopeBanner");
+  const defaultTitle = scope === "personal" ? t("personalTitle") : t("orgTitle");
+  const defaultDescription =
+    scope === "personal" ? t("personalDescription") : t("orgDescription");
   const Icon = scope === "personal" ? IconShield : IconBuilding;
   // Personal → neutral/slate. Org → amber accent so it feels weightier.
   const accent = scope === "personal" ? "var(--color-ink-muted)" : "var(--color-electrical)";
@@ -41,7 +34,7 @@ export function SettingsScopeBanner({ scope, title, description }: Props) {
   return (
     <div
       role="note"
-      aria-label={`${copy.title} scope`}
+      aria-label={t("ariaLabel", { title: title ?? defaultTitle })}
       className="flex items-start gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-alt)] p-4 text-sm"
     >
       <span
@@ -52,9 +45,9 @@ export function SettingsScopeBanner({ scope, title, description }: Props) {
         <Icon size={16} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-[var(--color-ink)]">{title ?? copy.title}</p>
+        <p className="font-medium text-[var(--color-ink)]">{title ?? defaultTitle}</p>
         <p className="mt-0.5 text-[var(--color-ink-soft)]">
-          {description ?? copy.description}
+          {description ?? defaultDescription}
         </p>
       </div>
     </div>

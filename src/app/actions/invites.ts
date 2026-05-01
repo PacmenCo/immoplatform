@@ -54,7 +54,7 @@ export async function createInviteInner(
   // line 91), so they have zero invite capability in v1. Realtor restrictions
   // (own teams only, no admin/staff invitee role) are enforced further down.
   if (!["admin", "realtor"].includes(session.user.role)) {
-    return { ok: false, error: "You don't have permission to invite users." };
+    return { ok: false, error: "errors.invite.cannotInvite" };
   }
 
   const raw = {
@@ -68,7 +68,7 @@ export async function createInviteInner(
   const parsed = createInviteSchema.safeParse(raw);
   if (!parsed.success) {
     const err = parsed.error.issues[0];
-    return { ok: false, error: err?.message ?? "Invalid input." };
+    return { ok: false, error: err?.message ?? "errors.validation.invalidInput" };
   }
 
   const { email, role, note } = parsed.data;
@@ -76,10 +76,10 @@ export async function createInviteInner(
   const teamRole = parsed.data.teamRole || null;
 
   if (teamId && !teamRole) {
-    return { ok: false, error: "Pick a team role (Member or Owner)." };
+    return { ok: false, error: "errors.invite.pickTeamRole" };
   }
   if (teamRole && !teamId) {
-    return { ok: false, error: "Pick a team before setting a team role." };
+    return { ok: false, error: "errors.invite.pickTeamFirst" };
   }
 
   // Enforce single-owner policy: if team already has an owner, reject Owner role.
@@ -92,7 +92,7 @@ export async function createInviteInner(
       const ownerName = `${existingOwner.user.firstName} ${existingOwner.user.lastName}`;
       return {
         ok: false,
-        error: `This team already has an owner (${ownerName}). Invite as a member, or transfer ownership first.`,
+        error: "errors.invite.ownerExists",
       };
     }
   }
@@ -101,16 +101,16 @@ export async function createInviteInner(
   if (session.user.role === "realtor") {
     // Realtors can only invite to teams they own, and only realtor/freelancer.
     if (role === "admin" || role === "staff") {
-      return { ok: false, error: "Only admins can invite admin or staff users." };
+      return { ok: false, error: "errors.invite.adminOnlyForAdminStaff" };
     }
     if (!teamId) {
-      return { ok: false, error: "You must assign the invitee to your team." };
+      return { ok: false, error: "errors.invite.mustAssignToYourTeam" };
     }
     const membership = await prisma.teamMember.findUnique({
       where: { teamId_userId: { teamId, userId: session.user.id } },
     });
     if (!membership || membership.teamRole !== "owner") {
-      return { ok: false, error: "You can only invite to teams you own." };
+      return { ok: false, error: "errors.invite.onlyTeamsYouOwn" };
     }
   }
   // Existing user → add to team silently instead of creating an invite.
@@ -123,13 +123,13 @@ export async function createInviteInner(
     if (existing.role === "freelancer" && (teamId || teamRole)) {
       return {
         ok: false,
-        error: "This email belongs to a freelancer — freelancers work platform-wide and can't be added to teams.",
+        error: "errors.invite.freelancerCannotJoinTeam",
       };
     }
     if (!teamId || !teamRole) {
       return {
         ok: false,
-        error: "This email already has an account. Pick a team to add them to.",
+        error: "errors.invite.existingUserNeedsTeam",
       };
     }
     await prisma.teamMember.upsert({
@@ -138,12 +138,15 @@ export async function createInviteInner(
       update: { teamRole },
     });
     const team = await prisma.team.findUnique({ where: { id: teamId } });
-    const tpl = await addedToTeamEmail({
-      inviterName: `${session.user.firstName} ${session.user.lastName}`,
-      teamName: team!.name,
-      teamRole,
-      loginUrl: loginUrl(),
-    });
+    const tpl = await addedToTeamEmail(
+      {
+        inviterName: `${session.user.firstName} ${session.user.lastName}`,
+        teamName: team!.name,
+        teamRole,
+        loginUrl: loginUrl(),
+      },
+      existing.locale,
+    );
     // Route through notify() so the recipient's `team.member_added` opt-out
     // is honoured. The recipient is the existing user being added (we
     // already loaded their emailPrefs above as part of the User row).
@@ -172,7 +175,7 @@ export async function createInviteInner(
   if (existingPending) {
     return {
       ok: false,
-      error: "There's already a pending invite for this email. Revoke it first.",
+      error: "errors.invite.alreadyPending",
     };
   }
 
@@ -193,16 +196,22 @@ export async function createInviteInner(
   });
 
   const acceptUrl = inviteAcceptUrl(token);
-  const tpl = await inviteEmail({
-    inviterName: `${session.user.firstName} ${session.user.lastName}`,
-    acceptUrl,
-    role,
-    teamName: invite.team?.name,
-    teamRole,
-    note: note || null,
-    expiresAt: invite.expiresAt,
-  });
-  await sendEmail({ to: email, ...tpl });
+  // Pre-account invite — no recipient locale exists yet. Fall back to the
+  // inviter's locale so most invites land in the agency's working language.
+  // The new user can switch after accepting.
+  const tpl = await inviteEmail(
+    {
+      inviterName: `${session.user.firstName} ${session.user.lastName}`,
+      acceptUrl,
+      role,
+      teamName: invite.team?.name,
+      teamRole,
+      note: note || null,
+      expiresAt: invite.expiresAt,
+    },
+    session.user.locale,
+  );
+  await sendEmail({ to: email, ...tpl, locale: session.user.locale });
 
   await audit({
     actorId: session.user.id,
@@ -224,7 +233,7 @@ export async function createInvite(
   try {
     session = await requireRole(["admin", "realtor"]);
   } catch {
-    return { ok: false, error: "You don't have permission to invite users." };
+    return { ok: false, error: "errors.invite.cannotInvite" };
   }
   const result = await createInviteInner(session, undefined, formData);
   if (result.ok) {
@@ -287,10 +296,10 @@ export async function acceptInviteInner(
   const parsed = acceptSchema.safeParse(raw);
   if (!parsed.success) {
     const err = parsed.error.issues[0];
-    return { ok: false, error: err?.message ?? "Invalid input." };
+    return { ok: false, error: err?.message ?? "errors.validation.invalidInput" };
   }
   if (parsed.data.password !== parsed.data.confirm) {
-    return { ok: false, error: "Passwords don't match." };
+    return { ok: false, error: "errors.validation.passwordsMismatch" };
   }
 
   const res = await getInviteByToken(parsed.data.token);
@@ -298,10 +307,10 @@ export async function acceptInviteInner(
     return {
       ok: false,
       error: {
-        not_found: "This invite doesn't exist.",
-        revoked: "This invite has been revoked.",
-        accepted: "This invite has already been used.",
-        expired: "This invite has expired. Ask to be re-invited.",
+        not_found: "errors.invite.doesNotExist",
+        revoked: "errors.invite.revokedAlt",
+        accepted: "errors.invite.alreadyUsed",
+        expired: "errors.invite.expiredAskAgain",
       }[res.status],
     };
   }
@@ -312,7 +321,7 @@ export async function acceptInviteInner(
   if (clash) {
     return {
       ok: false,
-      error: "An account with this email already exists. Try signing in.",
+      error: "errors.invite.existingUserSignIn",
     };
   }
 
@@ -365,7 +374,7 @@ export async function acceptInviteInner(
     if (err instanceof Error && err.message === "INVITE_CLAIMED") {
       return {
         ok: false,
-        error: "This invite has already been used or is no longer valid.",
+        error: "errors.invite.claimedOrInvalid",
       };
     }
     // Email collision with a concurrently-registered account.
@@ -377,7 +386,7 @@ export async function acceptInviteInner(
     ) {
       return {
         ok: false,
-        error: "An account with this email already exists. Try signing in.",
+        error: "errors.invite.existingUserSignIn",
       };
     }
     throw err;
@@ -433,12 +442,12 @@ export async function resendInviteInner(
       invitedBy: { select: { firstName: true, lastName: true } },
     },
   });
-  if (!invite) return { ok: false, error: "Invite not found." };
-  if (invite.acceptedAt) return { ok: false, error: "Invite already accepted." };
-  if (invite.revokedAt) return { ok: false, error: "Invite revoked." };
+  if (!invite) return { ok: false, error: "errors.invite.notFound" };
+  if (invite.acceptedAt) return { ok: false, error: "errors.invite.alreadyAccepted" };
+  if (invite.revokedAt) return { ok: false, error: "errors.invite.revoked" };
 
   if (!(await canActOnInvite(session, invite))) {
-    return { ok: false, error: "You don't have permission to resend this invite." };
+    return { ok: false, error: "errors.invite.cannotResend" };
   }
 
   // Rolling-window rate limit. If the last resend was > 1h ago, the counter
@@ -451,7 +460,7 @@ export async function resendInviteInner(
   if (effectiveCount >= RESEND_MAX_PER_WINDOW) {
     return {
       ok: false,
-      error: "Rate limited — too many resends in the last hour. Try again later.",
+      error: "errors.invite.resendRateLimited",
     };
   }
 
@@ -467,16 +476,21 @@ export async function resendInviteInner(
   });
 
   const acceptUrl = inviteAcceptUrl(token);
-  const tpl = await inviteEmail({
-    inviterName: `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`,
-    acceptUrl,
-    role: invite.role,
-    teamName: invite.team?.name,
-    teamRole: invite.teamRole,
-    note: invite.note,
-    expiresAt: updated.expiresAt,
-  });
-  await sendEmail({ to: invite.email, ...tpl });
+  // Resend reuses the resender's locale — invite recipient still has no
+  // account row, so there's no per-recipient locale to fetch.
+  const tpl = await inviteEmail(
+    {
+      inviterName: `${invite.invitedBy.firstName} ${invite.invitedBy.lastName}`,
+      acceptUrl,
+      role: invite.role,
+      teamName: invite.team?.name,
+      teamRole: invite.teamRole,
+      note: invite.note,
+      expiresAt: updated.expiresAt,
+    },
+    session.user.locale,
+  );
+  await sendEmail({ to: invite.email, ...tpl, locale: session.user.locale });
 
   await audit({
     actorId: session.user.id,
@@ -501,12 +515,12 @@ export async function revokeInviteInner(
   inviteId: string,
 ): Promise<ActionResult> {
   const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
-  if (!invite) return { ok: false, error: "Invite not found." };
-  if (invite.acceptedAt) return { ok: false, error: "Invite already accepted." };
+  if (!invite) return { ok: false, error: "errors.invite.notFound" };
+  if (invite.acceptedAt) return { ok: false, error: "errors.invite.alreadyAccepted" };
   if (invite.revokedAt) return { ok: true }; // idempotent
 
   if (!(await canActOnInvite(session, invite))) {
-    return { ok: false, error: "You don't have permission to revoke this invite." };
+    return { ok: false, error: "errors.invite.cannotRevoke" };
   }
 
   await prisma.invite.update({

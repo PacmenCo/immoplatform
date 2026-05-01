@@ -124,7 +124,7 @@ describe("presign + finalize — rejection paths", () => {
     );
     expect(fin.ok).toBe(false);
     if (!fin.ok) {
-      expect(fin.error).toMatch(/doesn't match its declared file type/);
+      expect(fin.error).toBe("errors.file.typeMismatch");
     }
 
     // No row written, status untouched, bytes deleted from storage.
@@ -172,7 +172,7 @@ describe("presign + finalize — rejection paths", () => {
     );
     expect(fin.ok).toBe(false);
     if (!fin.ok) {
-      expect(fin.error).toMatch(/doesn't match the expected size/);
+      expect(fin.error).toBe("errors.file.sizeMismatch");
     }
     expect(await storage().exists(u.storageKey)).toBe(false);
   });
@@ -204,7 +204,7 @@ describe("presign + finalize — rejection paths", () => {
     );
     expect(pres).toEqual({
       ok: false,
-      error: "Only the assigned freelancer can upload deliverables.",
+      error: "errors.file.freelancerOnlyDeliverables",
     });
   });
 
@@ -226,7 +226,7 @@ describe("presign + finalize — rejection paths", () => {
     );
     expect(pres).toEqual({
       ok: false,
-      error: "This assignment is completed — uploads are closed.",
+      error: "errors.assignment.uploadsClosed",
     });
   });
 });

@@ -1,9 +1,10 @@
 /**
  * Sent to a freelancer on (re)assignment. Platform parity:
- * FreelancerAssignedMail.
+ * FreelancerAssignedMail. Copy lives under `emails.assignmentReassigned.*`.
  */
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { EmailLayout, P } from "./_layout";
 import {
   AssignmentCta,
@@ -17,28 +18,33 @@ export type AssignmentReassignedEmailProps = AssignmentEmailCtx & {
   preferredDate: Date | null;
 };
 
-export const subject = (p: AssignmentReassignedEmailProps) =>
-  `New inspection: ${addressLine(p)} (${p.reference})`;
+export const subjectKey = "emails.assignmentReassigned.subject";
+
+export function subjectArgs(
+  p: AssignmentReassignedEmailProps,
+): Record<string, unknown> {
+  return { address: addressLine(p), reference: p.reference };
+}
 
 export default function AssignmentReassigned(
   props: AssignmentReassignedEmailProps,
 ) {
+  const t = useTranslations("emails.assignmentReassigned");
+  const tCommon = useTranslations("emails.common");
   const dateStr = props.preferredDate?.toISOString().slice(0, 10) ?? null;
   return (
     <EmailLayout
-      preview={`New inspection: ${props.reference}`}
-      title="You've been assigned to a new inspection"
+      preview={t("preview", { reference: props.reference })}
+      title={t("title")}
     >
-      <P>Hi {props.freelancerName},</P>
+      <P>{tCommon("hi", { name: props.freelancerName })}</P>
       <P>
-        You&rsquo;ve been assigned to <strong>{props.reference}</strong> (
-        {addressLine(props)}).
+        {t("body", {
+          reference: props.reference,
+          address: addressLine(props),
+        })}
       </P>
-      {dateStr ? (
-        <P>
-          Planned date: <strong>{dateStr}</strong>
-        </P>
-      ) : null}
+      {dateStr ? <P>{t("plannedDateLabel", { date: dateStr })}</P> : null}
       <AssignmentCta ctx={props} />
     </EmailLayout>
   );

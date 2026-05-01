@@ -16,6 +16,8 @@ export type Recipient = {
   emailPrefs: Prisma.JsonValue | null;
   firstName: string;
   lastName: string;
+  /** BCP-47 locale ID (`en` | `nl-BE`); drives email + calendar i18n. */
+  locale: string;
 };
 
 const RECIPIENT_SELECT = {
@@ -24,6 +26,7 @@ const RECIPIENT_SELECT = {
   emailPrefs: true,
   firstName: true,
   lastName: true,
+  locale: true,
 } as const;
 
 /**

@@ -146,7 +146,7 @@ describe("collectAgencyRecipients — the core dedupe + scope", () => {
     );
   });
 
-  it("returned shape has exactly 5 fields (id/email/emailPrefs/firstName/lastName)", async () => {
+  it("returned shape has exactly 6 fields (id/email/emailPrefs/firstName/lastName/locale)", async () => {
     const { realtor } = await seedBaseline();
     const [row] = await collectAgencyRecipients({
       teamId: null,
@@ -154,7 +154,7 @@ describe("collectAgencyRecipients — the core dedupe + scope", () => {
       exclude: [],
     });
     expect(Object.keys(row).sort()).toEqual(
-      ["email", "emailPrefs", "firstName", "id", "lastName"],
+      ["email", "emailPrefs", "firstName", "id", "lastName", "locale"],
     );
     // Don't leak passwordHash, role, timestamps etc into notification payloads.
     expect(row).not.toHaveProperty("passwordHash");
@@ -170,7 +170,7 @@ describe("loadUser", () => {
     expect(row!.id).toBe(realtor.user.id);
     expect(row!.email).toBe(realtor.user.email);
     expect(Object.keys(row!).sort()).toEqual(
-      ["email", "emailPrefs", "firstName", "id", "lastName"],
+      ["email", "emailPrefs", "firstName", "id", "lastName", "locale"],
     );
   });
 

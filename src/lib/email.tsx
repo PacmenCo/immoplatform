@@ -22,73 +22,93 @@
 import "server-only";
 import * as React from "react";
 import { render } from "@react-email/render";
+import { NextIntlClientProvider } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import { routing } from "@/i18n/routing";
 
 import Invite, {
-  subject as inviteSubject,
+  subjectKey as inviteSubjectKey,
+  subjectArgs as inviteSubjectArgs,
   type InviteEmailProps,
 } from "@/emails/Invite";
 import ContactSubmission, {
-  subject as contactSubmissionSubject,
+  subjectKey as contactSubmissionSubjectKey,
+  subjectArgs as contactSubmissionSubjectArgs,
   type ContactSubmissionEmailProps,
 } from "@/emails/ContactSubmission";
 import PasswordReset, {
-  subject as passwordResetSubject,
+  subjectKey as passwordResetSubjectKey,
+  subjectArgs as passwordResetSubjectArgs,
   type PasswordResetEmailProps,
 } from "@/emails/PasswordReset";
 import MonthlyInvoiceReminder, {
-  subject as monthlyInvoiceReminderSubject,
+  subjectKey as monthlyInvoiceReminderSubjectKey,
+  subjectArgs as monthlyInvoiceReminderSubjectArgs,
   type MonthlyInvoiceReminderEmailProps,
 } from "@/emails/MonthlyInvoiceReminder";
 import UserRegistered, {
-  subject as userRegisteredSubject,
+  subjectKey as userRegisteredSubjectKey,
+  subjectArgs as userRegisteredSubjectArgs,
   type UserRegisteredEmailProps,
 } from "@/emails/UserRegistered";
 import EmailVerification, {
-  subject as emailVerificationSubject,
+  subjectKey as emailVerificationSubjectKey,
+  subjectArgs as emailVerificationSubjectArgs,
   type EmailVerificationEmailProps,
 } from "@/emails/EmailVerification";
 import AddedToTeam, {
-  subject as addedToTeamSubject,
+  subjectKey as addedToTeamSubjectKey,
+  subjectArgs as addedToTeamSubjectArgs,
   type AddedToTeamEmailProps,
 } from "@/emails/AddedToTeam";
 import AssignmentScheduled, {
-  subject as assignmentScheduledSubject,
+  subjectKey as assignmentScheduledSubjectKey,
+  subjectArgs as assignmentScheduledSubjectArgs,
   type AssignmentScheduledEmailProps,
 } from "@/emails/AssignmentScheduled";
 import AssignmentDateUpdated, {
-  subject as assignmentDateUpdatedSubject,
+  subjectKey as assignmentDateUpdatedSubjectKey,
+  subjectArgs as assignmentDateUpdatedSubjectArgs,
   type AssignmentDateUpdatedEmailProps,
 } from "@/emails/AssignmentDateUpdated";
 import AssignmentDelivered, {
-  subject as assignmentDeliveredSubject,
+  subjectKey as assignmentDeliveredSubjectKey,
+  subjectArgs as assignmentDeliveredSubjectArgs,
   type AssignmentDeliveredEmailProps,
 } from "@/emails/AssignmentDelivered";
 import AssignmentCompleted, {
-  subject as assignmentCompletedSubject,
+  subjectKey as assignmentCompletedSubjectKey,
+  subjectArgs as assignmentCompletedSubjectArgs,
   type AssignmentCompletedEmailProps,
 } from "@/emails/AssignmentCompleted";
 import AssignmentCancelled, {
-  subject as assignmentCancelledSubject,
+  subjectKey as assignmentCancelledSubjectKey,
+  subjectArgs as assignmentCancelledSubjectArgs,
   type AssignmentCancelledEmailProps,
 } from "@/emails/AssignmentCancelled";
 import AssignmentReassigned, {
-  subject as assignmentReassignedSubject,
+  subjectKey as assignmentReassignedSubjectKey,
+  subjectArgs as assignmentReassignedSubjectArgs,
   type AssignmentReassignedEmailProps,
 } from "@/emails/AssignmentReassigned";
 import AssignmentUnassigned, {
-  subject as assignmentUnassignedSubject,
+  subjectKey as assignmentUnassignedSubjectKey,
+  subjectArgs as assignmentUnassignedSubjectArgs,
   type AssignmentUnassignedEmailProps,
 } from "@/emails/AssignmentUnassigned";
 import FilesUploaded, {
-  subject as filesUploadedSubject,
+  subjectKey as filesUploadedSubjectKey,
+  subjectArgs as filesUploadedSubjectArgs,
   type FilesUploadedEmailProps,
 } from "@/emails/FilesUploaded";
 import CommentPosted, {
-  subject as commentPostedSubject,
+  subjectKey as commentPostedSubjectKey,
+  subjectArgs as commentPostedSubjectArgs,
   type CommentPostedEmailProps,
 } from "@/emails/CommentPosted";
 import OdooSyncFailed, {
-  subject as odooSyncFailedSubject,
+  subjectKey as odooSyncFailedSubjectKey,
+  subjectArgs as odooSyncFailedSubjectArgs,
   type OdooSyncFailedEmailProps,
 } from "@/emails/OdooSyncFailed";
 
@@ -105,6 +125,18 @@ type SendEmailArgs = {
    * rather than replying to the no-reply@ sender.
    */
   replyTo?: string;
+  /**
+   * BCP-47 locale for the recipient (`en` | `nl-BE`). Drives the language
+   * of every translated string in the rendered template + subject.
+   * Optional — falls back to `routing.defaultLocale` when omitted (admin
+   * fan-outs, cron, system alerts where there's no per-recipient locale).
+   *
+   * Note: by the time the dispatcher runs, the rendered `subject` / `text` /
+   * `html` are already locale-baked. This field is here for parity with
+   * template helpers + future provider switches that may want to set a
+   * language tag on the outgoing message envelope.
+   */
+  locale?: string;
 };
 
 /** Shape returned by every `*Email()` template helper. */
@@ -125,6 +157,40 @@ export async function sendEmail(args: SendEmailArgs): Promise<void> {
   throw new Error(
     `Unknown EMAIL_PROVIDER "${provider}". Supported: "dev" (default), "postmark", or "resend".`,
   );
+}
+
+/**
+ * Resolve a usable locale string. Caller-supplied values are validated
+ * against the routing config; anything else (`undefined`, an unknown tag)
+ * falls back to the routing default. Centralised here so every template
+ * helper picks the same default and we don't sprinkle `?? "nl-BE"` strings
+ * across the codebase.
+ */
+function resolveLocale(locale: string | undefined): string {
+  if (!locale) return routing.defaultLocale;
+  return (routing.locales as readonly string[]).includes(locale)
+    ? locale
+    : routing.defaultLocale;
+}
+
+/**
+ * Pick a translator scoped to a single email namespace. Uses next-intl's
+ * out-of-request `getTranslations({ locale, namespace })` overload — works
+ * fine outside a request scope (cron, admin fan-out) because we pass the
+ * locale explicitly rather than relying on `getRequestConfig`.
+ */
+async function translatorFor(
+  locale: string,
+  namespace: string,
+): Promise<(key: string, args?: Record<string, unknown>) => string> {
+  // The `namespace` arg accepts any nested key path; we cast through `any`
+  // to escape the `Messages` generic constraint that `getTranslations`
+  // exposes (it's typed against the live messages tree, but here we only
+  // know the namespace at call site).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const t = await (getTranslations as any)({ locale, namespace });
+  return (key: string, args?: Record<string, unknown>) =>
+    args ? (t as (k: string, a: Record<string, unknown>) => string)(key, args) : (t as (k: string) => string)(key);
 }
 
 function logToConsole(args: SendEmailArgs): void {
@@ -221,34 +287,106 @@ async function sendViaResend(args: SendEmailArgs): Promise<void> {
 // ─── Render helpers ───────────────────────────────────────────────
 
 /**
+ * Load the `emails` namespace tree for a given locale. We import the JSON
+ * directly (not via next-intl's request scope) so this works inside cron
+ * jobs and out-of-request system alerts. The full `emails.*` subtree is
+ * what every template's `useTranslations("emails.<name>")` resolves
+ * against, so we drop it under that namespace prefix when handing it to
+ * `IntlProvider`.
+ */
+async function loadEmailMessages(
+  locale: string,
+): Promise<Record<string, unknown>> {
+  const mod = (await import(`../../messages/${locale}/emails.json`)) as {
+    default: Record<string, unknown>;
+  };
+  return { emails: mod.default };
+}
+
+/**
  * Render a React Email template into `{ html, text }`. Pretty-printing is
  * disabled so Postmark/Resend don't see extra whitespace in the payload,
  * and plain-text is derived from the same JSX so the two stay in sync.
+ *
+ * The element is wrapped in `NextIntlClientProvider` so any
+ * `useTranslations()` calls inside the template tree resolve against the
+ * recipient's locale instead of falling through to next-intl's
+ * request-scoped config (which doesn't exist for cron / system emails).
+ *
+ * We use `NextIntlClientProvider` (not the lower-level `IntlProvider` from
+ * `use-intl/react`) because next-intl marks its provider with the proper
+ * "use client" boundary directive — importing the bare `use-intl/react`
+ * IntlProvider here would pull `createContext` into the RSC bundle and
+ * crash any server-component route that transitively imports `email.tsx`
+ * via a server action.
  */
 async function renderTemplate(
   element: React.ReactElement,
+  locale: string,
 ): Promise<{ html: string; text: string }> {
+  const messages = await loadEmailMessages(locale);
+  const wrapped = (
+    <NextIntlClientProvider
+      locale={locale as Parameters<typeof NextIntlClientProvider>[0]["locale"]}
+      messages={messages as Parameters<typeof NextIntlClientProvider>[0]["messages"]}
+    >
+      {element}
+    </NextIntlClientProvider>
+  );
   const [html, text] = await Promise.all([
-    render(element, { pretty: false }),
-    render(element, { plainText: true }),
+    render(wrapped, { pretty: false }),
+    render(wrapped, { plainText: true }),
   ]);
   return { html, text };
 }
 
 // ─── Transactional templates ──────────────────────────────────────
+//
+// Every helper accepts an optional `locale` arg. Falls back to
+// `routing.defaultLocale` (currently `nl-BE`) for system emails / cron /
+// admin fan-outs where there's no per-recipient locale. The helper:
+//   1. resolves the locale (validates against routing)
+//   2. fetches an `emails.<template>` translator for the subject
+//   3. renders the React tree wrapped in an IntlProvider so the
+//      `useTranslations()` calls inside the template resolve correctly
+
+async function buildSubject(
+  locale: string,
+  fullKey: string,
+  args: Record<string, unknown>,
+): Promise<string> {
+  // `fullKey` is shaped like `emails.invite.subject` — split into namespace
+  // + leaf so `getTranslations({ namespace })` returns a translator scoped
+  // close to the leaf for parity with the body's `useTranslations` scope.
+  const dot = fullKey.lastIndexOf(".");
+  const namespace = fullKey.slice(0, dot);
+  const leaf = fullKey.slice(dot + 1);
+  const t = await translatorFor(locale, namespace);
+  return t(leaf, args);
+}
 
 export async function inviteEmail(
   props: InviteEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
-  const { html, text } = await renderTemplate(<Invite {...props} />);
-  return { subject: inviteSubject(props), html, text };
+  const lc = resolveLocale(locale);
+  const { html, text } = await renderTemplate(<Invite {...props} />, lc);
+  const subject = await buildSubject(lc, inviteSubjectKey, inviteSubjectArgs(props));
+  return { subject, html, text };
 }
 
 export async function passwordResetEmail(
   props: PasswordResetEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
-  const { html, text } = await renderTemplate(<PasswordReset {...props} />);
-  return { subject: passwordResetSubject(props), html, text };
+  const lc = resolveLocale(locale);
+  const { html, text } = await renderTemplate(<PasswordReset {...props} />, lc);
+  const subject = await buildSubject(
+    lc,
+    passwordResetSubjectKey,
+    passwordResetSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 /**
@@ -259,32 +397,61 @@ export async function passwordResetEmail(
  */
 export async function monthlyInvoiceReminderEmail(
   props: MonthlyInvoiceReminderEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
+  const lc = resolveLocale(locale);
   const { html, text } = await renderTemplate(
     <MonthlyInvoiceReminder {...props} />,
+    lc,
   );
-  return { subject: monthlyInvoiceReminderSubject(props), html, text };
+  const subject = await buildSubject(
+    lc,
+    monthlyInvoiceReminderSubjectKey,
+    monthlyInvoiceReminderSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function emailVerificationEmail(
   props: EmailVerificationEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
-  const { html, text } = await renderTemplate(<EmailVerification {...props} />);
-  return { subject: emailVerificationSubject(props), html, text };
+  const lc = resolveLocale(locale);
+  const { html, text } = await renderTemplate(<EmailVerification {...props} />, lc);
+  const subject = await buildSubject(
+    lc,
+    emailVerificationSubjectKey,
+    emailVerificationSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function userRegisteredEmail(
   props: UserRegisteredEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
-  const { html, text } = await renderTemplate(<UserRegistered {...props} />);
-  return { subject: userRegisteredSubject(props), html, text };
+  const lc = resolveLocale(locale);
+  const { html, text } = await renderTemplate(<UserRegistered {...props} />, lc);
+  const subject = await buildSubject(
+    lc,
+    userRegisteredSubjectKey,
+    userRegisteredSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function addedToTeamEmail(
   props: AddedToTeamEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
-  const { html, text } = await renderTemplate(<AddedToTeam {...props} />);
-  return { subject: addedToTeamSubject(props), html, text };
+  const lc = resolveLocale(locale);
+  const { html, text } = await renderTemplate(<AddedToTeam {...props} />, lc);
+  const subject = await buildSubject(
+    lc,
+    addedToTeamSubjectKey,
+    addedToTeamSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 // ─── Assignment lifecycle templates ────────────────────────────────
@@ -295,86 +462,163 @@ export type AssignmentEmailCtx = _AssignmentEmailCtxFromTpl;
 
 export async function assignmentScheduledEmail(
   props: AssignmentScheduledEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
+  const lc = resolveLocale(locale);
   const { html, text } = await renderTemplate(
     <AssignmentScheduled {...props} />,
+    lc,
   );
-  return { subject: assignmentScheduledSubject(props), html, text };
+  const subject = await buildSubject(
+    lc,
+    assignmentScheduledSubjectKey,
+    assignmentScheduledSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function assignmentDateUpdatedEmail(
   props: AssignmentDateUpdatedEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
+  const lc = resolveLocale(locale);
   const { html, text } = await renderTemplate(
     <AssignmentDateUpdated {...props} />,
+    lc,
   );
-  return { subject: assignmentDateUpdatedSubject(props), html, text };
+  const subject = await buildSubject(
+    lc,
+    assignmentDateUpdatedSubjectKey,
+    assignmentDateUpdatedSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function assignmentDeliveredEmail(
   props: AssignmentDeliveredEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
+  const lc = resolveLocale(locale);
   const { html, text } = await renderTemplate(
     <AssignmentDelivered {...props} />,
+    lc,
   );
-  return { subject: assignmentDeliveredSubject(props), html, text };
+  const subject = await buildSubject(
+    lc,
+    assignmentDeliveredSubjectKey,
+    assignmentDeliveredSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function assignmentCompletedEmail(
   props: AssignmentCompletedEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
+  const lc = resolveLocale(locale);
   const { html, text } = await renderTemplate(
     <AssignmentCompleted {...props} />,
+    lc,
   );
-  return { subject: assignmentCompletedSubject(props), html, text };
+  const subject = await buildSubject(
+    lc,
+    assignmentCompletedSubjectKey,
+    assignmentCompletedSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function assignmentCancelledEmail(
   props: AssignmentCancelledEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
+  const lc = resolveLocale(locale);
   const { html, text } = await renderTemplate(
     <AssignmentCancelled {...props} />,
+    lc,
   );
-  return { subject: assignmentCancelledSubject(props), html, text };
+  const subject = await buildSubject(
+    lc,
+    assignmentCancelledSubjectKey,
+    assignmentCancelledSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function assignmentReassignedEmail(
   props: AssignmentReassignedEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
+  const lc = resolveLocale(locale);
   const { html, text } = await renderTemplate(
     <AssignmentReassigned {...props} />,
+    lc,
   );
-  return { subject: assignmentReassignedSubject(props), html, text };
+  const subject = await buildSubject(
+    lc,
+    assignmentReassignedSubjectKey,
+    assignmentReassignedSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function assignmentUnassignedEmail(
   props: AssignmentUnassignedEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
+  const lc = resolveLocale(locale);
   const { html, text } = await renderTemplate(
     <AssignmentUnassigned {...props} />,
+    lc,
   );
-  return { subject: assignmentUnassignedSubject(props), html, text };
+  const subject = await buildSubject(
+    lc,
+    assignmentUnassignedSubjectKey,
+    assignmentUnassignedSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function filesUploadedEmail(
   props: FilesUploadedEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
-  const { html, text } = await renderTemplate(<FilesUploaded {...props} />);
-  return { subject: filesUploadedSubject(props), html, text };
+  const lc = resolveLocale(locale);
+  const { html, text } = await renderTemplate(<FilesUploaded {...props} />, lc);
+  const subject = await buildSubject(
+    lc,
+    filesUploadedSubjectKey,
+    filesUploadedSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function commentPostedEmail(
   props: CommentPostedEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
-  const { html, text } = await renderTemplate(<CommentPosted {...props} />);
-  return { subject: commentPostedSubject(props), html, text };
+  const lc = resolveLocale(locale);
+  const { html, text } = await renderTemplate(<CommentPosted {...props} />, lc);
+  const subject = await buildSubject(
+    lc,
+    commentPostedSubjectKey,
+    commentPostedSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 export async function contactSubmissionEmail(
   props: ContactSubmissionEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
-  const { html, text } = await renderTemplate(<ContactSubmission {...props} />);
-  return { subject: contactSubmissionSubject(props), html, text };
+  const lc = resolveLocale(locale);
+  const { html, text } = await renderTemplate(<ContactSubmission {...props} />, lc);
+  const subject = await buildSubject(
+    lc,
+    contactSubmissionSubjectKey,
+    contactSubmissionSubjectArgs(props),
+  );
+  return { subject, html, text };
 }
 
 /**
@@ -385,7 +629,14 @@ export async function contactSubmissionEmail(
  */
 export async function odooSyncFailedEmail(
   props: OdooSyncFailedEmailProps,
+  locale?: string,
 ): Promise<RenderedEmail> {
-  const { html, text } = await renderTemplate(<OdooSyncFailed {...props} />);
-  return { subject: odooSyncFailedSubject(props), html, text };
+  const lc = resolveLocale(locale);
+  const { html, text } = await renderTemplate(<OdooSyncFailed {...props} />, lc);
+  const subject = await buildSubject(
+    lc,
+    odooSyncFailedSubjectKey,
+    odooSyncFailedSubjectArgs(props),
+  );
+  return { subject, html, text };
 }

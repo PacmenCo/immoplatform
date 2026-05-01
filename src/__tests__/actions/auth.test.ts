@@ -104,7 +104,7 @@ describe("login", () => {
   it("wrong password → {ok:false}, no session, audit.login_failed emitted", async () => {
     await seedUserWithPassword("alice@test.local", "correct-password");
     const res = await login(undefined, form({ email: "alice@test.local", password: "wrong" }));
-    expect(res).toMatchObject({ ok: false, error: "Invalid email or password." });
+    expect(res).toMatchObject({ ok: false, error: "errors.auth.invalidCredentials" });
 
     const sessions = await prisma.session.count({ where: { revokedAt: null } });
     expect(sessions).toBe(0);
@@ -125,19 +125,19 @@ describe("login", () => {
 
   it("unknown email → same error shape (no user-enumeration leak)", async () => {
     const res = await login(undefined, form({ email: "ghost@test.local", password: "whatever" }));
-    expect(res).toMatchObject({ ok: false, error: "Invalid email or password." });
+    expect(res).toMatchObject({ ok: false, error: "errors.auth.invalidCredentials" });
   });
 
   it("soft-deleted user → login rejected", async () => {
     const u = await seedUserWithPassword("alice@test.local", "correct-password");
     await prisma.user.update({ where: { id: u.id }, data: { deletedAt: new Date() } });
     const res = await login(undefined, form({ email: "alice@test.local", password: "correct-password" }));
-    expect(res).toMatchObject({ ok: false, error: "Invalid email or password." });
+    expect(res).toMatchObject({ ok: false, error: "errors.auth.invalidCredentials" });
   });
 
   it("invalid email format → friendly validation error (no rate-limit hit, no DB query)", async () => {
     const res = await login(undefined, form({ email: "not-an-email", password: "whatever" }));
-    expect(res).toMatchObject({ ok: false, error: "Enter your email and password." });
+    expect(res).toMatchObject({ ok: false, error: "errors.validation.missingEmailOrPassword" });
   });
 
   it("rate limit fires after 5 failures for the same (email, ip) in 60s window", async () => {
@@ -148,7 +148,7 @@ describe("login", () => {
     // 6th attempt — should be rate-limited regardless of correctness.
     const res = await login(undefined, form({ email: "alice@test.local", password: "correct-password" }));
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/Too many attempts/);
+    if (!res.ok) expect(res.error).toBe("errors.generic.rateLimitedAttempts");
   });
 
   it("per-email defense fires when the per-email bucket is exhausted (regardless of source IP)", async () => {
@@ -167,7 +167,7 @@ describe("login", () => {
       form({ email: "alice@test.local", password: "correct-password" }),
     );
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/Too many attempts/);
+    if (!res.ok) expect(res.error).toBe("errors.generic.rateLimitedAttempts");
   });
 
   it("successful login RESETS the rate limit counter (so later failures count fresh)", async () => {
@@ -181,7 +181,7 @@ describe("login", () => {
     );
     // The fresh counter allows another 5 failures before locking out.
     const res = await login(undefined, form({ email: "alice@test.local", password: "wrong" }));
-    expect(res).toMatchObject({ ok: false, error: "Invalid email or password." });
+    expect(res).toMatchObject({ ok: false, error: "errors.auth.invalidCredentials" });
   });
 
   it("picks the user's first team membership as activeTeamId", async () => {
@@ -291,7 +291,7 @@ describe("forgotPassword", () => {
     }
     const blocked = await forgotPassword(undefined, form({ email: "alice@test.local" }));
     expect(blocked.ok).toBe(false);
-    if (!blocked.ok) expect(blocked.error).toMatch(/Too many attempts/);
+    if (!blocked.ok) expect(blocked.error).toBe("errors.generic.rateLimitedAttempts");
   });
 
   it("per-IP cap blocks wordlist abuse across email rotation", async () => {
@@ -311,7 +311,7 @@ describe("forgotPassword", () => {
       form({ email: "target-overflow@example.test" }),
     );
     expect(blocked.ok).toBe(false);
-    if (!blocked.ok) expect(blocked.error).toMatch(/Too many attempts/);
+    if (!blocked.ok) expect(blocked.error).toBe("errors.generic.rateLimitedAttempts");
     resetRateLimit("forgot:target-overflow@example.test");
   });
 });
@@ -390,7 +390,7 @@ describe("resetPassword", () => {
       password: "new-password-0",
       confirm: "new-password-1",
     }));
-    expect(res).toEqual({ ok: false, error: "Passwords don't match." });
+    expect(res).toEqual({ ok: false, error: "errors.validation.passwordsMismatch" });
   });
 
   it("token < 10 chars → validation error", async () => {
@@ -423,7 +423,7 @@ describe("resetPassword", () => {
     }));
     expect(res).toEqual({
       ok: false,
-      error: "This reset link is invalid or has expired.",
+      error: "errors.auth.tokenInvalid",
     });
   });
 
@@ -440,7 +440,7 @@ describe("resetPassword", () => {
     }));
     expect(res).toEqual({
       ok: false,
-      error: "This reset link is invalid or has expired.",
+      error: "errors.auth.tokenInvalid",
     });
   });
 
@@ -457,7 +457,7 @@ describe("resetPassword", () => {
     }));
     expect(res).toEqual({
       ok: false,
-      error: "This reset link is invalid or has expired.",
+      error: "errors.auth.tokenInvalid",
     });
   });
 
@@ -474,7 +474,7 @@ describe("resetPassword", () => {
     }));
     expect(res).toEqual({
       ok: false,
-      error: "This account is no longer active.",
+      error: "errors.auth.accountInactive",
     });
   });
 });
@@ -539,7 +539,7 @@ describe("switchActiveTeam", () => {
     const res = await switchActiveTeam("t_outsider");
     expect(res).toEqual({
       ok: false,
-      error: "You're not a member of that team.",
+      error: "errors.session.notTeamMember",
     });
     const after = await prisma.session.findUniqueOrThrow({
       where: { id: realtor.id },
@@ -550,7 +550,7 @@ describe("switchActiveTeam", () => {
 
   it("not signed in (no cookie) → 'Not signed in.' error", async () => {
     const res = await switchActiveTeam("t_test_1");
-    expect(res).toEqual({ ok: false, error: "Not signed in." });
+    expect(res).toEqual({ ok: false, error: "errors.session.unauthenticated" });
   });
 });
 
@@ -601,7 +601,7 @@ describe("register — form value preservation", () => {
     const res = await register(undefined, regForm({ email: "taken@example.test" }));
     expect(res.ok).toBe(false);
     if (!res.ok) {
-      expect(res.error).toMatch(/already exists/);
+      expect(res.error).toBe("errors.auth.emailTaken");
       expect(res.formValues?.firstName).toBe("Riley");
       expect(res.formValues?.email).toBe("taken@example.test");
     }

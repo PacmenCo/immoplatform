@@ -1,11 +1,13 @@
 /**
  * Added-to-team email — sent when an existing user is added to a team.
  * Platform parity: ExistingUserTeamInvitationMail (welcome half of the flow).
+ * Copy lives under `emails.addedToTeam.*`.
  */
 
 import * as React from "react";
 import { Link } from "@react-email/components";
-import { BrandMark, CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
+import { useTranslations } from "next-intl";
+import { CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
 import { BRAND_NAME } from "@/lib/site";
 
 export type AddedToTeamEmailProps = {
@@ -15,24 +17,33 @@ export type AddedToTeamEmailProps = {
   loginUrl: string;
 };
 
-export const subject = (p: AddedToTeamEmailProps) =>
-  `You've been added to ${p.teamName} on ${BRAND_NAME}`;
+export const subjectKey = "emails.addedToTeam.subject";
+
+export function subjectArgs(p: AddedToTeamEmailProps): Record<string, unknown> {
+  return { brand: BRAND_NAME, teamName: p.teamName };
+}
 
 export default function AddedToTeam(props: AddedToTeamEmailProps) {
+  const t = useTranslations("emails.addedToTeam");
+  const tCommon = useTranslations("emails.common");
   return (
     <EmailLayout
-      preview={`You've been added to ${props.teamName}`}
-      title={`Welcome to ${props.teamName}`}
+      preview={t("preview", { teamName: props.teamName })}
+      title={t("title", { teamName: props.teamName })}
     >
       <P>
-        {props.inviterName} added you to the team{" "}
-        <strong>&ldquo;{props.teamName}&rdquo;</strong> on <BrandMark /> as a{" "}
-        {props.teamRole}.
+        {t("intro", {
+          inviterName: props.inviterName,
+          teamName: props.teamName,
+          brand: BRAND_NAME,
+          teamRole: props.teamRole,
+        })}
       </P>
-      <P>Sign in to see the team&rsquo;s assignments:</P>
-      <CtaButton href={props.loginUrl}>Sign in</CtaButton>
+      <P>{t("callToAction")}</P>
+      <CtaButton href={props.loginUrl}>{t("ctaButton")}</CtaButton>
       <P style={mutedStyle}>
-        Or open this URL: <Link href={props.loginUrl}>{props.loginUrl}</Link>
+        {tCommon("openUrlPrefix")}{" "}
+        <Link href={props.loginUrl}>{props.loginUrl}</Link>
       </P>
     </EmailLayout>
   );

@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/Avatar";
 import {
   IconHome,
@@ -17,17 +18,6 @@ import {
 } from "@/components/ui/Icons";
 import { BrandLogo } from "@/components/BrandLogo";
 
-const NAV = [
-  { href: "/dashboard", label: "Overview", icon: IconHome },
-  { href: "/dashboard/assignments", label: "Assignments", icon: IconList },
-  { href: "/dashboard/teams", label: "Teams", icon: IconBuilding },
-  { href: "/dashboard/users", label: "Users", icon: IconUsers },
-  { href: "/dashboard/calendar", label: "Calendar", icon: IconCalendar },
-  { href: "/dashboard/overview", label: "Revenue", icon: IconChart },
-  { href: "/dashboard/announcements", label: "Announcements", icon: IconMegaphone },
-  { href: "/dashboard/settings", label: "Settings", icon: IconSettings },
-];
-
 function isActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
   if (href === "/dashboard") return pathname === "/dashboard";
@@ -36,8 +26,23 @@ function isActive(pathname: string | null, href: string): boolean {
 
 export function MobileTopbar() {
   const pathname = usePathname();
+  const t = useTranslations("dashboard.shared.mobileTopbar");
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const NAV = useMemo(
+    () => [
+      { href: "/dashboard", label: t("items.overview"), icon: IconHome },
+      { href: "/dashboard/assignments", label: t("items.assignments"), icon: IconList },
+      { href: "/dashboard/teams", label: t("items.teams"), icon: IconBuilding },
+      { href: "/dashboard/users", label: t("items.users"), icon: IconUsers },
+      { href: "/dashboard/calendar", label: t("items.calendar"), icon: IconCalendar },
+      { href: "/dashboard/overview", label: t("items.revenue"), icon: IconChart },
+      { href: "/dashboard/announcements", label: t("items.announcements"), icon: IconMegaphone },
+      { href: "/dashboard/settings", label: t("items.settings"), icon: IconSettings },
+    ],
+    [t],
+  );
 
   // Close on route change — Link clicks inside the popover navigate, and we
   // want the panel to go away as the new page paints in.
@@ -71,7 +76,7 @@ export function MobileTopbar() {
       <div ref={wrapperRef} className="relative">
         <button
           type="button"
-          aria-label={open ? "Close navigation" : "Open navigation"}
+          aria-label={open ? t("close") : t("open")}
           aria-expanded={open}
           aria-haspopup="menu"
           onClick={() => setOpen((v) => !v)}
@@ -151,21 +156,21 @@ export function MobileTopbar() {
                 className="flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] transition-colors hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
               >
                 <IconLogout size={16} className="shrink-0 text-[var(--color-ink-muted)]" />
-                Sign out
+                {t("signOut")}
               </Link>
             </div>
           </div>
         )}
       </div>
 
-      <Link href="/dashboard" className="flex items-center" aria-label="immoplatform.be — dashboard">
+      <Link href="/dashboard" className="flex items-center" aria-label={t("homeAriaLabel")}>
         <BrandLogo className="h-7 w-auto" />
       </Link>
 
       <div className="flex items-center gap-1 sm:gap-2">
         <Link
           href="/dashboard/settings"
-          aria-label="Your profile"
+          aria-label={t("profile")}
           className="grid h-11 w-11 place-items-center rounded-md hover:bg-[var(--color-bg-muted)]"
         >
           <Avatar initials="JR" size="sm" color="#334155" online />

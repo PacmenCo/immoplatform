@@ -144,7 +144,7 @@ describe("markAssignmentCompletedInner — guard clauses", () => {
     const res = await markAssignmentCompletedInner(admin, asg.id, undefined, form());
     expect(res).toEqual({
       ok: false,
-      error: "Only delivered assignments can be completed. This one is scheduled.",
+      error: "errors.assignment.cannotCompleteNonDelivered",
     });
   });
 
@@ -158,7 +158,7 @@ describe("markAssignmentCompletedInner — guard clauses", () => {
     const res = await markAssignmentCompletedInner(admin, asg.id, undefined, form());
     expect(res).toEqual({
       ok: false,
-      error: "Only delivered assignments can be completed. This one is completed.",
+      error: "errors.assignment.cannotCompleteNonDelivered",
     });
   });
 
@@ -195,14 +195,14 @@ describe("markAssignmentCompletedInner — guard clauses", () => {
     const res = await markAssignmentCompletedInner(outsider, asg.id, undefined, form());
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to complete this.",
+      error: "errors.assignment.cannotComplete",
     });
   });
 
   it("missing assignment → 'Assignment not found.'", async () => {
     const { admin } = await seedBaseline();
     const res = await markAssignmentCompletedInner(admin, "a_ghost", undefined, form());
-    expect(res).toEqual({ ok: false, error: "Assignment not found." });
+    expect(res).toEqual({ ok: false, error: "errors.assignment.notFound" });
   });
 });
 
@@ -245,7 +245,7 @@ describe("reassignFreelancerInner — role gate", () => {
     const res = await reassignFreelancerInner(realtor, asg.id, freelancer.user.id);
     expect(res).toEqual({
       ok: false,
-      error: "Only admins and staff can assign a freelancer.",
+      error: "errors.assignment.freelancerOnlyAssign",
     });
   });
 
@@ -259,7 +259,7 @@ describe("reassignFreelancerInner — role gate", () => {
     const res = await reassignFreelancerInner(freelancer, asg.id, freelancer.user.id);
     expect(res).toEqual({
       ok: false,
-      error: "Only admins and staff can assign a freelancer.",
+      error: "errors.assignment.freelancerOnlyAssign",
     });
   });
 });
@@ -275,7 +275,7 @@ describe("reassignFreelancerInner — state guards", () => {
     const res = await reassignFreelancerInner(admin, asg.id, freelancer.user.id);
     expect(res).toEqual({
       ok: false,
-      error: "This assignment is completed and can't be reassigned.",
+      error: "errors.assignment.cannotReassignTerminal",
     });
   });
 
@@ -289,7 +289,7 @@ describe("reassignFreelancerInner — state guards", () => {
     const res = await reassignFreelancerInner(admin, asg.id, freelancer.user.id);
     expect(res).toEqual({
       ok: false,
-      error: "This assignment is cancelled and can't be reassigned.",
+      error: "errors.assignment.cannotReassignTerminal",
     });
   });
 });
@@ -305,7 +305,7 @@ describe("reassignFreelancerInner — target validation", () => {
     const res = await reassignFreelancerInner(admin, asg.id, realtor.user.id);
     expect(res).toEqual({
       ok: false,
-      error: "That user isn't an active freelancer.",
+      error: "errors.assignment.freelancerNotEligible",
     });
   });
 
@@ -319,7 +319,7 @@ describe("reassignFreelancerInner — target validation", () => {
     const res = await reassignFreelancerInner(admin, asg.id, "u_does_not_exist");
     expect(res).toEqual({
       ok: false,
-      error: "That user isn't an active freelancer.",
+      error: "errors.assignment.freelancerNotEligible",
     });
   });
 
@@ -337,7 +337,7 @@ describe("reassignFreelancerInner — target validation", () => {
     const res = await reassignFreelancerInner(admin, asg.id, freelancer.user.id);
     expect(res).toEqual({
       ok: false,
-      error: "That user isn't an active freelancer.",
+      error: "errors.assignment.freelancerNotEligible",
     });
   });
 

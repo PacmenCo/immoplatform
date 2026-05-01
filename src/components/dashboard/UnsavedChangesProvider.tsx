@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 /**
@@ -29,6 +30,7 @@ const UnsavedChangesCtx = createContext<Ctx | null>(null);
 
 export function UnsavedChangesProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const t = useTranslations("dashboard.shared.unsavedChanges");
   const probesRef = useRef<Set<DirtySubscription>>(new Set());
   const [pendingHref, setPendingHref] = useState<string | null>(null);
 
@@ -104,10 +106,10 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
       <ConfirmDialog
         open={pendingHref !== null}
         tone="danger"
-        title="Leave without saving?"
-        description="You have unsaved changes on this page. If you leave now, they'll be lost."
-        confirmLabel="Discard changes"
-        cancelLabel="Keep editing"
+        title={t("title")}
+        description={t("description")}
+        confirmLabel={t("confirmLabel")}
+        cancelLabel={t("cancelLabel")}
         onConfirm={() => {
           const href = pendingHref;
           setPendingHref(null);

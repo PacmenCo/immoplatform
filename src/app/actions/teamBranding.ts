@@ -72,22 +72,22 @@ export async function uploadTeamBrandingInner(
   if (!(await canEditTeam(session, teamId))) {
     return {
       ok: false,
-      error: "Only admins and team owners can change team branding.",
+      error: "errors.team.brandingOwnersOnly",
     };
   }
   const cfg = CONFIG[kind];
   const file = formData.get(kind);
   if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, error: `Pick a ${kind} image to upload.` };
+    return { ok: false, error: "errors.profile.pickBrandingImage" };
   }
   if (file.size > cfg.maxBytes) {
     const mb = Math.round(cfg.maxBytes / (1024 * 1024));
-    return { ok: false, error: `${kind[0].toUpperCase()}${kind.slice(1)} image must be ${mb} MB or smaller.` };
+    return { ok: false, error: "errors.profile.brandingImageTooLarge" };
   }
   const mime = file.type.toLowerCase();
   const ext = cfg.mimeToExt[mime];
   if (!ext) {
-    return { ok: false, error: `Use ${listFormats(cfg.mimeToExt)} for the ${kind}.` };
+    return { ok: false, error: "errors.profile.brandingImageWrongFormat" };
   }
 
   const store = storage();
@@ -140,7 +140,7 @@ export async function removeTeamBrandingInner(
   if (!(await canEditTeam(session, teamId))) {
     return {
       ok: false,
-      error: "Only admins and team owners can change team branding.",
+      error: "errors.team.brandingOwnersOnly",
     };
   }
   const cfg = CONFIG[kind];

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { Button } from "./Button";
 
 type Tone = "neutral" | "danger";
@@ -31,13 +32,16 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   tone = "neutral",
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations("dashboard.shared.confirmDialog");
+  const effectiveConfirm = confirmLabel ?? t("confirm");
+  const effectiveCancel = cancelLabel ?? t("cancel");
 
   useEffect(() => {
     if (!open) return;
@@ -121,14 +125,14 @@ export function ConfirmDialog({
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg-alt)] px-6 py-4 mt-4">
           <Button variant="ghost" size="md" onClick={onCancel}>
-            {cancelLabel}
+            {effectiveCancel}
           </Button>
           <Button
             variant={tone === "danger" ? "danger" : "primary"}
             size="md"
             onClick={onConfirm}
           >
-            {confirmLabel}
+            {effectiveConfirm}
           </Button>
         </div>
       </div>

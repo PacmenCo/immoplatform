@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { IconPlus } from "@/components/ui/Icons";
 import { Button } from "@/components/ui/Button";
 import { TeamSwitcher, type SwitcherTeam } from "./TeamSwitcher";
@@ -21,6 +22,7 @@ export async function Topbar({
   subtitle?: string;
 }) {
   const session = await getSession();
+  const t = await getTranslations("dashboard.shared.topbar");
   const canCreate = session ? canCreateAssignment(session) : false;
   const canMakeTeam = session ? canCreateTeam(session) : false;
 
@@ -96,7 +98,7 @@ export async function Topbar({
         {canCreate && (
           <Button href="/dashboard/assignments/new" size="sm" className="ml-1.5">
             <IconPlus size={16} />
-            New assignment
+            {t("newAssignment")}
           </Button>
         )}
       </div>

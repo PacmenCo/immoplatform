@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Card } from "@/components/ui/Card";
 import { BrandName } from "@/components/BrandName";
 import { BrandLogo } from "@/components/BrandLogo";

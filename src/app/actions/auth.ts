@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
+import { localeRedirect } from "@/i18n/navigation";
+import { routing } from "@/i18n/routing";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import {
@@ -32,7 +34,7 @@ function rateLimitedError(retryAfterSec: number): ActionResult {
   const minutes = Math.ceil(retryAfterSec / 60);
   return {
     ok: false,
-    error: `Too many attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+    error: "errors.generic.rateLimitedAttempts",
   };
 }
 
@@ -56,7 +58,7 @@ export async function login(
   const formValues = { email: String(formData.get("email") ?? "") };
 
   if (!parsed.success) {
-    return { ok: false, error: "Enter your email and password.", formValues };
+    return { ok: false, error: "errors.validation.missingEmailOrPassword", formValues };
   }
 
   // Defense-in-depth for the prod account switcher. The 3 `@immo.test` test
@@ -74,7 +76,7 @@ export async function login(
       verb: "auth.login_failed",
       metadata: { email: parsed.data.email, reason: "immo_test_domain_refused" },
     });
-    return { ok: false, error: "Invalid email or password.", formValues };
+    return { ok: false, error: "errors.auth.invalidCredentials", formValues };
   }
 
   // Platform parity: 5 attempts per (email, ip) per 60s. IP-awareness stops
@@ -102,7 +104,7 @@ export async function login(
       verb: "auth.login_failed",
       metadata: { email: parsed.data.email },
     });
-    return { ok: false, error: "Invalid email or password.", formValues };
+    return { ok: false, error: "errors.auth.invalidCredentials", formValues };
   }
 
   resetRateLimit(rlKey);
@@ -144,7 +146,7 @@ export async function login(
     rawNext.startsWith("/") && !rawNext.startsWith("//")
       ? rawNext
       : "/dashboard/assignments";
-  redirect(target);
+  return localeRedirect(target);
 }
 
 // ─── REGISTER ──────────────────────────────────────────────────────
@@ -160,7 +162,7 @@ const registerSchema = z.object({
   lastName: z.string().trim().min(1, "Last name is required.").max(100),
   email: z
     .string()
-    .email("Enter a valid email address.")
+    .email("errors.validation.invalidEmail")
     .max(255)
     .transform((s) => s.toLowerCase().trim())
     // The `@immo.test` domain is reserved server-side for the dev
@@ -209,7 +211,7 @@ export async function register(
     };
   }
   if (parsed.data.password !== parsed.data.confirm) {
-    return { ok: false, error: "Passwords don't match.", formValues };
+    return { ok: false, error: "errors.validation.passwordsMismatch", formValues };
   }
 
   // Rate-limit per IP — same window as forgot-password since both are
@@ -230,12 +232,17 @@ export async function register(
   if (existing) {
     return {
       ok: false,
-      error: "An account with that email already exists. Try logging in.",
+      error: "errors.auth.emailTaken",
       formValues,
     };
   }
 
   const passwordHash = await hashPassword(parsed.data.password);
+  // The new user's locale defaults to the request's active locale so a Belgian
+  // visitor who registered from /nl gets nl-BE emails / calendar invites
+  // without having to set it manually. Fall back to the routing default if
+  // the request scope can't read it for some reason.
+  const requestLocale = await getLocale().catch(() => routing.defaultLocale);
   const user = await prisma.user.create({
     data: {
       email: parsed.data.email,
@@ -243,6 +250,7 @@ export async function register(
       firstName: parsed.data.firstName,
       lastName: parsed.data.lastName,
       role: "realtor",
+      locale: requestLocale,
       region: parsed.data.region || null,
       // bio borrows the agency text — v2's User schema has no `agency`
       // column, but a one-liner about who they are is useful as a starter.
@@ -265,16 +273,22 @@ export async function register(
   // redirect on email delivery.
   const admins = await collectPlatformAdmins({ exclude: [user.id] });
   if (admins.length > 0) {
-    const tpl = await userRegisteredEmail({
+    const props = {
       newUserName: `${user.firstName} ${user.lastName}`,
       newUserEmail: user.email,
       newUserRole: "realtor",
       agency: parsed.data.agency || null,
       region: parsed.data.region || null,
       usersUrl: `${appBaseUrl()}/dashboard/users`,
-    });
+    };
     await Promise.all(
-      admins.map((to) => notify({ to, event: "user.registered", ...tpl })),
+      admins.map(async (to) =>
+        notify({
+          to,
+          event: "user.registered",
+          ...(await userRegisteredEmail(props, to.locale)),
+        }),
+      ),
     );
   }
 
@@ -293,7 +307,7 @@ export async function register(
   });
 
   // v1 parity: redirect to assignments.index after auto-login.
-  redirect("/dashboard/assignments");
+  return localeRedirect("/dashboard/assignments");
 }
 
 // ─── LOGOUT ────────────────────────────────────────────────────────
@@ -309,7 +323,7 @@ export async function logout(): Promise<void> {
     });
   }
   await clearSession();
-  redirect("/login");
+  return localeRedirect("/login");
 }
 
 // ─── FORGOT PASSWORD ───────────────────────────────────────────────
@@ -324,7 +338,7 @@ export async function forgotPassword(
 ): Promise<ActionResult> {
   const parsed = forgotSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) {
-    return { ok: false, error: "Enter a valid email address." };
+    return { ok: false, error: "errors.validation.invalidEmail" };
   }
 
   // Per-email throttle avoids email-flooding a single account. Per-IP runs
@@ -346,11 +360,14 @@ export async function forgotPassword(
         expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1h
       },
     });
-    const tpl = await passwordResetEmail({
-      name: user.firstName,
-      resetUrl: passwordResetUrl(token),
-    });
-    await sendEmail({ to: user.email, ...tpl });
+    const tpl = await passwordResetEmail(
+      {
+        name: user.firstName,
+        resetUrl: passwordResetUrl(token),
+      },
+      user.locale,
+    );
+    await sendEmail({ to: user.email, ...tpl, locale: user.locale });
   } else {
     // Equalize timing: when the user is unknown the function would otherwise
     // return ~10× faster than the existing-user branch (Prisma + token write
@@ -378,7 +395,7 @@ const resetSchema = z.object({
   confirm: z.string(),
 });
 
-const INVALID_TOKEN_ERROR = "This reset link is invalid or has expired.";
+const INVALID_TOKEN_ERROR = "errors.auth.tokenInvalid";
 
 export async function resetPassword(
   _prev: ActionResult | undefined,
@@ -401,10 +418,10 @@ export async function resetPassword(
     if (tokenIssue) {
       return { ok: false, error: INVALID_TOKEN_ERROR };
     }
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "errors.validation.invalidInput" };
   }
   if (parsed.data.password !== parsed.data.confirm) {
-    return { ok: false, error: "Passwords don't match." };
+    return { ok: false, error: "errors.validation.passwordsMismatch" };
   }
 
   // Guard token-consume from brute force; the window is long since legitimate
@@ -421,7 +438,7 @@ export async function resetPassword(
     return { ok: false, error: INVALID_TOKEN_ERROR };
   }
   if (reset.user.deletedAt) {
-    return { ok: false, error: "This account is no longer active." };
+    return { ok: false, error: "errors.auth.accountInactive" };
   }
 
   const hash = await hashPassword(parsed.data.password);
@@ -453,21 +470,21 @@ export async function resetPassword(
     metadata: { via: "reset" },
   });
 
-  redirect("/dashboard/assignments");
+  return localeRedirect("/dashboard/assignments");
 }
 
 // ─── SWITCH ACTIVE TEAM ────────────────────────────────────────────
 
 export async function switchActiveTeam(teamId: string): Promise<ActionResult> {
   const session = await getSession();
-  if (!session) return { ok: false, error: "Not signed in." };
+  if (!session) return { ok: false, error: "errors.session.unauthenticated" };
 
   const membership = await prisma.teamMember.findUnique({
     where: { teamId_userId: { teamId, userId: session.user.id } },
     include: { team: { select: { id: true } } },
   });
   if (!membership || !membership.team) {
-    return { ok: false, error: "You're not a member of that team." };
+    return { ok: false, error: "errors.session.notTeamMember" };
   }
 
   await prisma.session.update({

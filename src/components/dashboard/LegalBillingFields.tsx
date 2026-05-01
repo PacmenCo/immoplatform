@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
 
@@ -26,6 +27,7 @@ export function LegalBillingFields({
   defaultEmail?: string;
   defaultPhone?: string;
 }) {
+  const t = useTranslations("dashboard.shared.legalBillingFields");
   const [entityType, setEntityType] = useState<EntityType>("sole_trader");
   const [vat, setVat] = useState("");
   const [kbo, setKbo] = useState("");
@@ -52,14 +54,13 @@ export function LegalBillingFields({
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <CardTitle>Legal &amp; billing</CardTitle>
+            <CardTitle>{t("title")}</CardTitle>
             <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-              Used on issued invoices and the assignment form. Optional now,
-              but needed before billing.
+              {t("intro")}
             </p>
           </div>
           <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">
-            Optional
+            {t("optionalBadge")}
           </span>
         </div>
       </CardHeader>
@@ -67,24 +68,24 @@ export function LegalBillingFields({
         {/* Type toggle. Drives whether "Legal name" is collected. */}
         <div>
           <p className="mb-2 text-sm font-medium text-[var(--color-ink)]">
-            Business type
+            {t("businessType")}
           </p>
           <div
             className="grid gap-3 sm:grid-cols-2"
             role="radiogroup"
-            aria-label="Business type"
+            aria-label={t("businessTypeAriaLabel")}
           >
             <EntityOption
               value="sole_trader"
-              label="Sole trader"
-              description="Eenmanszaak — invoices issued under personal name."
+              label={t("soleTrader")}
+              description={t("soleTraderDescription")}
               checked={entityType === "sole_trader"}
               onChange={setEntityType}
             />
             <EntityOption
               value="company"
-              label="Company"
-              description="BV / SRL or other legal entity."
+              label={t("company")}
+              description={t("companyDescription")}
               checked={entityType === "company"}
               onChange={setEntityType}
             />
@@ -96,14 +97,14 @@ export function LegalBillingFields({
             personal first/last name from the profile section. */}
         {entityType === "company" && (
           <Field
-            label="Legal name"
+            label={t("legalName")}
             id="legal-name"
-            hint="As registered with the KBO/BCE."
+            hint={t("legalNameHint")}
           >
             <Input
               id="legal-name"
               name="legalName"
-              placeholder="e.g. Acme Inspections BV"
+              placeholder={t("legalNamePlaceholder")}
               autoComplete="organization"
             />
           </Field>
@@ -111,15 +112,15 @@ export function LegalBillingFields({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
-            label="VAT number"
+            label={t("vatNumber")}
             id="vat-number"
-            hint="Belgian format: BE + 10 digits"
-            error={vat && !vatValid ? "Format should be BE + 10 digits." : undefined}
+            hint={t("vatHint")}
+            error={vat && !vatValid ? t("vatError") : undefined}
           >
             <Input
               id="vat-number"
               name="vatNumber"
-              placeholder="BE 0712.345.678"
+              placeholder={t("vatPlaceholder")}
               value={vat}
               onChange={(e) => setVat(e.target.value)}
               onBlur={() => syncFromVat(vat)}
@@ -128,14 +129,14 @@ export function LegalBillingFields({
             />
           </Field>
           <Field
-            label="KBO / BCE number"
+            label={t("kboNumber")}
             id="kbo-number"
-            hint="Same digits as VAT, without the BE prefix."
+            hint={t("kboHint")}
           >
             <Input
               id="kbo-number"
               name="kboNumber"
-              placeholder="0712345678"
+              placeholder={t("kboPlaceholder")}
               value={kbo}
               onChange={(e) => setKbo(e.target.value)}
               onBlur={() => syncFromKbo(kbo)}
@@ -146,15 +147,15 @@ export function LegalBillingFields({
         </div>
 
         <Field
-          label="IBAN"
+          label={t("iban")}
           id="iban"
-          hint="Belgian IBAN: BE + 14 digits."
-          error={iban && !ibanValid ? "Format looks off — expected BE + 14 digits." : undefined}
+          hint={t("ibanHint")}
+          error={iban && !ibanValid ? t("ibanError") : undefined}
         >
           <Input
             id="iban"
             name="iban"
-            placeholder="BE68 5390 0754 7034"
+            placeholder={t("ibanPlaceholder")}
             value={iban}
             onChange={(e) => setIban(e.target.value)}
             autoComplete="off"
@@ -163,61 +164,61 @@ export function LegalBillingFields({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
-            label="Billing email"
+            label={t("billingEmail")}
             id="billing-email"
-            hint="Where invoices and statements are sent."
+            hint={t("billingEmailHint")}
           >
             <Input
               id="billing-email"
               name="billingEmail"
               type="email"
-              placeholder={defaultEmail || "billing@agency.be"}
+              placeholder={defaultEmail || t("billingEmailPlaceholder")}
               defaultValue={defaultEmail || ""}
               autoComplete="email"
             />
           </Field>
-          <Field label="Billing phone" id="billing-phone">
+          <Field label={t("billingPhone")} id="billing-phone">
             <Input
               id="billing-phone"
               name="billingPhone"
               type="tel"
-              placeholder={defaultPhone || "+32 3 234 56 78"}
+              placeholder={defaultPhone || t("billingPhonePlaceholder")}
               defaultValue={defaultPhone || ""}
               autoComplete="tel"
             />
           </Field>
         </div>
 
-        <Field label="Billing address" id="billing-address">
+        <Field label={t("billingAddress")} id="billing-address">
           <Input
             id="billing-address"
             name="billingAddress"
-            placeholder="Street + number"
+            placeholder={t("billingAddressPlaceholder")}
             autoComplete="street-address"
           />
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-[140px_1fr]">
-          <Field label="Postal code" id="billing-postal">
+          <Field label={t("billingPostal")} id="billing-postal">
             <Input
               id="billing-postal"
               name="billingPostal"
-              placeholder="2000"
+              placeholder={t("billingPostalPlaceholder")}
               autoComplete="postal-code"
               inputMode="numeric"
             />
           </Field>
-          <Field label="City" id="billing-city">
+          <Field label={t("billingCity")} id="billing-city">
             <Input
               id="billing-city"
               name="billingCity"
-              placeholder="Antwerpen"
+              placeholder={t("billingCityPlaceholder")}
               autoComplete="address-level2"
             />
           </Field>
         </div>
 
-        <Field label="Country" id="billing-country">
+        <Field label={t("country")} id="billing-country">
           <Input
             id="billing-country"
             name="billingCountry"

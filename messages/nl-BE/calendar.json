@@ -1,0 +1,36 @@
+{
+  "eventDescription": {
+    "addressLabel": "[TODO en: Address]",
+    "appointmentLabel": "[TODO en: Appointment]",
+    "areaLabel": "[TODO en: Area]",
+    "clientFallback": "[TODO en: CLIENT]",
+    "commentAuthorPlaceholder": "[TODO en: —]",
+    "commentWrote": "[TODO en: wrote]",
+    "keyPickupAtAddress": "[TODO en: At: {address}]",
+    "keyPickupAtOffice": "[TODO en: Pick up at the office]",
+    "keyPickupAtSeparateAddress": "[TODO en: At a separate address]",
+    "keyPickupLabel": "[TODO en: Key pickup]",
+    "largePropertyMarker": "[TODO en: Large property (> 300 m²)]",
+    "notesLabel": "[TODO en: Notes]",
+    "officeFallback": "[TODO en: OFFICE]",
+    "openAssignmentLink": "[TODO en: Open assignment →]",
+    "ownerLabel": "[TODO en: Owner]",
+    "propertyTypeLabel": "[TODO en: Property type]",
+    "realtorLabel": "[TODO en: Realtor]",
+    "recentActivity": "[TODO en: Recent activity:]",
+    "standardArea": "[TODO en: Standard (≤ 300 m²)]",
+    "standardAreaWithSize": "[TODO en: Standard (≤ 300 m²) (~ {area} m²)]",
+    "tenantLabel": "[TODO en: Tenant]",
+    "yourContactSuffix": "[TODO en: (Your contact)]"
+  },
+  "propertyType": {
+    "apartment": "[TODO en: Apartment]",
+    "commercial": "[TODO en: Commercial]",
+    "house": "[TODO en: House]",
+    "land": "[TODO en: Land]",
+    "office": "[TODO en: Office]",
+    "studio_appartement": "[TODO en: Studio / apartment]",
+    "studio_room": "[TODO en: Student room]",
+    "villa": "[TODO en: Villa]"
+  }
+}

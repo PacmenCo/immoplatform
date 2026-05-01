@@ -1,10 +1,12 @@
 "use client";
 
 import { useActionState, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { SuccessBanner } from "@/components/ui/SuccessBanner";
+import { useTranslateError } from "@/i18n/error";
 import {
   uploadTeamLogo,
   removeTeamLogo,
@@ -53,6 +55,8 @@ function LogoSection({
 }) {
   const boundUpload = uploadTeamLogo.bind(null, teamId);
   const boundRemove = async () => removeTeamLogo(teamId);
+  const t = useTranslations("dashboard.shared.brandingCard");
+  const tCommon = useTranslations("dashboard.shared.common");
 
   const [uploadState, uploadAction, uploading] = useActionState<
     ActionResult | undefined,
@@ -67,9 +71,9 @@ function LogoSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Team logo</CardTitle>
+        <CardTitle>{t("logoTitle")}</CardTitle>
         <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
-          Used in the opdrachtformulier header and on the team detail page.
+          {t("logoDescription")}
         </p>
       </CardHeader>
       <CardBody className="space-y-4">
@@ -90,33 +94,34 @@ function LogoSection({
             />
             <p className="mt-2 text-xs text-[var(--color-ink-muted)]" aria-live="polite">
               {uploading
-                ? "Uploading…"
-                : `PNG, JPG, WebP or GIF — max ${LOGO_MAX_MB} MB.`}
+                ? tCommon("uploading")
+                : t("logoConstraints", { max: LOGO_MAX_MB })}
             </p>
           </form>
           {logoUrl && (
             <form action={removeAction}>
               <Button type="submit" variant="ghost" size="sm" loading={removing}>
-                Remove
+                {t("remove")}
               </Button>
             </form>
           )}
         </div>
-        <ActionBanner state={uploadState} successLabel="Logo updated." />
-        <ActionBanner state={removeState} successLabel="Logo removed." />
+        <ActionBanner state={uploadState} successLabel={t("logoUpdated")} />
+        <ActionBanner state={removeState} successLabel={t("logoRemoved")} />
       </CardBody>
     </Card>
   );
 }
 
 function LogoPreview({ src, teamName }: { src: string | null; teamName: string }) {
+  const t = useTranslations("dashboard.shared.brandingCard");
   if (!src) {
     return (
       <div
         aria-hidden
         className="grid h-20 w-20 shrink-0 place-items-center rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs text-[var(--color-ink-muted)]"
       >
-        No logo
+        {t("logoNoneAlt")}
       </div>
     );
   }
@@ -127,7 +132,7 @@ function LogoPreview({ src, teamName }: { src: string | null; teamName: string }
   return (
     <img
       src={src}
-      alt={`${teamName} logo`}
+      alt={t("logoAlt", { teamName })}
       className="h-20 w-20 shrink-0 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] object-contain p-1"
     />
   );
@@ -146,6 +151,8 @@ function SignatureSection({
 }) {
   const boundUpload = uploadTeamSignature.bind(null, teamId);
   const boundRemove = async () => removeTeamSignature(teamId);
+  const t = useTranslations("dashboard.shared.brandingCard");
+  const tCommon = useTranslations("dashboard.shared.common");
 
   const [uploadState, uploadAction, uploading] = useActionState<
     ActionResult | undefined,
@@ -160,10 +167,9 @@ function SignatureSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Signature image</CardTitle>
+        <CardTitle>{t("signatureTitle")}</CardTitle>
         <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
-          Stamped into the signature box on the opdrachtformulier PDF. PNG with a
-          transparent background renders cleanest.
+          {t("signatureDescription")}
         </p>
       </CardHeader>
       <CardBody className="space-y-4">
@@ -184,40 +190,41 @@ function SignatureSection({
             />
             <p className="mt-2 text-xs text-[var(--color-ink-muted)]" aria-live="polite">
               {uploading
-                ? "Uploading…"
-                : `PNG or JPG — max ${SIGNATURE_MAX_MB} MB. SVG not supported — PDFs stamp raster.`}
+                ? tCommon("uploading")
+                : t("signatureConstraints", { max: SIGNATURE_MAX_MB })}
             </p>
           </form>
           {signatureUrl && (
             <form action={removeAction}>
               <Button type="submit" variant="ghost" size="sm" loading={removing}>
-                Remove
+                {t("remove")}
               </Button>
             </form>
           )}
         </div>
-        <ActionBanner state={uploadState} successLabel="Signature updated." />
-        <ActionBanner state={removeState} successLabel="Signature removed." />
+        <ActionBanner state={uploadState} successLabel={t("signatureUpdated")} />
+        <ActionBanner state={removeState} successLabel={t("signatureRemoved")} />
       </CardBody>
     </Card>
   );
 }
 
 function SignaturePreview({ src, teamName }: { src: string | null; teamName: string }) {
+  const t = useTranslations("dashboard.shared.brandingCard");
   if (!src) {
     return (
       <div
         aria-hidden
         className="grid h-16 w-40 shrink-0 place-items-center rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-bg-alt)] text-xs text-[var(--color-ink-muted)]"
       >
-        No signature
+        {t("signatureNoneAlt")}
       </div>
     );
   }
   return (
     <img
       src={src}
-      alt={`${teamName} signature`}
+      alt={t("signatureAlt", { teamName })}
       className="h-16 w-40 shrink-0 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] object-contain p-1"
     />
   );
@@ -232,7 +239,8 @@ function ActionBanner({
   state: ActionResult | undefined;
   successLabel: string;
 }) {
+  const tErr = useTranslateError();
   if (!state) return null;
-  if (!state.ok) return <ErrorAlert>{state.error}</ErrorAlert>;
+  if (!state.ok) return <ErrorAlert>{tErr(state.error)}</ErrorAlert>;
   return <SuccessBanner>{successLabel}</SuccessBanner>;
 }

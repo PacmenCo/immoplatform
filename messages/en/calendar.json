@@ -1,0 +1,36 @@
+{
+  "eventDescription": {
+    "addressLabel": "Address",
+    "appointmentLabel": "Appointment",
+    "areaLabel": "Area",
+    "propertyTypeLabel": "Property type",
+    "keyPickupLabel": "Key pickup",
+    "keyPickupAtOffice": "Pick up at the office",
+    "keyPickupAtAddress": "At: {address}",
+    "keyPickupAtSeparateAddress": "At a separate address",
+    "realtorLabel": "Realtor",
+    "ownerLabel": "Owner",
+    "tenantLabel": "Tenant",
+    "yourContactSuffix": "(Your contact)",
+    "notesLabel": "Notes",
+    "recentActivity": "Recent activity:",
+    "commentWrote": "wrote",
+    "commentAuthorPlaceholder": "—",
+    "openAssignmentLink": "Open assignment →",
+    "largePropertyMarker": "Large property (> 300 m²)",
+    "standardArea": "Standard (≤ 300 m²)",
+    "standardAreaWithSize": "Standard (≤ 300 m²) (~ {area} m²)",
+    "clientFallback": "CLIENT",
+    "officeFallback": "OFFICE"
+  },
+  "propertyType": {
+    "house": "House",
+    "apartment": "Apartment",
+    "studio_appartement": "Studio / apartment",
+    "studio_room": "Student room",
+    "commercial": "Commercial",
+    "office": "Office",
+    "villa": "Villa",
+    "land": "Land"
+  }
+}

@@ -45,14 +45,14 @@ export async function updateUserByAdminInner(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!canAdminUsers(session)) {
-    return { ok: false, error: "Only admins can edit other users." };
+    return { ok: false, error: "errors.user.editAdminsOnly" };
   }
   const target = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, email: true, role: true, deletedAt: true },
   });
   if (!target || target.deletedAt) {
-    return { ok: false, error: "User not found." };
+    return { ok: false, error: "errors.user.notFound" };
   }
 
   const parsed = editSchema.safeParse({
@@ -62,7 +62,7 @@ export async function updateUserByAdminInner(
     role: formData.get("role"),
   });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "errors.validation.checkForm" };
   }
   const d = parsed.data;
 
@@ -72,7 +72,7 @@ export async function updateUserByAdminInner(
       select: { id: true },
     });
     if (taken) {
-      return { ok: false, error: "That email is already in use on another account." };
+      return { ok: false, error: "errors.auth.emailTakenOnAnotherAccount" };
     }
   }
 
@@ -86,7 +86,7 @@ export async function updateUserByAdminInner(
     if (otherAdmins === 0) {
       return {
         ok: false,
-        error: "Can't demote the last admin. Promote another user to admin first.",
+        error: "errors.user.lastAdminDemote",
       };
     }
   }
@@ -164,20 +164,20 @@ export async function resetUserPasswordInner(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!canAdminUsers(session)) {
-    return { ok: false, error: "Only admins can reset another user's password." };
+    return { ok: false, error: "errors.user.resetPasswordAdminsOnly" };
   }
   const target = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, deletedAt: true },
   });
-  if (!target || target.deletedAt) return { ok: false, error: "User not found." };
+  if (!target || target.deletedAt) return { ok: false, error: "errors.user.notFound" };
 
   const parsed = passwordSchema.safeParse({
     password: formData.get("password") ?? "",
     confirm: formData.get("confirm") ?? "",
   });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid password." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "errors.validation.invalidInput" };
   }
 
   const newHash = await hashPassword(parsed.data.password);
@@ -227,12 +227,12 @@ export async function deleteUserByAdminInner(
   userId: string,
 ): Promise<ActionResult> {
   if (!canAdminUsers(session)) {
-    return { ok: false, error: "Only admins can delete other users." };
+    return { ok: false, error: "errors.user.deleteAdminsOnly" };
   }
   if (userId === session.user.id) {
     return {
       ok: false,
-      error: "Use the self-service delete flow in Settings to remove your own account.",
+      error: "errors.user.selfDeleteNotHere",
     };
   }
 
@@ -247,7 +247,7 @@ export async function deleteUserByAdminInner(
       avatarUrl: true,
     },
   });
-  if (!target || target.deletedAt) return { ok: false, error: "User not found." };
+  if (!target || target.deletedAt) return { ok: false, error: "errors.user.notFound" };
 
   if (target.role === "admin") {
     const otherAdmins = await prisma.user.count({
@@ -256,7 +256,7 @@ export async function deleteUserByAdminInner(
     if (otherAdmins === 0) {
       return {
         ok: false,
-        error: "Can't delete the last admin. Promote another user to admin first.",
+        error: "errors.user.lastAdminDelete",
       };
     }
   }
@@ -273,7 +273,7 @@ export async function deleteUserByAdminInner(
     return {
       ok: false,
       error:
-        "Remove this user from all teams before deleting. They still belong to one or more teams.",
+        "errors.user.stillInTeams",
     };
   }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/Input";
 import { IconSearch } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
@@ -9,7 +10,8 @@ import { Spinner } from "@/components/ui/Spinner";
 type Props = {
   /** Initial value, read from the URL on the server. */
   initialQuery: string;
-  /** Placeholder shown when the input is empty. */
+  /** Placeholder shown when the input is empty. Falls back to a generic
+   *  translated "Search…" when omitted. */
   placeholder?: string;
   /** URL param key — defaults to "q". */
   paramKey?: string;
@@ -31,7 +33,7 @@ type Props = {
  */
 export function SearchInput({
   initialQuery,
-  placeholder = "Search…",
+  placeholder,
   paramKey = "q",
   debounceMs = 250,
   className,
@@ -39,7 +41,9 @@ export function SearchInput({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations("dashboard.shared.searchInput");
   const [pending, start] = useTransition();
+  const effectivePlaceholder = placeholder ?? t("placeholder");
 
   const [query, setQuery] = useState(initialQuery);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -99,9 +103,9 @@ export function SearchInput({
         type="search"
         value={query}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
+        placeholder={effectivePlaceholder}
         className="pl-9"
-        aria-label={placeholder}
+        aria-label={effectivePlaceholder}
         aria-busy={pending}
       />
     </label>

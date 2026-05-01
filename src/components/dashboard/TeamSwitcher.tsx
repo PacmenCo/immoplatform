@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useRef, useState, useTransition, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { IconCheck, IconBuilding, IconPlus } from "@/components/ui/Icons";
 import { switchActiveTeam } from "@/app/actions/auth";
 
@@ -37,6 +38,7 @@ export function TeamSwitcher({
   const detailsRef = useRef<HTMLDetailsElement>(null);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const tCopy = useTranslations("dashboard.shared.teamSwitcher");
   const active = teams.find((t) => t.id === activeId) ?? null;
 
   if (teams.length === 0 || !active) {
@@ -86,7 +88,7 @@ export function TeamSwitcher({
       className="group relative"
     >
       <summary
-        aria-label="Switch team"
+        aria-label={tCopy("ariaLabel")}
         aria-haspopup="menu"
         aria-expanded={open}
         className="inline-flex cursor-pointer list-none items-center gap-2 rounded-md border border-transparent px-2 py-1 text-sm text-[var(--color-ink)] hover:border-[var(--color-border)] hover:bg-[var(--color-bg-alt)] [&::-webkit-details-marker]:hidden"
@@ -117,7 +119,7 @@ export function TeamSwitcher({
       <div className="absolute left-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-1.5 shadow-[var(--shadow-lg)]">
         <div className="px-3 py-2">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
-            Acting as
+            {tCopy("actingAs")}
           </p>
         </div>
 
@@ -162,7 +164,7 @@ export function TeamSwitcher({
             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
           >
             <IconBuilding size={14} />
-            Manage all teams
+            {tCopy("manageAll")}
           </Link>
           {canCreateTeam && (
             <Link
@@ -170,7 +172,7 @@ export function TeamSwitcher({
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--color-ink-soft)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-ink)]"
             >
               <IconPlus size={14} />
-              Create a team
+              {tCopy("createTeam")}
             </Link>
           )}
         </div>

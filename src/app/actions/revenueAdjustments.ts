@@ -40,22 +40,22 @@ export async function createRevenueAdjustmentInner(
   input: CreateRevenueAdjustmentInput,
 ): Promise<ActionResult<{ id: string }>> {
   if (!canManageRevenueAdjustments(session)) {
-    return { ok: false, error: "Only admins can add revenue adjustments." };
+    return { ok: false, error: "errors.revenueAdjustment.addAdminsOnly" };
   }
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "errors.validation.invalidInput" };
   }
   const team = await prisma.team.findUnique({
     where: { id: parsed.data.teamId },
     select: { id: true, name: true },
   });
-  if (!team) return { ok: false, error: "Team not found." };
+  if (!team) return { ok: false, error: "errors.team.notFound" };
 
   const normalized = parsed.data.amountEuros.replace(",", ".");
   const amountCents = Math.round(Number.parseFloat(normalized) * 100);
   if (!Number.isFinite(amountCents) || amountCents === 0) {
-    return { ok: false, error: "Amount must be a non-zero number." };
+    return { ok: false, error: "errors.revenueAdjustment.amountNonZero" };
   }
 
   const row = await prisma.revenueAdjustment.create({
@@ -98,7 +98,7 @@ export async function deleteRevenueAdjustmentInner(
   id: string,
 ): Promise<ActionResult> {
   if (!canManageRevenueAdjustments(session)) {
-    return { ok: false, error: "Only admins can remove revenue adjustments." };
+    return { ok: false, error: "errors.revenueAdjustment.removeAdminsOnly" };
   }
   const existing = await prisma.revenueAdjustment.findUnique({
     where: { id },
@@ -111,7 +111,7 @@ export async function deleteRevenueAdjustmentInner(
       description: true,
     },
   });
-  if (!existing) return { ok: false, error: "Adjustment not found." };
+  if (!existing) return { ok: false, error: "errors.revenueAdjustment.notFound" };
 
   await prisma.revenueAdjustment.delete({ where: { id } });
 

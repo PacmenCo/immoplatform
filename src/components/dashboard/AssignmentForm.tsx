@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Dropzone } from "@/components/ui/Dropzone";
 import { useUnsavedChanges } from "@/components/dashboard/UnsavedChangesProvider";
 import { useFormDirty } from "@/lib/useFormDirty";
+import { useTranslateError } from "@/i18n/error";
 import { FILE_CONSTRAINTS, MAX_REALTOR_FILES_AT_CREATE } from "@/lib/file-constraints";
 import { formatPricelistItemPrice } from "@/lib/format";
 import type { OdooPricelistItem } from "@/lib/odoo";
@@ -151,6 +153,8 @@ export function AssignmentForm({
   odooError,
   readOnly = false,
 }: Props) {
+  const t = useTranslations("dashboard.shared.assignmentForm");
+  const tErr = useTranslateError();
   const [state, formAction, pending] = useActionState<
     ActionResult | undefined,
     FormData
@@ -196,7 +200,7 @@ export function AssignmentForm({
   const realtorConstraints = FILE_CONSTRAINTS.realtor;
 
   const submitCopy =
-    submitLabel ?? (initial ? "Save changes" : "Create assignment");
+    submitLabel ?? (initial ? t("submitEdit") : t("submitCreate"));
 
   // Submit via `onSubmit` rather than `<form action={formAction}>`. React 19
   // automatically calls `requestFormReset` whenever a form's `action` prop is
@@ -243,11 +247,11 @@ export function AssignmentForm({
       <Card>
         <CardHeader>
           <CardTitle>
-            Services
+            {t("servicesTitle")}
             <span aria-hidden className="ml-0.5 text-[var(--color-asbestos)]">*</span>
           </CardTitle>
           <p className="text-sm text-[var(--color-ink-soft)] mt-1">
-            Pick one or more. We handle scheduling and delivery.
+            {t("servicesSubtitle")}
           </p>
         </CardHeader>
         <CardBody>
@@ -256,8 +260,7 @@ export function AssignmentForm({
               role="status"
               className="mb-4 rounded-md border border-[var(--color-electrical)]/30 bg-[color-mix(in_srgb,var(--color-electrical)_6%,var(--color-bg))] px-3 py-2 text-xs text-[var(--color-electrical)]"
             >
-              Odoo is unreachable — pricelist pickers won&apos;t load. New
-              assignments will use the team&apos;s base price as a fallback.
+              {t("odooUnreachable")}
             </div>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
@@ -317,18 +320,18 @@ export function AssignmentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Property</CardTitle>
+          <CardTitle>{t("propertyTitle")}</CardTitle>
           <p className="text-sm text-[var(--color-ink-soft)] mt-1">
-            Where is the inspection taking place?
+            {t("propertySubtitle")}
           </p>
         </CardHeader>
         <CardBody className="grid gap-5 sm:grid-cols-6">
           <div className="sm:col-span-6">
-            <Field label="Street + number" id="address" required error={fieldErrors?.address}>
+            <Field label={t("address")} id="address" required error={fieldErrors?.address}>
               <Input
                 id="address"
                 name="address"
-                placeholder="Meir 34"
+                placeholder={t("addressPlaceholder")}
                 defaultValue={initial?.address ?? ""}
                 autoComplete="off"
                 required
@@ -336,11 +339,11 @@ export function AssignmentForm({
             </Field>
           </div>
           <div className="sm:col-span-2">
-            <Field label="Postal code" id="postal" required error={fieldErrors?.postal}>
+            <Field label={t("postal")} id="postal" required error={fieldErrors?.postal}>
               <Input
                 id="postal"
                 name="postal"
-                placeholder="2000"
+                placeholder={t("postalPlaceholder")}
                 defaultValue={initial?.postal ?? ""}
                 autoComplete="off"
                 required
@@ -348,11 +351,11 @@ export function AssignmentForm({
             </Field>
           </div>
           <div className="sm:col-span-4">
-            <Field label="City" id="city" required error={fieldErrors?.city}>
+            <Field label={t("city")} id="city" required error={fieldErrors?.city}>
               <Input
                 id="city"
                 name="city"
-                placeholder="Antwerpen"
+                placeholder={t("cityPlaceholder")}
                 defaultValue={initial?.city ?? ""}
                 autoComplete="off"
                 required
@@ -360,38 +363,38 @@ export function AssignmentForm({
             </Field>
           </div>
           <div className="sm:col-span-2">
-            <Field label="Property type" id="type" error={fieldErrors?.propertyType}>
+            <Field label={t("propertyType")} id="type" error={fieldErrors?.propertyType}>
               <Select
                 id="type"
                 name="type"
                 defaultValue={initial?.propertyType ?? "apartment"}
               >
-                <option value="house">House</option>
-                <option value="apartment">Apartment</option>
-                <option value="studio">Studio</option>
-                <option value="studio_room">Student room</option>
-                <option value="commercial">Commercial</option>
+                <option value="house">{t("propertyTypeHouse")}</option>
+                <option value="apartment">{t("propertyTypeApartment")}</option>
+                <option value="studio">{t("propertyTypeStudio")}</option>
+                <option value="studio_room">{t("propertyTypeStudioRoom")}</option>
+                <option value="commercial">{t("propertyTypeCommercial")}</option>
               </Select>
             </Field>
           </div>
           <div className="sm:col-span-2">
-            <Field label="Construction year" id="year" error={fieldErrors?.constructionYear}>
+            <Field label={t("year")} id="year" error={fieldErrors?.constructionYear}>
               <Input
                 id="year"
                 name="year"
                 type="number"
-                placeholder="1985"
+                placeholder={t("yearPlaceholder")}
                 defaultValue={initial?.constructionYear ?? ""}
               />
             </Field>
           </div>
           <div className="sm:col-span-2">
-            <Field label="Living area (m²)" id="area" error={fieldErrors?.areaM2}>
+            <Field label={t("area")} id="area" error={fieldErrors?.areaM2}>
               <Input
                 id="area"
                 name="area"
                 type="number"
-                placeholder="120"
+                placeholder={t("areaPlaceholder")}
                 defaultValue={initial?.areaM2 ?? ""}
               />
             </Field>
@@ -411,7 +414,7 @@ export function AssignmentForm({
               id="photographer-contact-person-label"
               className="text-sm font-medium text-[var(--color-ink)]"
             >
-              Contact person for photographer
+              {t("photographerLabel")}
             </span>
             <div
               role="radiogroup"
@@ -420,9 +423,9 @@ export function AssignmentForm({
             >
               {(
                 [
-                  ["realtor", "Realtor"],
-                  ["owner", "Owner"],
-                  ["tenant", "Tenant"],
+                  ["realtor", t("photographerRealtor")],
+                  ["owner", t("photographerOwner")],
+                  ["tenant", t("photographerTenant")],
                 ] as const
               ).map(([value, label]) => (
                 <label
@@ -446,28 +449,27 @@ export function AssignmentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Contact person</CardTitle>
+          <CardTitle>{t("contactTitle")}</CardTitle>
           <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-            The realtor or agency person the inspector should contact. Shown on
-            the calendar event under "Makelaar".
+            {t("contactSubtitle")}
           </p>
         </CardHeader>
         <CardBody className="grid gap-5 sm:grid-cols-2">
-          <Field label="Email" id="contact-email" error={fieldErrors?.contactEmail}>
+          <Field label={t("contactEmail")} id="contact-email" error={fieldErrors?.contactEmail}>
             <Input
               id="contact-email"
               name="contactEmail"
               type="email"
-              placeholder="info@vastgoedantwerp.be"
+              placeholder={t("contactEmailPlaceholder")}
               defaultValue={initial?.contactEmail ?? ""}
               autoComplete="off"
             />
           </Field>
-          <Field label="Phone" id="contact-phone" error={fieldErrors?.contactPhone}>
+          <Field label={t("contactPhone")} id="contact-phone" error={fieldErrors?.contactPhone}>
             <Input
               id="contact-phone"
               name="contactPhone"
-              placeholder="+32 3 123 45 67"
+              placeholder={t("contactPhonePlaceholder")}
               defaultValue={initial?.contactPhone ?? ""}
               autoComplete="off"
             />
@@ -477,9 +479,9 @@ export function AssignmentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Owner</CardTitle>
+          <CardTitle>{t("ownerTitle")}</CardTitle>
           <p className="text-sm text-[var(--color-ink-soft)] mt-1">
-            The person signing the assignment form.
+            {t("ownerSubtitle")}
           </p>
         </CardHeader>
         <CardBody className="space-y-5">
@@ -489,7 +491,7 @@ export function AssignmentForm({
           <div
             className="flex items-center gap-6"
             role="radiogroup"
-            aria-label="Owner type"
+            aria-label={t("ownerTypeAriaLabel")}
           >
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <input
@@ -501,7 +503,7 @@ export function AssignmentForm({
                 className="h-4 w-4 accent-[var(--color-brand)]"
               />
               <span className="font-medium text-[var(--color-ink)]">
-                Particulier
+                {t("ownerParticulier")}
               </span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer text-sm">
@@ -514,16 +516,16 @@ export function AssignmentForm({
                 className="h-4 w-4 accent-[var(--color-brand)]"
               />
               <span className="font-medium text-[var(--color-ink)]">
-                Bedrijf
+                {t("ownerFirm")}
               </span>
             </label>
           </div>
 
-          <Field label="Full name" id="owner-name" required error={fieldErrors?.ownerName}>
+          <Field label={t("ownerFullName")} id="owner-name" required error={fieldErrors?.ownerName}>
             <Input
               id="owner-name"
               name="owner-name"
-              placeholder="Els Vermeulen"
+              placeholder={t("ownerFullNamePlaceholder")}
               defaultValue={initial?.owner.name ?? ""}
               autoComplete="off"
               required
@@ -531,52 +533,52 @@ export function AssignmentForm({
           </Field>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Email" id="owner-email" error={fieldErrors?.ownerEmail}>
+            <Field label={t("ownerEmail")} id="owner-email" error={fieldErrors?.ownerEmail}>
               <Input
                 id="owner-email"
                 name="owner-email"
                 type="email"
-                placeholder="els@example.com"
+                placeholder={t("ownerEmailPlaceholder")}
                 defaultValue={initial?.owner.email ?? ""}
                 autoComplete="off"
               />
             </Field>
-            <Field label="Phone" id="owner-phone" error={fieldErrors?.ownerPhone}>
+            <Field label={t("ownerPhone")} id="owner-phone" error={fieldErrors?.ownerPhone}>
               <Input
                 id="owner-phone"
                 name="owner-phone"
-                placeholder="+32 476 12 34 56"
+                placeholder={t("ownerPhonePlaceholder")}
                 defaultValue={initial?.owner.phone ?? ""}
                 autoComplete="off"
               />
             </Field>
           </div>
 
-          <Field label="Address" id="owner-address" error={fieldErrors?.ownerAddress}>
+          <Field label={t("ownerAddress")} id="owner-address" error={fieldErrors?.ownerAddress}>
             <Input
               id="owner-address"
               name="owner-address"
-              placeholder="Meir 42"
+              placeholder={t("ownerAddressPlaceholder")}
               defaultValue={initial?.owner.address ?? ""}
               autoComplete="off"
             />
           </Field>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="City" id="owner-city" error={fieldErrors?.ownerCity}>
+            <Field label={t("ownerCity")} id="owner-city" error={fieldErrors?.ownerCity}>
               <Input
                 id="owner-city"
                 name="owner-city"
-                placeholder="Antwerpen"
+                placeholder={t("ownerCityPlaceholder")}
                 defaultValue={initial?.owner.city ?? ""}
                 autoComplete="off"
               />
             </Field>
-            <Field label="Postal code" id="owner-postal" error={fieldErrors?.ownerPostal}>
+            <Field label={t("ownerPostal")} id="owner-postal" error={fieldErrors?.ownerPostal}>
               <Input
                 id="owner-postal"
                 name="owner-postal"
-                placeholder="2000"
+                placeholder={t("ownerPostalPlaceholder")}
                 defaultValue={initial?.owner.postal ?? ""}
                 autoComplete="off"
               />
@@ -590,15 +592,15 @@ export function AssignmentForm({
               submitted FormData when Particulier (we omit the input). */}
           {clientType === "firm" && (
             <Field
-              label="VAT number"
+              label={t("ownerVat")}
               id="owner-vat"
-              hint="Required for firm invoices (e.g. BE 0712.345.678)."
+              hint={t("ownerVatHint")}
               error={fieldErrors?.ownerVatNumber}
             >
               <Input
                 id="owner-vat"
                 name="owner-vat"
-                placeholder="BE 0712.345.678"
+                placeholder={t("ownerVatPlaceholder")}
                 defaultValue={initial?.owner.vatNumber ?? ""}
                 autoComplete="off"
               />
@@ -613,9 +615,9 @@ export function AssignmentForm({
       >
         <summary className="flex cursor-pointer items-center justify-between p-6 [&::-webkit-details-marker]:hidden">
           <div>
-            <h3 className="text-base font-semibold text-[var(--color-ink)]">Tenant</h3>
+            <h3 className="text-base font-semibold text-[var(--color-ink)]">{t("tenantTitle")}</h3>
             <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-              Add if the property is currently occupied — optional.
+              {t("tenantSubtitle")}
             </p>
           </div>
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--color-border)] text-[var(--color-ink-muted)] transition-transform group-open:rotate-45">
@@ -636,31 +638,31 @@ export function AssignmentForm({
         </summary>
         <div className="grid gap-5 border-t border-[var(--color-border)] p-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Field label="Full name" id="tenant-name" error={fieldErrors?.tenantName}>
+            <Field label={t("tenantFullName")} id="tenant-name" error={fieldErrors?.tenantName}>
               <Input
                 id="tenant-name"
                 name="tenant-name"
-                placeholder="Marc De Smet"
+                placeholder={t("tenantFullNamePlaceholder")}
                 defaultValue={initial?.tenant.name ?? ""}
                 autoComplete="off"
               />
             </Field>
           </div>
-          <Field label="Email" id="tenant-email" error={fieldErrors?.tenantEmail}>
+          <Field label={t("tenantEmail")} id="tenant-email" error={fieldErrors?.tenantEmail}>
             <Input
               id="tenant-email"
               name="tenant-email"
               type="email"
-              placeholder="marc@example.com"
+              placeholder={t("tenantEmailPlaceholder")}
               defaultValue={initial?.tenant.email ?? ""}
               autoComplete="off"
             />
           </Field>
-          <Field label="Phone" id="tenant-phone" error={fieldErrors?.tenantPhone}>
+          <Field label={t("tenantPhone")} id="tenant-phone" error={fieldErrors?.tenantPhone}>
             <Input
               id="tenant-phone"
               name="tenant-phone"
-              placeholder="+32 479 98 76 54"
+              placeholder={t("tenantPhonePlaceholder")}
               defaultValue={initial?.tenant.phone ?? ""}
               autoComplete="off"
             />
@@ -670,13 +672,13 @@ export function AssignmentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Scheduling</CardTitle>
+          <CardTitle>{t("schedulingTitle")}</CardTitle>
         </CardHeader>
         <CardBody className="grid gap-5 sm:grid-cols-2">
           <Field
-            label="Planned date"
+            label={t("plannedDate")}
             id="preferred-date"
-            hint="We confirm within 24 hours by email."
+            hint={t("plannedDateHint")}
             error={fieldErrors?.preferredDate}
           >
             <Input
@@ -695,13 +697,13 @@ export function AssignmentForm({
                 onChange={(e) => setRequiresKeyPickup(e.target.checked)}
                 className="h-4 w-4 accent-[var(--color-brand)]"
               />
-              A key needs to be picked up before the inspection
+              {t("keyPickup")}
             </label>
             {requiresKeyPickup && (
               <div className="mt-4 ml-6 space-y-4 rounded-lg bg-[var(--color-bg-muted)] p-4">
                 <fieldset>
                   <legend className="text-sm font-medium text-[var(--color-ink)]">
-                    Where is the key picked up?
+                    {t("keyPickupWhere")}
                   </legend>
                   <div className="mt-2 space-y-2">
                     <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
@@ -713,7 +715,7 @@ export function AssignmentForm({
                         onChange={() => setKeyPickupLocationType("office")}
                         className="h-4 w-4 accent-[var(--color-brand)]"
                       />
-                      At the agency office
+                      {t("keyPickupOffice")}
                     </label>
                     <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
                       <input
@@ -724,22 +726,22 @@ export function AssignmentForm({
                         onChange={() => setKeyPickupLocationType("other")}
                         className="h-4 w-4 accent-[var(--color-brand)]"
                       />
-                      At a different address
+                      {t("keyPickupOther")}
                     </label>
                   </div>
                 </fieldset>
                 {keyPickupLocationType === "other" && (
                   <Field
-                    label="Pickup address"
+                    label={t("keyPickupAddress")}
                     id="key-pickup-address"
-                    hint="Full address where the inspector can pick up the key."
+                    hint={t("keyPickupAddressHint")}
                     error={fieldErrors?.keyPickupAddress}
                   >
                     <Textarea
                       id="key-pickup-address"
                       name="keyPickupAddress"
                       rows={3}
-                      placeholder="Street, number, postal code, city…"
+                      placeholder={t("keyPickupAddressPlaceholder")}
                       defaultValue={initial?.keyPickupAddress ?? ""}
                     />
                   </Field>
@@ -750,16 +752,16 @@ export function AssignmentForm({
           {canSetFreelancer && freelancers && (
             <div className="sm:col-span-2">
               <Field
-                label="Assign freelancer"
+                label={t("freelancer")}
                 id="freelancer-id"
-                hint="Optional — leave as Unassigned to assign later."
+                hint={t("freelancerHint")}
               >
                 <Select
                   id="freelancer-id"
                   name="freelancerId"
                   defaultValue={initial?.freelancerId ?? ""}
                 >
-                  <option value="">— Unassigned —</option>
+                  <option value="">{t("freelancerUnassigned")}</option>
                   {freelancers.map((f) => (
                     <option key={f.id} value={f.id}>
                       {f.firstName} {f.lastName}
@@ -773,9 +775,9 @@ export function AssignmentForm({
           {canSetFreelancer && (
             <>
               <Field
-                label="Internal calendar date"
+                label={t("calendarDate")}
                 id="calendar-date"
-                hint="Overrides the planned date when pushing to calendars. Customer's date stays untouched."
+                hint={t("calendarDateHint")}
                 error={fieldErrors?.calendarDate}
               >
                 <Input
@@ -786,40 +788,40 @@ export function AssignmentForm({
                 />
               </Field>
               <Field
-                label="Calendar account (for email CTA)"
+                label={t("calendarAccount")}
                 id="calendar-account-email"
-                hint="The Google account the email's 'Add to my calendar' button targets."
+                hint={t("calendarAccountHint")}
                 error={fieldErrors?.calendarAccountEmail}
               >
                 <Input
                   id="calendar-account-email"
                   name="calendarAccountEmail"
                   type="email"
-                  placeholder="you@agency.be"
+                  placeholder={t("calendarAccountPlaceholder")}
                   defaultValue={initial?.calendarAccountEmail ?? ""}
                 />
               </Field>
             </>
           )}
           <div className="sm:col-span-2">
-            <Field label="Notes for the inspector" id="notes" error={fieldErrors?.notes}>
+            <Field label={t("notes")} id="notes" error={fieldErrors?.notes}>
               <Textarea
                 id="notes"
                 name="notes"
                 rows={3}
-                placeholder="Parking, access codes, pets — anything worth knowing."
+                placeholder={t("notesPlaceholder")}
                 defaultValue={initial?.notes ?? ""}
               />
             </Field>
           </div>
           {!initial && (
             <div className="sm:col-span-2">
-              <Field label="Initial comment" id="initial-comment" error={fieldErrors?.initialComment}>
+              <Field label={t("initialComment")} id="initial-comment" error={fieldErrors?.initialComment}>
                 <Textarea
                   id="initial-comment"
                   name="initial-comment"
                   rows={3}
-                  placeholder="First message for the thread (optional) — visible to everyone on the assignment."
+                  placeholder={t("initialCommentPlaceholder")}
                 />
               </Field>
             </div>
@@ -830,10 +832,9 @@ export function AssignmentForm({
       {showCreateUpload && (
         <Card>
           <CardHeader>
-            <CardTitle>Supporting files (optional)</CardTitle>
+            <CardTitle>{t("filesTitle")}</CardTitle>
             <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-              Attach floor plans, photos, or notes the inspector should see.
-              You can also add files later from the Files tab.
+              {t("filesSubtitle")}
             </p>
           </CardHeader>
           <CardBody className="space-y-3">
@@ -846,8 +847,8 @@ export function AssignmentForm({
                 setFileError(null);
               }}
               accept={realtorConstraints.allowedMimes.join(",")}
-              hint={`PDF, JPG, PNG, WebP · up to ${realtorConstraints.maxMB} MB each · up to ${MAX_REALTOR_FILES_AT_CREATE} files`}
-              label="Drop floor plans, photos or notes"
+              hint={t("filesHint", { maxMB: realtorConstraints.maxMB, maxFiles: MAX_REALTOR_FILES_AT_CREATE })}
+              label={t("filesLabel")}
               maxFiles={MAX_REALTOR_FILES_AT_CREATE}
               maxMB={realtorConstraints.maxMB}
               onError={(msg) => setFileError(msg)}
@@ -856,8 +857,8 @@ export function AssignmentForm({
             />
             <p className="text-xs text-[var(--color-ink-muted)]">
               {createFiles.length === 0
-                ? "No files picked yet."
-                : `${createFiles.length} file${createFiles.length === 1 ? "" : "s"} ready to upload.`}
+                ? t("filesNone")
+                : t("filesReady", { count: createFiles.length })}
             </p>
           </CardBody>
         </Card>
@@ -874,7 +875,7 @@ export function AssignmentForm({
         <div className="sticky bottom-0 z-30 -mx-8 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur">
           <div className="flex items-center justify-between gap-3 px-8 py-4">
             <p className="text-xs text-[var(--color-ink-muted)]">
-              <span aria-hidden className="text-[var(--color-asbestos)]">*</span> Required
+              <span aria-hidden className="text-[var(--color-asbestos)]">*</span> {t("requiredHint")}
             </p>
             <div className="flex shrink-0 items-center gap-3">
               {state && !state.ok && (
@@ -897,7 +898,7 @@ export function AssignmentForm({
                     <circle cx="12" cy="12" r="10" />
                     <path d="M12 8v4M12 16h.01" />
                   </svg>
-                  <span className="truncate">{state.error}</span>
+                  <span className="truncate">{tErr(state.error)}</span>
                 </p>
               )}
               <Button type="submit" size="md" loading={pending}>
@@ -929,6 +930,7 @@ function PricelistItemPicker({
   items: PricelistItemOption[];
   initialId: number | null;
 }) {
+  const t = useTranslations("dashboard.shared.assignmentForm");
   const [selectedId, setSelectedId] = useState<number | null>(initialId);
   const [query, setQuery] = useState<string>(() => {
     const initial = items.find((it) => it.id === initialId);
@@ -966,7 +968,7 @@ function PricelistItemPicker({
         htmlFor={`product-${serviceKey}`}
         className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]"
       >
-        Product from team pricelist
+        {t("productLabel")}
       </label>
       <div className="relative">
         <input
@@ -975,7 +977,7 @@ function PricelistItemPicker({
           type="text"
           autoComplete="off"
           value={query}
-          placeholder="Type to search…"
+          placeholder={t("productSearchPlaceholder")}
           onChange={(e) => {
             setQuery(e.target.value);
             setSelectedId(null);
@@ -989,7 +991,7 @@ function PricelistItemPicker({
           <button
             type="button"
             onClick={clear}
-            aria-label="Clear pricelist selection"
+            aria-label={t("productClearAriaLabel")}
             className="absolute inset-y-0 right-1 grid w-7 place-items-center text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
           >
             ×
@@ -1047,7 +1049,7 @@ function PricelistItemPicker({
         )}
         {open && filtered.length === 0 && (
           <div className="absolute z-20 mt-1 w-full rounded-md border border-dashed border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-xs text-[var(--color-ink-muted)]">
-            No matching products.
+            {t("productNoMatches")}
           </div>
         )}
       </div>

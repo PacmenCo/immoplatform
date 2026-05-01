@@ -39,6 +39,7 @@ async function startEmailVerification(opts: {
   userId: string;
   firstName: string;
   email: string;
+  locale?: string;
 }): Promise<void> {
   const token = generateToken();
   await prisma.emailVerification.create({
@@ -49,11 +50,14 @@ async function startEmailVerification(opts: {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
     },
   });
-  const tpl = await emailVerificationEmail({
-    name: opts.firstName,
-    verifyUrl: emailVerificationUrl(token),
-  });
-  await sendEmail({ to: opts.email, ...tpl });
+  const tpl = await emailVerificationEmail(
+    {
+      name: opts.firstName,
+      verifyUrl: emailVerificationUrl(token),
+    },
+    opts.locale,
+  );
+  await sendEmail({ to: opts.email, ...tpl, locale: opts.locale });
   await audit({
     actorId: opts.userId,
     verb: "user.email_verification_sent",
@@ -82,7 +86,7 @@ export async function updateProfileInner(
   if (!parsed.success) {
     return {
       ok: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+      error: parsed.error.issues[0]?.message ?? "errors.validation.invalidInput",
     };
   }
   const d = parsed.data;
@@ -97,7 +101,7 @@ export async function updateProfileInner(
       select: { id: true },
     });
     if (taken) {
-      return { ok: false, error: "That email is already in use on another account." };
+      return { ok: false, error: "errors.auth.emailTakenOnAnotherAccount" };
     }
   }
 
@@ -128,6 +132,7 @@ export async function updateProfileInner(
       userId: session.user.id,
       firstName: d.firstName,
       email: d.email,
+      locale: session.user.locale,
     }).catch((err) => {
       console.warn("email verification send failed:", err);
     });
@@ -162,17 +167,18 @@ export async function resendEmailVerificationInner(
   session: SessionWithUser,
 ): Promise<ActionResult> {
   if (session.user.emailVerifiedAt) {
-    return { ok: false, error: "Your email is already verified." };
+    return { ok: false, error: "errors.verification.alreadyVerified" };
   }
   try {
     await startEmailVerification({
       userId: session.user.id,
       firstName: session.user.firstName,
       email: session.user.email,
+      locale: session.user.locale,
     });
   } catch (err) {
     console.warn("resend verification failed:", err);
-    return { ok: false, error: "Couldn't send the verification email right now. Try again in a minute." };
+    return { ok: false, error: "errors.verification.sendFailed" };
   }
   return { ok: true };
 }
@@ -189,7 +195,7 @@ export async function confirmEmailVerification(
   token: string,
 ): Promise<ActionResult<{ email: string }>> {
   if (!token || typeof token !== "string" || token.length < 10) {
-    return { ok: false, error: "Missing or invalid verification token." };
+    return { ok: false, error: "errors.verification.tokenMissing" };
   }
   const row = await prisma.emailVerification.findUnique({
     where: { tokenHash: hashToken(token) },
@@ -198,18 +204,18 @@ export async function confirmEmailVerification(
     },
   });
   if (!row) {
-    return { ok: false, error: "This verification link is invalid." };
+    return { ok: false, error: "errors.verification.linkInvalid" };
   }
   if (row.usedAt) {
-    return { ok: false, error: "This verification link has already been used." };
+    return { ok: false, error: "errors.verification.linkUsed" };
   }
   if (row.expiresAt < new Date()) {
-    return { ok: false, error: "This verification link has expired. Request a new one from your settings." };
+    return { ok: false, error: "errors.verification.linkExpired" };
   }
   if (row.user.email !== row.email) {
     return {
       ok: false,
-      error: "This link was sent for a previous email. Request a new verification link from your settings.",
+      error: "errors.verification.linkStaleEmail",
     };
   }
 
@@ -246,15 +252,15 @@ export async function uploadAvatarInner(
 ): Promise<ActionResult> {
   const file = formData.get("avatar");
   if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, error: "Pick an image to upload." };
+    return { ok: false, error: "errors.profile.pickImage" };
   }
   if (file.size > AVATAR_MAX_BYTES) {
-    return { ok: false, error: "Image must be 2 MB or smaller." };
+    return { ok: false, error: "errors.profile.imageTooLarge" };
   }
   const mime = file.type.toLowerCase();
   const ext = AVATAR_MIME_TO_EXT[mime];
   if (!ext) {
-    return { ok: false, error: "Use PNG, JPG or WebP." };
+    return { ok: false, error: "errors.profile.imageWrongFormat" };
   }
 
   const store = storage();

@@ -1,9 +1,11 @@
 /**
  * Assignment-date-updated email. Sent when the planned date changes.
- * Platform parity: AssignmentDateUpdated.
+ * Platform parity: AssignmentDateUpdated. Copy lives under
+ * `emails.assignmentDateUpdated.*`.
  */
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { EmailLayout, P } from "./_layout";
 import {
   AssignmentCta,
@@ -18,32 +20,42 @@ export type AssignmentDateUpdatedEmailProps = AssignmentEmailCtx & {
   newDate: Date | null;
 };
 
-export const subject = (p: AssignmentDateUpdatedEmailProps) =>
-  `Date changed: ${addressLine(p)} (${p.reference})`;
+export const subjectKey = "emails.assignmentDateUpdated.subject";
 
-function fmt(d: Date | null): string {
-  return d?.toISOString().slice(0, 10) ?? "unscheduled";
+export function subjectArgs(
+  p: AssignmentDateUpdatedEmailProps,
+): Record<string, unknown> {
+  return { address: addressLine(p), reference: p.reference };
+}
+
+function fmt(d: Date | null, fallback: string): string {
+  return d?.toISOString().slice(0, 10) ?? fallback;
 }
 
 export default function AssignmentDateUpdated(
   props: AssignmentDateUpdatedEmailProps,
 ) {
-  const prev = fmt(props.previousDate);
-  const next = fmt(props.newDate);
+  const t = useTranslations("emails.assignmentDateUpdated");
+  const tCommon = useTranslations("emails.common");
+  const unscheduled = t("unscheduled");
+  const prev = fmt(props.previousDate, unscheduled);
+  const next = fmt(props.newDate, unscheduled);
   return (
     <EmailLayout
-      preview={`Date changed on ${props.reference}`}
-      title="Planned date changed"
+      preview={t("preview", { reference: props.reference })}
+      title={t("title")}
     >
-      <P>Hi {props.recipientName},</P>
+      <P>{tCommon("hi", { name: props.recipientName })}</P>
       <P>
-        The planned date for <strong>{props.reference}</strong> (
-        {addressLine(props)}) has changed.
+        {t("body", {
+          reference: props.reference,
+          address: addressLine(props),
+        })}
       </P>
       <P>
-        Previous: <strong>{prev}</strong>
+        {t("previousLabel", { date: prev })}
         <br />
-        New: <strong>{next}</strong>
+        {t("newLabel", { date: next })}
       </P>
       <AssignmentCta ctx={props} />
     </EmailLayout>

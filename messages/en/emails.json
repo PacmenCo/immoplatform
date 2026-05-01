@@ -1,0 +1,168 @@
+{
+  "common": {
+    "footerLine": "You're receiving this email from {brand}. Manage notification preferences in your <accountSettings>account settings</accountSettings>.",
+    "openUrlPrefix": "Or open this URL:",
+    "hi": "Hi {name},",
+    "automatedNotice": "This is an automated notification from the platform."
+  },
+  "invite": {
+    "subject": "You're invited to join {brand} as a {role}",
+    "title": "You're invited to {brand}",
+    "preview": "{inviterName} invited you to {brand}.",
+    "intro": "{inviterName} invited you to join {brand}.",
+    "roleLine": "Role: {role}",
+    "teamLine": "Team: {teamName}",
+    "teamLineWithRole": "Team: {teamName} ({teamRole})",
+    "noteHeading": "Note from {inviterName}:",
+    "callToAction": "Accept your invite and set a password:",
+    "ctaButton": "Accept invite",
+    "expiresOn": "This link expires on {date}."
+  },
+  "passwordReset": {
+    "subject": "Reset your {brand} password",
+    "title": "Reset your password",
+    "preview": "Reset your {brand} password",
+    "intro": "Someone requested a password reset for your {brand} account. If this was you, open the link below to choose a new password. The link expires in 1 hour.",
+    "ctaButton": "Choose a new password",
+    "ignoreNotice": "If you didn't request this, you can safely ignore this email."
+  },
+  "emailVerification": {
+    "subject": "Verify your {brand} email address",
+    "title": "Verify your email",
+    "preview": "Confirm your email address on {brand}",
+    "intro": "Confirm this is your email address so we can send you account notifications. The link expires in 24 hours.",
+    "ctaButton": "Verify email",
+    "ignoreNotice": "If you didn't change your email on {brand}, you can safely ignore this message — your account stays on the previous address."
+  },
+  "addedToTeam": {
+    "subject": "You've been added to {teamName} on {brand}",
+    "title": "Welcome to {teamName}",
+    "preview": "You've been added to {teamName}",
+    "intro": "{inviterName} added you to the team {teamName} on {brand} as a {teamRole}.",
+    "callToAction": "Sign in to see the team's assignments:",
+    "ctaButton": "Sign in"
+  },
+  "monthlyInvoiceReminder": {
+    "subject": "Invoices due — {monthLabel}",
+    "title": "Invoices due — {monthLabel}",
+    "preview": "Heads up: it's the end of {monthLabel}.",
+    "greeting": "Hi,",
+    "body": "Heads up: it's the end of {monthLabel}. Review the completed assignments for this month and generate invoices for any that are still open.",
+    "ctaButton": "Go to overview",
+    "footerNote": "You're getting this as the platform's billing contact."
+  },
+  "userRegistered": {
+    "subject": "New {role} signed up: {name}",
+    "title": "New user signed up",
+    "preview": "{name} just registered as a {role}.",
+    "greeting": "Hi,",
+    "intro": "{name} just registered as a {role}.",
+    "emailLabel": "Email:",
+    "agencyLabel": "Agency:",
+    "regionLabel": "Region:",
+    "ctaButton": "View users"
+  },
+  "contactSubmission": {
+    "subject": "New contact: {name}",
+    "title": "New contact form submission",
+    "preview": "{name} got in touch via the website",
+    "intro": "Someone just submitted the contact form on immoplatform.be:",
+    "nameLabel": "Name:",
+    "emailLabel": "Email:",
+    "phoneLabel": "Phone:",
+    "subjectLabel": "Subject:",
+    "messageHeading": "Message",
+    "ctaButton": "Open in admin dashboard",
+    "replyNotice": "Reply to this email goes straight to {email}."
+  },
+  "assignmentScheduled": {
+    "subject": "Scheduled: {address} — {date} ({reference})",
+    "title": "Assignment scheduled",
+    "preview": "{reference} scheduled for {date}",
+    "body": "{reference} at {address} is now scheduled for {date}.",
+    "inspectorLine": "Inspector: {name}",
+    "inspectorUnassigned": "Inspector: not yet assigned"
+  },
+  "assignmentDateUpdated": {
+    "subject": "Date changed: {address} ({reference})",
+    "title": "Planned date changed",
+    "preview": "Date changed on {reference}",
+    "body": "The planned date for {reference} ({address}) has changed.",
+    "previousLabel": "Previous: {date}",
+    "newLabel": "New: {date}",
+    "unscheduled": "unscheduled"
+  },
+  "assignmentDelivered": {
+    "subject": "Delivered: {address} ({reference})",
+    "title": "Assignment delivered",
+    "preview": "{reference} delivered — review files",
+    "bodyWithFreelancer": "{actorName} marked {freelancerName}'s inspection at {address} ({reference}) as delivered. Review the files and sign off when you're ready.",
+    "bodyDirect": "{actorName} marked the inspection at {address} ({reference}) as delivered. Review the files and sign off when you're ready."
+  },
+  "assignmentCompleted": {
+    "subject": "Completed: {address} ({reference})",
+    "title": "Assignment completed",
+    "preview": "{reference} signed off",
+    "body": "{completedByName} signed off on {reference} ({address}). It's now closed and moves out of the active queue."
+  },
+  "assignmentCancelled": {
+    "subject": "Cancelled: {address} ({reference})",
+    "title": "Assignment cancelled",
+    "preview": "{reference} was cancelled",
+    "body": "{cancelledByName} cancelled {reference} ({address}).",
+    "reasonLabel": "Reason: {reason}"
+  },
+  "assignmentReassigned": {
+    "subject": "New inspection: {address} ({reference})",
+    "title": "You've been assigned to a new inspection",
+    "preview": "New inspection: {reference}",
+    "body": "You've been assigned to {reference} ({address}).",
+    "plannedDateLabel": "Planned date: {date}"
+  },
+  "assignmentUnassigned": {
+    "subject": "Unassigned: {address} ({reference})",
+    "title": "Removed from an assignment",
+    "preview": "You've been removed from {reference}",
+    "body": "You've been removed from {reference} ({address}). No action needed on your side."
+  },
+  "filesUploaded": {
+    "subject": "New files: {address} ({reference})",
+    "title": "New files uploaded",
+    "preview": "{uploaderName} {what} on {reference}",
+    "freelancerSingular": "delivered {count} file",
+    "freelancerPlural": "delivered {count} files",
+    "realtorSingular": "uploaded {count} supporting file",
+    "realtorPlural": "uploaded {count} supporting files",
+    "body": "{uploaderName} {what} on {reference} ({address}).",
+    "ctaButton": "View the files"
+  },
+  "commentPosted": {
+    "subject": "New comment: {address} ({reference})",
+    "title": "New comment",
+    "preview": "{authorName} commented on {reference}",
+    "intro": "{authorName} commented on {reference} ({address}):",
+    "replyPrompt": "Reply on the thread:"
+  },
+  "odooSyncFailed": {
+    "subject": "Odoo sync failed — {address}",
+    "title": "Odoo sync failed",
+    "preview": "Odoo sync failed for {reference}",
+    "intro": "Odoo synchronization for the following assignment has failed. Click through to the dashboard to retry once the underlying issue is resolved.",
+    "referenceLabel": "Reference:",
+    "addressLabel": "Address:",
+    "ownerLabel": "Owner:",
+    "ownerUnknown": "Onbekend",
+    "ownerNoEmail": "geen email",
+    "propertyTypeLabel": "Property type:",
+    "propertyTypeUnknown": "Niet opgegeven",
+    "odooContactIdLabel": "Odoo Contact ID:",
+    "odooOrderIdLabel": "Odoo Order ID:",
+    "odooNotCreated": "Niet aangemaakt",
+    "errorHeading": "Error:",
+    "ctaButton": "Open assignment"
+  },
+  "assignment": {
+    "openCta": "Open assignment",
+    "calendarPrompt": "Add this appointment to your Google calendar:"
+  }
+}

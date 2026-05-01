@@ -8,11 +8,13 @@
  * Body fields mirror v1 field-for-field (assignment ID, full address,
  * owner name + email with "Onbekend" / "geen email" fallbacks, property
  * type, Odoo IDs with "Niet aangemaakt" fallback, error message, link
- * back to the dashboard for retry).
+ * back to the dashboard for retry). Copy lives under
+ * `emails.odooSyncFailed.*`.
  */
 
 import * as React from "react";
 import { Link } from "@react-email/components";
+import { useTranslations } from "next-intl";
 import { CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
 
 export type OdooSyncFailedEmailProps = {
@@ -28,49 +30,52 @@ export type OdooSyncFailedEmailProps = {
   dashboardUrl: string;
 };
 
-export const subject = (p: OdooSyncFailedEmailProps) =>
-  `Odoo sync failed — ${p.fullAddress}`;
+export const subjectKey = "emails.odooSyncFailed.subject";
+
+export function subjectArgs(
+  p: OdooSyncFailedEmailProps,
+): Record<string, unknown> {
+  return { address: p.fullAddress };
+}
 
 export default function OdooSyncFailed(props: OdooSyncFailedEmailProps) {
+  const t = useTranslations("emails.odooSyncFailed");
+  const tCommon = useTranslations("emails.common");
   return (
     <EmailLayout
-      preview={`Odoo sync failed for ${props.reference}`}
-      title="Odoo sync failed"
+      preview={t("preview", { reference: props.reference })}
+      title={t("title")}
     >
-      <P>
-        Odoo synchronization for the following assignment has failed. Click
-        through to the dashboard to retry once the underlying issue is
-        resolved.
-      </P>
+      <P>{t("intro")}</P>
       <P style={panelStyle}>
-        <strong>Reference:</strong> {props.reference}
+        <strong>{t("referenceLabel")}</strong> {props.reference}
         <br />
-        <strong>Address:</strong> {props.fullAddress}
+        <strong>{t("addressLabel")}</strong> {props.fullAddress}
         <br />
-        <strong>Owner:</strong> {props.ownerName ?? "Onbekend"} (
-        {props.ownerEmail ?? "geen email"})
+        <strong>{t("ownerLabel")}</strong>{" "}
+        {props.ownerName ?? t("ownerUnknown")} (
+        {props.ownerEmail ?? t("ownerNoEmail")})
         <br />
-        <strong>Property type:</strong> {props.propertyType ?? "Niet opgegeven"}
+        <strong>{t("propertyTypeLabel")}</strong>{" "}
+        {props.propertyType ?? t("propertyTypeUnknown")}
         <br />
-        <strong>Odoo Contact ID:</strong>{" "}
-        {props.odooContactId ?? "Niet aangemaakt"}
+        <strong>{t("odooContactIdLabel")}</strong>{" "}
+        {props.odooContactId ?? t("odooNotCreated")}
         <br />
-        <strong>Odoo Order ID:</strong>{" "}
-        {props.odooOrderId ?? "Niet aangemaakt"}
+        <strong>{t("odooOrderIdLabel")}</strong>{" "}
+        {props.odooOrderId ?? t("odooNotCreated")}
       </P>
       <P style={errorStyle}>
-        <strong>Error:</strong>
+        <strong>{t("errorHeading")}</strong>
         <br />
         {props.errorMessage}
       </P>
-      <CtaButton href={props.dashboardUrl}>Open assignment</CtaButton>
+      <CtaButton href={props.dashboardUrl}>{t("ctaButton")}</CtaButton>
       <P style={mutedStyle}>
-        Or open this URL:{" "}
+        {tCommon("openUrlPrefix")}{" "}
         <Link href={props.dashboardUrl}>{props.dashboardUrl}</Link>
       </P>
-      <P style={mutedStyle}>
-        This is an automated notification from the platform.
-      </P>
+      <P style={mutedStyle}>{tCommon("automatedNotice")}</P>
     </EmailLayout>
   );
 }

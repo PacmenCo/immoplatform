@@ -1,9 +1,10 @@
 /**
  * Assignment-cancelled email. Platform parity: AssignmentStatusChangedMail
- * (cancelled).
+ * (cancelled). Copy lives under `emails.assignmentCancelled.*`.
  */
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { EmailLayout, P } from "./_layout";
 import {
   AssignmentCta,
@@ -18,26 +19,34 @@ export type AssignmentCancelledEmailProps = AssignmentEmailCtx & {
   reason: string | null;
 };
 
-export const subject = (p: AssignmentCancelledEmailProps) =>
-  `Cancelled: ${addressLine(p)} (${p.reference})`;
+export const subjectKey = "emails.assignmentCancelled.subject";
+
+export function subjectArgs(
+  p: AssignmentCancelledEmailProps,
+): Record<string, unknown> {
+  return { address: addressLine(p), reference: p.reference };
+}
 
 export default function AssignmentCancelled(
   props: AssignmentCancelledEmailProps,
 ) {
+  const t = useTranslations("emails.assignmentCancelled");
+  const tCommon = useTranslations("emails.common");
   return (
     <EmailLayout
-      preview={`${props.reference} was cancelled`}
-      title="Assignment cancelled"
+      preview={t("preview", { reference: props.reference })}
+      title={t("title")}
     >
-      <P>Hi {props.recipientName},</P>
+      <P>{tCommon("hi", { name: props.recipientName })}</P>
       <P>
-        {props.cancelledByName} cancelled <strong>{props.reference}</strong> (
-        {addressLine(props)}).
+        {t("body", {
+          cancelledByName: props.cancelledByName,
+          reference: props.reference,
+          address: addressLine(props),
+        })}
       </P>
       {props.reason ? (
-        <P>
-          Reason: <em>{props.reason}</em>
-        </P>
+        <P>{t("reasonLabel", { reason: props.reason })}</P>
       ) : null}
       <AssignmentCta ctx={props} />
     </EmailLayout>

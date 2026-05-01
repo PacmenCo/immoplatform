@@ -95,6 +95,13 @@ model User {
   lastLoginAt     DateTime?
   deletedAt       DateTime?
   emailPrefs      Json? // { eventKey: boolean } — absent key or absent column = default-enabled
+  // BCP-47 locale ID matching the i18n routing config (`en` | `nl-BE`). Drives
+  // email + calendar template selection and any other transactional surface
+  // that runs outside a request scope. URL-driven UI uses the active route
+  // locale, not this column. Stored as a free-form string (not a Postgres
+  // enum) so adding a new locale to `routing.locales` doesn't require a
+  // migration; integrity is enforced via Zod validation at write sites.
+  locale          String    @default("nl-BE")
 
   sessions                  Session[]
   memberships               TeamMember[]

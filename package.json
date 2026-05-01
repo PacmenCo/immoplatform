@@ -10,7 +10,11 @@
     "seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prebuild": "tsx scripts/i18n/codegen.ts",
+    "i18n:check": "tsx scripts/i18n/check.ts",
+    "i18n:sync": "tsx scripts/i18n/sync.ts",
+    "i18n:codegen": "tsx scripts/i18n/codegen.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

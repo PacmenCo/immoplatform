@@ -10,6 +10,12 @@ import { shouldSendEmail, type EmailEventKey } from "./email-events";
  *
  * Use `sendEmail()` directly for transactional mail (invites, resets)
  * where staff need to see delivery failures surface to the caller.
+ *
+ * `to.locale` (when present on the recipient row) flows through the
+ * outer caller's template-render — by the time we get here, `subject` /
+ * `text` / `html` are already rendered in the recipient's language. The
+ * field is read by `Recipient` consumers; `notify()` itself doesn't
+ * re-render based on it.
  */
 export async function notify(opts: {
   // `emailPrefs` is a JSONB-backed value on Postgres — accept the broad

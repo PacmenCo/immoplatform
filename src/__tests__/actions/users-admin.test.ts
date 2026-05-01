@@ -68,7 +68,7 @@ describe("updateUserByAdminInner — role gate", () => {
         role: "realtor",
       }),
     );
-    expect(res).toEqual({ ok: false, error: "Only admins can edit other users." });
+    expect(res).toEqual({ ok: false, error: "errors.user.editAdminsOnly" });
   });
 
   it("realtor rejected", async () => {
@@ -84,7 +84,7 @@ describe("updateUserByAdminInner — role gate", () => {
         role: "admin", // realtor trying to promote someone to admin
       }),
     );
-    expect(res).toEqual({ ok: false, error: "Only admins can edit other users." });
+    expect(res).toEqual({ ok: false, error: "errors.user.editAdminsOnly" });
   });
 });
 
@@ -150,7 +150,7 @@ describe("updateUserByAdminInner — validation + persistence", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "That email is already in use on another account.",
+      error: "errors.auth.emailTakenOnAnotherAccount",
     });
   });
 
@@ -162,7 +162,7 @@ describe("updateUserByAdminInner — validation + persistence", () => {
       undefined,
       form({ firstName: "X", lastName: "Y", email: "ghost@test.local", role: "realtor" }),
     );
-    expect(res).toEqual({ ok: false, error: "User not found." });
+    expect(res).toEqual({ ok: false, error: "errors.user.notFound" });
   });
 
   it("soft-deleted user → 'User not found.'", async () => {
@@ -178,7 +178,7 @@ describe("updateUserByAdminInner — validation + persistence", () => {
       undefined,
       form({ firstName: "X", lastName: "Y", email: ghost.email, role: "realtor" }),
     );
-    expect(res).toEqual({ ok: false, error: "User not found." });
+    expect(res).toEqual({ ok: false, error: "errors.user.notFound" });
   });
 
   it("demoting the LAST admin → rejected", async () => {
@@ -195,7 +195,7 @@ describe("updateUserByAdminInner — validation + persistence", () => {
       }),
     );
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/last admin/i);
+    if (!res.ok) expect(res.error).toBe("errors.user.lastAdminDemote");
     const after = await prisma.user.findUniqueOrThrow({ where: { id: admin.user.id } });
     expect(after.role).toBe("admin");
   });
@@ -321,7 +321,7 @@ describe("resetUserPasswordInner", () => {
     );
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can reset another user's password.",
+      error: "errors.user.resetPasswordAdminsOnly",
     });
   });
 
@@ -369,7 +369,7 @@ describe("resetUserPasswordInner", () => {
       undefined,
       form({ password: "new-pw-1234", confirm: "new-pw-1234" }),
     );
-    expect(res).toEqual({ ok: false, error: "User not found." });
+    expect(res).toEqual({ ok: false, error: "errors.user.notFound" });
   });
 });
 
@@ -395,7 +395,7 @@ describe("deleteUserByAdminInner", () => {
     const res = await deleteUserByAdminInner(staff, realtor.user.id);
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can delete other users.",
+      error: "errors.user.deleteAdminsOnly",
     });
   });
 
@@ -404,7 +404,7 @@ describe("deleteUserByAdminInner", () => {
     const res = await deleteUserByAdminInner(admin, admin.user.id);
     expect(res).toEqual({
       ok: false,
-      error: "Use the self-service delete flow in Settings to remove your own account.",
+      error: "errors.user.selfDeleteNotHere",
     });
   });
 
@@ -454,7 +454,7 @@ describe("deleteUserByAdminInner", () => {
   it("unknown / soft-deleted user → 'User not found.'", async () => {
     const { admin } = await seedBaseline();
     const res = await deleteUserByAdminInner(admin, "u_nonexistent");
-    expect(res).toEqual({ ok: false, error: "User not found." });
+    expect(res).toEqual({ ok: false, error: "errors.user.notFound" });
   });
 
   it("user attached to a team → rejected (Platform parity: UserController.php:294-297)", async () => {
@@ -463,7 +463,7 @@ describe("deleteUserByAdminInner", () => {
     // doesn't end up with a soft-deleted owner.
     const res = await deleteUserByAdminInner(admin, realtor.user.id);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/Remove this user from all teams/);
+    if (!res.ok) expect(res.error).toBe("errors.user.stillInTeams");
     // Row remains live.
     const after = await prisma.user.findUniqueOrThrow({
       where: { id: realtor.user.id },

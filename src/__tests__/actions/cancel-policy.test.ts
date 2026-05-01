@@ -56,7 +56,7 @@ describe("cancelAssignmentInner — role gate", () => {
     const res = await cancelAssignmentInner(freelancer, asg.id);
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to cancel this.",
+      error: "errors.assignment.cannotCancel",
     });
     const after = await prisma.assignment.findUniqueOrThrow({
       where: { id: asg.id },
@@ -108,7 +108,7 @@ describe("cancelAssignmentInner — role gate", () => {
     const res = await cancelAssignmentInner(outsider, asg.id);
     expect(res).toEqual({
       ok: false,
-      error: "You don't have permission to cancel this.",
+      error: "errors.assignment.cannotCancel",
     });
   });
 });
@@ -124,7 +124,7 @@ describe("cancelAssignmentInner — state preconditions", () => {
     const res = await cancelAssignmentInner(admin, asg.id);
     expect(res).toEqual({
       ok: false,
-      error: "This assignment is already completed.",
+      error: "errors.assignment.alreadyCompleted",
     });
   });
 
@@ -138,14 +138,14 @@ describe("cancelAssignmentInner — state preconditions", () => {
     const res = await cancelAssignmentInner(admin, asg.id);
     expect(res).toEqual({
       ok: false,
-      error: "This assignment is already cancelled.",
+      error: "errors.assignment.alreadyCancelled",
     });
   });
 
   it("non-existent assignment → 'Assignment not found.'", async () => {
     const { admin } = await seedBaseline();
     const res = await cancelAssignmentInner(admin, "a_ghost");
-    expect(res).toEqual({ ok: false, error: "Assignment not found." });
+    expect(res).toEqual({ ok: false, error: "errors.assignment.notFound" });
   });
 });
 

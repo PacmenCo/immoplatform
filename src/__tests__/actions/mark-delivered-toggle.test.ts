@@ -76,7 +76,7 @@ describe("markAssignmentDelivered — toggle (v1 parity)", () => {
     const res = await markAssignmentDelivered(asg.id);
     expect(res.ok).toBe(false);
     if (!res.ok) {
-      expect(res.error).toMatch(/already completed/);
+      expect(res.error).toBe("errors.assignment.completedReverseRequiresAdmin");
     }
   });
 

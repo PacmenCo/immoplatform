@@ -21,7 +21,7 @@ import { seedAssignment, seedBaseline } from "../_helpers/fixtures";
 
 setupTestDb();
 
-const STALE_COPY = "Status changed while you were away. Reload and try again.";
+const STALE_COPY = "errors.assignment.statusChangedAway";
 
 describe("v1→v2 race: admin completes vs freelancer's stale write", () => {
   it("first transition wins; second errors with stale-status copy; single audit row", async () => {
@@ -59,13 +59,13 @@ describe("v1→v2 race: admin completes vs freelancer's stale write", () => {
 
     // Second writer (admin again — freelancer can't cancel): cancel.
     // The action's early guard catches `completed` first and returns
-    // "This assignment is already completed.", which is the *intended*
+    // "errors.assignment.alreadyCompleted", which is the *intended*
     // user-visible copy when the source state is already terminal.
     // Status changed copy is for the narrower predicate-only race.
     const cancelRes = await cancelAssignmentInner(admin, asg.id);
     expect(cancelRes).toEqual({
       ok: false,
-      error: "This assignment is already completed.",
+      error: "errors.assignment.alreadyCompleted",
     });
 
     // Audit log shows ONE assignment.completed and ZERO assignment.cancelled.
@@ -136,8 +136,7 @@ describe("v1→v2 race: admin completes vs freelancer's stale write", () => {
     if (!loser.ok) {
       const ok =
         loser.error === STALE_COPY ||
-        loser.error ===
-          "Only delivered assignments can be completed. This one is completed.";
+        loser.error === "errors.assignment.cannotCompleteNonDelivered";
       expect(ok).toBe(true);
     }
 

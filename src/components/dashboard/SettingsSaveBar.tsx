@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { useFormDirty } from "@/lib/useFormDirty";
 import { useUnsavedChanges } from "./UnsavedChangesProvider";
@@ -46,10 +47,13 @@ type Props = {
 export function SettingsSaveBar({
   formRef,
   pending,
-  label = "Save changes",
-  title = "Unsaved changes",
+  label,
+  title,
   forceVisible,
 }: Props) {
+  const t = useTranslations("dashboard.shared.settingsSaveBar");
+  const effectiveLabel = label ?? t("save");
+  const effectiveTitle = title ?? t("title");
   const dirty = useFormDirty(formRef);
   useUnsavedChanges(dirty);
 
@@ -76,15 +80,15 @@ export function SettingsSaveBar({
   return (
     <div
       role="region"
-      aria-label="Save changes"
+      aria-label={t("ariaLabel")}
       hidden={!visible}
       className="sticky bottom-0 z-20 -mx-6 mt-4 border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-bg)]/80"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--color-ink)]">{title}</p>
+          <p className="text-sm font-medium text-[var(--color-ink)]">{effectiveTitle}</p>
           <p className="text-xs text-[var(--color-ink-muted)]">
-            {pending ? "Saving…" : "Don't forget to save before leaving the page."}
+            {pending ? t("saving") : t("hint")}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -95,10 +99,10 @@ export function SettingsSaveBar({
             onClick={reset}
             disabled={pending || !dirty}
           >
-            Discard
+            {t("discard")}
           </Button>
           <Button type="submit" size="sm" loading={pending}>
-            {label}
+            {effectiveLabel}
           </Button>
         </div>
       </div>

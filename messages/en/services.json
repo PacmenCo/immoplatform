@@ -1,0 +1,80 @@
+{
+  "shared": {
+    "backLink": "← All services",
+    "orderPrefix": "Order",
+    "howItWorks": "How it works",
+    "whatYouGet": "What you get",
+    "everythingHandled": "Everything handled, nothing forgotten.",
+    "turnaroundLabel": "Turnaround",
+    "regulationLabel": "Regulation",
+    "whoLabel": "Who it's for",
+    "bundleHeading": "Bundle & save",
+    "bundleBody": "Order this together with other certificates for a bundled discount on every assignment."
+  },
+  "epc": {
+    "hero": "Energy Performance Certificates, issued fast.",
+    "body": "The Energy Performance Certificate (EPC) is mandatory for every residential sale or lease in Belgium. Our certified inspectors deliver the documentation within days — your agents never block a signing again.",
+    "bullet1": "Certified EPC inspectors in Flanders, Brussels & Wallonia",
+    "bullet2": "Digital delivery (PDF + VEKA submission) within 3 working days",
+    "bullet3": "Bundling discount when ordered with other services",
+    "bullet4": "Re-inspection support after renovation",
+    "turnaround": "3 working days",
+    "regulation": "Mandatory per Flemish Energy Agency (VEKA) regulations",
+    "who": "Every home sold or leased in Belgium"
+  },
+  "asbestos": {
+    "hero": "Asbestos Inventory Attests, no surprises.",
+    "body": "The Asbestos Inventory Attest (AIV) is legally required for every building constructed before 2001 at the point of sale. Our certified asbestos experts inspect, sample and certify with turnaround times most agencies dream of.",
+    "bullet1": "Certified OVAM inspectors",
+    "bullet2": "Non-destructive sampling where possible",
+    "bullet3": "Legally valid attestation, signed within 5 working days",
+    "bullet4": "Connected to your assignment — no double data entry",
+    "turnaround": "5 working days",
+    "regulation": "Mandatory per Flemish OVAM regulations for pre-2001 buildings",
+    "who": "Any seller of a pre-2001 residential or commercial building"
+  },
+  "electrical": {
+    "hero": "AREI-compliant Electrical Inspections.",
+    "body": "The Electrical Inspection (EK) ensures the property meets the Belgian AREI safety code. Required on sale and after major renovation work — and the first thing a buyer's lawyer will ask about.",
+    "bullet1": "AGORIA-certified electrical inspectors",
+    "bullet2": "Compliant inspection report per AREI standards",
+    "bullet3": "Follow-up re-inspection after remediation",
+    "bullet4": "Integrated into the same dashboard as your other certificates",
+    "turnaround": "4 working days",
+    "regulation": "AREI (Belgian General Electrical Regulation) compliance",
+    "who": "Any property sold or with recent electrical work"
+  },
+  "fuel": {
+    "hero": "Fuel Tank Checks, done right.",
+    "body": "Fuel Tank Checks (TK) are required periodically for above-ground and buried heating-oil tanks in Flanders. We schedule, inspect, issue the attest and alert you before the next one is due — so a routine check never delays a sale.",
+    "bullet1": "Certified fuel-tank inspectors",
+    "bullet2": "Buried and above-ground tank specialties",
+    "bullet3": "Automatic reminders before re-inspection deadlines",
+    "bullet4": "Environmental compliance built-in",
+    "turnaround": "5 working days",
+    "regulation": "VLAREM II periodic inspection requirements",
+    "who": "Homeowners and agents with heating-oil tanks on property"
+  },
+  "photos": {
+    "hero": "Listing photography that sells faster.",
+    "body": "Professional listing photography for residential and commercial properties — wide-angle shots, balanced lighting, and a delivery turnaround that matches the pace of your listing pipeline.",
+    "bullet1": "Wide-angle interior + exterior coverage",
+    "bullet2": "Edited, listing-ready JPEGs delivered same day",
+    "bullet3": "Optional drone shots for villas and large properties",
+    "bullet4": "Bundled into your existing assignment workflow",
+    "turnaround": "Same day delivery",
+    "regulation": "—",
+    "who": "Agents listing residential or commercial properties"
+  },
+  "signage": {
+    "hero": "On-site signage, mounted and ready.",
+    "body": "We deliver and install For-Sale and For-Rent signage at the property, photographed once mounted so your listing goes live the same day as the inspection.",
+    "bullet1": "Standard A-frame and post-mounted signage",
+    "bullet2": "Branded with your agency's colours and contact info",
+    "bullet3": "Installation photo for your records",
+    "bullet4": "Pickup + removal at the end of the listing",
+    "turnaround": "Same day installation",
+    "regulation": "—",
+    "who": "Agents needing on-site presence at the property"
+  }
+}

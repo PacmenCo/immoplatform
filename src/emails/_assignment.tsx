@@ -2,10 +2,14 @@
  * Shared types + helpers for assignment-lifecycle email templates.
  * Mirrors `AssignmentEmailCtx` in `src/lib/email.ts` (source of truth for
  * the caller-facing shape).
+ *
+ * Copy lives under `emails.assignment.*` — both the open-assignment CTA
+ * label and the optional calendar-link prompt.
  */
 
 import * as React from "react";
 import { Link } from "@react-email/components";
+import { useTranslations } from "next-intl";
 import { CtaButton, P, mutedStyle } from "./_layout";
 
 export type AssignmentEmailCtx = {
@@ -29,16 +33,18 @@ export function addressLine(a: AssignmentEmailCtx): string {
  * consistent click target.
  */
 export function AssignmentCta({ ctx }: { ctx: AssignmentEmailCtx }) {
+  const t = useTranslations("emails.assignment");
+  const tCommon = useTranslations("emails.common");
   return (
     <>
-      <CtaButton href={ctx.assignmentUrl}>Open assignment</CtaButton>
+      <CtaButton href={ctx.assignmentUrl}>{t("openCta")}</CtaButton>
       <P style={mutedStyle}>
-        Or open this URL:{" "}
+        {tCommon("openUrlPrefix")}{" "}
         <Link href={ctx.assignmentUrl}>{ctx.assignmentUrl}</Link>
       </P>
       {ctx.addToCalendarUrl ? (
         <P style={mutedStyle}>
-          Add this appointment to your Google calendar:{" "}
+          {t("calendarPrompt")}{" "}
           <Link href={ctx.addToCalendarUrl}>{ctx.addToCalendarUrl}</Link>
         </P>
       ) : null}

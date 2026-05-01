@@ -93,7 +93,7 @@ export async function submitContactFormInner(
   if (!parsed.success) {
     return {
       ok: false,
-      error: parsed.error.issues[0]?.message ?? "Check the form and try again.",
+      error: parsed.error.issues[0]?.message ?? "errors.validation.checkForm",
       formValues,
     };
   }
@@ -109,7 +109,7 @@ export async function submitContactFormInner(
     const minutes = Math.ceil(rl.retryAfterSec / 60);
     return {
       ok: false,
-      error: `Too many submissions from this network. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+      error: "errors.contact.rateLimited",
       formValues,
     };
   }
@@ -193,7 +193,7 @@ export const markContactHandled = withSession(async (
   handled: boolean,
 ): Promise<ActionResult> => {
   if (!hasRole(session, "admin")) {
-    return { ok: false, error: "Only admins can update contact submissions." };
+    return { ok: false, error: "errors.contact.updateAdminsOnly" };
   }
 
   const result = await prisma.contactSubmission.updateMany({
@@ -203,7 +203,7 @@ export const markContactHandled = withSession(async (
       : { handledById: null, handledAt: null },
   });
   if (result.count === 0) {
-    return { ok: false, error: "Submission not found." };
+    return { ok: false, error: "errors.contact.submissionNotFound" };
   }
 
   await audit({
@@ -236,7 +236,7 @@ export const updateContactNotes = withSession(async (
   formData: FormData,
 ): Promise<ActionResult> => {
   if (!hasRole(session, "admin")) {
-    return { ok: false, error: "Only admins can update contact submissions." };
+    return { ok: false, error: "errors.contact.updateAdminsOnly" };
   }
   const parsed = notesSchema.safeParse({
     notes: (formData.get("notes") as string) ?? "",
@@ -244,7 +244,7 @@ export const updateContactNotes = withSession(async (
   if (!parsed.success) {
     return {
       ok: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid notes.",
+      error: parsed.error.issues[0]?.message ?? "errors.validation.invalidInput",
     };
   }
 
@@ -254,7 +254,7 @@ export const updateContactNotes = withSession(async (
     data: { notes: parsed.data.notes },
   });
   if (result.count === 0) {
-    return { ok: false, error: "Submission not found." };
+    return { ok: false, error: "errors.contact.submissionNotFound" };
   }
 
   await audit({

@@ -3,9 +3,13 @@
  * form. Goes to the address in NOTIFY_CONTACT_TO env var (defaults to
  * jordan@asbestexperts.be). The reply-to header is the visitor's email so
  * hitting Reply in the inbox messages them directly.
+ *
+ * Copy lives under `emails.contactSubmission.*`. Recipient is internal ops
+ * so the locale follows the routing default unless an admin overrides.
  */
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
 
 export type ContactSubmissionEmailProps = {
@@ -18,44 +22,46 @@ export type ContactSubmissionEmailProps = {
   adminUrl: string;
 };
 
-export const subject = (p: ContactSubmissionEmailProps) =>
-  `New contact: ${p.name}`;
+export const subjectKey = "emails.contactSubmission.subject";
+
+export function subjectArgs(p: ContactSubmissionEmailProps): Record<string, unknown> {
+  return { name: p.name };
+}
 
 export default function ContactSubmission(props: ContactSubmissionEmailProps) {
+  const t = useTranslations("emails.contactSubmission");
   return (
     <EmailLayout
-      preview={`${props.name} got in touch via the website`}
-      title="New contact form submission"
+      preview={t("preview", { name: props.name })}
+      title={t("title")}
     >
-      <P>Someone just submitted the contact form on immoplatform.be:</P>
+      <P>{t("intro")}</P>
 
       <P>
-        <strong>Name:</strong> {props.name}
+        <strong>{t("nameLabel")}</strong> {props.name}
         <br />
-        <strong>Email:</strong> {props.email}
+        <strong>{t("emailLabel")}</strong> {props.email}
         {props.phone ? (
           <>
             <br />
-            <strong>Phone:</strong> {props.phone}
+            <strong>{t("phoneLabel")}</strong> {props.phone}
           </>
         ) : null}
         {props.subject ? (
           <>
             <br />
-            <strong>Subject:</strong> {props.subject}
+            <strong>{t("subjectLabel")}</strong> {props.subject}
           </>
         ) : null}
       </P>
 
       <P>
-        <strong>Message</strong>
+        <strong>{t("messageHeading")}</strong>
       </P>
       <P style={{ whiteSpace: "pre-wrap" }}>{props.message}</P>
 
-      <CtaButton href={props.adminUrl}>Open in admin dashboard</CtaButton>
-      <P style={mutedStyle}>
-        Reply to this email goes straight to {props.email}.
-      </P>
+      <CtaButton href={props.adminUrl}>{t("ctaButton")}</CtaButton>
+      <P style={mutedStyle}>{t("replyNotice", { email: props.email })}</P>
     </EmailLayout>
   );
 }

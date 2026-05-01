@@ -1,9 +1,11 @@
 /**
  * Assignment-completed email. Sent when an agency admin signs off.
- * Platform parity: AssignmentCompletedMail.
+ * Platform parity: AssignmentCompletedMail. Copy lives under
+ * `emails.assignmentCompleted.*`.
  */
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { EmailLayout, P } from "./_layout";
 import {
   AssignmentCta,
@@ -17,22 +19,31 @@ export type AssignmentCompletedEmailProps = AssignmentEmailCtx & {
   completedByName: string;
 };
 
-export const subject = (p: AssignmentCompletedEmailProps) =>
-  `Completed: ${addressLine(p)} (${p.reference})`;
+export const subjectKey = "emails.assignmentCompleted.subject";
+
+export function subjectArgs(
+  p: AssignmentCompletedEmailProps,
+): Record<string, unknown> {
+  return { address: addressLine(p), reference: p.reference };
+}
 
 export default function AssignmentCompleted(
   props: AssignmentCompletedEmailProps,
 ) {
+  const t = useTranslations("emails.assignmentCompleted");
+  const tCommon = useTranslations("emails.common");
   return (
     <EmailLayout
-      preview={`${props.reference} signed off`}
-      title="Assignment completed"
+      preview={t("preview", { reference: props.reference })}
+      title={t("title")}
     >
-      <P>Hi {props.recipientName},</P>
+      <P>{tCommon("hi", { name: props.recipientName })}</P>
       <P>
-        {props.completedByName} signed off on{" "}
-        <strong>{props.reference}</strong> ({addressLine(props)}). It&rsquo;s
-        now closed and moves out of the active queue.
+        {t("body", {
+          completedByName: props.completedByName,
+          reference: props.reference,
+          address: addressLine(props),
+        })}
       </P>
       <AssignmentCta ctx={props} />
     </EmailLayout>

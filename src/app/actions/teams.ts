@@ -140,12 +140,12 @@ export async function createTeamInner(
   const allowed =
     canCreateTeam(session) || (await canCreateFirstTeam(session));
   if (!allowed) {
-    return { ok: false, error: "You don't have permission to create teams." };
+    return { ok: false, error: "errors.team.cannotCreate" };
   }
 
   const parsed = teamSchema.safeParse(readTeamFormData(formData));
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "errors.validation.checkForm" };
   }
   const d = parsed.data;
 
@@ -223,12 +223,12 @@ export async function updateTeamInner(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!(await canEditTeam(session, teamId))) {
-    return { ok: false, error: "You don't have permission to edit this team." };
+    return { ok: false, error: "errors.team.cannotEdit" };
   }
 
   const parsed = teamSchema.safeParse(readTeamFormData(formData));
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "errors.validation.checkForm" };
   }
   const d = parsed.data;
 
@@ -343,7 +343,7 @@ export async function updateTeamBillingInner(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!(await canEditTeam(session, teamId))) {
-    return { ok: false, error: "You don't have permission to edit this team." };
+    return { ok: false, error: "errors.team.cannotEdit" };
   }
 
   const parsed = billingSchema.safeParse({
@@ -362,7 +362,7 @@ export async function updateTeamBillingInner(
     description: (formData.get("description") as string) || "",
   });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "errors.validation.checkForm" };
   }
   const d = parsed.data;
 
@@ -425,7 +425,7 @@ export async function deleteTeamInner(
   // v1 parity: only admins can delete teams (Platform routes admin/teams
   // under role:admin; realtor-owners can edit but not destroy).
   if (!hasRole(session, "admin")) {
-    return { ok: false, error: "Only admins can delete teams." };
+    return { ok: false, error: "errors.team.deleteOnlyAdmins" };
   }
 
   const [team, assignmentCount] = await Promise.all([
@@ -435,11 +435,11 @@ export async function deleteTeamInner(
     }),
     prisma.assignment.count({ where: { teamId } }),
   ]);
-  if (!team) return { ok: false, error: "Team not found." };
+  if (!team) return { ok: false, error: "errors.team.notFound" };
   if (assignmentCount > 0) {
     return {
       ok: false,
-      error: `This team has ${assignmentCount} assignment${assignmentCount === 1 ? "" : "s"} on record. Delete or reassign those first — historical teams can't be removed while history references them.`,
+      error: "errors.team.stillHasAssignments",
     };
   }
 
@@ -497,18 +497,18 @@ export async function removeTeamMemberInner(
   userId: string,
 ): Promise<ActionResult> {
   if (!(await canEditTeam(session, teamId))) {
-    return { ok: false, error: "You don't have permission to manage this team's members." };
+    return { ok: false, error: "errors.team.cannotManageMembers" };
   }
 
   const membership = await prisma.teamMember.findUnique({
     where: { teamId_userId: { teamId, userId } },
     select: { teamRole: true, user: { select: { firstName: true, lastName: true } } },
   });
-  if (!membership) return { ok: false, error: "That user is not on this team." };
+  if (!membership) return { ok: false, error: "errors.team.memberNotInTeam" };
   if (membership.teamRole === "owner") {
     return {
       ok: false,
-      error: "Transfer ownership to another member before removing the current owner.",
+      error: "errors.team.transferOwnerFirst",
     };
   }
 
@@ -558,7 +558,7 @@ export async function setTeamServiceOverrideInner(
   // v1 parity: per-team price overrides live under Admin\TeamController —
   // route admin-only. Realtor-owners cannot change their team's prices.
   if (!hasRole(session, "admin")) {
-    return { ok: false, error: "Only admins can change team price overrides." };
+    return { ok: false, error: "errors.team.overrideAdminsOnly" };
   }
 
   // Guard the service key + price value at the edge.
@@ -566,7 +566,7 @@ export async function setTeamServiceOverrideInner(
     where: { key: serviceKey },
     select: { key: true },
   });
-  if (!service) return { ok: false, error: "Unknown service." };
+  if (!service) return { ok: false, error: "errors.team.unknownService" };
 
   // Explicit three-state contract:
   //   null   → clear existing override (revert to base price)
@@ -603,11 +603,11 @@ export async function setTeamServiceOverrideInner(
       return {
         ok: false,
         error:
-          "Price must be greater than 0. Use Reset to clear the override and fall back to the base price.",
+          "errors.team.priceMustBePositive",
       };
     }
     if (priceCents > 1_000_000_00) {
-      return { ok: false, error: "Price looks off — use cents (e.g. 14500 for €145)." };
+      return { ok: false, error: "errors.team.priceLooksOff" };
     }
     await prisma.teamServiceOverride.upsert({
       where: { teamId_serviceKey: { teamId, serviceKey } },
@@ -645,20 +645,20 @@ export async function setTeamServicePricelistInner(
   odooPricelistId: number | null,
 ): Promise<ActionResult> {
   if (!hasRole(session, "admin")) {
-    return { ok: false, error: "Only admins can change team pricelist bindings." };
+    return { ok: false, error: "errors.team.pricelistAdminsOnly" };
   }
 
   const service = await prisma.service.findUnique({
     where: { key: serviceKey },
     select: { key: true },
   });
-  if (!service) return { ok: false, error: "Unknown service." };
+  if (!service) return { ok: false, error: "errors.team.unknownService" };
 
   if (
     odooPricelistId !== null &&
     (!Number.isInteger(odooPricelistId) || odooPricelistId <= 0)
   ) {
-    return { ok: false, error: "Invalid pricelist id." };
+    return { ok: false, error: "errors.team.invalidPricelistId" };
   }
 
   const existing = await prisma.teamServiceOverride.findUnique({
@@ -721,7 +721,7 @@ export async function transferTeamOwnershipInner(
   // set at create-time by an admin. Any post-creation ownership change has
   // to come from admin. Team-owner realtors cannot transfer on their own.
   if (!hasRole(session, "admin")) {
-    return { ok: false, error: "Only admins can transfer team ownership." };
+    return { ok: false, error: "errors.team.transferOnlyAdmins" };
   }
 
   // The target must currently be a member of the team, still active, and
@@ -745,21 +745,21 @@ export async function transferTeamOwnershipInner(
     return {
       ok: false,
       error:
-        "That user is no longer a member of this team. Refresh the page and try again.",
+        "errors.team.transferTargetMissing",
     };
   }
   if (target.user.deletedAt) {
-    return { ok: false, error: "That account is deactivated." };
+    return { ok: false, error: "errors.auth.accountDeactivated" };
   }
   if (!["realtor", "admin"].includes(target.user.role)) {
     return {
       ok: false,
       error:
-        "Team ownership can only be transferred to a realtor or admin. Change their platform role first.",
+        "errors.team.transferTargetIneligible",
     };
   }
   if (target.teamRole === "owner") {
-    return { ok: false, error: "That user is already the team owner." };
+    return { ok: false, error: "errors.team.alreadyOwner" };
   }
 
   await prisma.$transaction(async (tx) => {

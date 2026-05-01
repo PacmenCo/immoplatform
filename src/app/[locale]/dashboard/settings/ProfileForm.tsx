@@ -1,0 +1,282 @@
+"use client";
+
+import { useActionState, useRef, useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/Button";
+import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Field, Input, Textarea } from "@/components/ui/Input";
+import { Avatar } from "@/components/ui/Avatar";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { SuccessBanner } from "@/components/ui/SuccessBanner";
+import {
+  updateProfile,
+  uploadAvatar,
+  removeAvatar,
+  resendEmailVerification,
+} from "@/app/actions/profile";
+import { SettingsSaveBar } from "@/components/dashboard/SettingsSaveBar";
+import { AVATAR_ACCEPT_ATTR, AVATAR_MAX_BYTES } from "@/lib/avatar";
+import { useTranslateError } from "@/i18n/error";
+import type { ActionResult } from "@/app/actions/_types";
+
+export type ProfileFormInitial = {
+  email: string;
+  emailVerified: boolean;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  region: string | null;
+  bio: string | null;
+  avatarInitials: string;
+  avatarAlt: string;
+  avatarUrl: string | null;
+};
+
+export function ProfileForm({ initial }: { initial: ProfileFormInitial }) {
+  return (
+    <div className="space-y-6">
+      {!initial.emailVerified && <UnverifiedEmailBanner email={initial.email} />}
+      <AvatarCard initial={initial} />
+      <DetailsCard initial={initial} />
+    </div>
+  );
+}
+
+function UnverifiedEmailBanner({ email }: { email: string }) {
+  const t = useTranslations("dashboard.settings.profile.verifyBanner");
+  const tErr = useTranslateError();
+  const [pending, start] = useTransition();
+  const [state, setState] = useState<ActionResult | null>(null);
+
+  function resend() {
+    setState(null);
+    start(async () => {
+      const res = await resendEmailVerification();
+      setState(res);
+    });
+  }
+
+  return (
+    <div
+      role="status"
+      className="flex items-start gap-3 rounded-md border border-[color-mix(in_srgb,var(--color-electrical)_40%,var(--color-bg))] bg-[color-mix(in_srgb,var(--color-electrical)_10%,var(--color-bg))] p-4"
+    >
+      <span
+        aria-hidden
+        className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--color-electrical)] text-xs font-bold text-white"
+      >
+        !
+      </span>
+      <div className="flex-1 min-w-0 text-sm">
+        <p className="font-medium text-[var(--color-ink)]">
+          {t("title")}
+        </p>
+        <p className="text-[var(--color-ink-soft)]">
+          {t("bodyPrefix")}
+          <span className="font-mono text-xs">{email}</span>
+          {t("bodySuffix")}
+        </p>
+        {state?.ok && (
+          <p className="mt-2 text-xs text-[var(--color-epc)]">
+            {t("sent")}
+          </p>
+        )}
+        {state && !state.ok && (
+          <p className="mt-2 text-xs text-[var(--color-asbestos)]">{tErr(state.error)}</p>
+        )}
+      </div>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={resend}
+        loading={pending}
+      >
+        {t("resend")}
+      </Button>
+    </div>
+  );
+}
+
+function ActionBanner({
+  state,
+  successLabel,
+}: {
+  state: ActionResult | undefined;
+  successLabel: string;
+}) {
+  const tErr = useTranslateError();
+  if (!state) return null;
+  if (!state.ok) return <ErrorAlert>{tErr(state.error)}</ErrorAlert>;
+  return <SuccessBanner>{successLabel}</SuccessBanner>;
+}
+
+function DetailsCard({ initial }: { initial: ProfileFormInitial }) {
+  const t = useTranslations("dashboard.settings.profile.details");
+  const tSave = useTranslations("dashboard.settings.saveBar");
+  const [state, formAction, pending] = useActionState<
+    ActionResult | undefined,
+    FormData
+  >(updateProfile, undefined);
+
+  const formRef = useRef<HTMLFormElement>(null);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("title")}</CardTitle>
+        <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
+          {t("subtitle")}
+        </p>
+      </CardHeader>
+      <CardBody>
+        <form ref={formRef} action={formAction} className="space-y-6">
+          <ActionBanner state={state} successLabel={t("saved")} />
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label={t("firstName")} id="firstName" required>
+              <Input
+                id="firstName"
+                name="firstName"
+                defaultValue={initial.firstName}
+                autoComplete="given-name"
+                required
+              />
+            </Field>
+            <Field label={t("lastName")} id="lastName" required>
+              <Input
+                id="lastName"
+                name="lastName"
+                defaultValue={initial.lastName}
+                autoComplete="family-name"
+                required
+              />
+            </Field>
+            <Field
+              label={t("email")}
+              id="email"
+              hint={
+                initial.emailVerified
+                  ? t("emailHintVerified")
+                  : t("emailHintUnverified")
+              }
+              required
+            >
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                defaultValue={initial.email}
+                autoComplete="email"
+                required
+              />
+            </Field>
+            <Field label={t("phone")} id="phone">
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                defaultValue={initial.phone ?? ""}
+                placeholder={t("phonePlaceholder")}
+                autoComplete="tel"
+              />
+            </Field>
+            <Field label={t("region")} id="region" hint={t("regionHint")}>
+              <Input
+                id="region"
+                name="region"
+                defaultValue={initial.region ?? ""}
+                placeholder={t("regionPlaceholder")}
+                autoComplete="address-level1"
+              />
+            </Field>
+          </div>
+
+          <Field
+            label={t("bio")}
+            id="bio"
+            hint={t("bioHint")}
+          >
+            <Textarea
+              id="bio"
+              name="bio"
+              rows={3}
+              defaultValue={initial.bio ?? ""}
+              maxLength={500}
+            />
+          </Field>
+
+          <SettingsSaveBar
+            formRef={formRef}
+            pending={pending}
+            label={tSave("saveProfile")}
+          />
+        </form>
+      </CardBody>
+    </Card>
+  );
+}
+
+const AVATAR_MAX_MB = Math.round(AVATAR_MAX_BYTES / (1024 * 1024));
+
+function AvatarCard({ initial }: { initial: ProfileFormInitial }) {
+  const t = useTranslations("dashboard.settings.profile.photo");
+  const [uploadState, uploadAction, uploading] = useActionState<
+    ActionResult | undefined,
+    FormData
+  >(uploadAvatar, undefined);
+  const [removeState, removeAction, removing] = useActionState<
+    ActionResult | undefined,
+    FormData
+  >(async () => removeAvatar(), undefined);
+  const uploadFormRef = useRef<HTMLFormElement>(null);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("title")}</CardTitle>
+        <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
+          {t("subtitle")}
+        </p>
+      </CardHeader>
+      <CardBody className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <Avatar
+            initials={initial.avatarInitials}
+            imageUrl={initial.avatarUrl}
+            alt={initial.avatarAlt}
+            size="lg"
+            color="#334155"
+          />
+          <form ref={uploadFormRef} action={uploadAction} className="flex-1">
+            <input
+              type="file"
+              name="avatar"
+              accept={AVATAR_ACCEPT_ATTR}
+              disabled={uploading}
+              onChange={(e) => {
+                if (e.currentTarget.files && e.currentTarget.files.length > 0) {
+                  uploadFormRef.current?.requestSubmit();
+                }
+              }}
+              className="block w-full max-w-sm text-sm text-[var(--color-ink-soft)] file:mr-3 file:rounded-md file:border file:border-[var(--color-border-strong)] file:bg-[var(--color-bg)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--color-ink)] hover:file:bg-[var(--color-bg-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+            />
+            <p className="mt-2 text-xs text-[var(--color-ink-muted)]" aria-live="polite">
+              {uploading
+                ? t("uploading")
+                : t("fileHint", { maxMb: AVATAR_MAX_MB })}
+            </p>
+          </form>
+          {initial.avatarUrl && (
+            <form action={removeAction}>
+              <Button type="submit" variant="ghost" size="sm" loading={removing}>
+                {t("remove")}
+              </Button>
+            </form>
+          )}
+        </div>
+        <ActionBanner state={uploadState} successLabel={t("updated")} />
+        <ActionBanner state={removeState} successLabel={t("removed")} />
+      </CardBody>
+    </Card>
+  );
+}

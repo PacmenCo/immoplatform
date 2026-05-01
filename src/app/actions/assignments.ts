@@ -70,7 +70,7 @@ import { storage } from "@/lib/storage";
 import { addToGoogleCalendarUrl, assignmentUrl } from "@/lib/urls";
 import { uploadAssignmentFilesInner } from "./files";
 import { MAX_REALTOR_FILES_AT_CREATE } from "@/lib/file-constraints";
-import { NOTICE_PARAM, noticeMessage } from "@/app/dashboard/assignments/[id]/notices";
+import { NOTICE_PARAM, noticeMessage } from "@/app/[locale]/dashboard/assignments/[id]/notices";
 import { withSession, type ActionResult } from "./_types";
 
 
@@ -394,7 +394,7 @@ export async function createAssignmentInner(
       select: { id: true },
     });
     if (!target) {
-      return { ok: false, error: "That user isn't an active freelancer." };
+      return { ok: false, error: "errors.assignment.freelancerNotEligible" };
     }
   }
   // calendarDate + calendarAccountEmail are admin/staff only. Silently
@@ -426,7 +426,7 @@ export async function createAssignmentInner(
   if (makelaarFiles.length > MAX_REALTOR_FILES_AT_CREATE) {
     return {
       ok: false,
-      error: `Up to ${MAX_REALTOR_FILES_AT_CREATE} files at a time.`,
+      error: "errors.assignment.tooManyRealtorFiles",
     };
   }
 
@@ -434,7 +434,7 @@ export async function createAssignmentInner(
   if (hasRole(session, "freelancer")) {
     return {
       ok: false,
-      error: "Freelancers can't create assignments. Ask the realtor who hired you.",
+      error: "errors.assignment.freelancerCannotCreate",
     };
   }
   if (hasRole(session, "realtor")) {
@@ -444,7 +444,7 @@ export async function createAssignmentInner(
     if (!teamId) {
       return {
         ok: false,
-        error: "You need to own a team before you can create an assignment.",
+        error: "errors.assignment.needsTeamToCreate",
       };
     }
   }
@@ -557,7 +557,7 @@ export async function createAssignmentInner(
   if (!created) {
     return {
       ok: false,
-      error: "Couldn't reserve a reference number. Try again in a moment.",
+      error: "errors.assignment.referenceCollision",
     };
   }
 
@@ -653,12 +653,15 @@ export async function createAssignmentInner(
         notify({
           to: r,
           event: "assignment.scheduled",
-          ...(await assignmentScheduledEmail({
-            ...ctx,
-            recipientName: r.firstName,
-            scheduledAt,
-            freelancerName,
-          })),
+          ...(await assignmentScheduledEmail(
+            {
+              ...ctx,
+              recipientName: r.firstName,
+              scheduledAt,
+              freelancerName,
+            },
+            r.locale,
+          )),
         }),
       ),
     );
@@ -705,12 +708,12 @@ export const markAssignmentDelivered = withSession(async (
   id: string,
 ): Promise<ActionResult> => {
   const a = await prisma.assignment.findUnique({ where: { id } });
-  if (!a) return { ok: false, error: "Assignment not found." };
+  if (!a) return { ok: false, error: "errors.assignment.notFound" };
 
   if (!(await canEditAssignment(session, a))) {
     return {
       ok: false,
-      error: "You don't have permission to mark this delivered.",
+      error: "errors.assignment.cannotMarkDelivered",
     };
   }
 
@@ -720,7 +723,7 @@ export const markAssignmentDelivered = withSession(async (
   if (a.status === "completed") {
     return {
       ok: false,
-      error: "This assignment is already completed — reversing requires admin help.",
+      error: "errors.assignment.completedReverseRequiresAdmin",
     };
   }
 
@@ -743,7 +746,7 @@ export const markAssignmentDelivered = withSession(async (
   if (claim.count === 0) {
     return {
       ok: false,
-      error: "Status changed while you were away. Reload and try again.",
+      error: "errors.assignment.statusChangedAway",
     };
   }
 
@@ -785,12 +788,15 @@ export const markAssignmentDelivered = withSession(async (
         notify({
           to: r,
           event: "assignment.delivered",
-          ...(await assignmentDeliveredEmail({
-            ...ctxFromAssignment(a),
-            recipientName: r.firstName,
-            actorName,
-            freelancerName,
-          })),
+          ...(await assignmentDeliveredEmail(
+            {
+              ...ctxFromAssignment(a),
+              recipientName: r.firstName,
+              actorName,
+              freelancerName,
+            },
+            r.locale,
+          )),
         }),
       ),
     );
@@ -953,7 +959,7 @@ async function applyFreelancerUpdate(
     }
     return {
       ok: false,
-      error: "Status changed while you were editing. Reload and try again.",
+      error: "errors.assignment.statusChangedEditing",
     };
   }
 
@@ -989,12 +995,15 @@ async function applyFreelancerUpdate(
       notify({
         to: r,
         event: "assignment.date_updated",
-        ...(await assignmentDateUpdatedEmail({
-          ...ctxFromAssignment(existing),
-          recipientName: r.firstName,
-          previousDate,
-          newDate,
-        })),
+        ...(await assignmentDateUpdatedEmail(
+          {
+            ...ctxFromAssignment(existing),
+            recipientName: r.firstName,
+            previousDate,
+            newDate,
+          },
+          r.locale,
+        )),
       }),
     ),
   );
@@ -1019,11 +1028,11 @@ export async function updateAssignmentInner(
   formData: FormData,
 ): Promise<ActionResult> {
   const existing = await prisma.assignment.findUnique({ where: { id } });
-  if (!existing) return { ok: false, error: "Assignment not found." };
+  if (!existing) return { ok: false, error: "errors.assignment.notFound" };
   if (existing.status === "completed" || existing.status === "cancelled") {
     return {
       ok: false,
-      error: `This assignment is ${existing.status} and can no longer be edited.`,
+      error: "errors.assignment.noLongerEditable",
     };
   }
 
@@ -1035,14 +1044,14 @@ export async function updateAssignmentInner(
   // the only field that actually lands here is the appointment date.
   if (hasRole(session, "freelancer")) {
     if (!(await canEditAssignment(session, existing))) {
-      return { ok: false, error: "You don't have permission to edit this assignment." };
+      return { ok: false, error: "errors.assignment.cannotEdit" };
     }
     const filtered = filterUpdateForFreelancer(formData);
     return applyFreelancerUpdate(session, existing, filtered);
   }
 
   if (!(await canUpdateAssignmentFields(session, existing))) {
-    return { ok: false, error: "You don't have permission to edit this assignment." };
+    return { ok: false, error: "errors.assignment.cannotEdit" };
   }
 
   const services = Array.from(
@@ -1121,7 +1130,7 @@ export async function updateAssignmentInner(
       select: { id: true },
     });
     if (!target) {
-      return { ok: false, error: "That user isn't an active freelancer." };
+      return { ok: false, error: "errors.assignment.freelancerNotEligible" };
     }
   }
 
@@ -1279,7 +1288,7 @@ export async function updateAssignmentInner(
     }
     return {
       ok: false,
-      error: "Status changed while you were editing. Reload and try again.",
+      error: "errors.assignment.statusChangedEditing",
     };
   }
 
@@ -1326,12 +1335,15 @@ export async function updateAssignmentInner(
         notify({
           to: r,
           event: "assignment.date_updated",
-          ...(await assignmentDateUpdatedEmail({
-            ...ctxFromAssignment(existing),
-            recipientName: r.firstName,
-            previousDate,
-            newDate,
-          })),
+          ...(await assignmentDateUpdatedEmail(
+            {
+              ...ctxFromAssignment(existing),
+              recipientName: r.firstName,
+              previousDate,
+              newDate,
+            },
+            r.locale,
+          )),
         }),
       ),
     );
@@ -1354,11 +1366,14 @@ export async function updateAssignmentInner(
         await notify({
           to: incoming,
           event: "assignment.freelancer_assigned",
-          ...(await assignmentReassignedEmail({
-            ...ctxFromAssignment(existing),
-            freelancerName: incoming.firstName,
-            preferredDate: d.preferredDate ? new Date(d.preferredDate) : null,
-          })),
+          ...(await assignmentReassignedEmail(
+            {
+              ...ctxFromAssignment(existing),
+              freelancerName: incoming.firstName,
+              preferredDate: d.preferredDate ? new Date(d.preferredDate) : null,
+            },
+            incoming.locale,
+          )),
         });
       }
     }
@@ -1368,10 +1383,13 @@ export async function updateAssignmentInner(
         await notify({
           to: outgoing,
           event: "assignment.freelancer_unassigned",
-          ...(await assignmentUnassignedEmail({
-            ...ctxFromAssignment(existing),
-            freelancerName: outgoing.firstName,
-          })),
+          ...(await assignmentUnassignedEmail(
+            {
+              ...ctxFromAssignment(existing),
+              freelancerName: outgoing.firstName,
+            },
+            outgoing.locale,
+          )),
         });
       }
     }
@@ -1446,14 +1464,14 @@ export async function reassignFreelancerInner(
   freelancerId: string | null,
 ): Promise<ActionResult> {
   const a = await prisma.assignment.findUnique({ where: { id } });
-  if (!a) return { ok: false, error: "Assignment not found." };
+  if (!a) return { ok: false, error: "errors.assignment.notFound" };
   if (!canReassignFreelancer(session)) {
-    return { ok: false, error: "Only admins and staff can assign a freelancer." };
+    return { ok: false, error: "errors.assignment.freelancerOnlyAssign" };
   }
   if (a.status === "completed" || a.status === "cancelled") {
     return {
       ok: false,
-      error: `This assignment is ${a.status} and can't be reassigned.`,
+      error: "errors.assignment.cannotReassignTerminal",
     };
   }
 
@@ -1463,7 +1481,7 @@ export async function reassignFreelancerInner(
       select: { id: true },
     });
     if (!target) {
-      return { ok: false, error: "That user isn't an active freelancer." };
+      return { ok: false, error: "errors.assignment.freelancerNotEligible" };
     }
   }
 
@@ -1497,7 +1515,7 @@ export async function reassignFreelancerInner(
     if (claimResult.kind === "terminal") {
       return {
         ok: false,
-        error: "Status changed while you were away. Reload and try again.",
+        error: "errors.assignment.statusChangedAway",
       };
     }
     return {
@@ -1523,11 +1541,14 @@ export async function reassignFreelancerInner(
       await notify({
         to: incoming,
         event: "assignment.freelancer_assigned",
-        ...(await assignmentReassignedEmail({
-          ...ctxFromAssignment(a),
-          freelancerName: incoming.firstName,
-          preferredDate: a.preferredDate,
-        })),
+        ...(await assignmentReassignedEmail(
+          {
+            ...ctxFromAssignment(a),
+            freelancerName: incoming.firstName,
+            preferredDate: a.preferredDate,
+          },
+          incoming.locale,
+        )),
       });
     }
   }
@@ -1537,10 +1558,13 @@ export async function reassignFreelancerInner(
       await notify({
         to: outgoing,
         event: "assignment.freelancer_unassigned",
-        ...(await assignmentUnassignedEmail({
-          ...ctxFromAssignment(a),
-          freelancerName: outgoing.firstName,
-        })),
+        ...(await assignmentUnassignedEmail(
+          {
+            ...ctxFromAssignment(a),
+            freelancerName: outgoing.firstName,
+          },
+          outgoing.locale,
+        )),
       });
     }
   }
@@ -1552,6 +1576,83 @@ export async function reassignFreelancerInner(
 
 export const reassignFreelancer = withSession(reassignFreelancerInner);
 
+// ─── Inline key-pickup editor ──────────────────────────────────────
+
+// Schema mirrors KeyPickupEditor.tsx's payload. The wide edit form persists
+// the same three columns (see assignmentUpdate's normalization) — keep the
+// rules in sync between the two paths so inline + full-form edits produce
+// identical row state.
+const setKeyPickupSchema = z.object({
+  requiresKeyPickup: z.boolean(),
+  locationType: z.enum(["office", "other"]).nullable(),
+  address: z.string().trim().max(500).nullable(),
+});
+
+export const setKeyPickup = withSession(async (
+  session,
+  id: string,
+  input: z.infer<typeof setKeyPickupSchema>,
+): Promise<ActionResult> => {
+  const parsed = setKeyPickupSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "errors.assignment.invalidKeyPickup" };
+  }
+  const data = parsed.data;
+
+  const a = await prisma.assignment.findUnique({ where: { id } });
+  if (!a) return { ok: false, error: "errors.assignment.notFound" };
+  if (!(await canEditAssignment(session, a))) {
+    return { ok: false, error: "errors.assignment.cannotEditInline" };
+  }
+
+  // Normalization mirrors assignmentUpdate's branch in updateAssignmentInner.
+  const requiresKeyPickup = data.requiresKeyPickup;
+  const keyPickupLocationType: KeyPickupLocation | null =
+    requiresKeyPickup && data.locationType ? data.locationType : null;
+  const keyPickupAddress =
+    requiresKeyPickup && data.locationType === "other"
+      ? data.address?.trim() || null
+      : null;
+
+  // No-op short-circuit — re-saving identical state shouldn't churn audit
+  // entries or invalidate caches.
+  if (
+    a.requiresKeyPickup === requiresKeyPickup &&
+    a.keyPickupLocationType === keyPickupLocationType &&
+    a.keyPickupAddress === keyPickupAddress
+  ) {
+    return { ok: true };
+  }
+
+  await prisma.assignment.update({
+    where: { id },
+    data: { requiresKeyPickup, keyPickupLocationType, keyPickupAddress },
+  });
+
+  await audit({
+    actorId: session.user.id,
+    verb: "assignment.key_pickup_updated",
+    objectType: "assignment",
+    objectId: id,
+    metadata: {
+      from: {
+        requiresKeyPickup: a.requiresKeyPickup,
+        locationType: a.keyPickupLocationType,
+        address: a.keyPickupAddress,
+      },
+      to: {
+        requiresKeyPickup,
+        locationType: keyPickupLocationType,
+        address: keyPickupAddress,
+      },
+    },
+  });
+
+  revalidatePath(`/[locale]/dashboard/assignments/${id}`, "page");
+  revalidatePath("/[locale]/dashboard/assignments", "page");
+  return { ok: true };
+});
+
 // ─── Start (scheduled → in_progress) ───────────────────────────────
 
 export const markAssignmentInProgress = withSession(async (
@@ -1559,9 +1660,9 @@ export const markAssignmentInProgress = withSession(async (
   id: string,
 ): Promise<ActionResult> => {
   const a = await prisma.assignment.findUnique({ where: { id } });
-  if (!a) return { ok: false, error: "Assignment not found." };
+  if (!a) return { ok: false, error: "errors.assignment.notFound" };
   if (!(await canEditAssignment(session, a))) {
-    return { ok: false, error: "You don't have permission to start this." };
+    return { ok: false, error: "errors.assignment.cannotStart" };
   }
   const claim = await prisma.assignment.updateMany({
     where: { id, status: { in: sourcesOf("in_progress") } },
@@ -1570,7 +1671,7 @@ export const markAssignmentInProgress = withSession(async (
   if (claim.count === 0) {
     return {
       ok: false,
-      error: `Can't start an assignment that is already ${a.status}.`,
+      error: "errors.assignment.cannotStartTerminal",
     };
   }
 
@@ -1616,14 +1717,14 @@ export async function markAssignmentCompletedInner(
   formData: FormData,
 ): Promise<ActionResult> {
   const a = await prisma.assignment.findUnique({ where: { id } });
-  if (!a) return { ok: false, error: "Assignment not found." };
+  if (!a) return { ok: false, error: "errors.assignment.notFound" };
   if (!(await canCompleteAssignment(session, a))) {
-    return { ok: false, error: "You don't have permission to complete this." };
+    return { ok: false, error: "errors.assignment.cannotComplete" };
   }
   if (a.status !== "delivered") {
     return {
       ok: false,
-      error: `Only delivered assignments can be completed. This one is ${a.status}.`,
+      error: "errors.assignment.cannotCompleteNonDelivered",
     };
   }
 
@@ -1669,7 +1770,7 @@ export async function markAssignmentCompletedInner(
   if (!result.claimed) {
     return {
       ok: false,
-      error: "Status changed while you were away. Reload and try again.",
+      error: "errors.assignment.statusChangedAway",
     };
   }
 
@@ -1716,11 +1817,14 @@ export async function markAssignmentCompletedInner(
       notify({
         to: r,
         event: "assignment.completed",
-        ...(await assignmentCompletedEmail({
-          ...ctxFromAssignment(a),
-          recipientName: r.firstName,
-          completedByName,
-        })),
+        ...(await assignmentCompletedEmail(
+          {
+            ...ctxFromAssignment(a),
+            recipientName: r.firstName,
+            completedByName,
+          },
+          r.locale,
+        )),
       }),
     ),
   );
@@ -1763,17 +1867,23 @@ export async function cancelAssignmentInner(
   reason?: string,
 ): Promise<ActionResult> {
   const a = await prisma.assignment.findUnique({ where: { id } });
-  if (!a) return { ok: false, error: "Assignment not found." };
+  if (!a) return { ok: false, error: "errors.assignment.notFound" };
   if (!(await canCancelAssignment(session, a))) {
-    return { ok: false, error: "You don't have permission to cancel this." };
+    return { ok: false, error: "errors.assignment.cannotCancel" };
   }
   if (a.status === "completed" || a.status === "cancelled") {
-    return { ok: false, error: `This assignment is already ${a.status}.` };
+    return {
+      ok: false,
+      error:
+        a.status === "completed"
+          ? "errors.assignment.alreadyCompleted"
+          : "errors.assignment.alreadyCancelled",
+    };
   }
 
   const parsed = cancelSchema.safeParse({ reason });
   if (!parsed.success) {
-    return { ok: false, error: "Reason is too long (max 500 characters)." };
+    return { ok: false, error: "errors.assignment.cancelReasonTooLong" };
   }
   const trimmedReason = parsed.data.reason || null;
 
@@ -1802,7 +1912,7 @@ export async function cancelAssignmentInner(
   if (!claimed) {
     return {
       ok: false,
-      error: "Status changed while you were away. Reload and try again.",
+      error: "errors.assignment.statusChangedAway",
     };
   }
 
@@ -1828,12 +1938,15 @@ export async function cancelAssignmentInner(
       notify({
         to: r,
         event: "assignment.cancelled",
-        ...(await assignmentCancelledEmail({
-          ...ctxFromAssignment(a),
-          recipientName: r.firstName,
-          cancelledByName: fullName(session.user),
-          reason: trimmedReason,
-        })),
+        ...(await assignmentCancelledEmail(
+          {
+            ...ctxFromAssignment(a),
+            recipientName: r.firstName,
+            cancelledByName: fullName(session.user),
+            reason: trimmedReason,
+          },
+          r.locale,
+        )),
       }),
     ),
   );
@@ -1869,7 +1982,7 @@ export async function postCommentInner(
     body: (formData.get("body") as string)?.trim(),
   });
   if (!parsed.success) {
-    return { ok: false, error: "Comment can't be empty." };
+    return { ok: false, error: "errors.assignment.commentEmpty" };
   }
 
   const a = await prisma.assignment.findUnique({
@@ -1885,9 +1998,9 @@ export async function postCommentInner(
       createdById: true,
     },
   });
-  if (!a) return { ok: false, error: "Assignment not found." };
+  if (!a) return { ok: false, error: "errors.assignment.notFound" };
   if (!(await canViewAssignment(session, a))) {
-    return { ok: false, error: "You can't comment on this assignment." };
+    return { ok: false, error: "errors.assignment.cannotComment" };
   }
 
   await prisma.assignmentComment.create({
@@ -1913,12 +2026,15 @@ export async function postCommentInner(
       notify({
         to: r,
         event: "assignment.comment_posted",
-        ...(await commentPostedEmail({
-          ...ctxFromAssignment(a),
-          recipientName: r.firstName,
-          authorName: fullName(session.user),
-          body: parsed.data.body,
-        })),
+        ...(await commentPostedEmail(
+          {
+            ...ctxFromAssignment(a),
+            recipientName: r.firstName,
+            authorName: fullName(session.user),
+            body: parsed.data.body,
+          },
+          r.locale,
+        )),
       }),
     ),
   );
@@ -1965,11 +2081,11 @@ export async function changeAssignmentStatusInner(
   input: { to: Status },
 ): Promise<ActionResult> {
   const parsed = changeStatusSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid status." };
+  if (!parsed.success) return { ok: false, error: "errors.validation.invalidStatus" };
   const target = parsed.data.to;
 
   const a = await prisma.assignment.findUnique({ where: { id } });
-  if (!a) return { ok: false, error: "Assignment not found." };
+  if (!a) return { ok: false, error: "errors.assignment.notFound" };
   const fromStatus = a.status as Status;
   if (fromStatus === target) return { ok: true };
 
@@ -1979,7 +2095,7 @@ export async function changeAssignmentStatusInner(
   // Block BEFORE the per-row edit gate so a realtor can't e.g. flip to
   // `completed` on their own row (that's an agency action).
   if (!canRoleTransitionTo(role(session), fromStatus, target)) {
-    return { ok: false, error: "Your role can't set this status." };
+    return { ok: false, error: "errors.assignment.roleCannotSetStatus" };
   }
 
   // The picker allows any flip, including reversing an accidental complete
@@ -1996,7 +2112,7 @@ export async function changeAssignmentStatusInner(
         ? await canCancelAssignment(session, a)
         : await canEditAssignment(session, a);
   if (!allowed) {
-    return { ok: false, error: "You don't have permission to change this status." };
+    return { ok: false, error: "errors.assignment.cannotChangeStatus" };
   }
 
   // If we're leaving `completed`, verify that the commission line isn't
@@ -2020,7 +2136,7 @@ export async function changeAssignmentStatusInner(
       if (payout) {
         return {
           ok: false,
-          error: `Commission for Q${quarter} ${year} was already marked paid. Mark the quarter unpaid first, then reopen this assignment.`,
+          error: "errors.assignment.commissionPaidLocksReopen",
         };
       }
     }
@@ -2053,7 +2169,7 @@ export async function changeAssignmentStatusInner(
   });
 
   if (!result.claimed) {
-    return { ok: false, error: "Status changed while you were away. Reload and try again." };
+    return { ok: false, error: "errors.assignment.statusChangedAway" };
   }
 
   await audit({
@@ -2103,12 +2219,15 @@ export async function changeAssignmentStatusInner(
           notify({
             to: r,
             event: "assignment.scheduled",
-            ...(await assignmentScheduledEmail({
-              ...ctx,
-              recipientName: r.firstName,
-              scheduledAt,
-              freelancerName,
-            })),
+            ...(await assignmentScheduledEmail(
+              {
+                ...ctx,
+                recipientName: r.firstName,
+                scheduledAt,
+                freelancerName,
+              },
+              r.locale,
+            )),
           }),
         ),
       );
@@ -2140,14 +2259,14 @@ export const retryAssignmentOdooSync = withSession(async (
   assignmentId: string,
 ): Promise<ActionResult<{ warning?: string }>> => {
   if (!hasRole(session, "admin", "staff")) {
-    return { ok: false, error: "Admins or staff only." };
+    return { ok: false, error: "errors.permission.staffOnly" };
   }
   const assignment = await prisma.assignment.findUnique({
     where: { id: assignmentId },
     select: { id: true },
   });
   if (!assignment) {
-    return { ok: false, error: "Assignment not found." };
+    return { ok: false, error: "errors.assignment.notFound" };
   }
   await prisma.assignment.update({
     where: { id: assignmentId },
@@ -2219,7 +2338,7 @@ export const deleteAssignment = withSession(async (
       createdById: true,
     },
   });
-  if (!existing) return { ok: false, error: "Assignment not found." };
+  if (!existing) return { ok: false, error: "errors.assignment.notFound" };
   if (!(await canDeleteAssignment(session, existing))) {
     return {
       ok: false,

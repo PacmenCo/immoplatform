@@ -59,19 +59,19 @@ export async function changePasswordInner(
     confirmPassword: formData.get("confirmPassword") ?? "",
   });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "errors.validation.checkForm" };
   }
 
   const passwordHash = await getUserPasswordHash(session.user.id);
   if (!passwordHash) {
     // Users who signed up via invite + password-reset flow always have a hash.
     // A missing hash is a data bug; fail safely rather than letting the change go through.
-    return { ok: false, error: "Your account has no password set. Use the forgot-password flow to set one." };
+    return { ok: false, error: "errors.auth.noPasswordSet" };
   }
 
   const ok = await verifyPassword(parsed.data.currentPassword, passwordHash);
   if (!ok) {
-    return { ok: false, error: "Current password is incorrect." };
+    return { ok: false, error: "errors.auth.currentPasswordIncorrect" };
   }
 
   const newHash = await hashPassword(parsed.data.newPassword);
@@ -136,15 +136,15 @@ export async function deleteOwnAccountInner(
     password: formData.get("password") ?? "",
   });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Enter your password." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "errors.validation.invalidInput" };
   }
   const passwordHash = await getUserPasswordHash(session.user.id);
   if (!passwordHash) {
-    return { ok: false, error: "Your account has no password set — cannot confirm deletion." };
+    return { ok: false, error: "errors.auth.noPasswordSetForDeletion" };
   }
   const ok = await verifyPassword(parsed.data.password, passwordHash);
   if (!ok) {
-    return { ok: false, error: "Password is incorrect." };
+    return { ok: false, error: "errors.auth.passwordIncorrect" };
   }
 
   // Safety: don't let the last active admin vanish. Platform has no such
@@ -161,7 +161,7 @@ export async function deleteOwnAccountInner(
     if (remainingAdmins === 0) {
       return {
         ok: false,
-        error: "You are the last admin. Promote another user before deleting your account.",
+        error: "errors.auth.lastAdminCannotDelete",
       };
     }
   }
@@ -218,14 +218,14 @@ export async function revokeSessionInner(
   sessionId: string,
 ): Promise<ActionResult> {
   if (!sessionId || typeof sessionId !== "string") {
-    return { ok: false, error: "Invalid session id." };
+    return { ok: false, error: "errors.session.invalidId" };
   }
   const target = await prisma.session.findUnique({
     where: { id: sessionId },
     select: { id: true, userId: true, revokedAt: true },
   });
   if (!target || target.userId !== session.user.id) {
-    return { ok: false, error: "Session not found." };
+    return { ok: false, error: "errors.session.notFound" };
   }
   if (target.revokedAt) return { ok: true }; // idempotent
 

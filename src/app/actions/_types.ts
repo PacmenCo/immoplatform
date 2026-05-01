@@ -41,7 +41,7 @@ export function withSession<Args extends unknown[], T>(
     try {
       session = await requireSession();
     } catch {
-      return { ok: false, error: "You must be signed in." };
+      return { ok: false, error: "errors.session.unauthenticated" };
     }
     return handler(session, ...args);
   };

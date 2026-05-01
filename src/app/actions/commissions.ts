@@ -14,9 +14,9 @@ type QuarterInput = {
 };
 
 function validateQuarter(q: QuarterInput): string | null {
-  if (!q.teamId) return "Missing team.";
-  if (!Number.isInteger(q.year) || q.year < 2020 || q.year > 2100) return "Invalid year.";
-  if (!Number.isInteger(q.quarter) || q.quarter < 1 || q.quarter > 4) return "Invalid quarter.";
+  if (!q.teamId) return "errors.commission.missingTeam";
+  if (!Number.isInteger(q.year) || q.year < 2020 || q.year > 2100) return "errors.commission.invalidYear";
+  if (!Number.isInteger(q.quarter) || q.quarter < 1 || q.quarter > 4) return "errors.commission.invalidQuarter";
   return null;
 }
 
@@ -37,7 +37,7 @@ export async function markCommissionQuarterPaidInner(
   input: QuarterInput,
 ): Promise<ActionResult> {
   if (!canMarkCommissionPaid(session)) {
-    return { ok: false, error: "Only admins can mark commissions paid." };
+    return { ok: false, error: "errors.commission.markAdminsOnly" };
   }
   const invalid = validateQuarter(input);
   if (invalid) return { ok: false, error: invalid };
@@ -46,7 +46,7 @@ export async function markCommissionQuarterPaidInner(
     where: { id: input.teamId },
     select: { id: true, name: true },
   });
-  if (!team) return { ok: false, error: "Team not found." };
+  if (!team) return { ok: false, error: "errors.team.notFound" };
 
   const { gte, lt } = quarterRange(input.year, input.quarter);
   const sum = await prisma.assignmentCommission.aggregate({
@@ -73,7 +73,7 @@ export async function markCommissionQuarterPaidInner(
     if (!existing) {
       return {
         ok: false,
-        error: "Nothing to mark paid — this team has no commission this quarter.",
+        error: "errors.commission.nothingToMarkPaid",
       };
     }
   }
@@ -160,7 +160,7 @@ export async function undoCommissionQuarterPaidInner(
   input: QuarterInput,
 ): Promise<ActionResult> {
   if (!canMarkCommissionPaid(session)) {
-    return { ok: false, error: "Only admins can undo commission payouts." };
+    return { ok: false, error: "errors.commission.undoAdminsOnly" };
   }
   const invalid = validateQuarter(input);
   if (invalid) return { ok: false, error: invalid };

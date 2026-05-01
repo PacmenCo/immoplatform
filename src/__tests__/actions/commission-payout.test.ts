@@ -44,7 +44,7 @@ describe("markCommissionQuarterPaidInner — role gate", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can mark commissions paid.",
+      error: "errors.commission.markAdminsOnly",
     });
   });
 
@@ -57,7 +57,7 @@ describe("markCommissionQuarterPaidInner — role gate", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can mark commissions paid.",
+      error: "errors.commission.markAdminsOnly",
     });
   });
 
@@ -80,7 +80,7 @@ describe("markCommissionQuarterPaidInner — input validation", () => {
       year: 2026,
       quarter: 1,
     });
-    expect(res).toEqual({ ok: false, error: "Team not found." });
+    expect(res).toEqual({ ok: false, error: "errors.team.notFound" });
   });
 
   it("year out of sane range → 'Invalid year.'", async () => {
@@ -90,7 +90,7 @@ describe("markCommissionQuarterPaidInner — input validation", () => {
       year: 1999,
       quarter: 1,
     });
-    expect(res).toEqual({ ok: false, error: "Invalid year." });
+    expect(res).toEqual({ ok: false, error: "errors.commission.invalidYear" });
   });
 
   it("quarter < 1 → 'Invalid quarter.'", async () => {
@@ -100,7 +100,7 @@ describe("markCommissionQuarterPaidInner — input validation", () => {
       year: 2026,
       quarter: 0,
     });
-    expect(res).toEqual({ ok: false, error: "Invalid quarter." });
+    expect(res).toEqual({ ok: false, error: "errors.commission.invalidQuarter" });
   });
 
   it("quarter > 4 → 'Invalid quarter.'", async () => {
@@ -110,7 +110,7 @@ describe("markCommissionQuarterPaidInner — input validation", () => {
       year: 2026,
       quarter: 5,
     });
-    expect(res).toEqual({ ok: false, error: "Invalid quarter." });
+    expect(res).toEqual({ ok: false, error: "errors.commission.invalidQuarter" });
   });
 });
 
@@ -283,7 +283,7 @@ describe("markCommissionQuarterPaidInner — idempotency + zero-block", () => {
     expect(res).toEqual({
       ok: false,
       error:
-        "Nothing to mark paid — this team has no commission this quarter.",
+        "errors.commission.nothingToMarkPaid",
     });
     const count = await prisma.commissionPayout.count();
     expect(count).toBe(0);
@@ -404,7 +404,7 @@ describe("undoCommissionQuarterPaidInner", () => {
     });
     expect(res).toEqual({
       ok: false,
-      error: "Only admins can undo commission payouts.",
+      error: "errors.commission.undoAdminsOnly",
     });
   });
 });

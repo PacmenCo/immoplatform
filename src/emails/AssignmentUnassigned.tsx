@@ -1,9 +1,11 @@
 /**
  * Sent to a freelancer when they're removed from an assignment.
- * Platform parity: FreelancerUnassignedMail.
+ * Platform parity: FreelancerUnassignedMail. Copy lives under
+ * `emails.assignmentUnassigned.*`.
  */
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { EmailLayout, P } from "./_layout";
 import {
   AssignmentCta,
@@ -16,21 +18,30 @@ export type AssignmentUnassignedEmailProps = AssignmentEmailCtx & {
   freelancerName: string;
 };
 
-export const subject = (p: AssignmentUnassignedEmailProps) =>
-  `Unassigned: ${addressLine(p)} (${p.reference})`;
+export const subjectKey = "emails.assignmentUnassigned.subject";
+
+export function subjectArgs(
+  p: AssignmentUnassignedEmailProps,
+): Record<string, unknown> {
+  return { address: addressLine(p), reference: p.reference };
+}
 
 export default function AssignmentUnassigned(
   props: AssignmentUnassignedEmailProps,
 ) {
+  const t = useTranslations("emails.assignmentUnassigned");
+  const tCommon = useTranslations("emails.common");
   return (
     <EmailLayout
-      preview={`You've been removed from ${props.reference}`}
-      title="Removed from an assignment"
+      preview={t("preview", { reference: props.reference })}
+      title={t("title")}
     >
-      <P>Hi {props.freelancerName},</P>
+      <P>{tCommon("hi", { name: props.freelancerName })}</P>
       <P>
-        You&rsquo;ve been removed from <strong>{props.reference}</strong> (
-        {addressLine(props)}). No action needed on your side.
+        {t("body", {
+          reference: props.reference,
+          address: addressLine(props),
+        })}
       </P>
       <AssignmentCta ctx={props} />
     </EmailLayout>

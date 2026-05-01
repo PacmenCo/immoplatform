@@ -31,7 +31,7 @@ export const addAssignmentToPersonalGoogle = withSession(async (
   assignmentId: string,
 ): Promise<ActionResult<{ eventId: string }>> => {
   if (!hasRole(session, "admin", "staff")) {
-    return { ok: false, error: "Calendar connection is limited to admin and staff." };
+    return { ok: false, error: "errors.calendar.adminStaffOnly" };
   }
   const account = await prisma.calendarAccount.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: "google" } },
@@ -39,18 +39,18 @@ export const addAssignmentToPersonalGoogle = withSession(async (
   if (!account || account.disconnectedAt) {
     return {
       ok: false,
-      error: "Connect your Google calendar first from Settings → Integrations.",
+      error: "errors.calendar.connectFirst",
     };
   }
   const assignment = await prisma.assignment.findUnique({
     where: { id: assignmentId },
     include: { team: { select: { name: true, legalName: true } } },
   });
-  if (!assignment) return { ok: false, error: "Assignment not found." };
+  if (!assignment) return { ok: false, error: "errors.assignment.notFound" };
 
   const payload = buildEventPayload({ assignment, team: assignment.team });
   if (!payload) {
-    return { ok: false, error: "This assignment has no scheduled date yet." };
+    return { ok: false, error: "errors.assignment.noScheduledDate" };
   }
 
   // Idempotent — if we already added it for this (user, assignment), short-circuit.
@@ -69,7 +69,7 @@ export const addAssignmentToPersonalGoogle = withSession(async (
     providerEventId = await createPersonalGoogleEvent(account, payload, assignmentId);
   } catch (err) {
     console.error("[calendar] addAssignmentToPersonalGoogle failed:", err);
-    return { ok: false, error: "Couldn't add the event to your calendar. Try reconnecting." };
+    return { ok: false, error: "errors.calendar.addEventFailed" };
   }
 
   await prisma.assignmentCalendarEvent.create({
@@ -89,7 +89,7 @@ export const removeAssignmentFromPersonalGoogle = withSession(async (
   assignmentId: string,
 ): Promise<ActionResult> => {
   if (!hasRole(session, "admin", "staff")) {
-    return { ok: false, error: "Calendar connection is limited to admin and staff." };
+    return { ok: false, error: "errors.calendar.adminStaffOnly" };
   }
   const account = await prisma.calendarAccount.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: "google" } },
@@ -121,7 +121,7 @@ export const disconnectCalendarAccount = withSession(async (
   provider: CalendarProvider,
 ): Promise<ActionResult> => {
   if (!hasRole(session, "admin", "staff")) {
-    return { ok: false, error: "Calendar connection is limited to admin and staff." };
+    return { ok: false, error: "errors.calendar.adminStaffOnly" };
   }
   const account = await prisma.calendarAccount.findUnique({
     where: { userId_provider: { userId: session.user.id, provider } },

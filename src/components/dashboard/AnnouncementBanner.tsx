@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { AnnouncementDismissButton } from "./AnnouncementDismissButton";
 import type { ActiveAnnouncement, AnnouncementType } from "@/lib/announcementTypes";
 
@@ -14,11 +15,12 @@ const TONE_STYLES: Record<AnnouncementType, string> = {
   danger: "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-100",
 };
 
-export function AnnouncementBanner({ items }: { items: ActiveAnnouncement[] }) {
+export async function AnnouncementBanner({ items }: { items: ActiveAnnouncement[] }) {
   if (items.length === 0) return null;
+  const t = await getTranslations("dashboard.shared.announcementBanner");
 
   return (
-    <section aria-label="Announcements" className="space-y-3">
+    <section aria-label={t("ariaLabel")} className="space-y-3">
       {items.map((a) => {
         const tone = TONE_STYLES[a.type] ? a.type : "info";
         return (

@@ -135,7 +135,7 @@ async function applyUploadBookkeeping(
     if (err instanceof Error && err.message === "ASSIGNMENT_TERMINAL") {
       return {
         ok: false,
-        error: "This assignment closed while you were uploading. Reload and try again.",
+        error: "errors.assignment.uploadsClosedDuringUpload",
       };
     }
     throw err;
@@ -218,13 +218,16 @@ async function applyUploadBookkeeping(
         notify({
           to: r,
           event: "assignment.files_uploaded",
-          ...(await filesUploadedEmail({
-            ...ctx,
-            recipientName: r.firstName,
-            uploaderName,
-            lane,
-            fileCount: prepared.length,
-          })),
+          ...(await filesUploadedEmail(
+            {
+              ...ctx,
+              recipientName: r.firstName,
+              uploaderName,
+              lane,
+              fileCount: prepared.length,
+            },
+            r.locale,
+          )),
         }),
       ),
     );
@@ -253,11 +256,14 @@ async function applyUploadBookkeeping(
           notify({
             to: r,
             event: "assignment.completed",
-            ...(await assignmentCompletedEmail({
-              ...ctx,
-              recipientName: r.firstName,
-              completedByName: uploaderName,
-            })),
+            ...(await assignmentCompletedEmail(
+              {
+                ...ctx,
+                recipientName: r.firstName,
+                completedByName: uploaderName,
+              },
+              r.locale,
+            )),
           }),
         ),
       );
@@ -283,7 +289,7 @@ export async function uploadAssignmentFilesInner(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  if (!isLane(lane)) return { ok: false, error: "Invalid file lane." };
+  if (!isLane(lane)) return { ok: false, error: "errors.file.invalidLane" };
 
   const assignment = await prisma.assignment.findUnique({
     where: { id: assignmentId },
@@ -295,27 +301,27 @@ export async function uploadAssignmentFilesInner(
       createdById: true,
     },
   });
-  if (!assignment) return { ok: false, error: "Assignment not found." };
+  if (!assignment) return { ok: false, error: "errors.assignment.notFound" };
   if (!(await LANE_UPLOAD_POLICY[lane](session, assignment))) {
     return {
       ok: false,
       error:
         lane === "freelancer"
-          ? "Only the assigned freelancer can upload deliverables."
-          : "Only the assignment's agency can upload supporting files.",
+          ? "errors.file.freelancerOnlyDeliverables"
+          : "errors.file.agencyOnlySupporting",
     };
   }
   if (isTerminalStatus(assignment.status)) {
     return {
       ok: false,
-      error: `This assignment is ${assignment.status} — uploads are closed.`,
+      error: "errors.assignment.uploadsClosed",
     };
   }
 
   const files = formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) return { ok: false, error: "Pick a file to upload." };
+  if (files.length === 0) return { ok: false, error: "errors.file.pickFile" };
   if (files.length > MAX_FILES_PER_UPLOAD) {
-    return { ok: false, error: `Upload up to ${MAX_FILES_PER_UPLOAD} files at a time.` };
+    return { ok: false, error: "errors.file.tooMany" };
   }
 
   const { maxMB, allowedMimes } = FILE_CONSTRAINTS[lane];
@@ -325,13 +331,13 @@ export async function uploadAssignmentFilesInner(
     if (!allowedMimes.includes(mime)) {
       return {
         ok: false,
-        error: `"${file.name}" isn't an allowed file type. ${FILE_CONSTRAINTS[lane].acceptHint}.`,
+        error: "errors.file.typeNotAllowed",
       };
     }
     if (file.size > maxBytes) {
       return {
         ok: false,
-        error: `"${file.name}" is larger than the ${maxMB} MB limit.`,
+        error: "errors.file.tooLarge",
       };
     }
     // Magic-byte sniff against the declared MIME — `file.type` is browser-
@@ -342,7 +348,7 @@ export async function uploadAssignmentFilesInner(
     if (!magicBytesValid(head, mime)) {
       return {
         ok: false,
-        error: `"${file.name}" doesn't match its declared file type.`,
+        error: "errors.file.typeMismatch",
       };
     }
   }
@@ -418,7 +424,7 @@ export async function presignAssignmentFileUploadInner(
   lane: FileLane,
   files: Array<{ name: string; mimeType: string; sizeBytes: number }>,
 ): Promise<ActionResult<{ uploads: PresignedUpload[] }>> {
-  if (!isLane(lane)) return { ok: false, error: "Invalid file lane." };
+  if (!isLane(lane)) return { ok: false, error: "errors.file.invalidLane" };
 
   const assignment = await prisma.assignment.findUnique({
     where: { id: assignmentId },
@@ -430,28 +436,28 @@ export async function presignAssignmentFileUploadInner(
       createdById: true,
     },
   });
-  if (!assignment) return { ok: false, error: "Assignment not found." };
+  if (!assignment) return { ok: false, error: "errors.assignment.notFound" };
   if (!(await LANE_UPLOAD_POLICY[lane](session, assignment))) {
     return {
       ok: false,
       error:
         lane === "freelancer"
-          ? "Only the assigned freelancer can upload deliverables."
-          : "Only the assignment's agency can upload supporting files.",
+          ? "errors.file.freelancerOnlyDeliverables"
+          : "errors.file.agencyOnlySupporting",
     };
   }
   if (isTerminalStatus(assignment.status)) {
     return {
       ok: false,
-      error: `This assignment is ${assignment.status} — uploads are closed.`,
+      error: "errors.assignment.uploadsClosed",
     };
   }
 
   if (!Array.isArray(files) || files.length === 0) {
-    return { ok: false, error: "Pick a file to upload." };
+    return { ok: false, error: "errors.file.pickFile" };
   }
   if (files.length > MAX_FILES_PER_UPLOAD) {
-    return { ok: false, error: `Upload up to ${MAX_FILES_PER_UPLOAD} files at a time.` };
+    return { ok: false, error: "errors.file.tooMany" };
   }
 
   const { maxMB, allowedMimes } = FILE_CONSTRAINTS[lane];
@@ -461,16 +467,16 @@ export async function presignAssignmentFileUploadInner(
     if (!allowedMimes.includes(mime)) {
       return {
         ok: false,
-        error: `"${f.name}" isn't an allowed file type. ${FILE_CONSTRAINTS[lane].acceptHint}.`,
+        error: "errors.file.typeNotAllowed",
       };
     }
     if (!Number.isFinite(f.sizeBytes) || f.sizeBytes <= 0) {
-      return { ok: false, error: `"${f.name}" is empty.` };
+      return { ok: false, error: "errors.file.empty" };
     }
     if (f.sizeBytes > maxBytes) {
       return {
         ok: false,
-        error: `"${f.name}" is larger than the ${maxMB} MB limit.`,
+        error: "errors.file.tooLarge",
       };
     }
   }
@@ -511,12 +517,12 @@ export async function finalizeAssignmentFileUploadInner(
   lane: FileLane,
   items: FinalizeItem[],
 ): Promise<ActionResult> {
-  if (!isLane(lane)) return { ok: false, error: "Invalid file lane." };
+  if (!isLane(lane)) return { ok: false, error: "errors.file.invalidLane" };
   if (!Array.isArray(items) || items.length === 0) {
-    return { ok: false, error: "No uploaded files to finalize." };
+    return { ok: false, error: "errors.file.noneToFinalize" };
   }
   if (items.length > MAX_FILES_PER_UPLOAD) {
-    return { ok: false, error: `Finalize up to ${MAX_FILES_PER_UPLOAD} files at a time.` };
+    return { ok: false, error: "errors.file.tooManyFinalize" };
   }
 
   const assignment = await prisma.assignment.findUnique({
@@ -529,20 +535,20 @@ export async function finalizeAssignmentFileUploadInner(
       createdById: true,
     },
   });
-  if (!assignment) return { ok: false, error: "Assignment not found." };
+  if (!assignment) return { ok: false, error: "errors.assignment.notFound" };
   if (!(await LANE_UPLOAD_POLICY[lane](session, assignment))) {
     return {
       ok: false,
       error:
         lane === "freelancer"
-          ? "Only the assigned freelancer can upload deliverables."
-          : "Only the assignment's agency can upload supporting files.",
+          ? "errors.file.freelancerOnlyDeliverables"
+          : "errors.file.agencyOnlySupporting",
     };
   }
   if (isTerminalStatus(assignment.status)) {
     return {
       ok: false,
-      error: `This assignment is ${assignment.status} — uploads are closed.`,
+      error: "errors.assignment.uploadsClosed",
     };
   }
 
@@ -562,14 +568,14 @@ export async function finalizeAssignmentFileUploadInner(
   for (const it of items) {
     if (!it.storageKey.startsWith(expectedPrefix)) {
       await cleanup();
-      return { ok: false, error: "Upload keys don't match this assignment." };
+      return { ok: false, error: "errors.file.keysMismatch" };
     }
     const mime = (it.mimeType ?? "").toLowerCase();
     if (!allowedMimes.includes(mime)) {
       await cleanup();
       return {
         ok: false,
-        error: `"${it.originalName}" isn't an allowed file type.`,
+        error: "errors.file.typeNotAllowed",
       };
     }
     const head = await store.headObject(it.storageKey);
@@ -577,21 +583,21 @@ export async function finalizeAssignmentFileUploadInner(
       await cleanup();
       return {
         ok: false,
-        error: `"${it.originalName}" didn't finish uploading. Try again.`,
+        error: "errors.file.uploadIncomplete",
       };
     }
     if (head.sizeBytes > maxBytes) {
       await cleanup();
       return {
         ok: false,
-        error: `"${it.originalName}" is larger than the ${maxMB} MB limit.`,
+        error: "errors.file.tooLarge",
       };
     }
     if (Math.abs(head.sizeBytes - it.sizeBytes) > SIZE_TOLERANCE_BYTES) {
       await cleanup();
       return {
         ok: false,
-        error: `"${it.originalName}" doesn't match the expected size.`,
+        error: "errors.file.sizeMismatch",
       };
     }
     const headBytes = await store.getRange(it.storageKey, 0, 1024);
@@ -599,7 +605,7 @@ export async function finalizeAssignmentFileUploadInner(
       await cleanup();
       return {
         ok: false,
-        error: `"${it.originalName}" doesn't match its declared file type.`,
+        error: "errors.file.typeMismatch",
       };
     }
     prepared.push({
@@ -630,7 +636,7 @@ export async function abortAssignmentFileUploadsInner(
   lane: FileLane,
   storageKeys: string[],
 ): Promise<ActionResult> {
-  if (!isLane(lane)) return { ok: false, error: "Invalid file lane." };
+  if (!isLane(lane)) return { ok: false, error: "errors.file.invalidLane" };
   if (!Array.isArray(storageKeys) || storageKeys.length === 0) {
     return { ok: true };
   }
@@ -644,9 +650,9 @@ export async function abortAssignmentFileUploadsInner(
       createdById: true,
     },
   });
-  if (!assignment) return { ok: false, error: "Assignment not found." };
+  if (!assignment) return { ok: false, error: "errors.assignment.notFound" };
   if (!(await LANE_UPLOAD_POLICY[lane](session, assignment))) {
-    return { ok: false, error: "Forbidden." };
+    return { ok: false, error: "errors.file.forbidden" };
   }
   const expectedPrefix = `assignments/${assignmentId}/${lane}/`;
   const safe = storageKeys.filter((k) => k.startsWith(expectedPrefix));
@@ -687,20 +693,20 @@ export async function deleteAssignmentFileInner(
       },
     },
   });
-  if (!file) return { ok: false, error: "File not found." };
+  if (!file) return { ok: false, error: "errors.file.notFound" };
   if (file.deletedAt) return { ok: true }; // idempotent
 
   // Must be able to see the assignment first — prevents enumeration.
   if (!(await canViewAssignmentFiles(session, file.assignment))) {
-    return { ok: false, error: "File not found." };
+    return { ok: false, error: "errors.file.notFound" };
   }
   if (!(await canDeleteAssignmentFile(session, file))) {
-    return { ok: false, error: "You can only delete files you uploaded." };
+    return { ok: false, error: "errors.file.cannotDeleteOthers" };
   }
   if (isTerminalStatus(file.assignment.status)) {
     return {
       ok: false,
-      error: `This assignment is ${file.assignment.status} — file edits are closed.`,
+      error: "errors.assignment.fileEditsClosed",
     };
   }
 
@@ -717,7 +723,7 @@ export async function deleteAssignmentFileInner(
   if (claim.count === 0) {
     return {
       ok: false,
-      error: "File state changed while you were away. Reload and try again.",
+      error: "errors.file.stateChanged",
     };
   }
 
@@ -765,9 +771,9 @@ export async function listAssignmentFilesInner(
     where: { id: assignmentId },
     select: { teamId: true, freelancerId: true, createdById: true },
   });
-  if (!assignment) return { ok: false, error: "Assignment not found." };
+  if (!assignment) return { ok: false, error: "errors.assignment.notFound" };
   if (!(await canViewAssignmentFiles(session, assignment))) {
-    return { ok: false, error: "You don't have permission to see this assignment's files." };
+    return { ok: false, error: "errors.file.cannotViewAssignmentFiles" };
   }
 
   const files = await prisma.assignmentFile.findMany({
@@ -808,9 +814,9 @@ export async function getAssignmentFileDownloadUrlInner(
       },
     },
   });
-  if (!file) return { ok: false, error: "File not found." };
+  if (!file) return { ok: false, error: "errors.file.notFound" };
   if (!(await canViewAssignmentFiles(session, file.assignment))) {
-    return { ok: false, error: "File not found." };
+    return { ok: false, error: "errors.file.notFound" };
   }
 
   // `downloadName` tells S3 / DO Spaces to serve the file with the original

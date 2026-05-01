@@ -1,10 +1,12 @@
 /**
  * Monthly admin reminder — end-of-month nudge to generate invoices.
- * Platform parity: MonthlyInvoiceReminder.
+ * Platform parity: MonthlyInvoiceReminder. Copy lives under
+ * `emails.monthlyInvoiceReminder.*`.
  */
 
 import * as React from "react";
 import { Link } from "@react-email/components";
+import { useTranslations } from "next-intl";
 import { CtaButton, EmailLayout, P, mutedStyle } from "./_layout";
 
 export type MonthlyInvoiceReminderEmailProps = {
@@ -12,31 +14,32 @@ export type MonthlyInvoiceReminderEmailProps = {
   overviewUrl: string;
 };
 
-export const subject = (p: MonthlyInvoiceReminderEmailProps) =>
-  `Invoices due — ${p.monthLabel}`;
+export const subjectKey = "emails.monthlyInvoiceReminder.subject";
+
+export function subjectArgs(
+  p: MonthlyInvoiceReminderEmailProps,
+): Record<string, unknown> {
+  return { monthLabel: p.monthLabel };
+}
 
 export default function MonthlyInvoiceReminder(
   props: MonthlyInvoiceReminderEmailProps,
 ) {
+  const t = useTranslations("emails.monthlyInvoiceReminder");
+  const tCommon = useTranslations("emails.common");
   return (
     <EmailLayout
-      preview={`Heads up: it's the end of ${props.monthLabel}.`}
-      title={`Invoices due — ${props.monthLabel}`}
+      preview={t("preview", { monthLabel: props.monthLabel })}
+      title={t("title", { monthLabel: props.monthLabel })}
     >
-      <P>Hi,</P>
-      <P>
-        Heads up: it&rsquo;s the end of {props.monthLabel}. Review the
-        completed assignments for this month and generate invoices for any
-        that are still open.
-      </P>
-      <CtaButton href={props.overviewUrl}>Go to overview</CtaButton>
+      <P>{t("greeting")}</P>
+      <P>{t("body", { monthLabel: props.monthLabel })}</P>
+      <CtaButton href={props.overviewUrl}>{t("ctaButton")}</CtaButton>
       <P style={mutedStyle}>
-        Or open this URL:{" "}
+        {tCommon("openUrlPrefix")}{" "}
         <Link href={props.overviewUrl}>{props.overviewUrl}</Link>
       </P>
-      <P style={mutedStyle}>
-        You&rsquo;re getting this as the platform&rsquo;s billing contact.
-      </P>
+      <P style={mutedStyle}>{t("footerNote")}</P>
     </EmailLayout>
   );
 }

@@ -24,8 +24,15 @@ export default function DashboardNotFound() {
             <EmptyState
               icon={<IconSearch size={22} />}
               title="We couldn't find that page"
-              description="The link may be broken, or the page may have moved."
-              action={<Button href="/dashboard">Back to dashboard</Button>}
+              description="The link may be broken, or the page may have moved. Head back to your dashboard or use search to find what you need."
+              action={
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Button href="/dashboard">Back to dashboard</Button>
+                  <Button href="/dashboard/search" variant="secondary">
+                    Search
+                  </Button>
+                </div>
+              }
             />
           </CardBody>
         </Card>
